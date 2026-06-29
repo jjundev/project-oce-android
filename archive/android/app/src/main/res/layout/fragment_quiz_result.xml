@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/color_background_1"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="88dp"
+        android:layout_height="88dp"
+        app:cardBackgroundColor="@color/color_quiz_finish_bg"
+        app:cardCornerRadius="44dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/color_quiz_finish"
+        app:strokeWidth="1dp">
+
+        <ImageView
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_gravity="center"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_check"
+            app:tint="@color/color_quiz_finish" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:text="@string/quiz_completed_title"
+        android:textColor="@color/color_primary_text"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tv_quiz_completed_summary"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="4 / 5"
+        android:textColor="@color/color_sub_text"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="center"
+        android:lineSpacingMultiplier="1.4"
+        android:text="@string/quiz_completed_subtitle"
+        android:textColor="@color/color_sub_text"
+        android:textSize="14sp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_quiz_finish"
+        style="@style/Widget.MaterialComponents.Button"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_marginTop="24dp"
+        android:text="@string/quiz_finish_button"
+        android:textColor="@color/color_text_on_fixed_bg"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:backgroundTint="@color/color_quiz_finish"
+        app:cornerRadius="12dp" />
+
+</LinearLayout>

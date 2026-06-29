@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="color_background_1">#0E0F12</color>
+    <color name="color_background_2">#1A1B20</color>
+<!--    <color name="color_background_3">#1D1F24</color>-->
+    <color name="color_background_3">#0E0F12</color>
+    <color name="color_background_4">#1A1B20</color>
+
+    <color name="color_skeleton_bg">#4A4A4A</color>
+
+    <color name="color_primary_text">#F2F3F5</color>
+    <color name="color_sub_text">#A9ADB6</color>
+    <color name="color_sub_sub_text">#7C818C</color>
+    <color name="color_feedback_highlight_bg">#6B4E00</color>
+    <color name="color_feedback_highlight_text">#FFF3CC</color>
+
+    <color name="color_bottom_sheet_handle">#757575</color>
+    <color name="color_progressbar">#39A0ED</color>
+
+    <color name="color_background_translated_sentence_card">#39A0ED</color>
+
+    <color name="expression_natural_accent">#009B72</color>
+    <color name="expression_natural_after_bg">#E6F5F0</color>
+    <color name="expression_natural_icon">#009B72</color>
+
+    <color name="expression_precise_accent">#EF767A</color>
+    <color name="expression_precise_after_bg">#FDEEEE</color>
+    <color name="expression_precise_icon">#EF767A</color>
+
+    <color name="summary_expression_natural_after_bg">#0F2A22</color>
+    <color name="summary_expression_precise_after_bg">#321B21</color>
+    <color name="summary_expression_natural_highlight_bg">#1C4B3D</color>
+    <color name="summary_expression_precise_highlight_bg">#5A2D38</color>
+
+
+
+
+
+
+    <!-- Theme role colors (Dark) -->
+    <color name="theme_color_background">#121212</color>
+    <color name="theme_color_surface">#363537</color>
+    <color name="theme_color_on_background">#FFFFFF</color>
+    <color name="theme_color_on_surface_variant">#757575</color>
+    <color name="semantic_icon_secondary">@color/theme_color_on_surface_variant</color>
+    <color name="semantic_divider">#4A4A4A</color>
+    <color name="semantic_ripple">#26FFFFFF</color>
+    <color name="semantic_sheet_handle">#757575</color>
+    <color name="state_error">#FF8A80</color>
+    <color name="state_listening_prompt">#FF6FA8</color>
+    <color name="state_analyzing_soft">#B0BEC5</color>
+
+
+</resources>

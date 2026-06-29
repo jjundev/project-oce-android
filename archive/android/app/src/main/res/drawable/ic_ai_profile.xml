@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- AI 프로필 아이콘 - 친근한 로봇 캐릭터 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp"
+    android:height="40dp"
+    android:viewportWidth="40"
+    android:viewportHeight="40">
+
+    <!-- 배경 원 -->
+    <path
+        android:fillColor="#E8F4FF"
+        android:pathData="M20,20m-20,0a20,20 0,1 1,40 0a20,20 0,1 1,-40 0" />
+
+    <!-- 얼굴 -->
+    <path
+        android:fillColor="#39A0ED"
+        android:pathData="M20,8c-6.6,0 -12,5.4 -12,12s5.4,12 12,12s12,-5.4 12,-12S26.6,8 20,8z" />
+
+    <!-- 왼쪽 눈 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M15,18m-2.5,0a2.5,2.5 0,1 1,5 0a2.5,2.5 0,1 1,-5 0" />
+
+    <!-- 오른쪽 눈 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M25,18m-2.5,0a2.5,2.5 0,1 1,5 0a2.5,2.5 0,1 1,-5 0" />
+
+    <!-- 미소 -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M14,24 Q20,28 26,24" />
+
+    <!-- 안테나 -->
+    <path
+        android:fillColor="#39A0ED"
+        android:pathData="M19,6L19,8L21,8L21,6L19,6Z" />
+    <path
+        android:fillColor="#39A0ED"
+        android:pathData="M20,4m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+
+</vector>

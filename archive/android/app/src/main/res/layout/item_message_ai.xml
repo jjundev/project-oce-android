@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp"
+    android:gravity="start">
+
+    <!-- AI 프로필 이미지 (원형) -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/card_profile"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="0dp"
+        android:layout_marginEnd="10dp">
+
+        <ImageView
+            android:id="@+id/img_profile"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/ic_ai_profile"
+            android:scaleType="centerCrop"
+            android:contentDescription="AI 프로필" />
+
+    </androidx.cardview.widget.CardView>
+
+    <!-- 말풍선 컨테이너 -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginEnd="48dp">
+
+        <!-- AI 이름 표시 -->
+        <TextView
+            android:id="@+id/tv_ai_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="English Coach"
+            android:textColor="@color/color_primary_text"
+            android:textSize="12sp"
+            android:layout_marginBottom="4dp" />
+
+        <!-- 말풍선과 스피커 아이콘을 담는 가로 레이아웃 -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <!-- 메시지 말풍선 -->
+            <LinearLayout
+                android:id="@+id/bubble_container"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_bubble_ai"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp"
+                app:layout_constrainedWidth="true"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/btn_speaker"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintHorizontal_chainStyle="packed"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <!-- 원문 메시지 -->
+                <TextView
+                    android:id="@+id/tv_message_original"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hello! How can I help you today?"
+                    android:textColor="@color/color_primary_text"
+                    android:textSize="15sp"
+                    android:lineSpacingMultiplier="1.3" />
+
+                <!-- 해석 보기 버튼 -->
+                <TextView
+                    android:id="@+id/btn_show_translation"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="해석 보기"
+                    android:textColor="@color/color_sub_text"
+                    android:textSize="11sp"
+                    android:layout_gravity="end"
+                    android:layout_marginTop="8dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="2dp" />
+
+                <!-- 번역 텍스트 (초기에는 숨김, 애니메이션으로 표시) -->
+                <LinearLayout
+                    android:id="@+id/translation_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    android:layout_marginTop="10dp">
+
+                    <!-- 구분선 -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/divider_light"
+                        android:layout_marginBottom="10dp" />
+
+                    <!-- 한국어 번역 -->
+                    <TextView
+                        android:id="@+id/tv_message_translation"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="안녕하세요! 오늘 어떻게 도와드릴까요?"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp"
+                        android:lineSpacingMultiplier="1.3" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- 스피커 아이콘 (TTS) -->
+            <ImageView
+                android:id="@+id/btn_speaker"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginBottom="4dp"
+                android:src="@drawable/ic_speaker"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                app:tint="@color/color_sub_text"
+                android:contentDescription="음성 재생"
+                android:clickable="true"
+                android:focusable="true"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/bubble_container" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

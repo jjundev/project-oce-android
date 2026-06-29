@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "804702971455",
+    "project_id": "one-click-eng",
+    "storage_bucket": "one-click-eng.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:804702971455:android:3b7419ecca1da7fd6aba8a",
+        "android_client_info": {
+          "package_name": "com.jjundev.oneclickeng"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "804702971455-7lbpqjb1t9v98e9phg50go6ii4itr0o6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.jjundev.oneclickeng",
+            "certificate_hash": "29746af87bb49f0ca6540084a705e16502cceb3e"
+          }
+        },
+        {
+          "client_id": "804702971455-bdbgu2peo0t0n878q94t2go26hk7081o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.jjundev.oneclickeng",
+            "certificate_hash": "1f16483388e0eac8bfb77c3fcdc0d81754fa8ab1"
+          }
+        },
+        {
+          "client_id": "804702971455-8ic489hpdacvi8rk6n7vo476c82nr00g.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6YpD-gHjSzK-ZlhGYVmFayK8YNsag2Ck"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "804702971455-8ic489hpdacvi8rk6n7vo476c82nr00g.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

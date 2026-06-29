@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_dialog_rounded">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/dialog_content_padding">
+
+            <TextView
+                android:id="@+id/tv_header"
+                style="@style/DialogTextHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_header_bottom_margin"
+                android:text="학습 종료" />
+
+            <TextView
+                android:id="@+id/tv_subtitle"
+                style="@style/DialogTextSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_subtitle_bottom_margin"
+                android:text="진행 중인 학습 화면을 종료할게요" />
+
+            <TextView
+                style="@style/DialogTextSectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_section_label_bottom_margin"
+                android:text="종료 전에 확인해 주세요" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/DialogCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_action_top_margin">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/dialog_card_content_padding">
+
+                    <TextView
+                        android:id="@+id/tv_message"
+                        style="@style/DialogTextSubtitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="현재 학습 내역이 저장되지 않아요." />
+
+                    <TextView
+                        android:id="@+id/tv_message_2"
+                        style="@style/DialogTextSubtitle"
+                        android:layout_marginTop="8dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="사용한 크레딧은 돌려받지 못해요." />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btn_cancel"
+                    style="@style/DialogButtonSecondary"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="아니오" />
+
+                <Space
+                    android:layout_width="@dimen/dialog_action_gap"
+                    android:layout_height="0dp" />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btn_confirm"
+                    style="@style/DialogButtonPrimary"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="예" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</FrameLayout>

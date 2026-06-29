@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_dialog_rounded">
+
+    <ScrollView
+        android:id="@+id/layout_quiz_config_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fillViewport="true"
+        android:overScrollMode="never">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/dialog_content_padding">
+
+            <TextView
+                android:id="@+id/tv_header"
+                style="@style/DialogTextHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_header_bottom_margin"
+                android:text="@string/history_quiz_config_title" />
+
+            <TextView
+                android:id="@+id/tv_subtitle"
+                style="@style/DialogTextSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_subtitle_bottom_margin"
+                android:text="@string/history_quiz_config_subtitle" />
+
+            <TextView
+                style="@style/DialogTextSectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_section_label_bottom_margin"
+                android:text="@string/history_quiz_config_period" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/DialogCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_section_bottom_margin">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/dialog_card_content_padding">
+
+                    <RadioGroup
+                        android:id="@+id/rg_quiz_period"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:checkedButton="@+id/rb_period_1w">
+
+                        <RadioButton
+                            android:id="@+id/rb_period_1w"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:buttonTint="@color/selector_dialog_radio_button_tint"
+                            android:text="@string/history_quiz_period_1w"
+                            android:textColor="@color/color_sub_text"
+                            android:textSize="@dimen/dialog_subtitle_text_size" />
+
+                        <RadioButton
+                            android:id="@+id/rb_period_2w"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:buttonTint="@color/selector_dialog_radio_button_tint"
+                            android:text="@string/history_quiz_period_2w"
+                            android:textColor="@color/color_sub_text"
+                            android:textSize="@dimen/dialog_subtitle_text_size" />
+
+                        <RadioButton
+                            android:id="@+id/rb_period_3w"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:buttonTint="@color/selector_dialog_radio_button_tint"
+                            android:text="@string/history_quiz_period_3w"
+                            android:textColor="@color/color_sub_text"
+                            android:textSize="@dimen/dialog_subtitle_text_size" />
+
+                        <RadioButton
+                            android:id="@+id/rb_period_older"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:buttonTint="@color/selector_dialog_radio_button_tint"
+                            android:text="@string/history_quiz_period_older"
+                            android:textColor="@color/color_sub_text"
+                            android:textSize="@dimen/dialog_subtitle_text_size" />
+                    </RadioGroup>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                style="@style/DialogTextSectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_section_label_bottom_margin"
+                android:text="@string/history_quiz_config_count" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/DialogCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/dialog_card_content_padding">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            style="@style/DialogTextSubtitle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/history_quiz_config_count_prompt" />
+
+                        <TextView
+                            android:id="@+id/tv_quiz_count_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/color_dialog_primary_button_bg"
+                            android:textSize="@dimen/dialog_section_label_text_size"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <SeekBar
+                        android:id="@+id/sb_question_count"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:max="9"
+                        android:progress="4"
+                        android:progressBackgroundTint="@color/color_sub_text"
+                        android:progressTint="@color/color_dialog_primary_button_bg"
+                        android:splitTrack="false"
+                        android:thumbTint="@color/color_dialog_primary_button_bg" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btn_quiz_start"
+                style="@style/DialogButtonPrimary"
+                android:layout_width="match_parent"
+                android:layout_marginTop="@dimen/dialog_action_top_margin"
+                android:text="@string/history_quiz_config_confirm_credit_1" />
+        </LinearLayout>
+    </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/layout_quiz_loading"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="@dimen/dialog_loading_padding"
+        android:visibility="gone">
+
+        <ProgressBar
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:indeterminateTint="@color/color_dialog_primary_button_bg" />
+
+        <TextView
+            android:id="@+id/tv_quiz_loading_message"
+            style="@style/DialogTextBody"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/dialog_loading_text_margin_top"
+            android:accessibilityLiveRegion="polite"
+            android:gravity="center"
+            android:text="@string/history_quiz_config_loading"
+            android:textAlignment="center"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</FrameLayout>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_dialog_rounded">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/dialog_content_padding">
+
+            <TextView
+                android:id="@+id/tv_header"
+                style="@style/DialogTextHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_header_bottom_margin"
+                android:text="@string/settings_logout_dialog_title" />
+
+            <TextView
+                android:id="@+id/tv_subtitle"
+                style="@style/DialogTextSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_subtitle_bottom_margin"
+                android:text="현재 기기에서 로그아웃 할게요" />
+
+            <TextView
+                style="@style/DialogTextSectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_section_label_bottom_margin"
+                android:text="@string/settings_logout_dialog_section_title" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/DialogCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_action_top_margin">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/dialog_card_content_padding">
+
+                    <TextView
+                        android:id="@+id/tv_message"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:lineSpacingExtra="4dp"
+                        android:text="@string/settings_logout_dialog_message"
+                        android:textColor="@color/color_sub_text"
+                        android:textSize="@dimen/dialog_subtitle_text_size" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btn_cancel"
+                    style="@style/DialogButtonSecondary"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="@string/settings_logout_dialog_cancel" />
+
+                <Space
+                    android:layout_width="@dimen/dialog_action_gap"
+                    android:layout_height="0dp" />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btn_confirm"
+                    style="@style/DialogButtonPrimary"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="@string/settings_logout_dialog_confirm" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</FrameLayout>

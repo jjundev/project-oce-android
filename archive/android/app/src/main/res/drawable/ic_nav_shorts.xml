@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Rounded rectangle frame (Shorts style) -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M8,3C6.34,3 5,4.34 5,6v12c0,1.66 1.34,3 3,3h8c1.66,0 3,-1.34 3,-3V6c0,-1.66 -1.34,-3 -3,-3H8zM7,6c0,-0.55 0.45,-1 1,-1h8c0.55,0 1,0.45 1,1v12c0,0.55 -0.45,1 -1,1H8c-0.55,0 -1,-0.45 -1,-1V6z" />
+    <!-- Play triangle -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M10,8.5v7l6,-3.5z" />
+</vector>

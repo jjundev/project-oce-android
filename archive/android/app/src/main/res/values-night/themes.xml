@@ -1,0 +1,32 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.Test" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary brand color. -->
+        <item name="colorPrimaryVariant">@color/purple_700</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <!-- Secondary brand color. -->
+        <item name="colorSecondary">@color/teal_200</item>
+        <item name="colorSecondaryVariant">@color/teal_200</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <!-- Semantic role colors -->
+        <item name="colorBackground">@color/theme_color_background</item>
+        <item name="colorSurface">@color/theme_color_surface</item>
+        <item name="colorSurfaceVariant">@color/color_background_2</item>
+        <item name="colorOnBackground">@color/theme_color_on_background</item>
+        <item name="colorOnSurfaceVariant">@color/color_sub_text</item>
+        <item name="android:windowBackground">@color/theme_color_background</item>
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+    </style>
+
+    <style name="Theme.Test.Splash" parent="Theme.Test">
+        <item name="android:windowSplashScreenBackground">@color/color_background_2</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <item name="android:windowSplashScreenAnimationDuration">200</item>
+    </style>
+
+    <style name="TextInputLayoutOverlay" parent="">
+        <item name="colorControlActivated">@color/color_primary_text</item>
+        <item name="colorPrimary">@color/color_primary_text</item>
+    </style>
+</resources>

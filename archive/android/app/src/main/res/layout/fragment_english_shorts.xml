@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/shorts_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/shorts_surface_dark">
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/vp_english_shorts"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/v_shorts_top_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="140dp"
+        android:background="@drawable/bg_shorts_top_scrim"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/v_shorts_bottom_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="140dp"
+        android:layout_gravity="bottom"
+        android:background="@drawable/bg_shorts_bottom_scrim" />
+
+    <!-- 상단: 헤더 + 프로그레스 바 -->
+    <LinearLayout
+        android:id="@+id/layout_shorts_top_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingTop="16dp"
+        android:paddingEnd="16dp">
+
+        <LinearLayout
+            android:id="@+id/layout_shorts_progress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+
+        <TextView
+            android:id="@+id/tv_shorts_header"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_shorts_chip"
+            android:paddingStart="12dp"
+            android:paddingTop="5dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="5dp"
+            android:text="@string/english_shorts_header_label"
+            android:textColor="@color/shorts_chip_text"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- 우측: 좋아요 버튼만 -->
+    <LinearLayout
+        android:id="@+id/layout_shorts_action_rail"
+        android:layout_width="56dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|bottom"
+        android:layout_marginEnd="14dp"
+        android:layout_marginBottom="72dp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/btn_shorts_like"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:background="@drawable/bg_shorts_action_button"
+                android:contentDescription="@string/english_shorts_action_like_content_desc"
+                android:src="@drawable/ic_shorts_like"
+                app:tint="@color/shorts_action_icon" />
+
+            <TextView
+                android:id="@+id/tv_shorts_like_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:text="좋아요"
+                android:textColor="@color/shorts_action_count_text"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/btn_shorts_dislike"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:background="@drawable/bg_shorts_action_button"
+                android:contentDescription="@string/english_shorts_action_dislike_content_desc"
+                android:src="@drawable/ic_shorts_dislike"
+                app:tint="@color/shorts_action_icon" />
+
+            <TextView
+                android:id="@+id/tv_shorts_dislike_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:text="싫어요"
+                android:textColor="@color/shorts_action_count_text"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 하단: 제목 + 태그 -->
+    <LinearLayout
+        android:id="@+id/layout_shorts_bottom_meta"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="92dp"
+        android:layout_marginBottom="72dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tv_shorts_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/shorts_meta_title_text"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <com.google.android.flexbox.FlexboxLayout
+            android:id="@+id/layout_shorts_tags"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            app:flexWrap="wrap" />
+    </LinearLayout>
+
+    <!-- Loading state -->
+    <LinearLayout
+        android:id="@+id/layout_shorts_loading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="visible">
+
+        <ProgressBar
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:indeterminate="true" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/english_shorts_loading"
+            android:textColor="@android:color/white"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- Empty state -->
+    <TextView
+        android:id="@+id/tv_shorts_empty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="@string/english_shorts_empty"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        android:visibility="gone" />
+
+    <!-- Error state -->
+    <LinearLayout
+        android:id="@+id/layout_shorts_error"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tv_shorts_error_message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/english_shorts_error_default"
+            android:textColor="@android:color/white"
+            android:textSize="16sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_shorts_retry"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/english_shorts_retry"
+            android:textColor="@android:color/white"
+            app:strokeColor="@android:color/white" />
+    </LinearLayout>
+
+</FrameLayout>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.button.MaterialButton xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/btn_quiz_choice"
+    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    android:insetTop="0dp"
+    android:insetBottom="0dp"
+    android:minHeight="52dp"
+    android:paddingHorizontal="14dp"
+    android:paddingVertical="12dp"
+    android:textAllCaps="false"
+    android:textColor="@color/text_primary"
+    android:textSize="15sp" />

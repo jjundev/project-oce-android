@@ -1,0 +1,134 @@
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.spotless)
+    id 'com.google.gms.google-services'
+}
+
+// local.properties에서 GEMINI_API_KEY 읽기
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localProperties.load(new FileInputStream(localPropertiesFile))
+}
+
+android {
+    namespace 'com.jjundev.oneclickeng'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.jjundev.oneclickeng"
+        minSdk 31
+        targetSdk 36
+        versionCode 18
+        versionName "1.0.2"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        
+        // BuildConfig에 API Key 및 AdMob ID 추가
+        buildConfigField "String", "GEMINI_API_KEY", "\"${localProperties.getProperty('GEMINI_API_KEY', '')}\""
+        buildConfigField "String", "ADMOB_REWARDED_AD_UNIT_ID", "\"${localProperties.getProperty('ADMOB_REWARDED_AD_UNIT_ID', '')}\""
+        // 필수: 미설정 시 CreditStore에서 결제 시작이 차단되고 검증이 CONFIG_ERROR로 처리됨
+        buildConfigField "String", "CREDIT_BILLING_VERIFY_URL", "\"${localProperties.getProperty('CREDIT_BILLING_VERIFY_URL', '')}\""
+        buildConfigField "String", "DEVELOPER_EMAIL", "\"${localProperties.getProperty('DEVELOPER_EMAIL', 'ufo4hyun@gmail.com')}\""
+
+        ndk {
+            // 지원하는 아키텍처만 포함하여 용량 절감
+            abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+            returnDefaultValues = true
+        }
+    }
+    buildFeatures {
+        buildConfig true
+    }
+}
+
+dependencies {
+    implementation libs.billing
+    implementation libs.play.app.update
+    implementation libs.play.review
+
+    implementation platform(libs.firebase.bom)
+    implementation libs.firebase.analytics
+    implementation libs.firebase.auth
+    implementation libs.google.firebase.firestore
+    implementation libs.firebase.messaging
+
+    // Credential Manager + Google ID
+    implementation libs.credentials
+    implementation libs.credentials.play.services.auth
+    implementation libs.googleid
+
+    implementation libs.navigation.fragment
+    implementation libs.navigation.ui
+    implementation libs.viewpager2
+    implementation libs.flexbox
+
+    implementation libs.appcompat
+    implementation libs.material
+    implementation libs.activity
+    implementation libs.constraintlayout
+    implementation libs.preference
+    implementation libs.dynamicanimation
+    
+    // Gemini Live API 연동
+    implementation libs.okhttp
+    implementation libs.gson
+    implementation libs.shimmer
+    implementation libs.lottie
+    implementation libs.lifecycle.viewmodel
+    implementation libs.lifecycle.livedata
+    implementation libs.lifecycle.runtime
+    implementation libs.firebase.firestore
+
+    // AdMob
+    implementation libs.play.services.ads
+
+    // ExoPlayer (Media3) — English Shorts 비디오 재생
+    implementation libs.media3.exoplayer
+    implementation libs.media3.ui
+
+    testImplementation libs.junit
+    testImplementation libs.arch.core.testing
+    testImplementation libs.robolectric
+    androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.espresso.core
+}
+
+spotless {
+    java {
+        target("src/**/*.java")
+        targetExclude("**/build/**")
+        googleJavaFormat()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+
+    format("xml") {
+        target("src/**/*.xml")
+        targetExclude("**/build/**")
+        indentWithSpaces(4)
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+tasks.named("check") {
+    dependsOn("spotlessCheck")
+}
+

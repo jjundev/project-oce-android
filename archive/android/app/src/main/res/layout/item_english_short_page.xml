@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/shorts_page_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black">
+
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/player_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:resize_mode="zoom"
+        app:use_controller="false" />
+
+    <ImageView
+        android:id="@+id/iv_thumbnail"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@string/english_shorts_thumbnail_desc"
+        android:scaleType="centerCrop" />
+
+    <!-- 재생/일시정지 중앙 인디케이터 (YouTube Shorts 스타일) -->
+    <ImageView
+        android:id="@+id/iv_play_pause_indicator"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:layout_gravity="center"
+        android:background="@drawable/bg_shorts_play_pause_indicator"
+        android:padding="16dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_shorts_pause"
+        android:visibility="gone"
+        android:contentDescription="@string/english_shorts_play_pause_desc" />
+
+</FrameLayout>

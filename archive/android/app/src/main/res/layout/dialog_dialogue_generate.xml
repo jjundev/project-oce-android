@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_dialog_rounded">
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/layout_input_form"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/dialog_content_padding">
+
+            <TextView
+                android:id="@+id/tv_header"
+                style="@style/DialogTextHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_header_bottom_margin"
+                android:text="대본 설정" />
+
+            <TextView
+                style="@style/DialogTextSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_subtitle_bottom_margin"
+                android:text="AI가 상황에 맞는 영어 대화를 생성해요" />
+
+            <TextView
+                style="@style/DialogTextSectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_section_label_bottom_margin"
+                android:text="주제 (Topic)" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/DialogCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_section_bottom_margin">
+
+                <EditText
+                    android:id="@+id/et_topic_input"
+                    style="@style/DialogTextBody"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@android:color/transparent"
+                    android:hint="원하는 주제를 입력해보세요!"
+                    android:inputType="textCapSentences"
+                    android:padding="@dimen/dialog_card_content_padding"
+                    android:textColorHint="@color/color_sub_sub_text" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                style="@style/DialogTextSectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_section_label_bottom_margin"
+                android:text="난이도 (Level)" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.ExposedDropdownMenu"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                app:boxBackgroundColor="@color/color_dialog_card_bg"
+                app:boxCornerRadiusBottomEnd="@dimen/dialog_card_corner_radius"
+                app:boxCornerRadiusBottomStart="@dimen/dialog_card_corner_radius"
+                app:boxCornerRadiusTopEnd="@dimen/dialog_card_corner_radius"
+                app:boxCornerRadiusTopStart="@dimen/dialog_card_corner_radius"
+                app:boxStrokeWidth="0dp"
+                app:boxStrokeWidthFocused="0dp"
+                app:hintEnabled="false">
+
+                <AutoCompleteTextView
+                    android:id="@+id/spinner_level"
+                    style="@style/DialogTextBody"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:popupBackground="@drawable/bg_dropdown_menu_rounded"
+                    android:inputType="none"
+                    android:padding="0dp"
+                    android:text="보통" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <TextView
+                android:id="@+id/tv_level_description"
+                style="@style/DialogTextHelper"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginTop="@dimen/dialog_section_label_bottom_margin"
+                android:layout_marginBottom="@dimen/dialog_section_bottom_margin"
+                android:text="일상적인 대화를 자연스럽게 나눌 수 있는 수준이에요." />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_section_label_bottom_margin"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    style="@style/DialogTextSectionLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="길이 (Length)" />
+
+                <TextView
+                    android:id="@+id/tv_length_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="10줄"
+                    android:textColor="@color/color_dialog_primary_button_bg"
+                    android:textSize="@dimen/dialog_section_label_text_size"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/sb_length"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="18"
+                android:progress="8"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:progressBackgroundTint="@color/color_sub_text"
+                android:progressTint="@color/color_dialog_primary_button_bg"
+                android:splitTrack="false"
+                android:thumbTint="@color/color_dialog_primary_button_bg" />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btn_confirm_generate"
+                style="@style/DialogButtonPrimary"
+                android:layout_width="match_parent"
+                android:layout_marginTop="@dimen/dialog_action_top_margin"
+                android:text="@string/dialogue_generate_confirm_credit_1" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <LinearLayout
+        android:id="@+id/layout_loading"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="@dimen/dialog_loading_padding"
+        android:visibility="gone">
+
+        <ProgressBar
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:indeterminateTint="@color/color_dialog_primary_button_bg" />
+
+        <TextView
+            android:id="@+id/tv_dialogue_loading_message"
+            style="@style/DialogTextBody"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:accessibilityLiveRegion="polite"
+            android:gravity="center"
+            android:layout_gravity="center"
+            android:layout_marginTop="@dimen/dialog_loading_text_margin_top"
+            android:text="@string/dialogue_generate_loading"
+            android:textAlignment="center"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</FrameLayout>

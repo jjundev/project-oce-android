@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="dialog_content_padding">24dp</dimen>
+    <dimen name="dialog_header_text_size">22sp</dimen>
+    <dimen name="dialog_subtitle_text_size">14sp</dimen>
+    <dimen name="dialog_section_label_text_size">14sp</dimen>
+    <dimen name="dialog_body_text_size">16sp</dimen>
+    <dimen name="dialog_helper_text_size">13sp</dimen>
+    <dimen name="dialog_header_bottom_margin">6dp</dimen>
+    <dimen name="dialog_subtitle_bottom_margin">24dp</dimen>
+    <dimen name="dialog_section_label_bottom_margin">8dp</dimen>
+    <dimen name="dialog_section_bottom_margin">24dp</dimen>
+    <dimen name="dialog_card_corner_radius">16dp</dimen>
+    <dimen name="dialog_card_content_padding">16dp</dimen>
+    <dimen name="dialog_action_top_margin">24dp</dimen>
+    <dimen name="dialog_action_gap">12dp</dimen>
+    <dimen name="dialog_button_height">56dp</dimen>
+    <dimen name="dialog_button_text_size">16sp</dimen>
+    <dimen name="dialog_loading_padding">40dp</dimen>
+    <dimen name="dialog_loading_text_margin_top">20dp</dimen>
+</resources>

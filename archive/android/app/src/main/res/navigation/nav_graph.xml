@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/studyModeSelectFragment">
+
+    <fragment
+        android:id="@+id/studyModeSelectFragment"
+        android:name="com.jjundev.oneclickeng.fragment.LearningModeSelectFragment"
+        android:label="StudyModeSelectFragment"
+        tools:layout="@layout/fragment_learning_mode_select">
+        <action
+            android:id="@+id/action_studyModeSelectFragment_to_scriptSelectFragment"
+            app:destination="@id/scriptSelectFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/scriptSelectFragment"
+        android:name="com.jjundev.oneclickeng.fragment.DialogueSelectFragment"
+        android:label="ScriptSelectFragment"
+        tools:layout="@layout/fragment_dialogue_select">
+        <action
+            android:id="@+id/action_scriptSelectFragment_to_creditStoreFragment"
+            app:destination="@id/creditStoreFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/dialogueSummaryFragment"
+        android:name="com.jjundev.oneclickeng.learning.dialoguelearning.DialogueSummaryFragment"
+        android:label="DialogueSummaryFragment"
+        tools:layout="@layout/fragment_dialogue_summary" />
+
+    <fragment
+        android:id="@+id/englishShortsEmptyFragment"
+        android:name="com.jjundev.oneclickeng.fragment.EnglishShortsFragment"
+        android:label="EnglishShortsEmptyFragment"
+        tools:layout="@layout/fragment_english_shorts" />
+
+    <fragment
+        android:id="@+id/gameModeEmptyFragment"
+        android:name="com.jjundev.oneclickeng.fragment.GameModeSelectFragment"
+        android:label="GameModeEmptyFragment"
+        tools:layout="@layout/fragment_game_mode_select" />
+
+    <fragment
+        android:id="@+id/learningHistoryFragment"
+        android:name="com.jjundev.oneclickeng.fragment.history.LearningHistoryFragment"
+        android:label="LearningHistoryFragment"
+        tools:layout="@layout/fragment_learning_history">
+        <action
+            android:id="@+id/action_learningHistoryFragment_to_creditStoreFragment"
+            app:destination="@id/creditStoreFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/settingFragment"
+        android:name="com.jjundev.oneclickeng.fragment.SettingFragment"
+        android:label="SettingFragment"
+        tools:layout="@layout/fragment_setting">
+        <action
+            android:id="@+id/action_settingFragment_to_creditHistoryFragment"
+            app:destination="@id/creditHistoryFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_settingFragment_to_creditStoreFragment"
+            app:destination="@id/creditStoreFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/creditHistoryFragment"
+        android:name="com.jjundev.oneclickeng.fragment.CreditHistoryFragment"
+        android:label="CreditHistoryFragment"
+        tools:layout="@layout/fragment_credit_history" />
+
+    <fragment
+        android:id="@+id/creditStoreFragment"
+        android:name="com.jjundev.oneclickeng.fragment.CreditStoreFragment"
+        android:label="CreditStoreFragment"
+        tools:layout="@layout/fragment_credit_store" />
+
+</navigation>

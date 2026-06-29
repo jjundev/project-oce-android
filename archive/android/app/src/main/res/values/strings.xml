@@ -1,0 +1,301 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="app_name">딸깍영어</string>
+    <string name="greeting_format">반가워요, %1$s님!</string>
+    <string name="study_time_total_label">총 공부</string>
+    <string name="study_time_minutes_format">%1$d분</string>
+    <string name="study_time_hours_minutes_format">%1$d시간 %2$02d분</string>
+    <string name="study_time_today_popup_format">오늘 학습: %1$s</string>
+    <string name="streak_info_format">%1$d일째 열공 중 🔥</string>
+    <!-- Preference Titles -->
+    <string name="messages_header">Messages</string>
+    <string name="sync_header">Sync</string>
+
+    <!-- Messages Preferences -->
+    <string name="signature_title">Your signature</string>
+    <string name="reply_title">Default reply action</string>
+
+    <!-- Sync Preferences -->
+    <string name="sync_title">Sync email periodically</string>
+    <string name="attachment_title">Download incoming attachments</string>
+    <string name="attachment_summary_on">Automatically download attachments for incoming emails
+    </string>
+    <string name="attachment_summary_off">Only download attachments when manually requested</string>
+
+    <!-- Script Generation Options -->
+    <string-array name="levels">
+        <item>매우 쉬움</item>
+        <item>쉬움</item>
+        <item>보통</item>
+        <item>어려움</item>
+        <item>매우 어려움</item>
+    </string-array>
+
+    <!-- Format Selection (Legacy, now fixed to Dialogue) -->
+    <string-array name="formats" tools:ignore="UnusedResources">
+        <item>대화 (Dialogue)</item>
+    </string-array>
+
+    <string-array name="lengths">
+        <item>10줄</item>
+        <item>20줄</item>
+        <item>30줄</item>
+    </string-array>
+    <string name="desc_save_word">Save word</string>
+    <string name="desc_save_sentence">Save sentence</string>
+    <string name="desc_save_expression">Save expression</string>
+    <string name="desc_save_paraphrasing">Save paraphrasing sentence</string>
+    <string name="summary_empty_liked_sentences">No bookmarked paraphrasing sentences yet.</string>
+    <string name="summary_generating">Generating summary...</string>
+    <string name="summary_expressions_load_error">표현 카드를 불러올 수 없어요. 잠시 후 다시 시도해 주세요.</string>
+    <string name="summary_words_load_error">Summary words are unavailable right now. Please try again later.</string>
+    <string name="summary_words_no_new">새로운 단어가 없어요</string>
+    <string name="quiz_overline">Review Quiz</string>
+    <string name="quiz_loading">복습 퀴즈를 준비하고 있어요...</string>
+    <string name="quiz_error_title">퀴즈를 불러오지 못했어요</string>
+    <string name="quiz_error_default">문제를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.</string>
+    <string name="quiz_retry">다시 시도</string>
+    <string name="quiz_toolbar_title">복습 퀴즈</string>
+    <string name="quiz_progress_format">%1$d / %2$d</string>
+    <string name="quiz_question_label">문제</string>
+    <string name="quiz_answer_input_hint">정답을 입력해 주세요</string>
+    <string name="quiz_primary_check">정답 확인</string>
+    <string name="quiz_primary_next">다음 문제로</string>
+    <string name="quiz_primary_finish">학습 종료</string>
+    <string name="quiz_next_question_loading_notice">다음 퀴즈를 불러오는 중이에요. 잠시만 기다려 주세요.</string>
+    <string name="quiz_result_correct">정답이에요!</string>
+    <string name="quiz_result_incorrect">아쉬워요. 다시 확인해볼까요?</string>
+    <string name="quiz_correct_answer_format">정답: %1$s</string>
+    <string name="quiz_explanation_format">해설: %1$s</string>
+    <string name="quiz_completed_title">퀴즈 완료!</string>
+    <string name="quiz_completed_summary_format">%1$d / %2$d 문제 정답</string>
+    <string name="quiz_completed_subtitle">오늘 학습한 표현과 단어를 잘 복습했어요.</string>
+    <string name="quiz_finish_button">학습 마치기</string>
+    <string name="learning_finished_quiz_subtitle">학습 요약을 확인하고 오늘 학습을 마무리해 보세요.</string>
+    <string name="learning_finished_quiz_button">학습 요약 보기</string>
+    <string name="summary_finish_button">완료 후 나가기</string>
+    <string name="summary_start_quiz_button">퀴즈 진행</string>
+    <string name="dialog_exit_message_back_to_main">메인 화면으로 돌아갈까요?</string>
+    <string name="content_desc_back">뒤로가기</string>
+    <string name="bottom_nav_content_desc">Bottom navigation</string>
+    <string name="bottom_nav_tab_mode">학습</string>
+    <string name="bottom_nav_tab_script">Scripts</string>
+    <string name="bottom_nav_tab_summary">Summary</string>
+    <string name="bottom_nav_tab_english_shorts">쇼츠</string>
+    <string name="bottom_nav_tab_game_mode">게임</string>
+    <string name="bottom_nav_tab_learning_history">기록</string>
+    <string name="bottom_nav_tab_settings">설정</string>
+    <string name="empty_feature_status_ready">준비 중이에요.</string>
+    <string name="empty_feature_english_shorts_title">영어학습 쇼츠</string>
+    <string name="empty_feature_game_mode_title">게임 모드</string>
+    <string name="empty_feature_learning_history_title">학습한 내용 기록</string>
+    <string name="empty_feature_settings_title">설정</string>
+
+    <string name="settings_section_mute">음소거</string>
+    <string name="settings_mute_all_playback">모든 재생 음소거</string>
+
+    <string name="settings_header_title">설정</string>
+    <string name="settings_header_subtitle">앱 환경을 설정해 보세요</string>
+    <string name="settings_profile_email_label">이메일</string>
+    <string name="settings_section_gemini_api">GEMINI API</string>
+    <string name="settings_api_key_title">API Key</string>
+    <string name="settings_api_key_description">직접 API Key를 입력하면 기본 Key 대신 사용해요</string>
+    <string name="settings_model_title">AI 모델 설정</string>
+    <string name="settings_model_description">기능별로 사용할 Gemini 모델을 선택해 주세요</string>
+    <string name="settings_connection_test_title">연결 테스트</string>
+    <string name="settings_connection_test_description">API Key와 모델이 정상적으로 동작하는지 확인해요</string>
+    <string name="settings_section_app_info">앱 정보</string>
+    <string name="settings_app_version_label">앱 버전</string>
+    <string name="settings_app_version_code_label">버전 코드</string>
+    <string name="settings_section_llm">LLM 설정</string>
+    <string name="settings_api_key_override_label">Gemini API Key를 입력해 주세요</string>
+    <string name="settings_api_key_override_hint">비워두면 기본 API key 사용</string>
+    <string name="settings_model_sentence">문장 피드백 모델</string>
+    <string name="settings_model_speaking">발화 피드백 모델</string>
+    <string name="settings_model_script">대화 대본 모델</string>
+    <string name="settings_model_summary">요약 모델</string>
+    <string name="settings_model_extra">추가질문 모델</string>
+
+    <string name="settings_api_test">API 테스트</string>
+    <string name="settings_api_test_idle">아직 테스트하지 않음</string>
+    <string name="settings_api_test_running">테스트 중...</string>
+    <string name="settings_api_test_success">연결 성공</string>
+    <string name="settings_api_test_fail_code">연결 실패 (HTTP %1$d)</string>
+    <string name="settings_api_test_fail_message">연결 실패: %1$s</string>
+    <string name="settings_api_test_missing_key">API key가 비어 있어요.</string>
+    <string name="settings_model_reset">기본값으로 초기화</string>
+    <string name="settings_learning_reset_title">학습 데이터 정리</string>
+    <string name="settings_learning_reset_subtitle">이전 학습 기록을 삭제해요</string>
+    <string name="settings_learning_reset_section_title">보존 기간</string>
+    <string name="settings_learning_reset_option_keep_1w">최근 1주만 남기기</string>
+    <string name="settings_learning_reset_option_keep_2w">최근 2주만 남기기</string>
+    <string name="settings_learning_reset_option_keep_1m">최근 1개월만 남기기</string>
+    <string name="settings_learning_reset_option_keep_3m">최근 3개월만 남기기</string>
+    <string name="settings_learning_reset_option_all">전체 삭제</string>
+    <string name="settings_learning_reset_desc_keep_1w">최근 1주 데이터는 보존하고, 그 이전 기록은 삭제해요.</string>
+    <string name="settings_learning_reset_desc_keep_2w">최근 2주 데이터는 보존하고, 그 이전 기록은 삭제해요.</string>
+    <string name="settings_learning_reset_desc_keep_1m">최근 1개월 데이터는 보존하고, 그 이전 기록은 삭제해요.</string>
+    <string name="settings_learning_reset_desc_keep_3m">최근 3개월 데이터는 보존하고, 그 이전 기록은 삭제해요.</string>
+    <string name="settings_learning_reset_desc_all">학습 기록 전체를 삭제해요. 이 작업은 되돌릴 수 없어요.</string>
+    <string name="settings_learning_reset_cancel">취소</string>
+    <string name="settings_learning_reset_confirm">삭제 실행</string>
+    <string name="settings_learning_reset_loading">학습 데이터를 정리하고 있어요...</string>
+    <string name="settings_learning_reset_login_required">로그인이 필요해요.</string>
+    <string name="settings_learning_reset_nothing_to_delete">삭제할 학습 데이터가 없어요.</string>
+    <string name="settings_learning_reset_success_count">%1$d개의 학습 데이터를 삭제했어요.</string>
+    <string name="settings_learning_reset_failed">학습 데이터 삭제에 실패했어요. 잠시 후 다시 시도해 주세요.</string>
+    <string name="settings_learning_reset_partial_failed">일부가 삭제됐어요 (%1$d개). 네트워크 상태를 확인하고 다시 시도해 주세요.</string>
+    <string name="settings_learning_metrics_reset_title">누적 기록 초기화</string>
+    <string name="settings_learning_metrics_reset_subtitle">누적 학습 기록이 모두 초기화돼요</string>
+    <string name="settings_learning_metrics_reset_section_title">초기화 항목</string>
+    <string name="settings_learning_metrics_reset_target_streak">연속 학습 일수</string>
+    <string name="settings_learning_metrics_reset_target_study_time">누적 학습 시간</string>
+    <string name="settings_learning_metrics_reset_target_xp">획득 포인트(XP)</string>
+    <string name="settings_learning_metrics_reset_warning">이 작업은 되돌릴 수 없어요.</string>
+    <string name="settings_learning_metrics_reset_cancel">취소</string>
+    <string name="settings_learning_metrics_reset_confirm">초기화</string>
+    <string name="settings_learning_metrics_reset_loading">누적 기록을 초기화하고 있어요...</string>
+    <string name="settings_learning_metrics_reset_login_required">로그인이 필요해요.</string>
+    <string name="settings_learning_metrics_reset_success">누적 기록을 초기화했어요.</string>
+    <string name="settings_learning_metrics_reset_failed">누적 기록 초기화에 실패했어요. 잠시 후 다시 시도해 주세요.</string>
+    <string name="settings_creator_bonus_toast">개발자의 선물 획득</string>
+    <string name="settings_creator_planner_bonus_toast">기획자의 선물 획득</string>
+    <string name="settings_logout_dialog_title">로그아웃</string>
+    <string name="settings_logout_dialog_subtitle">학습 기록은 서버에서 안전하게 보관돼요.</string>
+    <string name="settings_logout_dialog_section_title">로그아웃 전에 확인해 주세요</string>
+    <string name="settings_logout_dialog_message">누적된 학습 데이터는 서버에서 안전하게 보관해요.</string>
+    <string name="settings_logout_dialog_cancel">취소</string>
+    <string name="settings_logout_dialog_confirm">로그아웃</string>
+
+    <string name="settings_section_tts">TTS 설정</string>
+    <string name="settings_tts_provider_android">Provider: Android TTS (고정)</string>
+    <string name="settings_tts_provider_api_soon">API 기반 TTS: 준비 중</string>
+    <string name="settings_tts_speed_label">말하기 속도 설정</string>
+    <string name="settings_tts_rate_default">1.00x</string>
+    <string name="settings_tts_rate_format">%1$.2fx</string>
+    <string name="settings_tts_locale_preset_label">로케일 프리셋</string>
+    <string name="settings_tts_locale_custom_label">직접 입력 (BCP-47)</string>
+    <string name="settings_tts_locale_custom_hint">예: en-US</string>
+    <string name="settings_tts_locale_custom_item">직접 입력</string>
+
+    <string name="settings_mute_blocked_toast">무음 모드가 켜져 있어 재생이 차단돼요.</string>
+    <string name="dialogue_learning_settings_title">학습 설정</string>
+    <string name="dialogue_learning_settings_subtitle">학습 관련 설정을 조정할 수 있어요</string>
+    <string name="dialogue_learning_settings_section_mute">음소거</string>
+    <string name="dialogue_learning_settings_section_mute_placeholder">다음 작업에서 음소거 토글이 연결돼요.</string>
+    <string name="dialogue_learning_settings_section_tts">TTS 설정</string>
+    <string name="dialogue_learning_settings_tts_android_desc">기기 내장 음성 엔진으로 빠르게 재생해요.</string>
+    <string name="dialogue_learning_settings_tts_gemini_desc">서버 기반 음성 엔진으로 로딩이 느리지만, 자연스러운 발음을 기대할 수 있어요.</string>
+    <string name="dialogue_learning_settings_section_tts_placeholder">속도 및 로케일 컨트롤은 다음 작업에서 연결돼요.</string>
+    <string name="dialogue_learning_settings_close">닫기</string>
+
+    <string name="english_shorts_header_label">일일 영어 학습 쇼츠</string>
+    <string name="english_shorts_action_like_content_desc">이 쇼츠 좋아요</string>
+    <string name="english_shorts_like_requires_login">쇼츠에 좋아요를 누르려면 로그인해 주세요.</string>
+    <string name="english_shorts_like_update_failed">좋아요를 업데이트하지 못했어요. 다시 시도해 주세요.</string>
+    <string name="english_shorts_reaction_requires_login">쇼츠에 반응하려면 로그인해 주세요.</string>
+    <string name="english_shorts_reaction_update_failed">반응을 업데이트하지 못했어요. 다시 시도해 주세요.</string>
+    <string name="english_shorts_action_dislike_content_desc">이 쇼츠 싫어요</string>
+    <string name="english_shorts_thumbnail_desc">쇼츠 썸네일</string>
+    <string name="english_shorts_loading">쇼츠를 불러오는 중...</string>
+    <string name="english_shorts_empty">아직 준비된 쇼츠가 없어요</string>
+    <string name="english_shorts_error_default">콘텐츠를 불러올 수 없어요.</string>
+    <string name="english_shorts_retry">다시 시도</string>
+    <string name="english_shorts_play_pause_desc">재생/일시정지</string>
+
+    <string name="notification_inbox_title">알림</string>
+    <string name="notification_inbox_subtitle">알림 내역을 확인할 수 있어요</string>
+    <string name="notification_inbox_section_title">최근 알림</string>
+    <string name="notification_inbox_permission_notice">알림 권한이 꺼져 있지만, 저장된 알림 내역은 확인할 수 있어요.</string>
+    <string name="notification_inbox_loading">알림을 불러오는 중이에요...</string>
+    <string name="notification_inbox_empty">아직 저장된 알림이 없어요.</string>
+    <string name="notification_inbox_close">닫기</string>
+    <string name="notification_default_title">새 알림</string>
+    <string name="notification_default_body">내용이 없는 알림입니다.</string>
+    <string name="notification_inbox_source_fcm">푸시</string>
+    <string name="notification_inbox_source_local">앱</string>
+    <string name="notification_inbox_source_not_posted">알림창 미표시</string>
+    <string name="notification_channel_general_name">OneClickEng 알림</string>
+    <string name="notification_channel_general_description">OneClickEng 시스템 알림 채널</string>
+    <string name="credit_history_title">크레딧 이용 내역</string>
+    <string name="credit_history_subtitle">최근 크레딧 충전 및 사용 내역을 확인할 수 있어요</string>
+    <string name="credit_history_section_title">최근 내역</string>
+    <string name="credit_history_loading">내역을 불러오는 중이에요...</string>
+    <string name="credit_history_empty">아직 내역이 없어요.</string>
+    <string name="credit_history_login_required">로그인이 필요해요.</string>
+    <string name="credit_history_load_failed">내역을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</string>
+    <string name="credit_history_close">닫기</string>
+    <string name="credit_history_event_purchase_charge">구매 충전</string>
+    <string name="credit_history_event_ad_charge">광고 충전</string>
+    <string name="credit_history_event_learning_use">학습 사용</string>
+    <string name="credit_history_event_quiz_use">퀴즈 사용</string>
+    <string name="credit_history_event_signup_bonus_charge">회원가입 보너스</string>
+    <string name="credit_history_event_unknown">기타</string>
+    <string name="credit_history_delta_format">%1$+d</string>
+    <string name="credit_history_meta_format">남은 크레딧 %1$d개 · %2$s</string>
+    <string name="credit_history_time_unknown">시간 정보 없음</string>
+
+    <string-array name="settings_llm_model_presets">
+        <item>gemini-3-flash-preview</item>
+        <item>gemini-2.5-flash-lite</item>
+        <item>gemini-2.5-flash</item>
+    </string-array>
+
+    <string-array name="settings_tts_locale_presets">
+        <item>직접 입력</item>
+        <item>en-US</item>
+        <item>en-GB</item>
+        <item>ko-KR</item>
+        <item>ja-JP</item>
+    </string-array>
+
+    <string name="learning_history_header_title">학습 기록</string>
+    <string name="learning_history_header_subtitle">지금까지 학습한 내용을 확인해 보세요</string>
+
+    <!-- Dialogue Generate Loading -->
+    <string name="dialogue_generate_loading">AI가 대본을 생성하고 있어요...</string>
+    <string name="dialogue_generate_confirm_credit_1">대본 생성하기 (1 크레딧)</string>
+    <string name="dialogue_generate_confirm_credit_2">대본 생성하기 (2 크레딧)</string>
+    <string-array name="dialogue_generate_loading_messages">
+        <item>@string/dialogue_generate_loading</item>
+        <item>대화 흐름을 구성하고 있어요...</item>
+        <item>문장 표현을 다듬고 있어요...</item>
+        <item>거의 준비됐어요. 잠시만 기다려 주세요!</item>
+    </string-array>
+
+    <!-- History Quiz -->
+    <string name="history_quiz_btn_word">단어 퀴즈 풀기</string>
+    <string name="history_quiz_btn_expression">표현 퀴즈 풀기</string>
+    <string name="history_quiz_btn_sentence">문장 퀴즈 풀기</string>
+    <string name="history_quiz_config_title">퀴즈 설정</string>
+    <string name="history_quiz_config_subtitle">학습 기록을 바탕으로 퀴즈를 생성해요</string>
+    <string name="history_quiz_config_period">출제 범위 (기간)</string>
+    <string name="history_quiz_period_1w">최근 1주</string>
+    <string name="history_quiz_period_2w">1~2주 전</string>
+    <string name="history_quiz_period_3w">2~3주 전</string>
+    <string name="history_quiz_period_older">3주 이상</string>
+    <string name="history_quiz_config_count">문제 수</string>
+    <string name="history_quiz_config_count_prompt">몇 개의 문제를 만들어볼까요?</string>
+    <string name="history_quiz_config_count_value_format">%1$d문제</string>
+    <string name="history_quiz_config_loading">문제를 준비하고 있어요...</string>
+    <string-array name="history_quiz_config_loading_messages">
+        <item>@string/history_quiz_config_loading</item>
+        <item>학습 기록을 분석하고 있어요...</item>
+        <item>출제할 문제를 정리하고 있어요...</item>
+        <item>거의 준비됐어요. 잠시만 기다려 주세요!</item>
+    </string-array>
+    <string name="history_quiz_config_cancel">취소</string>
+    <string name="history_quiz_config_confirm">퀴즈 생성하기 (1 크레딧)</string>
+    <string name="history_quiz_config_confirm_credit_1">퀴즈 생성하기 (1 크레딧)</string>
+    <string name="history_quiz_config_confirm_credit_2">퀴즈 생성하기 (2 크레딧)</string>
+    <string name="history_quiz_err_no_items">해당 기간에 학습한 항목이 없어요.</string>
+    <string name="history_quiz_err_count_range">문제 수를 1~10 사이로 입력해 주세요.</string>
+
+    <!-- Login / Google Sign-In -->
+    <string name="login_google_error_generic">구글 로그인에 실패했어요. 다시 시도해 주세요.</string>
+    <string name="login_google_error_parse">구글 계정 정보를 처리하지 못했어요. 다시 시도해 주세요.</string>
+    <string name="login_google_error_no_credential">사용 가능한 구글 계정을 찾지 못했어요. 계정을 추가한 뒤 다시 시도해 주세요.</string>
+    <string name="login_google_error_canceled">구글 로그인이 취소되었어요.</string>
+    <string name="login_google_error_interrupted">구글 로그인 요청이 중단되었어요. 다시 시도해 주세요.</string>
+    <string name="login_google_error_provider_config">구글 로그인 설정이 올바르지 않아요. 앱을 업데이트한 뒤 다시 시도해 주세요.</string>
+    <string name="login_google_error_unexpected_credential">지원되지 않는 로그인 응답을 받았어요. 다시 시도해 주세요.</string>
+</resources>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layoutLoginContent"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tvLoginTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="1초 만에 빠른 시작"
+        android:textColor="@color/color_primary_text"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tvLoginDescription"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="복잡한 가입 절차 없이 바로 학습을 시작하세요"
+        android:textColor="@color/color_primary_text"
+        android:textSize="15sp"
+        android:layout_marginBottom="32dp" />
+
+    <!-- Google Login Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnGoogleLogin"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:layout_marginBottom="6dp"
+        android:text="구글 계정으로 시작하기"
+        android:textColor="#3C4043"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:backgroundTint="#FFFFFF"
+        app:cornerRadius="16dp"
+        app:icon="@drawable/ic_google_logo"
+        app:iconGravity="textStart"
+        app:iconPadding="10dp"
+        app:iconSize="24dp"
+        app:iconTint="@null"
+        app:rippleColor="#22000000"
+        app:strokeColor="#E0E0E0"
+        app:strokeWidth="1dp" />
+
+    <!-- Email Login Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnEmailLogin"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="이메일로 시작하기"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:backgroundTint="#242424"
+        app:cornerRadius="16dp"
+        app:elevation="0dp"
+        app:icon="@drawable/ic_email_logo"
+        app:iconGravity="textStart"
+        app:iconPadding="10dp"
+        app:iconSize="24dp"
+        app:iconTint="#FFFFFF"
+        app:rippleColor="#33FFFFFF" />
+
+</LinearLayout>

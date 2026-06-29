@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_dialog_rounded">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fillViewport="true"
+        android:overScrollMode="never">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/dialog_content_padding">
+
+            <TextView
+                android:id="@+id/tv_header"
+                style="@style/DialogTextHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_header_bottom_margin"
+                android:text="@string/dialogue_learning_settings_title" />
+
+            <TextView
+                android:id="@+id/tv_subtitle"
+                style="@style/DialogTextSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_subtitle_bottom_margin"
+                android:text="@string/dialogue_learning_settings_subtitle" />
+
+            <TextView
+                style="@style/DialogTextSectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_section_label_bottom_margin"
+                android:text="@string/dialogue_learning_settings_section_mute" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/DialogCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_section_bottom_margin">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/dialog_card_content_padding">
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switch_mute_all"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="40dp"
+                        android:text="@string/settings_mute_all_playback"
+                        android:textColor="@color/color_sub_text"
+                        android:textSize="@dimen/dialog_helper_text_size"
+                        android:textStyle="bold"
+                        app:thumbTint="@color/selector_switch_mute_thumb"
+                        app:trackTint="@color/selector_switch_mute_track"
+                        app:useMaterialThemeColors="false" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                style="@style/DialogTextSectionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/dialog_section_label_bottom_margin"
+                android:text="@string/dialogue_learning_settings_section_tts" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/DialogCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/dialog_card_content_padding">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="TTS 방식 선택"
+                        android:textColor="@color/color_sub_text"
+                        android:textSize="@dimen/dialog_helper_text_size"
+                        android:textStyle="bold" />
+
+                    <RadioGroup
+                        android:id="@+id/rg_tts_provider"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/dialog_section_label_bottom_margin"
+                        android:orientation="horizontal">
+
+                        <RadioButton
+                            android:id="@+id/rb_provider_android"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="16dp"
+                            android:buttonTint="@color/selector_dialog_radio_button_tint"
+                            android:text="Android TTS"
+                            android:textColor="@color/color_sub_text"
+                            android:textSize="14sp" />
+
+                        <RadioButton
+                            android:id="@+id/rb_provider_gemini"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:buttonTint="@color/selector_dialog_radio_button_tint"
+                            android:text="Gemini API"
+                            android:textColor="@color/color_sub_text"
+                            android:textSize="14sp" />
+                    </RadioGroup>
+
+                    <TextView
+                        android:id="@+id/tv_tts_provider_desc"
+                        style="@style/DialogTextHelper"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textColor="@color/color_sub_sub_text" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_marginVertical="12dp"
+                        android:background="@color/color_sub_sub_text" />
+
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerVertical="true"
+                            android:text="@string/settings_tts_speed_label"
+                            android:textColor="@color/color_sub_text"
+                            android:textSize="@dimen/dialog_helper_text_size"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/btn_reset_speed"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentEnd="true"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:padding="4dp"
+                            android:text="초기화"
+                            android:textColor="@color/color_dialog_primary_button_bg"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                    </RelativeLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/dialog_section_label_bottom_margin"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <SeekBar
+                            android:id="@+id/seek_tts_rate"
+                            android:thumbTint="@color/color_dialog_primary_button_bg"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:progress="50"
+                            android:layout_weight="1" />
+
+                        <TextView
+                            android:id="@+id/tv_tts_rate_value"
+                            android:layout_width="72dp"
+                            android:layout_height="wrap_content"
+                            android:gravity="end"
+                            android:text="@string/settings_tts_rate_default"
+                            android:textColor="@color/color_sub_text"
+                            android:textSize="@dimen/dialog_helper_text_size"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btn_close"
+                style="@style/DialogButtonPrimary"
+                android:layout_width="match_parent"
+                android:layout_marginTop="@dimen/dialog_action_top_margin"
+                android:elevation="0dp"
+                android:stateListAnimator="@null"
+                android:text="@string/dialogue_learning_settings_close" />
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 배경 링 (투명 또는 연한 색) -->
+    <item>
+        <shape android:shape="ring"
+            android:innerRadiusRatio="2.5"
+            android:thicknessRatio="20"
+            android:useLevel="false">
+            <solid android:color="#30FFFFFF" />
+        </shape>
+    </item>
+    <!-- 프로그레스 링 (보라색) -->
+    <item>
+        <rotate
+            android:fromDegrees="-90"
+            android:toDegrees="270"
+            android:pivotX="50%"
+            android:pivotY="50%">
+            <shape android:shape="ring"
+                android:innerRadiusRatio="2.5"
+                android:thicknessRatio="20"
+                android:useLevel="true">
+                <solid android:color="@color/state_analyzing_soft" />
+            </shape>
+        </rotate>
+    </item>
+</layer-list>

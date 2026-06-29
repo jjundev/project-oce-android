@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="20dp"
+    android:height="20dp"
+    android:viewportWidth="20"
+    android:viewportHeight="20">
+    <path
+        android:fillColor="@color/expression_precise_icon"
+        android:pathData="M10,2A8,8 0,1 1,2 10A8,8 0,0 1,10 2Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M10,4A6,6 0,1 1,4 10A6,6 0,0 1,10 4Z" />
+    <path
+        android:fillColor="@color/expression_precise_icon"
+        android:pathData="M10,6A4,4 0,1 1,6 10A4,4 0,0 1,10 6Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M10,8A2,2 0,1 1,8 10A2,2 0,0 1,10 8Z" />
+    <path
+        android:fillColor="@color/expression_precise_icon"
+        android:pathData="M10,9.2L17.5,3.5L16.6,2.3L9.2,8L9.2,6.4L7.8,6.4L7.8,10.6L12,10.6L12,9.2Z" />
+</vector>

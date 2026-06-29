@@ -1,0 +1,4 @@
+<layoutAnimation xmlns:android="http://schemas.android.com/apk/res/android"
+    android:animation="@anim/anim_item_slide_fade_in"
+    android:delay="0.3"
+    android:animationOrder="normal" />

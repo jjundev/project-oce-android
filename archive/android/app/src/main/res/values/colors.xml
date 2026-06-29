@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_500">#FFEF767A</color>
+    <color name="purple_700">#FFD35D61</color>
+    <color name="teal_200">#FF39A0ED</color>
+    <color name="teal_700">#FF2B7FBB</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!--   test!!    -->
+    <color name="color_background_1">#F3F4F6</color>
+    <color name="color_background_2">#FFFFFF</color>
+<!--    <color name="color_background_3">#FCFCFC</color>-->
+    <color name="color_background_3">#F3F4F6</color>
+    <color name="color_background_4">#FFFFFF</color>
+
+    <color name="color_primary_text">#353C45</color>
+    <color name="color_sub_text">#676B73</color>
+    <color name="color_sub_sub_text">#8E9399</color>
+    <color name="color_text_on_fixed_bg">#F2F3F5</color>
+    <color name="color_sub_text_on_fixed_bg">#CCFFFFFF</color>
+    <color name="color_feedback_highlight_bg">#FFF3CD</color>
+    <color name="color_feedback_highlight_text">#5D4300</color>
+    <color name="color_error_et">#ED3939</color>
+
+    <color name="color_toolbar_icon">@color/color_sub_text</color>
+    <color name="color_bottom_sheet_handle">#C9D1DB</color>
+    <color name="color_progressbar">#39A0ED</color>
+    <color name="color_quiz_finish">#009B72</color>
+    <color name="color_quiz_finish_bg">#E6F5F0</color>
+
+    <color name="color_skeleton_bg">#E0E0E0</color>
+
+
+    <color name="color_background_translated_sentence_card">#E3F2FD</color>
+    <color name="color_seekbar_progress_bg">#E0E0E0</color>
+    <color name="color_seekbar_progress">#4CAF50</color>
+    <color name="color_dialog_bg">@color/color_background_2</color>
+    <color name="color_dialog_card_bg">@color/color_background_3</color>
+    <color name="color_dialog_secondary_button_bg">@color/color_background_3</color>
+    <color name="color_dialog_primary_button_bg">#39A0ED</color>
+    <color name="color_dialogue_generate_button_bg">#39A0ED</color>
+
+
+
+
+
+
+    <!-- Theme role colors (Light) -->
+    <color name="theme_color_background">#F5F5F5</color>
+    <color name="theme_color_surface">#F5F5F5</color>
+    <color name="theme_color_on_background">#000000</color>
+    <color name="theme_color_on_surface_variant">#757575</color>
+    <color name="semantic_icon_secondary">@color/theme_color_on_surface_variant</color>
+    <color name="semantic_divider">#E0E0E0</color>
+    <color name="semantic_ripple">#14000000</color>
+    <color name="semantic_sheet_handle">#C9D1DB</color>
+
+    <!-- Chat UI Colors -->
+    <color name="toss_blue">#39A0ED</color>
+    <color name="primary_blue">@color/toss_blue</color>
+    <color name="text_secondary">#6B7684</color>
+    <color name="text_hint">#8B95A1</color>
+    <color name="divider_light">#E5E8EB</color>
+    <color name="input_background">#F7F8FA</color>
+
+    <!-- 4단계 Voice UI 상태별 색상 -->
+    <color name="state_analyzing_soft">#6B7684</color>
+    <color name="state_error">#E53935</color>
+    <color name="state_listening_prompt">#E91E63</color>
+
+    <!-- Toss Style Colors -->
+    <color name="grey_50">#F9FAFB</color>
+    <color name="grey_100">#F2F4F6</color>
+    <color name="grey_200">#EAEEF2</color>
+    <color name="grey_300">#E5E8EB</color>
+    <color name="grey_400">#ADB5BD</color>
+    <color name="grey_600">#6B7684</color>
+    <color name="text_primary">#191F28</color>
+
+    <color name="card_blue_start">#39A0ED</color>
+    <color name="card_blue_end">#2B7FBB</color>
+    <color name="card_purple_start">#EF767A</color>
+    <color name="card_purple_end">#D35D61</color>
+    <color name="streak_fire">#FF5C00</color>
+    <color name="button_primary">@color/toss_blue</color>
+    <color name="save_icon_gold">#FFC107</color>
+
+    <color name="expression_natural_accent">#009B72</color>
+    <color name="expression_natural_after_bg">#E6F5F0</color>
+    <color name="expression_natural_icon">#009B72</color>
+
+    <color name="expression_precise_accent">#EF767A</color>
+    <color name="expression_precise_after_bg">#FDEEEE</color>
+    <color name="expression_precise_icon">#EF767A</color>
+
+    <color name="summary_expression_natural_after_bg">#E6F5F0</color>
+    <color name="summary_expression_precise_after_bg">#FDEEEE</color>
+    <color name="summary_expression_natural_highlight_bg">#B8E3D7</color>
+    <color name="summary_expression_precise_highlight_bg">#FAD6D7</color>
+
+    <color name="shorts_surface_dark">#060910</color>
+    <color name="shorts_scrim_top">#4D05080F</color>
+    <color name="shorts_scrim_bottom_mid">#330A111D</color>
+    <color name="shorts_scrim_bottom_end">#800A111D</color>
+    <color name="shorts_action_button_bg">#66202A3A</color>
+    <color name="shorts_action_button_stroke">#99FFFFFF</color>
+    <color name="shorts_action_icon">#FFFFFFFF</color>
+    <color name="shorts_action_count_text">#E8F2F7FF</color>
+    <color name="shorts_progress_active">#FFF3F8FF</color>
+    <color name="shorts_progress_inactive">#8CE1ECFA</color>
+    <color name="shorts_chip_bg">#73040A16</color>
+    <color name="shorts_chip_stroke">#7DFFFFFF</color>
+    <color name="shorts_chip_text">#F0F6FFFF</color>
+    <color name="shorts_caption_box_bg">#66202A3A</color>
+    <color name="shorts_caption_box_stroke">#66FFFFFF</color>
+    <color name="shorts_meta_title_text">#FFFFFFFF</color>
+
+</resources>

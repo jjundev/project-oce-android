@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 배경 (밝은 빨강) -->
+    <item android:id="@android:id/background">
+        <shape android:shape="rectangle">
+            <solid android:color="#FFCDD2"/>
+            <corners android:radius="16dp"/>
+        </shape>
+    </item>
+
+    <!-- 프로그래스 (진한 빨강, 왼쪽에서 오른쪽으로 채워짐) -->
+    <item android:id="@android:id/progress">
+        <clip
+            android:clipOrientation="horizontal"
+            android:gravity="left">
+            <shape android:shape="rectangle">
+                <solid android:color="#C62828"/>
+                <corners android:radius="16dp"/>
+            </shape>
+        </clip>
+    </item>
+</layer-list>

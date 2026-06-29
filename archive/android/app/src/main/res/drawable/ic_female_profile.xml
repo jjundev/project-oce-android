@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 여성형 프로필 아이콘 - 실루엣 디자인 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp"
+    android:height="40dp"
+    android:viewportWidth="40"
+    android:viewportHeight="40">
+
+    <!-- 배경 원 -->
+    <path
+        android:fillColor="#FCE4EC"
+        android:pathData="M20,20m-20,0a20,20 0,1 1,40 0a20,20 0,1 1,-40 0" />
+
+    <!-- 몸체 (어깨) -->
+    <path
+        android:fillColor="#D81B60"
+        android:pathData="M10,34c0,-5.5 4.5,-10 10,-10s10,4.5 10,10l-20,0z" />
+
+    <!-- 머리카락 및 머리 실루엣 (얼굴 특징 없음) -->
+    <path
+        android:fillColor="#D81B60"
+        android:pathData="M20,9c-4.4,0 -8,3.6 -8,8v7h16v-7c0,-4.4 -3.6,-8 -8,-8z" />
+
+    <!-- 얼굴 부분 (비어있는 실루엣 효과) -->
+    <path
+        android:fillColor="#FCE4EC"
+        android:pathData="M20,22c-2.5,0 -4.5,-2 -4.5,-4.5s2,-4.5 4.5,-4.5s4.5,2 4.5,4.5s-2,4.5 -4.5,4.5z" />
+
+</vector>

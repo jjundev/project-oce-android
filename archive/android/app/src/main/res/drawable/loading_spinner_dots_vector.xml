@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+
+    <group
+        android:name="spinner_group"
+        android:pivotX="48"
+        android:pivotY="48">
+
+        <path
+            android:fillColor="#FFDDE3EA"
+            android:pathData="M48,16 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+        <path
+            android:fillColor="#D9DDE3EA"
+            android:pathData="M70,26 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+        <path
+            android:fillColor="#B3DDE3EA"
+            android:pathData="M80,48 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+        <path
+            android:fillColor="#8CDDE3EA"
+            android:pathData="M70,70 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+        <path
+            android:fillColor="#66DDE3EA"
+            android:pathData="M48,80 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+        <path
+            android:fillColor="#4DDDE3EA"
+            android:pathData="M26,70 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+        <path
+            android:fillColor="#33DDE3EA"
+            android:pathData="M16,48 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+        <path
+            android:fillColor="#1FDDE3EA"
+            android:pathData="M26,26 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+    </group>
+</vector>

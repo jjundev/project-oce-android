@@ -1,0 +1,77 @@
+[versions]
+agp = "8.13.2"
+billing = "8.3.0"
+credentials = "1.5.0"
+dynamicanimation = "1.1.0"
+firebaseBom = "34.9.0"
+flexbox = "3.0.0"
+googleid = "1.2.0"
+media3Exoplayer = "1.9.2"
+media3Ui = "1.9.2"
+navigationFragment = "2.9.7"
+navigationUi = "2.9.7"
+playServicesAds = "25.0.0"
+playReview = "2.0.2"
+spotless = "6.25.0"
+junit = "4.13.2"
+junitVersion = "1.1.5"
+espressoCore = "3.5.1"
+appcompat = "1.6.1"
+material = "1.10.0"
+activity = "1.8.0"
+constraintlayout = "2.1.4"
+preference = "1.2.0"
+okhttp = "4.12.0"
+gson = "2.10.1"
+robolectric = "4.16.1"
+shimmer = "0.5.0"
+lottie = "6.1.0"
+lifecycle = "2.8.4"
+archCoreTesting = "2.2.0"
+firebaseFirestore = "26.1.0"
+playAppUpdate = "2.1.0"
+viewpager2 = "1.1.0"
+
+[libraries]
+play-app-update = { module = "com.google.android.play:app-update", version.ref = "playAppUpdate" }
+play-review = { module = "com.google.android.play:review", version.ref = "playReview" }
+billing = { module = "com.android.billingclient:billing", version.ref = "billing" }
+credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
+credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
+dynamicanimation = { module = "androidx.dynamicanimation:dynamicanimation", version.ref = "dynamicanimation" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+firebase-auth = { module = "com.google.firebase:firebase-auth" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
+flexbox = { module = "com.google.android.flexbox:flexbox", version.ref = "flexbox" }
+google-firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
+googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
+constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3Exoplayer" }
+media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3Ui" }
+navigation-fragment = { module = "androidx.navigation:navigation-fragment", version.ref = "navigationFragment" }
+navigation-ui = { module = "androidx.navigation:navigation-ui", version.ref = "navigationUi" }
+play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
+preference = { group = "androidx.preference", name = "preference", version.ref = "preference" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+shimmer = { group = "com.facebook.shimmer", name = "shimmer", version.ref = "shimmer" }
+lottie = { group = "com.airbnb.android", name = "lottie", version.ref = "lottie" }
+lifecycle-viewmodel = { group = "androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "lifecycle" }
+lifecycle-livedata = { group = "androidx.lifecycle", name = "lifecycle-livedata", version.ref = "lifecycle" }
+lifecycle-runtime = { group = "androidx.lifecycle", name = "lifecycle-runtime", version.ref = "lifecycle" }
+arch-core-testing = { group = "androidx.arch.core", name = "core-testing", version.ref = "archCoreTesting" }
+firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore", version.ref = "firebaseFirestore" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+viewpager2 = { module = "androidx.viewpager2:viewpager2", version.ref = "viewpager2" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+

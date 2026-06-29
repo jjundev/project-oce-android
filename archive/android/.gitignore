@@ -1,0 +1,35 @@
+# Built outputs
+build/
+**/build/
+
+# Gradle cache & wrapper
+.gradle/
+.gradle-user/
+gradle/wrapper/gradle-wrapper.jar
+
+# Local config (contains SDK path — machine-specific)
+local.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Android Studio auto-generated
+*.hprof
+captures/
+
+# Keystore / signing
+*.jks
+*.keystore
+release/
+
+# Google services (optional — remove this line if you want it tracked)
+# google-services.json
+
+# Logs
+*.log
+firebase-debug.log
+
+# macOS
+.DS_Store

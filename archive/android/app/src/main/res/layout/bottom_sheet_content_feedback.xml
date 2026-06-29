@@ -1,0 +1,1850 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/color_background_2"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="20dp">
+
+        <!-- 헤더: 영작한 문장 확인 -->
+
+        <LinearLayout
+            android:id="@+id/layout_feedback_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- 영작할 문장 라벨 -->
+            <TextView
+                android:id="@+id/tv_translation_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="영작할 문장:"
+                android:textColor="@color/color_primary_text"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <!-- 영작할 문장 카드 -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_sentence_to_translate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/color_background_3"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp">
+
+                <TextView
+                    android:id="@+id/tv_sentence_to_translate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:lineSpacingMultiplier="1.3"
+                    android:padding="16dp"
+                    android:text="This is sentence_to_translate."
+                    android:textColor="@color/color_primary_text"
+                    android:textSize="16sp" />
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 영작한 문장 라벨 -->
+            <TextView
+                android:id="@+id/tv_translated_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="영작한 문장:"
+                android:textColor="@color/color_primary_text"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <!-- 영작한 문장 카드 -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_translated_sentence"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                app:cardBackgroundColor="@color/color_background_translated_sentence_card"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="16dp"
+                    android:paddingTop="16dp"
+                    android:paddingBottom="16dp"
+                    android:paddingEnd="12dp">
+
+                    <TextView
+                        android:id="@+id/tv_translated_sentence"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="음성이 여기에 표시됩니다..."
+                        android:lineSpacingMultiplier="1.3"
+                        android:text=""
+                        android:textColor="@color/color_primary_text"
+                        android:textColorHint="@color/color_sub_text"
+                        android:textSize="16sp" />
+
+                    <ImageView
+                        android:id="@+id/btn_speak_my_voice"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_speaker"
+                        android:layout_marginStart="8dp"
+                        app:tint="@color/color_sub_text"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layout_speaking_feedback"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginBottom="24dp"
+                android:background="@color/semantic_divider" />
+
+            <!-- 영작 점수 라벨 -->
+            <TextView
+                android:id="@+id/tv_speaking_score_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="스피킹 점수"
+                android:textSize="16sp"
+                android:textColor="@color/color_primary_text"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <!-- 영작 점수 표시 -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:id="@+id/tv_speaking_score"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="78"
+                    android:textSize="48sp"
+                    android:textColor="#4CAF50"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_speaking_score_max"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="/100"
+                    android:textSize="20sp"
+                    android:textColor="@color/color_sub_text"
+                    android:layout_marginStart="4dp" />
+
+            </LinearLayout>
+
+            <!-- 격려 메시지 -->
+            <TextView
+                android:id="@+id/tv_speaking_feedback_message"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="몇몇 부분만 고치면 완벽해져요!"
+                android:textSize="16sp"
+                android:textColor="@color/color_sub_text"
+                android:layout_marginBottom="24dp" />
+
+            <!-- 말하기 피드백 점수 카드들 -->
+            <LinearLayout
+                android:id="@+id/layout_speaking_feedback_scores"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                android:orientation="horizontal">
+
+                <!-- 유창성 카드 -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_fluency"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="6dp"
+                    android:layout_weight="1"
+                    app:cardBackgroundColor="@color/color_background_3"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="유창성"
+                            android:textColor="@color/color_primary_text"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_fluency_score"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="8 / 10"
+                            android:textColor="#4CAF50"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 자신감 카드 -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_confidence"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:layout_marginEnd="6dp"
+                    android:layout_weight="1"
+                    app:cardBackgroundColor="@color/color_background_3"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="자신감"
+                            android:textColor="@color/color_primary_text"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_confidence_score"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="8 / 10"
+                            android:textColor="#4CAF50"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 망설임 카드 -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_hesitation"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    app:cardBackgroundColor="@color/color_background_3"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="망설임"
+                            android:textColor="@color/color_primary_text"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_hesitation_count"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="1회"
+                            android:textColor="#FF9800"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layout_sentence_feedback"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Divider -->
+            <View
+                android:id="@+id/divider_speaking_sentence"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/semantic_divider"
+                android:layout_marginBottom="24dp" />
+
+            <com.facebook.shimmer.ShimmerFrameLayout
+                android:id="@+id/skeleton_writing_score"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                app:shimmer_auto_start="true"
+                app:shimmer_duration="1200">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <View
+                        android:layout_width="80dp"
+                        android:layout_height="16dp"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="12dp"
+                        android:background="@drawable/skeleton_placeholder" />
+                    <View
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="8dp"
+                        android:background="@drawable/skeleton_placeholder_circle" />
+                    <View
+                        android:layout_width="200dp"
+                        android:layout_height="16dp"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginBottom="24dp"
+                        android:background="@drawable/skeleton_placeholder" />
+                </LinearLayout>
+            </com.facebook.shimmer.ShimmerFrameLayout>
+
+            <TextView
+                android:id="@+id/tv_writing_score_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="영작 점수"
+                android:textSize="16sp"
+                android:textColor="@color/color_primary_text"
+                android:textStyle="bold"
+                android:visibility="gone"
+                android:layout_marginBottom="8dp" />
+
+            <!-- 영작 점수 표시 -->
+            <LinearLayout
+                android:id="@+id/layout_writing_score_container"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:visibility="gone"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:id="@+id/tv_writing_score"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="78"
+                    android:textSize="48sp"
+                    android:textColor="#4CAF50"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_writing_score_max"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="/100"
+                    android:textSize="20sp"
+                    android:textColor="@color/color_sub_text"
+                    android:layout_marginStart="4dp" />
+
+            </LinearLayout>
+
+            <!-- 격려 메시지 -->
+            <TextView
+                android:id="@+id/tv_encouragement_message_sentence"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="몇몇 부분만 고치면 완벽해져요!"
+                android:textSize="16sp"
+                android:textColor="@color/color_sub_text"
+                android:visibility="gone"
+                android:layout_marginBottom="24dp" />
+
+            <!-- 기초 문법 섹션 -->
+            <com.facebook.shimmer.ShimmerFrameLayout
+                android:id="@+id/skeleton_grammar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                app:shimmer_auto_start="true"
+                app:shimmer_duration="1200">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <View
+                        android:layout_width="140dp"
+                        android:layout_height="16dp"
+                        android:layout_marginBottom="8dp"
+                        android:background="@drawable/skeleton_placeholder" />
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@color/color_background_3"
+                        android:layout_marginBottom="24dp">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="16dp">
+                            <com.google.android.material.card.MaterialCardView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                app:cardCornerRadius="12dp"
+                                app:cardElevation="0dp"
+                                app:cardBackgroundColor="@color/color_background_4"
+                                android:layout_marginBottom="16dp">
+                                <View
+                                    android:layout_width="match_parent"
+                                    android:layout_height="18dp"
+                                    android:layout_margin="12dp"
+                                    android:background="@drawable/skeleton_placeholder" />
+                            </com.google.android.material.card.MaterialCardView>
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="14dp"
+                                android:layout_marginBottom="8dp"
+                                android:background="@drawable/skeleton_placeholder" />
+                            <View
+                                android:layout_width="200dp"
+                                android:layout_height="14dp"
+                                android:background="@drawable/skeleton_placeholder" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+            </com.facebook.shimmer.ShimmerFrameLayout>
+            <TextView
+                android:id="@+id/tv_grammar_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="기초 문법(Grammar)"
+                android:textSize="16sp"
+                android:textColor="@color/color_primary_text"
+                android:textStyle="bold"
+                android:visibility="gone"
+                android:layout_marginBottom="8dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_grammar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/color_background_3"
+                android:visibility="gone"
+                android:layout_marginBottom="24dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <!-- 예시 문장 카드 -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/card_grammar_example"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@color/color_background_4"
+                        android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="12dp">
+
+                        <TextView
+                            android:id="@+id/tv_grammar_example"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="I saw him."
+                            android:textSize="14sp"
+                            android:textColor="@color/color_primary_text"
+                            android:lineSpacingMultiplier="1.4" />
+
+                        <ImageView
+                            android:id="@+id/btn_speak_grammar"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_speaker"
+                            android:layout_marginStart="8dp"
+                            app:tint="@color/color_sub_text"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                    </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- 문법 설명 텍스트 -->
+                    <TextView
+                        android:id="@+id/tv_grammar_explanation"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="어제(yesterday)처럼 정확한 때가 주어지면 과거시제를 쓰는 것이 더 자연스러워요!"
+                        android:textSize="14sp"
+                        android:textColor="@color/color_sub_text"
+                        android:lineSpacingMultiplier="1.4" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 원어민의 사고 이해 섹션 -->
+            <com.facebook.shimmer.ShimmerFrameLayout
+                android:id="@+id/skeleton_conceptual_bridge"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                app:shimmer_auto_start="true"
+                app:shimmer_duration="1200">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <View
+                        android:layout_width="220dp"
+                        android:layout_height="16dp"
+                        android:layout_marginBottom="8dp"
+                        android:background="@drawable/skeleton_placeholder" />
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@color/color_background_3"
+                        android:layout_marginBottom="24dp">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="16dp">
+                            <View
+                                android:layout_width="160dp"
+                                android:layout_height="14dp"
+                                android:layout_marginBottom="8dp"
+                                android:background="@drawable/skeleton_placeholder" />
+                            <com.google.android.material.card.MaterialCardView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                app:cardCornerRadius="12dp"
+                                app:cardElevation="0dp"
+                                app:cardBackgroundColor="@color/color_background_4"
+                                android:layout_marginBottom="16dp">
+                                <View
+                                    android:layout_width="match_parent"
+                                    android:layout_height="18dp"
+                                    android:layout_margin="12dp"
+                                    android:background="@drawable/skeleton_placeholder" />
+                            </com.google.android.material.card.MaterialCardView>
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="14dp"
+                                android:layout_marginBottom="8dp"
+                                android:background="@drawable/skeleton_placeholder" />
+                            <View
+                                android:layout_width="240dp"
+                                android:layout_height="14dp"
+                                android:layout_marginBottom="16dp"
+                                android:background="@drawable/skeleton_placeholder" />
+                            <com.google.android.material.card.MaterialCardView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                app:cardCornerRadius="12dp"
+                                app:cardElevation="0dp"
+                                app:cardBackgroundColor="@color/color_background_4">
+                                <View
+                                    android:layout_width="match_parent"
+                                    android:layout_height="120dp"
+                                    android:background="@drawable/skeleton_placeholder" />
+                            </com.google.android.material.card.MaterialCardView>
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+            </com.facebook.shimmer.ShimmerFrameLayout>
+            <TextView
+                android:id="@+id/tv_conceptual_bridge_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="원어민의 사고 이해(Conceptual Bridge)"
+                android:textSize="16sp"
+                android:textColor="@color/color_primary_text"
+                android:textStyle="bold"
+                android:visibility="gone"
+                android:layout_marginBottom="8dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_conceptual_bridge"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/color_background_3"
+                android:visibility="gone"
+                android:layout_marginBottom="24dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <!-- 직역 라벨 -->
+                    <TextView
+                        android:id="@+id/tv_conceptual_bridge_literal_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="영작한 문장을 직역하면, "
+                        android:textSize="14sp"
+                        android:textColor="@color/color_primary_text"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="8dp" />
+
+                    <!-- 직역 예시 문장 카드 -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/card_conceptual_bridge_example"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@color/color_background_4"
+                        android:layout_marginBottom="16dp">
+
+                        <TextView
+                            android:id="@+id/tv_conceptual_bridge_example"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:padding="16dp"
+                            android:text="예약하겠습니다"
+                            android:textSize="14sp"
+                            android:textColor="@color/color_primary_text"
+                            android:lineSpacingMultiplier="1.4" />
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- 원어민 사고 해설 -->
+                    <TextView
+                        android:id="@+id/tv_conceptual_bridge_explanation"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="마치 의사 선생님과 예약한 느낌이에요!"
+                        android:textSize="14sp"
+                        android:textColor="@color/color_sub_text"
+                        android:lineSpacingMultiplier="1.4"
+                        android:layout_marginBottom="8dp" />
+
+                    <!-- 벤다이어그램 안내 -->
+                    <TextView
+                        android:id="@+id/tv_conceptual_bridge_venn_guide"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="plan과 appointment의 차이를 벤다이어그램으로 확인해보세요!"
+                        android:textSize="14sp"
+                        android:textColor="@color/color_sub_text"
+                        android:lineSpacingMultiplier="1.4"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- 벤다이어그램 커스텀 뷰 -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="0dp"
+                        app:cardBackgroundColor="@color/color_background_4">
+
+                        <com.jjundev.oneclickeng.view.VennDiagramView
+                            android:id="@+id/view_conceptual_bridge_venn"
+                            android:layout_width="match_parent"
+                            android:layout_height="160dp" />
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 자연스러움 섹션 -->
+            <com.facebook.shimmer.ShimmerFrameLayout
+                android:id="@+id/skeleton_naturalness"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                app:shimmer_auto_start="true"
+                app:shimmer_duration="1200">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <View
+                        android:layout_width="240dp"
+                        android:layout_height="16dp"
+                        android:layout_marginBottom="8dp"
+                        android:background="@drawable/skeleton_placeholder" />
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@color/color_background_3"
+                        android:layout_marginBottom="24dp">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="16dp">
+                            <View
+                                android:layout_width="120dp"
+                                android:layout_height="14dp"
+                                android:layout_marginBottom="8dp"
+                                android:background="@drawable/skeleton_placeholder" />
+                            <com.google.android.material.card.MaterialCardView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                app:cardCornerRadius="12dp"
+                                app:cardElevation="0dp"
+                                app:cardBackgroundColor="@color/color_background_4"
+                                android:layout_marginBottom="16dp">
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="vertical"
+                                    android:padding="12dp">
+                                    <View
+                                        android:layout_width="match_parent"
+                                        android:layout_height="18dp"
+                                        android:layout_marginBottom="8dp"
+                                        android:background="@drawable/skeleton_placeholder" />
+                                    <View
+                                        android:layout_width="160dp"
+                                        android:layout_height="14dp"
+                                        android:background="@drawable/skeleton_placeholder" />
+                                </LinearLayout>
+                            </com.google.android.material.card.MaterialCardView>
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="14dp"
+                                android:layout_marginBottom="8dp"
+                                android:background="@drawable/skeleton_placeholder" />
+                            <View
+                                android:layout_width="220dp"
+                                android:layout_height="14dp"
+                                android:background="@drawable/skeleton_placeholder" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+            </com.facebook.shimmer.ShimmerFrameLayout>
+            <TextView
+                android:id="@+id/tv_naturalness_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="자연스러움(Naturalness &amp; Collocation)"
+                android:textSize="16sp"
+                android:textColor="@color/color_primary_text"
+                android:textStyle="bold"
+                android:visibility="gone"
+                android:layout_marginBottom="8dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_naturalness"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/color_background_3"
+                android:visibility="gone"
+                android:layout_marginBottom="24dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <!-- 자연스러운 문장 라벨 -->
+                    <TextView
+                        android:id="@+id/tv_natural_sentence_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="자연스러운 문장:"
+                        android:textSize="14sp"
+                        android:textColor="@color/color_primary_text"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="8dp" />
+
+                    <!-- 자연스러운 문장 예시 카드 -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/card_natural_sentence_example"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@color/color_background_4"
+                        android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:padding="12dp">
+
+                            <TextView
+                                android:id="@+id/tv_natural_sentence_example"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="I made a mistake."
+                                android:textSize="14sp"
+                                android:textColor="@color/color_primary_text"
+                                android:lineSpacingMultiplier="1.4" />
+
+                            <ImageView
+                                android:id="@+id/btn_speak_natural"
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:src="@drawable/ic_speaker"
+                                android:layout_marginStart="8dp"
+                                app:tint="@color/color_sub_text"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:clickable="true"
+                                android:focusable="true" />
+
+                        </LinearLayout>
+
+                        <!-- 자연스러운 문장 해석 -->
+                        <TextView
+                            android:id="@+id/tv_natural_sentence_translation"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:paddingHorizontal="12dp"
+                            android:paddingBottom="12dp"
+                            android:text="(해석: 실수했어요.)"
+                            android:textSize="13sp"
+                            android:textColor="@color/color_sub_text"
+                            android:lineSpacingMultiplier="1.4" />
+                    </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- 원어민 표현 설명 -->
+                    <TextView
+                        android:id="@+id/tv_naturalness_explanation"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="원어민들은 실수할 때 'do'보다는 'make'를 더 많이 써요!"
+                        android:textSize="14sp"
+                        android:textColor="@color/color_sub_text"
+                        android:lineSpacingMultiplier="1.4"
+                        android:layout_marginBottom="8dp" />
+
+                    <!-- Reason 1 -->
+                    <TextView
+                        android:id="@+id/tv_naturalness_reason_1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Reason 1"
+                        android:textSize="14sp"
+                        android:textColor="@color/color_primary_text"
+                        android:lineSpacingMultiplier="1.4"
+                        android:layout_marginBottom="4dp" />
+
+                    <!-- Reason 2 -->
+                    <TextView
+                        android:id="@+id/tv_naturalness_reason_2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Reason 2"
+                        android:textSize="14sp"
+                        android:textColor="@color/color_primary_text"
+                        android:lineSpacingMultiplier="1.4" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 문맥 기반 톤 및 스타일 섹션 -->
+            <com.facebook.shimmer.ShimmerFrameLayout
+                android:id="@+id/skeleton_tone_style"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                app:shimmer_auto_start="true"
+                app:shimmer_duration="1200">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <View
+                        android:layout_width="220dp"
+                        android:layout_height="16dp"
+                        android:layout_marginBottom="8dp"
+                        android:background="@drawable/skeleton_placeholder" />
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@color/color_background_3"
+                        android:layout_marginBottom="24dp">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="16dp">
+                            <View
+                                android:layout_width="240dp"
+                                android:layout_height="14dp"
+                                android:layout_gravity="center_horizontal"
+                                android:layout_marginBottom="16dp"
+                                android:background="@drawable/skeleton_placeholder" />
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="32dp"
+                                android:layout_marginBottom="16dp"
+                                android:background="@drawable/skeleton_placeholder" />
+                            <com.google.android.material.card.MaterialCardView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                app:cardCornerRadius="12dp"
+                                app:cardElevation="0dp"
+                                app:cardBackgroundColor="@color/color_background_4">
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="vertical"
+                                    android:padding="12dp">
+                                    <View
+                                        android:layout_width="match_parent"
+                                        android:layout_height="18dp"
+                                        android:layout_marginBottom="8dp"
+                                        android:background="@drawable/skeleton_placeholder" />
+                                    <View
+                                        android:layout_width="180dp"
+                                        android:layout_height="14dp"
+                                        android:background="@drawable/skeleton_placeholder" />
+                                </LinearLayout>
+                            </com.google.android.material.card.MaterialCardView>
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+            </com.facebook.shimmer.ShimmerFrameLayout>
+
+            <TextView
+                android:id="@+id/tv_tone_style_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="문맥 기반 톤 및 스타일(Tone &amp; Style)"
+                android:textSize="16sp"
+                android:textColor="@color/color_primary_text"
+                android:textStyle="bold"
+                android:visibility="gone"
+                android:layout_marginBottom="8dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_tone_style"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/color_background_3"
+                android:visibility="gone"
+                android:layout_marginBottom="24dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <!-- 슬라이더 안내 텍스트 -->
+                    <TextView
+                        android:id="@+id/tv_tone_slider_guide"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="슬라이더를 조정해서 다양한 톤으로 바꾸어보세요!"
+                        android:textSize="14sp"
+                        android:textColor="@color/color_sub_text"
+                        android:textAlignment="center"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- 5단계 톤 슬라이더 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="5dp"
+                        android:layout_marginBottom="16dp">
+
+                        <!-- 슬라이더 라벨들 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:paddingHorizontal="10dp"
+                            android:layout_marginBottom="8dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="격식"
+                                android:textSize="12sp"
+                                android:textColor="@color/color_sub_text"
+                                android:textAlignment="textStart" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="캐주얼"
+                                android:textSize="12sp"
+                                android:textColor="@color/color_sub_text"
+                                android:textAlignment="textEnd" />
+
+                        </LinearLayout>
+
+                        <!-- 커스텀 SeekBar -->
+                        <SeekBar
+                            android:id="@+id/seek_bar_tone_style"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:max="4"
+                            android:progress="2"
+                            android:progressDrawable="@drawable/tone_slider_track"
+                            android:thumb="@drawable/tone_slider_thumb"
+                            android:splitTrack="false" />
+
+                        <!-- 단계 표시 점들 -->
+<!--                        <LinearLayout-->
+<!--                            android:layout_width="match_parent"-->
+<!--                            android:layout_height="wrap_content"-->
+<!--                            android:orientation="horizontal"-->
+<!--                            android:layout_marginTop="8dp"-->
+<!--                            android:gravity="center">-->
+
+<!--                            <TextView-->
+<!--                                android:layout_width="0dp"-->
+<!--                                android:layout_height="wrap_content"-->
+<!--                                android:layout_weight="1"-->
+<!--                                android:text="1"-->
+<!--                                android:textSize="10sp"-->
+<!--                                android:textColor="@color/color_sub_text"-->
+<!--                                android:textAlignment="center" />-->
+
+<!--                            <TextView-->
+<!--                                android:layout_width="0dp"-->
+<!--                                android:layout_height="wrap_content"-->
+<!--                                android:layout_weight="1"-->
+<!--                                android:text="2"-->
+<!--                                android:textSize="10sp"-->
+<!--                                android:textColor="@color/color_sub_text"-->
+<!--                                android:textAlignment="center" />-->
+
+<!--                            <TextView-->
+<!--                                android:layout_width="0dp"-->
+<!--                                android:layout_height="wrap_content"-->
+<!--                                android:layout_weight="1"-->
+<!--                                android:text="3"-->
+<!--                                android:textSize="10sp"-->
+<!--                                android:textColor="@color/color_sub_text"-->
+<!--                                android:textAlignment="center" />-->
+
+<!--                            <TextView-->
+<!--                                android:layout_width="0dp"-->
+<!--                                android:layout_height="wrap_content"-->
+<!--                                android:layout_weight="1"-->
+<!--                                android:text="4"-->
+<!--                                android:textSize="10sp"-->
+<!--                                android:textColor="@color/color_sub_text"-->
+<!--                                android:textAlignment="center" />-->
+
+<!--                            <TextView-->
+<!--                                android:layout_width="0dp"-->
+<!--                                android:layout_height="wrap_content"-->
+<!--                                android:layout_weight="1"-->
+<!--                                android:text="5"-->
+<!--                                android:textSize="10sp"-->
+<!--                                android:textColor="@color/color_sub_text"-->
+<!--                                android:textAlignment="center" />-->
+
+<!--                        </LinearLayout>-->
+
+                    </LinearLayout>
+
+                    <!-- 톤 변경 예시 문장 카드 -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/card_tone_sample_sentence"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@color/color_background_4">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:padding="12dp">
+
+                            <TextView
+                                android:id="@+id/tv_tone_sample_sentence"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="I would appreciate it"
+                                android:textSize="14sp"
+                                android:textColor="@color/color_primary_text"
+                                android:lineSpacingMultiplier="1.4" />
+
+                            <ImageView
+                                android:id="@+id/btn_speak_tone"
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:src="@drawable/ic_speaker"
+                                android:layout_marginStart="8dp"
+                                app:tint="@color/color_sub_text"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:clickable="true"
+                                android:focusable="true" />
+
+                        </LinearLayout>
+
+                        <!-- 톤 변경 예시 해석 -->
+                        <TextView
+                            android:id="@+id/tv_tone_sample_translation"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:paddingHorizontal="12dp"
+                            android:paddingBottom="12dp"
+                            android:text="(해석: 감사하겠습니다.)"
+                            android:textSize="13sp"
+                            android:textColor="@color/color_sub_text"
+                            android:lineSpacingMultiplier="1.4" />
+                    </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 확장된 문장 재구성 섹션 -->
+            <com.facebook.shimmer.ShimmerFrameLayout
+                android:id="@+id/skeleton_paraphrasing"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                app:shimmer_auto_start="true"
+                app:shimmer_duration="1200">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <View
+                        android:layout_width="220dp"
+                        android:layout_height="16dp"
+                        android:layout_marginBottom="8dp"
+                        android:background="@drawable/skeleton_placeholder" />
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@color/color_background_3"
+                        android:layout_marginBottom="24dp">
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="16dp">
+                            <!-- Level 1 -->
+                            <View
+                                android:layout_width="60dp"
+                                android:layout_height="14dp"
+                                android:layout_marginBottom="8dp"
+                                android:background="@drawable/skeleton_placeholder" />
+                            <com.google.android.material.card.MaterialCardView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                app:cardCornerRadius="12dp"
+                                app:cardElevation="0dp"
+                                app:cardBackgroundColor="@color/color_background_4"
+                                android:layout_marginBottom="16dp">
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="vertical"
+                                    android:padding="12dp">
+                                    <View
+                                        android:layout_width="match_parent"
+                                        android:layout_height="18dp"
+                                        android:layout_marginBottom="8dp"
+                                        android:background="@drawable/skeleton_placeholder" />
+                                    <View
+                                        android:layout_width="160dp"
+                                        android:layout_height="14dp"
+                                        android:background="@drawable/skeleton_placeholder" />
+                                </LinearLayout>
+                            </com.google.android.material.card.MaterialCardView>
+                            <!-- Level 2 -->
+                            <View
+                                android:layout_width="60dp"
+                                android:layout_height="14dp"
+                                android:layout_marginBottom="8dp"
+                                android:background="@drawable/skeleton_placeholder" />
+                            <com.google.android.material.card.MaterialCardView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                app:cardCornerRadius="12dp"
+                                app:cardElevation="0dp"
+                                app:cardBackgroundColor="@color/color_background_4"
+                                android:layout_marginBottom="16dp">
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="vertical"
+                                    android:padding="12dp">
+                                    <View
+                                        android:layout_width="match_parent"
+                                        android:layout_height="18dp"
+                                        android:layout_marginBottom="8dp"
+                                        android:background="@drawable/skeleton_placeholder" />
+                                    <View
+                                        android:layout_width="140dp"
+                                        android:layout_height="14dp"
+                                        android:background="@drawable/skeleton_placeholder" />
+                                </LinearLayout>
+                            </com.google.android.material.card.MaterialCardView>
+                            <!-- Level 3 -->
+                            <View
+                                android:layout_width="60dp"
+                                android:layout_height="14dp"
+                                android:layout_marginBottom="8dp"
+                                android:background="@drawable/skeleton_placeholder" />
+                            <com.google.android.material.card.MaterialCardView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                app:cardCornerRadius="12dp"
+                                app:cardElevation="0dp"
+                                app:cardBackgroundColor="@color/color_background_4">
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="vertical"
+                                    android:padding="12dp">
+                                    <View
+                                        android:layout_width="match_parent"
+                                        android:layout_height="18dp"
+                                        android:layout_marginBottom="8dp"
+                                        android:background="@drawable/skeleton_placeholder" />
+                                    <View
+                                        android:layout_width="180dp"
+                                        android:layout_height="14dp"
+                                        android:background="@drawable/skeleton_placeholder" />
+                                </LinearLayout>
+                            </com.google.android.material.card.MaterialCardView>
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+            </com.facebook.shimmer.ShimmerFrameLayout>
+            <TextView
+                android:id="@+id/tv_paraphrasing_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="확장된 문장 재구성(Paraphrasing)"
+                android:textSize="16sp"
+                android:textColor="@color/color_primary_text"
+                android:textStyle="bold"
+                android:visibility="gone"
+                android:layout_marginBottom="8dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_paraphrasing"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/color_background_3"
+                android:visibility="gone"
+                android:layout_marginBottom="24dp">
+
+                <LinearLayout
+                    android:id="@+id/layout_paraphrasing"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <!-- Level 1 -->
+                    <TextView
+                        android:id="@+id/tv_paraphrasing_level_1_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Level 1"
+                        android:textSize="14sp"
+                        android:textColor="@color/color_primary_text"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="8dp" />
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/card_paraphrasing_level_1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@color/color_background_4"
+                        android:layout_marginBottom="16dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical"
+                                android:padding="12dp">
+
+                                <TextView
+                                    android:id="@+id/tv_paraphrasing_level_1_content"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text=""
+                                    android:textSize="14sp"
+                                    android:textColor="@color/color_primary_text"
+                                    android:lineSpacingMultiplier="1.4" />
+
+                                <ImageView
+                                    android:id="@+id/btn_speak_paraphrasing_level_1"
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:src="@drawable/ic_speaker"
+                                    android:layout_marginStart="8dp"
+                                    app:tint="@color/color_sub_text"
+                                    android:background="?attr/selectableItemBackgroundBorderless"
+                                    android:clickable="true"
+                                    android:focusable="true" />
+
+                                <TextView
+                                    android:id="@+id/tv_save_paraphrasing_level_1"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:text="저장됨"
+                                    android:textColor="@color/save_icon_gold"
+                                    android:textSize="12sp"
+                                    android:textStyle="bold"
+                                    android:visibility="gone" />
+
+                                <ImageButton
+                                    android:id="@+id/btn_save_paraphrasing_level_1"
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:layout_marginStart="6dp"
+                                    android:background="?attr/selectableItemBackgroundBorderless"
+                                    android:contentDescription="@string/desc_save_paraphrasing"
+                                    android:src="@drawable/ic_bookmark_border"
+                                    app:tint="@color/color_sub_text" />
+
+                            </LinearLayout>
+
+                            <!-- Paraphrasing Level 1 해석 -->
+                            <TextView
+                                android:id="@+id/tv_paraphrasing_level_1_translation"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:paddingHorizontal="12dp"
+                                android:paddingBottom="12dp"
+                                android:text=""
+                                android:textSize="13sp"
+                                android:textColor="@color/color_sub_text"
+                                android:lineSpacingMultiplier="1.4" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Level 2 -->
+                    <TextView
+                        android:id="@+id/tv_paraphrasing_level_2_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Level 2"
+                        android:textSize="14sp"
+                        android:textColor="@color/color_primary_text"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="8dp" />
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/card_paraphrasing_level_2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@color/color_background_4"
+                        android:layout_marginBottom="16dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical"
+                                android:padding="12dp">
+
+                                <TextView
+                                    android:id="@+id/tv_paraphrasing_level_2_content"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text=""
+                                    android:textSize="14sp"
+                                    android:textColor="@color/color_primary_text"
+                                    android:lineSpacingMultiplier="1.4" />
+
+                                <ImageView
+                                    android:id="@+id/btn_speak_paraphrasing_level_2"
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:src="@drawable/ic_speaker"
+                                    android:layout_marginStart="8dp"
+                                    app:tint="@color/color_sub_text"
+                                    android:background="?attr/selectableItemBackgroundBorderless"
+                                    android:clickable="true"
+                                    android:focusable="true" />
+
+                                <TextView
+                                    android:id="@+id/tv_save_paraphrasing_level_2"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:text="저장됨"
+                                    android:textColor="@color/save_icon_gold"
+                                    android:textSize="12sp"
+                                    android:textStyle="bold"
+                                    android:visibility="gone" />
+
+                                <ImageButton
+                                    android:id="@+id/btn_save_paraphrasing_level_2"
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:layout_marginStart="6dp"
+                                    android:background="?attr/selectableItemBackgroundBorderless"
+                                    android:contentDescription="@string/desc_save_paraphrasing"
+                                    android:src="@drawable/ic_bookmark_border"
+                                    app:tint="@color/color_sub_text" />
+
+                            </LinearLayout>
+
+                            <!-- Paraphrasing Level 2 해석 -->
+                            <TextView
+                                android:id="@+id/tv_paraphrasing_level_2_translation"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:paddingHorizontal="12dp"
+                                android:paddingBottom="12dp"
+                                android:text=""
+                                android:textSize="13sp"
+                                android:textColor="@color/color_sub_text"
+                                android:lineSpacingMultiplier="1.4" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Level 3 -->
+                    <TextView
+                        android:id="@+id/tv_paraphrasing_level_3_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Level 3"
+                        android:textSize="14sp"
+                        android:textColor="@color/color_primary_text"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="8dp" />
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/card_paraphrasing_level_3"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@color/color_background_4">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical"
+                                android:padding="12dp">
+
+                                <TextView
+                                    android:id="@+id/tv_paraphrasing_level_3_content"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text=""
+                                    android:textSize="14sp"
+                                    android:textColor="@color/color_primary_text"
+                                    android:lineSpacingMultiplier="1.4" />
+
+                                <ImageView
+                                    android:id="@+id/btn_speak_paraphrasing_level_3"
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:src="@drawable/ic_speaker"
+                                    android:layout_marginStart="8dp"
+                                    app:tint="@color/color_sub_text"
+                                    android:background="?attr/selectableItemBackgroundBorderless"
+                                    android:clickable="true"
+                                    android:focusable="true" />
+
+                                <TextView
+                                    android:id="@+id/tv_save_paraphrasing_level_3"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:text="저장됨"
+                                    android:textColor="@color/save_icon_gold"
+                                    android:textSize="12sp"
+                                    android:textStyle="bold"
+                                    android:visibility="gone" />
+
+                                <ImageButton
+                                    android:id="@+id/btn_save_paraphrasing_level_3"
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:layout_marginStart="6dp"
+                                    android:background="?attr/selectableItemBackgroundBorderless"
+                                    android:contentDescription="@string/desc_save_paraphrasing"
+                                    android:src="@drawable/ic_bookmark_border"
+                                    app:tint="@color/color_sub_text" />
+
+                            </LinearLayout>
+
+                            <!-- Paraphrasing Level 3 해석 -->
+                            <TextView
+                                android:id="@+id/tv_paraphrasing_level_3_translation"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:paddingHorizontal="12dp"
+                                android:paddingBottom="12dp"
+                                android:text=""
+                                android:textSize="13sp"
+                                android:textColor="@color/color_sub_text"
+                                android:lineSpacingMultiplier="1.4" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/semantic_divider"
+                android:layout_marginBottom="24dp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layout_extra_ai_question"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="AI 추가 질문"
+                android:textSize="16sp"
+                android:textColor="@color/color_primary_text"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="추가로 궁금한 부분이 있나요?"
+                android:textSize="16sp"
+                android:textColor="@color/color_sub_text"
+                android:layout_marginBottom="24dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <!-- 채팅 입력창 -->
+                <EditText
+                    android:id="@+id/et_user_input"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/input_field_background"
+                    android:hint="질문을 입력하세요..."
+                    android:textColorHint="@color/color_sub_text"
+                    android:textSize="14sp"
+                    android:textColor="@color/color_primary_text"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:inputType="textMultiLine"
+                    android:maxLines="3" />
+
+                <!-- 전송 버튼 -->
+                <ImageButton
+                    android:id="@+id/btn_send"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/send_button_background"
+                    android:src="@drawable/ic_send"
+                    android:contentDescription="전송"
+                    android:scaleType="centerInside"
+                    android:padding="12dp"
+                    app:tint="@android:color/white" />
+
+            </LinearLayout>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_extra_ai_response"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                app:cardBackgroundColor="@color/color_background_3"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <!-- Q: Label -->
+                    <TextView
+                        android:id="@+id/tv_question_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Q:"
+                        android:textStyle="bold"
+                        android:textSize="16sp"
+                        android:textColor="@color/color_primary_text"
+                        android:layout_marginBottom="4dp" />
+
+                    <!-- User Question -->
+                    <TextView
+                        android:id="@+id/tv_extra_ai_question"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:lineSpacingMultiplier="1.3"
+                        android:textColor="@color/color_primary_text"
+                        android:textSize="16sp"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- A: Label -->
+                    <TextView
+                        android:id="@+id/tv_answer_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="A:"
+                        android:textStyle="bold"
+                        android:textSize="16sp"
+                        android:textColor="@color/color_primary_text"
+                        android:layout_marginBottom="4dp" />
+
+                    <!-- 스켈레톤 로딩 애니메이션 -->
+                    <com.facebook.shimmer.ShimmerFrameLayout
+                        android:id="@+id/skeleton_extra_ai_response"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone"
+                        app:shimmer_auto_start="true"
+                        app:shimmer_duration="1200">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="14dp"
+                                android:layout_marginBottom="8dp"
+                                android:background="@drawable/skeleton_placeholder" />
+
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="14dp"
+                                android:layout_marginBottom="8dp"
+                                android:background="@drawable/skeleton_placeholder" />
+
+                            <View
+                                android:layout_width="200dp"
+                                android:layout_height="14dp"
+                                android:background="@drawable/skeleton_placeholder" />
+
+                        </LinearLayout>
+
+                    </com.facebook.shimmer.ShimmerFrameLayout>
+
+                    <TextView
+                        android:id="@+id/tv_extra_ai_response"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:lineSpacingMultiplier="1.3"
+                        android:text="This is extra_ai_response."
+                        android:textColor="@color/color_primary_text"
+                        android:textSize="16sp"
+                        android:visibility="gone" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="@color/semantic_divider"
+                android:layout_marginVertical="24dp" />
+
+        </LinearLayout>
+
+        <!-- 하단 버튼들 -->
+        <LinearLayout
+            android:id="@+id/layout_btns"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <!-- 다시 영작하기 버튼 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_retry"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="3"
+                android:backgroundTint="#E53935"
+                android:text="다시 영작하기"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"
+                android:textAllCaps="false"
+                app:cornerRadius="16dp"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_marginEnd="8dp" />
+
+                <!-- 다음 버튼 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_next"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:backgroundTint="#4CAF50"
+                android:text="다음 >"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"
+                android:textAllCaps="false"
+                app:cornerRadius="16dp"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_marginStart="8dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.core.widget.NestedScrollView>

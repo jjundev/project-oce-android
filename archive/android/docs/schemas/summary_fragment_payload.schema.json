@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://antigravity.local/schemas/summary_fragment_payload.schema.json",
+  "title": "SummaryFragmentPayloadV1",
+  "description": "Payload schema for DialogueSummaryFragment (mapped to SummaryData).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "totalScore",
+    "highlights",
+    "expressions",
+    "words",
+    "likedSentences"
+  ],
+  "properties": {
+    "totalScore": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Final summary score shown in tv_total_score."
+    },
+    "highlights": {
+      "type": "array",
+      "maxItems": 1,
+      "items": {
+        "$ref": "#/$defs/highlightItem"
+      },
+      "description": "Top-scored key positive moment (single item) rendered in item_summary_highlight."
+    },
+    "expressions": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/expressionItem"
+      },
+      "description": "Before/after expression improvements rendered in item_summary_expression."
+    },
+    "words": {
+      "type": "array",
+      "maxItems": 12,
+      "items": {
+        "$ref": "#/$defs/wordItem"
+      },
+      "description": "Vocabulary cards from conceptual bridge plus sentence-extraction merge, rendered in item_summary_word."
+    },
+    "likedSentences": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/sentenceItem"
+      },
+      "description": "Sentence cards rendered in item_summary_sentence."
+    },
+    "futureSelfFeedback": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/futureSelfFeedback"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Optional final coaching block. If null, both feedback blocks are hidden."
+    }
+  },
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "highlightItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "english",
+        "korean",
+        "reason"
+      ],
+      "properties": {
+        "english": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "korean": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "reason": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "expressionItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "koreanPrompt",
+        "before",
+        "after",
+        "explanation"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Expected values: '자연스러운 표현' or '정확한 표현' (also accepts English labels via app logic).",
+          "minLength": 1
+        },
+        "koreanPrompt": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "before": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "after": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "explanation": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "wordItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "english",
+        "korean",
+        "exampleEnglish",
+        "exampleKorean"
+      ],
+      "properties": {
+        "english": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "korean": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "exampleEnglish": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "exampleKorean": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "sentenceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "english",
+        "korean"
+      ],
+      "properties": {
+        "english": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "korean": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "futureSelfFeedback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "positive",
+        "toImprove"
+      ],
+      "properties": {
+        "positive": {
+          "type": "string",
+          "description": "Can be empty string; empty hides positive block."
+        },
+        "toImprove": {
+          "type": "string",
+          "description": "Can be empty string; empty hides improve block."
+        }
+      }
+    }
+  }
+}

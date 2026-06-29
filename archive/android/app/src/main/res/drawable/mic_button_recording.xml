@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 외곽 연한 핑크색 링 -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#FCE4EC" />
+            <size
+                android:width="96dp"
+                android:height="96dp" />
+        </shape>
+    </item>
+    <!-- 내부 흰색 링 -->
+    <item
+        android:left="4dp"
+        android:top="4dp"
+        android:right="4dp"
+        android:bottom="4dp">
+        <shape android:shape="oval">
+            <solid android:color="@color/color_background_2" />
+        </shape>
+    </item>
+    <!-- 중앙 빨간색 원형 버튼 -->
+    <item
+        android:left="8dp"
+        android:top="8dp"
+        android:right="8dp"
+        android:bottom="8dp">
+        <shape android:shape="oval">
+            <solid android:color="#E53935" />
+        </shape>
+    </item>
+</layer-list>

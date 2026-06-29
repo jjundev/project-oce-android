@@ -1,0 +1,467 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.facebook.shimmer.ShimmerFrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/shimmer_skeleton"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:shimmer_auto_start="true"
+    app:shimmer_duration="1200">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/semantic_divider"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Writing Score 스켈레톤 -->
+        <!-- 제목 placeholder -->
+        <View
+            android:layout_width="80dp"
+            android:layout_height="16dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/skeleton_placeholder" />
+
+        <!-- 점수 원형 placeholder -->
+        <View
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/skeleton_placeholder_circle" />
+
+        <!-- 격려 메시지 placeholder -->
+        <View
+            android:layout_width="200dp"
+            android:layout_height="16dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="24dp"
+            android:background="@drawable/skeleton_placeholder" />
+
+        <!-- Grammar 카드 스켈레톤 -->
+        <!-- 섹션 제목 -->
+        <View
+            android:layout_width="140dp"
+            android:layout_height="16dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/skeleton_placeholder" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@color/color_background_2"
+            android:layout_marginBottom="24dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- 예시 문장 카드 placeholder -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@color/color_background_2"
+                    android:layout_marginBottom="16dp">
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="18dp"
+                        android:layout_margin="12dp"
+                        android:background="@drawable/skeleton_placeholder" />
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 설명 placeholder 2줄 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="14dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/skeleton_placeholder" />
+
+                <View
+                    android:layout_width="200dp"
+                    android:layout_height="14dp"
+                    android:background="@drawable/skeleton_placeholder" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Conceptual Bridge 카드 스켈레톤 -->
+        <!-- 섹션 제목 -->
+        <View
+            android:layout_width="220dp"
+            android:layout_height="16dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/skeleton_placeholder" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@color/color_background_2"
+            android:layout_marginBottom="24dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- 직역 라벨 placeholder -->
+                <View
+                    android:layout_width="160dp"
+                    android:layout_height="14dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/skeleton_placeholder" />
+
+                <!-- 직역 문장 카드 placeholder -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@color/color_background_2"
+                    android:layout_marginBottom="16dp">
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="18dp"
+                        android:layout_margin="12dp"
+                        android:background="@drawable/skeleton_placeholder" />
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 설명 placeholder 2줄 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="14dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/skeleton_placeholder" />
+
+                <View
+                    android:layout_width="240dp"
+                    android:layout_height="14dp"
+                    android:layout_marginBottom="16dp"
+                    android:background="@drawable/skeleton_placeholder" />
+
+                <!-- 벤 다이어그램 영역 placeholder -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@color/color_background_2">
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="120dp"
+                        android:background="@drawable/skeleton_placeholder" />
+
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Naturalness 카드 스켈레톤 -->
+        <!-- 섹션 제목 -->
+        <View
+            android:layout_width="240dp"
+            android:layout_height="16dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/skeleton_placeholder" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@color/color_background_2"
+            android:layout_marginBottom="24dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- 자연스러운 문장 라벨 placeholder -->
+                <View
+                    android:layout_width="120dp"
+                    android:layout_height="14dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/skeleton_placeholder" />
+
+                <!-- 문장 카드 placeholder -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@color/color_background_2"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="18dp"
+                            android:layout_marginBottom="8dp"
+                            android:background="@drawable/skeleton_placeholder" />
+
+                        <View
+                            android:layout_width="160dp"
+                            android:layout_height="14dp"
+                            android:background="@drawable/skeleton_placeholder" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 설명 placeholder 2줄 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="14dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/skeleton_placeholder" />
+
+                <View
+                    android:layout_width="220dp"
+                    android:layout_height="14dp"
+                    android:background="@drawable/skeleton_placeholder" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Tone & Style 카드 스켈레톤 -->
+        <!-- 섹션 제목 -->
+        <View
+            android:layout_width="220dp"
+            android:layout_height="16dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/skeleton_placeholder" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@color/color_background_2"
+            android:layout_marginBottom="24dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- 슬라이더 안내 placeholder -->
+                <View
+                    android:layout_width="240dp"
+                    android:layout_height="14dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginBottom="16dp"
+                    android:background="@drawable/skeleton_placeholder" />
+
+                <!-- SeekBar 영역 placeholder -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="32dp"
+                    android:layout_marginBottom="16dp"
+                    android:background="@drawable/skeleton_placeholder" />
+
+                <!-- 문장 카드 placeholder -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@color/color_background_2">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="18dp"
+                            android:layout_marginBottom="8dp"
+                            android:background="@drawable/skeleton_placeholder" />
+
+                        <View
+                            android:layout_width="180dp"
+                            android:layout_height="14dp"
+                            android:background="@drawable/skeleton_placeholder" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Paraphrasing 카드 스켈레톤 -->
+        <!-- 섹션 제목 -->
+        <View
+            android:layout_width="220dp"
+            android:layout_height="16dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/skeleton_placeholder" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@color/color_background_2"
+            android:layout_marginBottom="24dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- Level 1 -->
+                <View
+                    android:layout_width="60dp"
+                    android:layout_height="14dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/skeleton_placeholder" />
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@color/color_background_2"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="18dp"
+                            android:layout_marginBottom="8dp"
+                            android:background="@drawable/skeleton_placeholder" />
+
+                        <View
+                            android:layout_width="160dp"
+                            android:layout_height="14dp"
+                            android:background="@drawable/skeleton_placeholder" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Level 2 -->
+                <View
+                    android:layout_width="60dp"
+                    android:layout_height="14dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/skeleton_placeholder" />
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@color/color_background_2"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="18dp"
+                            android:layout_marginBottom="8dp"
+                            android:background="@drawable/skeleton_placeholder" />
+
+                        <View
+                            android:layout_width="140dp"
+                            android:layout_height="14dp"
+                            android:background="@drawable/skeleton_placeholder" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Level 3 -->
+                <View
+                    android:layout_width="60dp"
+                    android:layout_height="14dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/skeleton_placeholder" />
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@color/color_background_2">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="18dp"
+                            android:layout_marginBottom="8dp"
+                            android:background="@drawable/skeleton_placeholder" />
+
+                        <View
+                            android:layout_width="180dp"
+                            android:layout_height="14dp"
+                            android:background="@drawable/skeleton_placeholder" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/semantic_divider"
+            android:layout_marginBottom="24dp" />
+
+    </LinearLayout>
+
+</com.facebook.shimmer.ShimmerFrameLayout>

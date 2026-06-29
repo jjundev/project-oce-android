@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="tag_expression_requested_visible_count" type="id" />
+    <item name="tag_expression_last_total_count" type="id" />
+</resources>

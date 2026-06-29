@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <path
+        android:fillColor="@color/save_icon_gold"
+        android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2z" />
+
+    <path
+        android:fillAlpha="0.22"
+        android:fillColor="@color/color_background_2"
+        android:pathData="M9,6.5c0,1.38 -1.12,2.5 -2.5,2.5S4,7.88 4,6.5 5.12,4 6.5,4 9,5.12 9,6.5z" />
+
+    <path
+        android:fillColor="@color/color_background_2"
+        android:pathData="M14.5,8C12.29,8 10.5,9.79 10.5,12s1.79,4 4,4c1.34,0 2.53,-0.66 3.26,-1.68l-1.27,-0.93c-0.45,0.62 -1.18,1.01 -1.99,1.01 -1.45,0 -2.62,-1.17 -2.62,-2.62s1.17,-2.62 2.62,-2.62c0.81,0 1.54,0.39 1.99,1.01l1.27,-0.93C17.03,8.66 15.84,8 14.5,8z" />
+
+</vector>
