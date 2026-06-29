@@ -1,0 +1,116 @@
+# 딸깍영어 v1 — 프롬프트 시스템 설계 (B-1)
+
+> **상태:** 설계 확정(SHIP) · **작성일:** 2026-06-30 · **대상:** PRD B-1 (AI/프롬프트)
+> **근거:** [PRD.md](../../PRD.md) §8(주요 플로우)·§10.3(AI)·A8(스피킹 숫자 제거)·Q6(슬림 피드백) · [firestore-schema.md](firestore-schema.md) · 옛 프롬프트(`archive/android/app/src/main/assets/prompts/`)
+> **도출 과정:** `grill-yourself`(자율 설계) → `grill-review --deep auto` 2라운드(Blocker 4 → 0 SHIP). 변경 이력은 §9.
+
+---
+
+## 1. 설계 원칙
+
+- 모든 프롬프트는 **서버 보관·버전드**(`config/prompts`), 클라 비번들 — 프롬프트=IP, [firestore-schema.md](firestore-schema.md) §2/§6.
+- 모든 LLM 호출은 **백엔드 LLM 프록시 경유**(키 서버, 벤더 추상화 시임, [PRD.md](../../PRD.md) §10.2). v1 모델은 전부 **Gemini Flash 계열**.
+- 출력은 **호출별 구조화 JSON**(`responseMimeType=application/json` + `responseSchema`). 학습자-대면 텍스트는 한국어(해요체), 영어 학습 콘텐츠만 영어.
+- **캐싱:** Gemini 2.5+ **암묵 캐싱(implicit, 기본 on)** 이 1차 — 콜별 **전체 시스템 프롬프트**(공유 prefix + 콜 고유부)를 요청 머리에 동일하게 두면 반복 호출 간 캐시 히트. **explicit `cachedContents`** 는 캐시 단위가 바닥(**1024 토큰/2.5 Flash, 2048/2.5 Pro**)을 명확히 넘을 때만(예: `feedback.*`의 톤+8오류+난이도 ≈ 7k 토큰).
+- **점진 렌더:** 백엔드가 부분 JSON에서 완성 객체만 추출해 SSE emit([PRD.md](../../PRD.md) §10.1 B1). `responseSchema`(검증)와 중괄호-깊이 파서(점진 emit)는 **직교** — 스트림 콜도 둘 다 쓴다.
+
+> ⚠️ **모델 고정 주의:** 위 캐싱·키순서 보장은 **Gemini 2.5+ 문서 기준**. 실제 모델 ID(옛 `gemini-3.1-flash-lite-preview` 등) 확정 후 그 모델에서 동작 재확인할 것.
+
+---
+
+## 2. 공유 컴포넌트 (캐시 prefix — 생성 콜 공통)
+
+[`prompts/_shared/`](prompts/_shared/)에 분리, 콜 시스템 프롬프트 머리에 동일 순서로 결합 → 암묵 캐싱 히트.
+
+| 파일 | 내용 | 적용 콜 |
+|---|---|---|
+| [`tone-and-style.md`](prompts/_shared/tone-and-style.md) | 5계명(Casual&Easy·Concise≤2줄·Benefit-First·Respect&Emotional·Predictable Hint), 해요체 | feedback.*, speaking, summary.* |
+| [`difficulty-bands.md`](prompts/_shared/difficulty-bands.md) | easy=A2 / normal=B1 / hard=B1+(B2 입문 헤드룸, C1 금지) | dialogue, feedback.* |
+| [`korean-error-reference.md`](prompts/_shared/korean-error-reference.md) | 한국인 8대 오류 | feedback.* |
+| [`safety-scope.md`](prompts/_shared/safety-scope.md) | 영어 학습 한정·유해/오프토픽 차단·PII 미반향 | 전 콜 |
+
+---
+
+## 3. 콜 카탈로그 (7종)
+
+| 콜 | 모델 | 스트림 | responseSchema | 입력(가변) | 출력(핵심) |
+|---|---|:---:|:---:|---|---|
+| [`dialogue.generate`](prompts/dialogue-generate.md) | Flash | ✅ 턴 | ✅ | level·topic·length·firstSession | `{topic, opponentName, opponentGender, opponentRole, script:[{ko,en,role}]}` |
+| [`speaking.analyze`](prompts/speaking-analyze.md) | Flash | — | ✅ | **audio/wav만**(정답 미주입) | `{transcript, feedbackMessage}` |
+| [`feedback.slim`](prompts/feedback-slim.md) | Flash | ✅ 섹션 | ✅ | transcript·대상 한국어·정답 영어·level | `{writingScore:{score,encouragementMessage}, grammar:{segments,explanation}, naturalExpression:{segments,reason}}` |
+| [`feedback.deep`](prompts/feedback-deep.md) | Flash | ✅ 섹션 | ✅ | 동일 턴 | `{conceptualBridge:{literalTranslation,explanation,venn}, toneStyle:{levels[5]}, paraphrasing[3]}` |
+| [`summary.words`](prompts/summary-words.md) | Flash | — | ✅ | words[]·sentences[]·userOriginalSentences[] | `{items:[{en,ko,partOfSpeech,level,example,collocationNote?,confusionNote?}]}` |
+| [`summary.expressions`](prompts/summary-expressions.md) | Flash | — | ✅ | totalScore·expressionCandidates[] | 자연/정확 2분류 필터 결과 |
+| [`summary.coaching`](prompts/summary-coaching.md) | Flash | — | ✅ | 턴 점수·before/after 쌍 | `{futureSelfFeedback:{positive, toImprove}}` |
+
+**propertyOrdering:** 스트림 콜(dialogue/slim/deep)은 출력 순서를 결정적으로 만들기 위해 `responseSchema`에 `propertyOrdering` 고정(slim: writingScore→grammar→naturalExpression). **deep 스키마는 중첩 깊이 한계 사전 검증**.
+
+---
+
+## 4. 핵심 데이터 흐름
+
+### 4.1 턴 루프 (순차, transcript 재사용)
+```
+[학습자 턴] 녹음(16kHz PCM) → 프록시가 WAV 래핑
+  → speaking.analyze(audio/wav만)  → {transcript, feedbackMessage}     # 정답 미주입(전사 편향 차단)
+  → feedback.slim(transcript + 대상 한국어 + 정답 영어 + level)         # transcript를 텍스트로 재사용
+  → "더 보기" 탭 시에만 feedback.deep
+클라이언트가 매 턴 버퍼에 적재: {koreanPrompt, userText(before), correctedText(after), naturalExpression, slimScore}
+```
+
+### 4.2 세션 요약 (완주 시, 클라 버퍼 → 프록시)
+```
+클라가 완주 시 턴 버퍼 번들을 프록시로 전송
+  totalScore = 슬림 writingScore 평균(클라/백엔드 산출)        # deep 미실행과 무관
+  병렬:
+   - summary.words(words/sentences/userOriginalSentences)
+   - summary.expressions(totalScore + expressionCandidates)   # totalScore가 필터 강도 입력
+   - summary.coaching(턴 점수 + before/after)
+백엔드 조립: highlights = 슬림 점수 ≥90 턴, likedSentences = 북마크
+```
+> 서버 측 턴별 저장소 없음(stateless 친화). 미완 세션 = 버퍼 미전송 = 요약/XP 없음(일관).
+> **신뢰:** 클라 버퍼는 *표시용* 요약만 만든다. XP/streak는 서버 권위 `point_ledger`로 분리되어 위조 불가([firestore-schema.md](firestore-schema.md) §5). 단 프록시는 버퍼를 그대로 echo하지 않고 `summary.*`로 재가공(필터·dedupe).
+
+---
+
+## 5. 슬림/깊이 분할 (옛 6단계 절단)
+옛 `sentence_feedback`의 단일 6섹션을 2콜로:
+- **`feedback.slim`(매 턴)** = 옛 Step 1(작문 점수) + Step 2(문법 교정) + Step 4(자연스러움, 이유 1개)
+- **`feedback.deep`("더 보기"만)** = 옛 Step 3(개념 브릿지+벤) + Step 5(톤 5단) + Step 6(패러프레이즈 3단)
+
+---
+
+## 6. 색 산출 (탈-LLM)
+- **점수 색:** LLM 미출력. 클라가 점수로 산출 — **정본 임계 green ≥70 / orange 50–69 / red <50**(옛 프롬프트 Rule 4와 동일). *(옛 클라 모델의 80/60은 폐기. expression_filter의 80/50 strictness 밴드는 색과 무관하므로 별개 유지.)*
+- **Venn 색:** LLM은 `word`+`items`만 출력. 클라가 대비 가드로 계산(라이트/다크 ≥4.5/≥3.0, 좌우 구분) — 옛 `VennDiagramView`의 런타임 가드를 Compose로 재구현(B-3 백로그).
+
+---
+
+## 7. 견고성
+- 콜별 `responseSchema` + "JSON only" → 파싱 실패 시 **repair 재시도 1회**(원문+오류 첨부) → 반복 실패 시 해당 섹션 **graceful skip/에러 상태**.
+- 스트림 콜: 중괄호-깊이 점진 파서가 완성 객체만 추출(부분 JSON 안전), 키 순서는 `propertyOrdering`로 고정.
+- `speaking.analyze` 출력은 **`{transcript, feedbackMessage}`로 좁힘** — 옛 `fluency/confidence/hesitations` 3필드 능동 제거(A8). 옛 프로소디 파생 점수 경로(`BottomSheetSceneRenderer.java:232`) **재도입 금지**.
+
+---
+
+## 8. 비용
+암묵 캐싱(공통 prefix) + transcript 재사용(중복 인식 제거) + 슬림 매 턴/깊이 온디맨드 + Flash + 콜별 max-tokens 상한. 10턴 세션 ≈ speaking·slim 각 10 + 요약 3 ≈ 23콜(일일 한도 3세션으로 상한).
+
+---
+
+## 9. 의사결정 로그 & 검토 이력
+
+**핵심 결정:** 서버 버전드 프롬프트 · 호출별 JSON+responseSchema · 공유 톤/난이도/8오류/안전 prefix + 암묵 캐싱 · 슬림(턴)/깊이(온디맨드) 분할 · 스피킹 숫자 제거(전사+격려만) · 색 탈-LLM · 클라 버퍼 요약 입력 · 3티어(A2/B1/B1+).
+
+**가정(needs-you/튜닝):** temperature(대본 0.8/피드백·요약 0.3)·max-tokens·실제 문안 authoring·deep coaching 배열 vs 문자열(→ 레거시 `{positive, toImprove}` 채택).
+
+**grill-review 이력:** R1 Blocker 4(① 스피킹에 정답 주입→전사 편향 ② 요약 입력 누적 미정의 ③ 캐시 바닥 ④ responseSchema/스트림 이분법) → 수정 → R2 **0 Blocker SHIP**. 잔여 5 Advisory(캐시 바닥 수치 1024/2048·모델 ID 고정·coaching `{positive,toImprove}` 레거시 계약·propertyOrdering·스피킹 출력 좁힘+totalScore 전달) 전부 반영.
+
+---
+
+## 부록 — 파일 맵
+- 공유: [`prompts/_shared/`](prompts/_shared/) (tone-and-style · difficulty-bands · korean-error-reference · safety-scope)
+- 콜: [`prompts/`](prompts/) (dialogue-generate · speaking-analyze · feedback-slim · feedback-deep · summary-words · summary-expressions · summary-coaching)
+- 레거시 참고: `archive/android/app/src/main/assets/prompts/`, `archive/android/docs/schemas/summary_fragment_payload.schema.json`
+
+> 이 .md들은 **설계/초안**이다. 구현 시 `config/prompts`(서버)로 이관하고 모델 ID·responseSchema(코드)·max-tokens를 확정한다.
