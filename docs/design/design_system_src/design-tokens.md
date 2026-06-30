@@ -134,7 +134,7 @@
 
 ## 부록 A. Reference palette (참조 전용 — 제품 미사용)
 
-> **용도:** "Toss-like, not Toss-branded" 원칙의 대조 기준. `docs/design-system/`(Toss Securities upstream)의 색을 **대조 키값만** 발췌해 기록한다. 이 값들은 **제품 토큰이 아니며**, 코드에서 참조하지 않는다. 전체 팔레트는 `docs/design-system/tokens/colors.css` 및 `docs/design-system/PROVENANCE.md`로 위임한다.
+> **용도:** "Toss-like, not Toss-branded" 원칙의 대조 기준. Toss Securities upstream(현재 repo 미포함)의 색을 **대조 키값만** 발췌해 기록한다. 이 값들은 **제품 토큰이 아니며**, 코드에서 참조하지 않는다. 출처·계보는 [PROVENANCE.md](PROVENANCE.md) §3 참조.
 
 | 참조 토큰(upstream) | 값 | 제품 대응 | 비고 |
 |---|---|---|---|

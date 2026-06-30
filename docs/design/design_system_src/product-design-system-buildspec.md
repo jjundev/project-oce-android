@@ -37,7 +37,7 @@
 
 ### A.2 모션 토큰 (갭5) → `design-tokens.md` 신규 §모션
 
-> 출처: `docs/design-system/tokens/spacing.css:39-43`(참조) + archive `SlotMachineTextView.java`. **§6 시그니처 인터랙션의 모션 정본은 design-tokens.md §6** — 본 절은 *토큰 값*만 신설, §6은 cross-ref.
+> 출처: Toss upstream 참조 토큰(현재 repo 미포함 — [PROVENANCE.md](PROVENANCE.md) §3; 값은 본 표에 인라인) + archive `SlotMachineTextView.java`. **§6 시그니처 인터랙션의 모션 정본은 design-tokens.md §6** — 본 절은 *토큰 값*만 신설, §6은 cross-ref.
 
 | 토큰 | 값 | Compose 매핑 |
 |---|---|---|
@@ -56,7 +56,7 @@
 
 ### A.3 타이포 보강 (갭6) → `design-tokens.md §4.1` 스키마 확장(컬럼 추가)
 
-> 출처: `docs/design-system/tokens/typography.css:26-33`. 기존 §4.1 표에 `lineHeight`·`letterSpacing` 컬럼 추가.
+> 출처: Toss upstream 참조 토큰(현재 repo 미포함; 값은 본 표에 인라인). 기존 §4.1 표에 `lineHeight`·`letterSpacing` 컬럼 추가.
 
 | 토큰 | 크기/굵기 | lineHeight | letterSpacing |
 |---|---|---|---|
@@ -119,7 +119,7 @@
 ## Part C — Foundations / Assets (갭7)
 
 - **아이콘:** **M0까지 유보.** 세트 확정하지 않고 [product-design-system.md](product-design-system.md) §4("필드드 24-grid, 자체 조달, M0 확정")를 유지한다. 본 문서는 기준(필드드·24-grid·text color 상속)만 재확인.
-- **폰트:** **Pretendard 5종 확정** — Regular(400)/Medium(500)/SemiBold(600)/Bold(700)/ExtraBold(800). 실제 번들 에셋(`docs/design-system/assets/fonts/`)과 정합. 9종 전체는 비목표(→ `design-tokens.md:81` 정정 완료, [ADR-0004](../../adr/0004-brand-color-naming.md) 계열 결정). 조달 경로는 M0에서 `res/font` 또는 다운로더블 폰트로 확정.
+- **폰트:** **Pretendard 5종 확정** — Regular(400)/Medium(500)/SemiBold(600)/Bold(700)/ExtraBold(800). 실제 생성 번들 에셋(`docs/design_system/design-system-498c1d19-9547-4cdb-ae4c-3313705391fb/assets/fonts/`, Pretendard 5종 + LICENSE)과 정합. 9종 전체는 비목표(→ `design-tokens.md:81` 정정 완료, [ADR-0004](../../adr/0004-brand-color-naming.md) 계열 결정). 조달 경로는 M0에서 `res/font` 또는 다운로더블 폰트로 확정.
 
 ---
 

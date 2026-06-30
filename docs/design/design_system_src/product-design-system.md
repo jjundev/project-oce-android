@@ -10,7 +10,7 @@
 
 ## 1. 원칙
 
-- **Toss-like, not Toss-branded.** Toss의 정제된 미니멀리즘(플랫·라운드·넉넉한 여백·볼드 헤딩)은 참고하되, Toss 브랜드/금융 문맥/Tossface는 가져오지 않는다([PROVENANCE.md](../../design-system/PROVENANCE.md)).
+- **Toss-like, not Toss-branded.** Toss의 정제된 미니멀리즘(플랫·라운드·넉넉한 여백·볼드 헤딩)은 참고하되, Toss 브랜드/금융 문맥/Tossface는 가져오지 않는다([PROVENANCE.md](PROVENANCE.md)).
 - **값은 토큰, 외형은 본 문서.** 컴포넌트는 raw hex/px를 쓰지 않고 `design-tokens.md`의 시맨틱 토큰만 소비한다.
 - **상태 축 구동.** 컴포넌트는 정적 외형이 아니라 §상태 축(위 위임)에 바인딩된 *상태 계약*으로 명세한다.
 - **색 단독 신호 금지.** 모든 의미 전달은 색 + 형태(아이콘/취소선/밑줄/텍스트) 이중 신호([foundations.md](foundations.md) §2).
@@ -24,7 +24,7 @@
 
 ### 2.1 Toss-reference subset (정제감 차용 · 외형만 참고)
 
-`docs/design-system/_ds_bundle.js`의 11종 중 제품에 필요한 subset. **금융 전용(`PriceChange`)·아바타 중심(`Avatar`)은 미채택.** 외형만 참고하고 구현은 Compose 신규.
+Toss upstream(제거됨) 11종 중 제품에 필요한 subset. **금융 전용(`PriceChange`)·아바타 중심(`Avatar`)은 미채택.** 외형만 참고하고 구현은 Compose 신규.
 
 | 컴포넌트 | 코드명 | consumer 문서 | 핵심 토큰 | 비고 |
 |---|---|---|---|---|

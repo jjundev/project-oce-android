@@ -1,12 +1,12 @@
 # ADR-0004 — 브랜드 색 명칭 정정 (#39A0ED "토스 블루" → 제품 브랜드 블루)
 
 > 상태: 수용(Accepted) · 작성일: 2026-06-30
-> 관련: `PRD.md` §11(`PRD.md:269`) · `docs/design/design_system_src/design-tokens.md` §2.1(:25)·§3(:60,:63)·부록 A · `docs/design-system/PROVENANCE.md` · `docs/design/design_system_src/product-design-system.md`
+> 관련: `PRD.md` §11(`PRD.md:269`) · `docs/design/design_system_src/design-tokens.md` §2.1(:25)·§3(:60,:63)·부록 A · `docs/design/design_system_src/PROVENANCE.md` · `docs/design/design_system_src/product-design-system.md`
 > 근거 규칙: "Toss-like, not Toss-branded" — Toss의 정제감은 참고하되 Toss 브랜드/금융 문맥은 가져오지 않는다.
 
 ## 맥락
 
-v1 주조색 `#39A0ED`는 `archive` 코드(`teal_200`/`colorSecondary`)와 PRD 본문(`PRD.md:269` "주조색 토스 블루 #39A0ED"), 그리고 `design-tokens.md:25,63`에서 **"토스 블루"로 오칭**돼 왔다. 그러나 실제 Toss 브랜드 블루는 `#3182F6`이다(`docs/design-system/_ds_manifest.json` `--toss-blue`, `docs/design-system/tokens/colors.css`).
+v1 주조색 `#39A0ED`는 `archive` 코드(`teal_200`/`colorSecondary`)와 PRD 본문(`PRD.md:269` "주조색 토스 블루 #39A0ED"), 그리고 `design-tokens.md:25,63`에서 **"토스 블루"로 오칭**돼 왔다. 그러나 실제 Toss 브랜드 블루는 `#3182F6`이다(Toss upstream — 현재 repo 미포함, [PROVENANCE.md](../design/design_system_src/PROVENANCE.md) §3).
 
 제품 색을 "토스 블루"로 부르는 것은 "Toss-like, not Toss-branded" 원칙이 금지하는 **브랜드 누수**이자 사실 오류다. Toss는 정제된 미니멀리즘의 *참조*일 뿐, 제품의 브랜드 정체성이 아니다.
 
