@@ -32,6 +32,6 @@ Toss의 정제감만 차용하고 **Toss 브랜드·금융 문맥·Tossface·금
 |---|---|
 | 토큰 값 | [design-tokens.md](design-tokens.md) |
 | 컴포넌트 계약 | [product-design-system.md](product-design-system.md) |
-| 상태 축·a11y·시트 IA (mirror) | [foundations.md](foundations.md) (외부 정본은 `../../ui, ux/`) |
+| 상태 축·a11y·시트 IA (mirror) | [foundations.md](foundations.md) (외부 정본은 `../../ux/`) |
 | M0 빌드 사양 | [product-design-system-buildspec.md](product-design-system-buildspec.md) |
 | 생성 번들(산출물) | `docs/design_system/design-system-498c1d19-…/` |

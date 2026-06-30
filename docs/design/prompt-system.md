@@ -70,6 +70,7 @@
 ```
 > 서버 측 턴별 저장소 없음(stateless 친화). 미완 세션 = 버퍼 미전송 = 요약/XP 없음(일관).
 > **신뢰:** 클라 버퍼는 *표시용* 요약만 만든다. XP/streak는 서버 권위 `point_ledger`로 분리되어 위조 불가([firestore-schema.md](firestore-schema.md) §5). 단 프록시는 버퍼를 그대로 echo하지 않고 `summary.*`로 재가공(필터·dedupe).
+> **부분 실패 계약:** `/llm task=summary`는 세 내부 콜의 결과를 단일 SSE로 묶고, 종료 시 `done.sections = {expressions, words, coaching}`를 반환한다([backend-functions.md](backend-functions.md) §10).
 
 ---
 

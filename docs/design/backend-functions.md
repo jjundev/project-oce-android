@@ -52,8 +52,8 @@
   - **단발 JSON**: `speaking`, `tts`
 - **타입드 SSE 엔벨로프:**
   - `event: meta` → `{sessionId, remaining}` (dialogue 시작 시)
-  - `event: object` → `{type, data}`, `type ∈ {dialogueMeta, turn, feedbackSection, summaryCard}` (`summaryCard.data.kind ∈ {expression, word}`)
-  - `event: done` → `{status, sections?}` (summary는 `{expressions: ok|failed, words: ok|failed}` — §11)
+  - `event: object` → `{type, data}`, `type ∈ {dialogueMeta, turn, feedbackSection, summaryCard}` (`summaryCard.data.kind ∈ {expression, word, coaching}`)
+  - `event: done` → `{status, sections?}` (summary는 `{expressions: ok|failed, words: ok|failed, coaching: ok|failed}` — §10)
   - `event: error` → `{code}`
 - **SSE 전송 규칙(중요):** compression 미들웨어 **금지**, 객체마다 `res.write()`+flush, `Content-Type: text/event-stream`, **no `Content-Length`**, `X-Accel-Buffering: no`. (안 그러면 배치로 회귀 → NFR-3 무효)
 
@@ -63,7 +63,7 @@
 ```ts
 interface LlmProvider {
   generateStream(req): AsyncIterable<RawChunk>   // SSE 소스 (dialogue/feedback/summary)
-  generateOnce(req): Promise<RawJson>            // 단발 (speaking=audio payload, summary word-extraction)
+  generateOnce(req): Promise<RawJson>            // 단발 (speaking=audio payload, summary words/expressions/coaching)
   tts(text, voice): Promise<Base64Pcm>           // TTS
 }
 ```
@@ -108,12 +108,13 @@ interface LlmProvider {
 
 ---
 
-## 10. Summary 2-call 오케스트레이션
-요약은 **두 Gemini 호출**을 프록시가 묶어 단일 SSE로 표현:
-1. **표현 필터**(stream) → `summaryCard{kind:expression}` emit.
+## 10. Summary 3-call 오케스트레이션
+요약은 **세 Gemini 호출**을 프록시가 묶어 단일 SSE로 표현한다([prompt-system.md](prompt-system.md) §4.2 정합).
+1. **표현 필터**(one-shot `generateOnce`) → `summaryCard{kind:expression}` emit.
 2. **단어 추출**(one-shot `generateOnce`) → `summaryCard{kind:word}` emit.
-- 캐시는 두 내부 task(`summary.expressions`, `summary.words`)로 분리(§6 키 규칙).
-- **부분 실패:** 종료 `event:done {expressions: ok|failed, words: ok|failed}`로 클라가 "비어있음" vs "실패→재시도" 구분. 재시도 시 표현 캐시 재사용·단어만 재호출.
+3. **코칭**(one-shot `generateOnce`) → `summaryCard{kind:coaching}` emit.
+- 캐시는 세 내부 task(`summary.expressions`, `summary.words`, `summary.coaching`)로 분리(§6 키 규칙).
+- **부분 실패:** 종료 `event:done {expressions: ok|failed, words: ok|failed, coaching: ok|failed}`로 클라가 "비어있음" vs "실패→재시도" 구분. 재시도 시 성공 섹션은 재사용하고 실패 섹션만 재호출한다.
 
 ---
 
@@ -138,7 +139,7 @@ config/cache             # 서버 전용 — cachedContents 핸들(키 task+prom
 ---
 
 ## 13. 검토 이력 (grill-review --deep auto)
-- **iter1(4B/8A):** 캐시 키 모델 누락 · 미게이트 오디오 무계량 · 시작 멱등 부재 · uniform SSE 모순(summary 2-call) → 수정.
+- **iter1(4B/8A):** 캐시 키 모델 누락 · 미게이트 오디오 무계량 · 시작 멱등 부재 · uniform SSE 모순(summary multi-call) → 수정.
 - **iter2(2B/5A):** 멱등 비원자성 · 캡 "선택"이라 비용 한계 거짓 → 수정(단일 트랜잭션 멱등 · 필수 캡).
 - **iter3(0B/3A, SHIP):** 두 Blocker 해소 확인, 신규 Blocker 없음. 잔여 Advisory(캡 vs 재시도→성공만 카운트, 스키마 doc 동기화, 환불-키 원자성)는 본 문서에 반영.
 - 보안 메모: iter1 첫 critic이 비정상(0 도구·프리앰블 반향) 응답 → 무효 처리·방어 문구 추가 후 재실행. 저장소 인젝션 정황 아님(파일 미읽음).

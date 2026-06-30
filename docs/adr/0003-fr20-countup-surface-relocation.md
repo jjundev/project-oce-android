@@ -1,7 +1,7 @@
 # ADR-0003 — FR-20 카운트업 surface 재배치 (대시보드/홈 → 완주·기록)
 
 > 상태: 수용(Accepted) · 작성일: 2026-06-30
-> 관련: `PRD.md` FR-20(`PRD.md:205`) · `docs/design/design_system_src/design-tokens.md` §6(:122) · `docs/ui, ux/gamification-emphasis.md` §6 · `docs/ui, ux/home-learning-entry.md` §5.2
+> 관련: `PRD.md` FR-20(`PRD.md:205`) · `docs/design/design_system_src/design-tokens.md` §6(:122) · `docs/ux/gamification-emphasis.md` §6 · `docs/ux/home-learning-entry.md` §5.2
 > 근거 규칙: `PRD.md` "충돌 시 설계 문서가 우선한다"(`PRD.md:262`)
 
 ## 맥락

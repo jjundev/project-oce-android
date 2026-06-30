@@ -9,7 +9,7 @@
 
 ## §1. 상태 축
 
-> `[MIRROR]` 정본: `../../ui, ux/dialogue-learning-flow.md:24-31` — 상충 시 정본 우선.
+> `[MIRROR]` 정본: `../../ux/dialogue-learning-flow.md:24-31` — 상충 시 정본 우선.
 
 | 축 | 값 | 의미 |
 |---|---|---|
@@ -26,7 +26,7 @@
 
 ## §2. 접근성 빌드 기준치
 
-> `[MIRROR]` 정본: `../../ui, ux/accessibility.md` `## A. 결정표` — 상충 시 정본 우선. (집행 세부·rationale은 정본 참조)
+> `[MIRROR]` 정본: `../../ux/accessibility.md` `## A. 결정표` — 상충 시 정본 우선. (집행 세부·rationale은 정본 참조)
 
 | 항목 | 기준치 |
 |---|---|
@@ -48,7 +48,7 @@
 
 ## §3. 시트 IA 동작 (FeedbackSheet)
 
-> `[MIRROR]` 정본: `../../ui, ux/turn-feedback-ia.md` §2~8 — 상충 시 정본 우선.
+> `[MIRROR]` 정본: `../../ux/turn-feedback-ia.md` §2~8 — 상충 시 정본 우선.
 
 - **Surface:** 단일 하단 바텀시트(24dp 라운드·드래그 핸들·NestedScroll). 라우트 전환 없음.
 - **slim 3섹션(항상):** `writingScore → grammar → naturalExpression` 고정 순서.
@@ -84,9 +84,9 @@ Toss 참조는 *정제감*만 차용한다. **Tossface·금융 방향색(up/down
 
 | 정본(외부) | mirror 위치 |
 |---|---|
-| `../../ui, ux/dialogue-learning-flow.md:24-31` (상태 축) | §1 |
-| `../../ui, ux/accessibility.md ## A. 결정표` (a11y) | §2 |
-| `../../ui, ux/turn-feedback-ia.md §2-8` (시트 IA) | §3 |
+| `../../ux/dialogue-learning-flow.md:24-31` (상태 축) | §1 |
+| `../../ux/accessibility.md ## A. 결정표` (a11y) | §2 |
+| `../../ux/turn-feedback-ia.md §2-8` (시트 IA) | §3 |
 | `PROVENANCE.md`(본 폴더) (provenance) | §4 |
 
 > 빌드 reader는 §1~§3만으로 컴포넌트를 구현할 수 있다. 정확한 제품 맥락·rationale이 필요하면 정본을 본다.

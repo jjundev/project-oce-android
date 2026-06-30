@@ -14,7 +14,7 @@
 ## 자족 경계
 
 - **인폴더(빌드 필수):** 위 6개 md 전부. Compose/M3 라이브러리 의존은 정상.
-- **외부 정본(참고용 · mirror 원본):** `../../ui, ux/dialogue-learning-flow.md`(상태 축)·`accessibility.md`(a11y)·`turn-feedback-ia.md`(시트 IA). foundations.md가 이들의 빌드필수 부분집합을 mirror하며, 상충 시 정본이 우선한다(foundations §6 동기화).
+- **외부 정본(참고용 · mirror 원본):** `../../ux/dialogue-learning-flow.md`(상태 축)·`accessibility.md`(a11y)·`turn-feedback-ia.md`(시트 IA). foundations.md가 이들의 빌드필수 부분집합을 mirror하며, 상충 시 정본이 우선한다(foundations §6 동기화).
 - **출처·계보:** [PROVENANCE.md](PROVENANCE.md)(본 폴더) — 스펙→생성 번들 관계, Toss 참조(제거됨) 기록.
 - **M0 잔여:** 비파일럿 컴포넌트 풀스펙(스텁→채움)·아이콘 세트 선정·폰트/아이콘 바이너리 조달·Compose/Theme/lint 구현.
 

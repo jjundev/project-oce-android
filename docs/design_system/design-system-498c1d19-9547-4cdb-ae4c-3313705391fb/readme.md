@@ -21,7 +21,7 @@ This system was built **entirely from the written spec** in the attached folder
 - `product-design-system-buildspec.md` — full anatomy specs, dark values, motion tokens, line-heights, Theme API
 - `product-design-system-pilot.md` — first QA pilot (dialogue + turn-feedback component × state matrix)
 
-External provenance referenced but **not required** (and not accessible here): `../../ui, ux/*`,
+External provenance referenced but **not required** (and not accessible here): `../../ux/*`,
 `../../design-system/PROVENANCE.md`, `PRD.md`. Token values trace to the legacy Android app's
 `colors.xml` / `dimens.xml` measured values, re-named into semantic tokens.
 

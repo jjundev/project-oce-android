@@ -1,7 +1,7 @@
 # ADR-0002 — 오프라인 레이어 분리 (saved_cards vs 게임화 원장)
 
 > 상태: 수용(Accepted) · 작성일: 2026-06-30
-> 관련: `docs/design/firestore-schema.md` §7 · `docs/ui, ux/saved-cards.md` §6 · `PRD.md` §10.4 · FR-3b
+> 관련: `docs/design/firestore-schema.md` §7 · `docs/ux/saved-cards.md` §6 · `PRD.md` §10.4 · FR-3b
 > 근거 규칙: `PRD.md` "충돌 시 설계 문서가 우선한다"(`PRD.md:262`)
 
 ## 맥락

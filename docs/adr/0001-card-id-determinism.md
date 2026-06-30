@@ -1,7 +1,7 @@
 # ADR-0001 — saved_cards cardId 결정성
 
 > 상태: 수용(Accepted) · 작성일: 2026-06-30
-> 관련: `docs/design/firestore-schema.md` §3 saved_cards · `docs/ui, ux/saved-cards.md` §2.1 · FR-15~17
+> 관련: `docs/design/firestore-schema.md` §3 saved_cards · `docs/ux/saved-cards.md` §2.1 · FR-15~17
 
 ## 맥락
 

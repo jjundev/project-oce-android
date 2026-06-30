@@ -25,7 +25,7 @@
 
 ```
 users/{uid}                      # 루트 문서: nickname, level, createdAt, updatedAt
-  ├─ saved_cards/{cardId}        # client RW; cardType 판별; create 시 deletedAt:null; 삭제=톰스톤 update
+  ├─ saved_cards/{cardId}        # client RW; cardId=소스 튜플 결정적 파생(ADR-0001); create 시 deletedAt:null; 삭제=톰스톤 update
   ├─ point_ledger/{sessionId}    # client CREATE-only(불변); {difficulty, modeId, awardedAt}
   ├─ progress_marks/{sessionId}  # Functions 전용; 멱등 마커(문서 존재 = 해당 세션 집계 완료)
   ├─ gamification/progress       # Functions 전용; {xp, streak, studyDays, lastStudyDate, resetAt, updatedAt}
@@ -58,7 +58,7 @@ idempotency/{key}                # 서버 전용 — startIntent dedup → {sess
 
 `isGuest`/`provider`는 Auth 토큰(`request.auth.token.firebase.sign_in_provider`)에서 파생 — 중복 저장 안 함.
 
-### saved_cards/{cardId} (cardId = 클라이언트 UUID)
+### saved_cards/{cardId} (cardId = 소스 튜플 결정적 파생 id)
 | 필드 | 타입 | 적용 카드 |
 |---|---|---|
 | `cardType` | `'WORD'｜'SENTENCE'｜'EXPRESSION'` | 공통(판별자) |
@@ -70,6 +70,12 @@ idempotency/{key}                # 서버 전용 — startIntent dedup → {sess
 | `deletedAt` | timestamp｜**null** | **create 시 반드시 null**(쿼리 일관성). 삭제 = 이 필드 set |
 
 > 필드 모양은 옛 `SavedCard.java`(WORD/SENTENCE/EXPRESSION + 위 필드) 기준.
+
+**cardId 결정성(멱등 dedup, 정본 — ADR-0001):** `cardId`는 랜덤 UUID가 아니라 소스 튜플에서 **결정적으로 파생**한 문서 id다. 같은 항목을 요약 재렌더·화면 재진입·프로세스 재시작에서 다시 저장해도 같은 문서로 수렴해 중복 카드가 생기지 않는다(랜덤 UUID는 프로세스 사망 후 같은 키 재생성이 불가해 멱등이 깨진다).
+> - WORD/EXPRESSION(요약 출처): `"{sessionId}__{cardType}__{sourceIndex}"`. `sourceIndex`는 `/llm task=summary` SSE의 해당 섹션 배열(`summary.words` / `summary.expressions`, [prompt-system.md](prompt-system.md))에서 항목의 0-기반 순번.
+> - SENTENCE(턴 중 deep 패러프레이즈): `"{sessionId}__SENTENCE__{turnIndex}__{level}"`. `level`은 패러프레이즈 1/2/3(Beginner/Intermediate/Advanced). **`sourceIndex`(=level) 단독은 턴마다 반복되어 같은 세션 내 충돌하므로 `turnIndex`를 반드시 포함**한다.
+> - 별도 `itemKey`/소스 필드는 두지 않는다 — dedup은 문서 id 자체에 산다. 게스트→Google 이관 `saved_cards` union(아래 §6 `cardId 기준`)은 결정적 id에서 더 강하게 수렴한다.
+> - 길이 가드: 위 문자열이 Firestore 문서 id 한도(1500바이트)를 넘지 않도록 `sessionId`는 서버 UUID(고정 길이)를 쓴다.
 
 ### point_ledger/{sessionId} — XP 멱등 원장(불변)
 | 필드 | 타입 | 비고 |
