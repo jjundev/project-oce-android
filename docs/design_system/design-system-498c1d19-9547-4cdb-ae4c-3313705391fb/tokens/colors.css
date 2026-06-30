@@ -1,0 +1,105 @@
+/* 딸깍영어 — Color tokens
+ * SoT: design-tokens.md §2 + buildspec Part A.1 (dark values).
+ * Fixed brand palette; Material You dynamic color OFF — meaning colors
+ * (score / 4 voice states / streak) must never be hijacked by device wallpaper.
+ * Depth = surface layer + 1dp hairline border (elevation 0), never shadow.
+ *
+ * Two layers:
+ *   --palette-*  raw reference values (do not consume directly in components)
+ *   semantic     brand / surface / text / feedback / voice / game / state
+ * Light values live on :root; dark on [data-theme="dark"].
+ */
+
+:root {
+  /* ---- raw palette (reference only) ---- */
+  --palette-blue-500: #39A0ED;   /* product brand blue (NOT Toss #3182F6) */
+  --palette-blue-700: #2B7FBB;
+  --palette-coral-400: #EF767A;
+  --palette-green-600: #009B72;
+  --palette-red-500: #E53935;
+  --palette-amber-400: #FFC107;
+  --palette-orange-500: #FF5C00;
+  --palette-gray-90: #353C45;
+  --palette-gray-70: #676B73;
+  --palette-gray-50: #8E9399;
+  --palette-gray-20: #E8EAED;
+  --palette-gray-10: #F3F4F6;
+  --palette-white: #FFFFFF;
+
+  /* ---- brand ---- */
+  --brand-primary: #39A0ED;          /* CTA · progress · User chat bubble */
+  --brand-primary-pressed: #2B7FBB;  /* pressed / gradient end-stop */
+  --brand-on-primary: #FFFFFF;
+  --brand-gradient: linear-gradient(135deg, #39A0ED 0%, #2B7FBB 100%); /* @kind color */
+
+  /* ---- surface ---- */
+  --surface-background: #F3F4F6;  /* lowest background */
+  --surface-card: #FFFFFF;        /* cards / sheets / raised surfaces */
+  --surface-overlay-dim: rgba(14, 15, 18, 0.42); /* scrim behind sheets */
+
+  /* ---- text ---- */
+  --text-primary: #353C45;
+  --text-secondary: #676B73;
+  --text-tertiary: #8E9399;
+  --text-on-primary: #FFFFFF;
+
+  /* ---- border ---- */
+  --border-hairline: #E8EAED;  /* 1dp border, the elevation substitute */
+  --border-strong: #C9CDD2;    /* input rest border */
+
+  /* ---- feedback (meaning colors — accent + tinted bg) ---- */
+  --feedback-natural-accent: #009B72;  /* "자연스러운 표현" — green */
+  --feedback-natural-bg: #E6F5F0;
+  --feedback-correct-accent: #EF767A;  /* "정확한 표현 / 교정" — coral */
+  --feedback-correct-bg: #FDEEEE;
+
+  /* ---- voice (4-state mic) ---- */
+  --voice-ready-core: #55606C;
+  --voice-ready-ring: #E8EAED;
+  --voice-recording-core: #E53935;
+  --voice-recording-ring: #FCE4EC;
+  --voice-analyzing: #6B7684;
+  --voice-complete: #4CAF50;
+
+  /* ---- gamification ---- */
+  --game-streak: #FF5C00;   /* 🔥 consecutive-day streak */
+  --game-save-gold: #FFC107; /* saved-card gold */
+
+  /* ---- state ---- */
+  --state-error: #E53935;
+
+  /* ---- waveform gradient (crackle bars) ---- */
+  --waveform-top: #9E9E9E;
+  --waveform-bottom: #757575;
+}
+
+[data-theme="dark"] {
+  --surface-background: #0E0F12;
+  --surface-card: #1A1B20;
+  --surface-overlay-dim: rgba(0, 0, 0, 0.6);
+
+  --text-primary: #F2F3F5;
+  --text-secondary: #A9ADB6;
+  --text-tertiary: #7C818C;
+
+  --border-hairline: #2A2C32;
+  --border-strong: #3A3D45;
+
+  /* feedback accents keep hue; tinted bg darkened */
+  --feedback-natural-accent: #009B72;
+  --feedback-natural-bg: #0F2A22;
+  --feedback-correct-accent: #EF767A;
+  --feedback-correct-bg: #321B21;
+
+  --voice-ready-core: #8E96A1;
+  --voice-ready-ring: #2A2C32;
+  --voice-recording-core: #FF6B66;
+  --voice-recording-ring: #3A1F22;
+  --voice-analyzing: #B0BEC5;
+  --voice-complete: #66BB6A;
+
+  --game-streak: #FF7A33;
+  --game-save-gold: #FFD24D;
+
+  --state-error: #FF8A80;
+}

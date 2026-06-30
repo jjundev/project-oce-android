@@ -1,0 +1,21 @@
+/* 딸깍영어 — Spacing tokens
+ * SoT: design-tokens.md §4.2. 4dp-based scale.
+ * Conventions: dialog/sheet inner padding 24, section bottom margin 24,
+ * action gap 12, loading padding 40.
+ */
+
+:root {
+  --space-xs: 6px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-xxl: 24px;
+  --space-huge: 40px;
+
+  /* semantic conventions */
+  --space-sheet-padding: 24px;
+  --space-section-gap: 24px;
+  --space-action-gap: 12px;
+  --space-loading-padding: 40px;
+}

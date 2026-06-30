@@ -1,0 +1,9 @@
+/* 딸깍영어 디자인 시스템 — global stylesheet entry point.
+ * Consumers link THIS file only. Keep it an @import list (no rules here).
+ */
+@import "tokens/fonts.css";
+@import "tokens/colors.css";
+@import "tokens/typography.css";
+@import "tokens/spacing.css";
+@import "tokens/radius.css";
+@import "tokens/motion.css";
