@@ -1,0 +1,59 @@
+/* 딸깍영어 — Typography tokens
+ * SoT: design-tokens.md §4.1 + buildspec Part A.3 (lineHeight / letterSpacing).
+ * Pretendard global. sp in Android → rem/px on web. fontScale 1.3× must not break.
+ */
+
+:root {
+  --font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+    'Malgun Gothic', 'Segoe UI', Roboto, sans-serif;
+
+  /* weights bundled (5): Regular/Medium/SemiBold/Bold/ExtraBold */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* ---- type scale (size / weight / line-height / tracking) ---- */
+  /* screenTitle — 28sp Bold */
+  --type-screen-title-size: 28px;
+  --type-screen-title-weight: 700;
+  --type-screen-title-line: 1.2;
+  --type-screen-title-tracking: -0.02em;
+
+  /* scoreDisplay — 56sp Bold, brand.primary */
+  --type-score-size: 56px;
+  --type-score-weight: 700;
+  --type-score-line: 1.2;
+  --type-score-tracking: -0.02em;
+
+  /* dialogHeader — 22sp Bold */
+  --type-dialog-header-size: 22px;
+  --type-dialog-header-weight: 700;
+  --type-dialog-header-line: 1.35;
+  --type-dialog-header-tracking: -0.02em;
+
+  /* body — 16sp */
+  --type-body-size: 16px;
+  --type-body-weight: 400;
+  --type-body-line: 1.45;
+  --type-body-tracking: 0;
+
+  /* sectionLabel — 14sp Bold */
+  --type-section-label-size: 14px;
+  --type-section-label-weight: 700;
+  --type-section-label-line: 1.2;
+  --type-section-label-tracking: 0;
+
+  /* helper — 13sp */
+  --type-helper-size: 13px;
+  --type-helper-weight: 400;
+  --type-helper-line: 1.45;
+  --type-helper-tracking: 0;
+
+  /* bottom-nav tab (active 13sp Bold / inactive 11sp Normal) */
+  --type-tab-active-size: 13px;
+  --type-tab-active-weight: 700;
+  --type-tab-inactive-size: 11px;
+  --type-tab-inactive-weight: 400;
+}

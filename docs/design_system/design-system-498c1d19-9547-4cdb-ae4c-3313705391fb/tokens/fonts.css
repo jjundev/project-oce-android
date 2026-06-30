@@ -1,0 +1,42 @@
+/* 딸깍영어 — Webfonts
+ * Pretendard 5 weights (400/500/600/700/800), global font family.
+ * Bundled locally from the user-provided Pretendard 1.3.9 release (OFL — see
+ * assets/fonts/Pretendard-LICENSE.txt). URLs are relative to this file.
+ * (Thin/ExtraLight/Light/Black are NOT bundled — out of scope per design-tokens §4.1.)
+ */
+
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/Pretendard-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../assets/fonts/Pretendard-Medium.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../assets/fonts/Pretendard-SemiBold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fonts/Pretendard-Bold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('../assets/fonts/Pretendard-ExtraBold.woff2') format('woff2');
+}

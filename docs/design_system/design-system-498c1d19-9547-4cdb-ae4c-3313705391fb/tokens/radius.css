@@ -1,0 +1,19 @@
+/* 딸깍영어 — Shape / radius + elevation tokens
+ * SoT: design-tokens.md §4.3–4.4.
+ * elevation 0 baseline; only exception bottom nav = 8dp.
+ */
+
+:root {
+  --radius-4: 4px;    /* bubble tail · waveform bar · skeleton */
+  --radius-8: 8px;    /* input field */
+  --radius-12: 12px;  /* primary/secondary/send button · mic background */
+  --radius-14: 14px;
+  --radius-16: 16px;  /* dialog card · progress bar */
+  --radius-18: 18px;  /* chat bubble body */
+  --radius-24: 24px;  /* card · bottom-sheet · dialog container */
+  --radius-pill: 100px;
+
+  /* elevation — flat by default */
+  --elevation-0: none;
+  --elevation-nav: 0 -1px 0 var(--border-hairline), 0 -8px 24px rgba(14, 15, 18, 0.06);
+}

@@ -1,0 +1,22 @@
+/* 딸깍영어 — Motion tokens
+ * SoT: design-tokens.md §6 + buildspec Part A.2.
+ * Short, restrained motion (color 100ms / background 200ms). No infinite
+ * decorative animation. reduce-motion → static fallback for all signature interactions.
+ */
+
+:root {
+  --motion-duration-fast: 100ms; /* @kind other */ /* color transitions */
+  --motion-duration-base: 200ms; /* @kind other */ /* background / elevation */
+
+  --motion-ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1); /* @kind other */
+  --motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* @kind other */
+  --motion-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* @kind other */
+
+  /* slot-machine count-up (reward strip) */
+  --motion-slot-fast-phase: 800ms; /* @kind other */
+  --motion-slot-total: 1260ms; /* @kind other */
+
+  /* signature loops */
+  --motion-ripple-loop: 600ms; /* @kind other */ /* recording ripple ×3 phase-offset */
+  --motion-shimmer-loop: 1200ms; /* @kind other */ /* skeleton shimmer */
+}
