@@ -70,8 +70,8 @@
 
 | 컴포넌트 | 규칙 |
 |---|---|
-| 마이크 4상태 | `stateDescription`("들을 차례 / 말할 차례 / 분석 중 / 완료") + **모든 전환 assertive announce**(§6·§7) |
-| 채팅 말풍선 | 화자+텍스트 `mergeDescendants`. 영어 본문 `LocaleList(en)`(§7). 스피커=customAction "듣기", 해석보기=토글 상태 노출 |
+| 마이크 4상태(MicState) | `stateDescription`(Ready"말할 차례" / Recording"녹음 중" / Analyzing"분석 중" / Complete"완료" — MicState 4값 1:1) + **모든 전환 assertive announce**(§6·§7, 문구=stateDescription 재사용). "들을 차례"는 MicState 아닌 상대역 재생(OpponentPlayback.Playing) → 채팅 말풍선 행 |
+| 채팅 말풍선 | 화자+텍스트 `mergeDescendants`. 영어 본문 `LocaleList(en)`(§7). 스피커=customAction "듣기", 해석보기=토글 상태 노출. 상대역 재생(OpponentPlayback.Playing) 진입 시 assertive announce "들을 차례" |
 | 피드백 시트 | 점수=숫자+의미 함께(§3). grammar `incorrect`=취소선 의미를 텍스트화. highlight 변경부 설명. 벤=텍스트 대안(§3) |
 | 슬롯머신/카운트업 | 최종값만 `stateDescription` 1회, 틱 미노출 |
 | 프로그레스 링 | `stateDescription`(퍼센트 또는 "분석 중") |

@@ -72,6 +72,7 @@
 |---|---|---|
 | `type.screenTitle` | 28sp Bold | 화면 제목 |
 | `type.scoreDisplay` | 56sp Bold (`brand.primary`) | 요약 종합 점수 |
+| `type.turnScore` | 28sp Bold (tracking -0.02em) | 턴 피드백 writingScore 점수 (요약 hero 하위 · `screenTitle`과 값 동일하나 **시맨틱 분리**: 점수 ≠ 화면 제목, 향후 독립 조정) |
 | `type.dialogHeader` | 22sp Bold | 다이얼로그/시트 헤더 |
 | `type.body` | 16sp | 본문·말풍선 |
 | `type.sectionLabel` | 14sp Bold | 섹션 라벨 |
@@ -179,3 +180,26 @@ M3 `ColorScheme`에 대응 슬롯이 없는 §2.2 의미 색은 `CompositionLoca
 - §4.4 elevation → 기본 0dp, `elevation.nav=8dp`만 예외.
 
 > **경계 주의:** 컴포넌트 *외형·상태 계약·모션 세부*는 [product-design-system.md](product-design-system.md)가 소유한다. 단 §6(시그니처 인터랙션 4종: 음성 4상태·crackle 파형·슬롯머신 카운트업·점진 스켈레톤)의 **모션 파라미터 정본은 본 문서 §6**이며, product-design-system.md는 이를 **cross-reference**한다(중복 정의 금지).
+
+## 부록 C. 보조 색 토큰 (§2 보강 — F2 매핑에서 확인된 누락분)
+
+> **용도:** 생성 번들 `docs/design_system/.../tokens/colors.css`에는 있으나 §2 색 토큰 표에 누락됐던 3개 토큰을 SoT에 정합시킨다. F2(토큰→Compose 매핑, [docs/ui/01-foundations.md](../../ui/01-foundations.md)) 확정 과정에서 발견. **줄 보존 규칙**에 따라 §2 중간 삽입이 아닌 파일 말미 부록으로 추가한다(기존 cross-doc `:NN` 인용 무파손). 값은 §2와 동일 위상(시맨틱 토큰)이며, 향후 §2 재편 시 흡수 가능.
+> **값 출처:** [colors.css](../../design_system/design-system-498c1d19-9547-4cdb-ae4c-3313705391fb/tokens/colors.css) — 라이트 `:38·48·72-73`, 다크 `:79·86`.
+
+| 시맨틱 토큰 | 라이트 | 다크 | 용도 | §2 소속 |
+|---|---|---|---|---|
+| `border.strong` | #C9CDD2 | #3A3D45 | 입력 필드 rest 보더(hairline보다 강함) | §2.1 표면/보더 |
+| `surface.overlay-dim` (scrim) | rgba(14,15,18,.42) → `0x6B0E0F12` | rgba(0,0,0,.6) → `0x99000000` | 바텀시트/다이얼로그 뒤 딤 스크림 | §2.1 표면 |
+| `waveform.top / waveform.bottom` | #9E9E9E / #757575 | 동일(공통 그레이) | crackle 파형 세로 그라데이션 | §2.2 의미색(음성 부속) |
+
+### C.1 Compose 바인딩 (부록 B 연장)
+
+세 토큰 모두 M3 `ColorScheme` 슬롯이 없으므로 **커스텀 확장 `OneClickColors`**(부록 B.2)에 싣는다:
+
+| 토큰 | `OneClickColors` 키 |
+|---|---|
+| `border.strong` | `borderStrong` |
+| `surface.overlay-dim` | `scrim` |
+| `waveform.top / waveform.bottom` | `waveformTop` · `waveformBottom` (+ `waveformGradient()` 헬퍼) |
+
+> `scrim`은 rgba→ARGB 리터럴로 변환해 `Color(0x6B0E0F12)`(라이트)·`Color(0x99000000)`(다크). `waveform`은 라이트/다크 공통. 파형 **렌더/anatomy 정본은 §6 + product-design-system.md B.3**이며, 본 부록은 *색 토큰*만 규정한다.

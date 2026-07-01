@@ -82,6 +82,9 @@
 | `ttsMuted` | bool | `false` |
 | `reminderEnabled` | bool | `false` |
 | `reminderTime` | LocalTime | `20:00` |
+| `guestMergeFailStreak` | int | `0` |
+
+> `guestMergeFailStreak`: 게스트→Google 이관 실패(`GuestMergeFailed`) 시 앱 실행 종료마다 +1, 이관 성공 시 `0` 리셋(시간창 없음). `≥2`면 설정 계정 섹션에 "진도 다시 옮기기" 행을 노출한다([exception-states.md](exception-states.md) §10 #19 · [ui/05-open-decisions.md](../ui/05-open-decisions.md) P14).
 
 ---
 

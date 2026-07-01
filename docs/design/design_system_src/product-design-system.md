@@ -64,9 +64,9 @@ Toss upstream(제거됨) 11종 중 제품에 필요한 subset. **금융 전용(`
 
 ### 3.1 MicButton × `MicState`
 
-| `MicState` | 외형(토큰) | announce(TalkBack) |
+| `MicState` | 외형(토큰) | announce(TalkBack) = `stateDescription`(전환 시 재사용) |
 |---|---|---|
-| `Ready` | `voice.ready` 회색 동심원 | "녹음 시작" |
+| `Ready` | `voice.ready` 회색 동심원 | "말할 차례" |
 | `Recording` | `voice.recording` 빨강 + 리플 3겹(§6) | "녹음 중" |
 | `Analyzing` | `voice.analyzing` 블루그레이 + 프로그레스 링 | "분석 중" |
 | `Complete` | `voice.complete` 초록 | "완료" |
@@ -152,3 +152,45 @@ Toss upstream(제거됨) 11종 중 제품에 필요한 subset. **금융 전용(`
 - 컴포넌트 Compose 구현·Theme·lint 구현 = **M0**(이번 문서 범위 밖, `PRD.md:307`).
 - Toss 번들의 `PriceChange`·`Avatar`·금융 패턴 = 미채택.
 - 첫 QA 파일럿(대화학습 + 턴 피드백 시트 컴포넌트×상태 매트릭스)은 [product-design-system-pilot.md](product-design-system-pilot.md) 참조.
+
+---
+
+## 2.4 신규 공통 컴포넌트 카탈로그 (C1~C19) — §2 보강
+
+> **배치 주의:** 의미상 §2(카탈로그) 소속이나, **줄 보존 규칙**(기존 cross-doc `product-design-system.md:52·99-101` 인용 무파손 — [01a-icon-mapping.md](../../ui/01a-icon-mapping.md)·[05-open-decisions.md](../../ui/05-open-decisions.md))에 따라 §2 중간 삽입이 아닌 파일 말미에 배치한다. 향후 §2 재편 시 흡수 가능.
+> **정본 관계:** 외형 결정·논거(현황/쟁점/결정)의 정본은 [02-shared-components.md](../../ui/02-shared-components.md)(grill-yourself → grill-review deep auto SHIP → grill-verify VERIFIED, 2026-07-01). 본 표는 그 확정 결정을 §2 계약 양식(8필드)으로 **구조화**한 것이다.
+> **8필드 스키마:** 코드명·기반·anatomy/치수·소비 토큰·상태 축·a11y·모션. (`기반` = `M3wrap` M3 래핑 · `scratch` 신규 · `reuse:X` 기존 재사용 · `compose:X` primitive 합성.)
+> **정책:** M3 래핑 우선 + 토큰 소비, from-scratch는 M3 부재 시만. 값은 [design-tokens.md](design-tokens.md) 토큰 이름으로만 참조(raw hex/px 금지).
+
+| ID | 코드명 | 기반 | anatomy / 치수 | 소비 토큰 | 상태 축 | a11y·모션 |
+|---|---|---|---|---|---|---|
+| C1 | `OneClickDialog` | `M3wrap`(AlertDialog) | 헤더+본문+우측 액션행 / `radius.24`, padding 24, 액션갭 12 | `surface.card`·`border.hairline`·`text.primary/secondary`·`type.dialogHeader/body`·(destructive)`state.error` | `Default \| Destructive` | 진입 헤더 포커스(A5)·닫힘 호출부 복귀 |
+| C2 | `OneClickDangerConfirm` | `compose:C1`+`OneClickInput` | (1)영향 리스트 → (2)"삭제" 타이핑, 일치 전 확인 disabled(alpha 0.38) | C1 토큰 + `radius.8` | `Step1 \| Step2(typedMatch)` | 확인 문자열 "삭제"[confirmed], 계정삭제 전용 |
+| C3 | `OneClickSnackbar` | `M3wrap`(Snackbar) | 메시지+undo / `radius.12`, 하단 BottomNav 위 | `surface`·`text.primary`·`brand.primary`(undo) | `Transient` | 지속 6초[confirmed], undo `실행취소`, polite |
+| C4 | `OneClickOfflineBanner` | `scratch`(전역 overlay) | 상단 status bar 아래 28dp 고정, 아이콘+텍스트 | `surface.card`·`border.hairline`·`text.secondary` | `Offline` | 중립 톤(에러 아님)·슬라이드 200ms·전 클래스 공존·polite |
+| C5 | `OneClickEmptyState` | `scratch` | 96dp 아이콘+제목+보조+선택 CTA / 중앙, padding `huge` | `text.tertiary`·`text.secondary`·`type.body/helper` | `Empty(ctaStrength: none\|ghost)` | 유도 강도 기록/홈=약 |
+| C6 | `OneClickSkeleton` | `scratch`(시머 primitive) | line/card/section 변형 / `radius.4~8` | `surface.card`·`border.hairline` | `Loading` | 시머 1200ms(본 문서 제안값)·reduce-motion 정적 |
+| C7 | `OneClickProgressRing` | `M3wrap`/`scratch`(Canvas) | 96dp(마이크)/48dp(인라인), det/indet | `voice.analyzing` 또는 `brand.primary` | `Indeterminate \| Determinate(pct)` | `stateDescription` %/"분석 중"(A3/A6), MicButton·C12 합성 |
+| C8 | `OneClickSlider` | `M3wrap`(Slider) | track+thumb / thumb `radius.pill` | `brand.primary`·`border.hairline` | `Continuous \| Discrete` | Discrete: `Slider(steps=3)`⇒5 stop(`stops=steps+2`), setProgress announce |
+| C9 | — | `reuse:OneClickSegmentedControl` | (신규 컴포넌트 없음 — 음질 2지선다) | — | — | 스코프 철회 |
+| C10 | `OneClickTimePicker` | `M3wrap`(TimePicker) | M3 분단위 다이얼, 색만 토큰 | `brand.primary`·`surface.card`·`text.*` | (토글 ON 시 노출) | C19 `ReminderSettingRow` 연계 |
+| C11 | `OneClickInlineError` | `scratch` | 아이콘+텍스트+재시도 / 섹션·카드 자리 | `state.error`·`text.secondary`·secondary 버튼 | `ErrorRecoverable(retry) \| ErrorBlocked(skip@2)` | 색+형태 이중신호, P4 누적2, Offline 카피 병합 |
+| C12 | `OneClickBlockingGate` | `scratch` | 아이콘+제목+본문+액션 스택 / 전체·주영역 | `surface.background`·`text.primary/secondary`·`type.dialogHeader/body` | `Generate \| Auth \| Offline` | 진입 포커스 이동·announce |
+| C13 | `OneClickPermissionPrimingSheet` | `reuse:OneClickBottomSheet` | 아이콘+설명+2버튼 / 영구거부 시 인라인 힌트+설정 딥링크 | BottomSheet 토큰+`brand.primary` | `Mic(즉시) \| Notification(priming)` | 넛지 반복 금지(로컬 1비트) |
+| C14 | `OneClickStreakChip` | `reuse:OneClickBadge` | `🔥 N일` pill | `game.streak`·`radius.pill` | (XP 홈 비노출, P1) | 아이콘+텍스트 이중신호·빨강/하강 금지 |
+| C15 | `OneClickRichText` | `scratch`(AnnotatedString) | EN(위)+KO(아래) 이중블록, 세그먼트 span | `feedback.correct.accent`(교정)·`feedback.natural`(자연)·취소선/밑줄 | grammar 4종 / naturalExpression | 색+형태 이중신호 필수·EN `LocaleList(en)`(A4) |
+| C16 | `OneClickCountUp` | `scratch`(primitive) | 숫자 롤업 | 소비처 토큰 상속 | `Roll \| Static(same-day)` | 1260ms 스프링([03-signature-interactions.md](../../ui/03-signature-interactions.md) I3·ADR-0003)·reduce-motion 스냅·RewardStrip 합성 |
+| C17 | `OneClickResumePrompt` | `reuse:OneClickCard` | 문구+2버튼 / 홈 상단 | `surface.card`·`brand.primary` | `HasSnapshot`(조건부) | 이어하기(primary)/새로 시작(ghost) |
+| C18 | `OneClickLimitReachedPanel` | `shares-layout:C12` | 중립문구+streak 넛지+`upgradeSlot=null` / surface별 분기 | C12 토큰+`game.streak` | `surface: dialogue_start_gate \| home \| onboarding_first_session` | 별도 컴포넌트(C12 래퍼 아님), P6·P7 |
+| C19 | `OneClickReminderOptInSheet`+`ReminderSettingRow` | `reuse:OneClickBottomSheet`+`OneClickSwitch`/C10 | 시트: 아이콘+카피+2버튼 / 행: Switch+조건부 TimePicker | BottomSheet·Switch·C10 토큰 | `OptIn` / `SettingRow(enabled→시각행)` | 기본 20:00(P11), C13 priming 연계 |
+
+> **재사용/승격 집계:** 재사용 5(C9·C13·C14·C17·C19) · primitive 승격 3(C6·C7·C16) · scratch 신규 6(C4·C5·C11·C12·C15 + C16 primitive) · M3 래핑 4(C1·C3·C8·C10) · compose 2(C2·C18). (C9는 컴포넌트 아님.)
+
+### 3.4 신규 컴포넌트 상태 계약 (§3 보강)
+
+| 컴포넌트 × 상태 축 | 외형/동작 |
+|---|---|
+| C11 `OneClickInlineError` × `FeedbackSlim/DeepRequest` | `ErrorRecoverable`→재시도 · `ErrorBlocked`(누적2, P4)→건너뛰기 · Offline 병합 시 오프라인 카피 (§3.2 표와 정합) |
+| C1 `OneClickDialog` × 위험도 | `Destructive`일 때만 확인 라벨 `state.error`+명시 동사, 진입 헤더 포커스·닫힘 호출부 복귀 |
+| C4 `OneClickOfflineBanner` × `Connectivity` | `Offline`에서만 표시, 복구 시 자동 소멸, C(게이트) 위에도 공존([exception-states.md](../../ux/exception-states.md) §3 D) |
+| C16 `OneClickCountUp` × `SessionPhase`/same-day | `Completed(1st)`=롤업 · `Completed(same-day 2nd)`=streak 정적 |
