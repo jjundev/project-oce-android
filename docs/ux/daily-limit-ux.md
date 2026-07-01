@@ -27,7 +27,7 @@
 | `onboarding_first_session` | 첫 세션 게이트 `{remaining:0}` | §3 도달 문구 | 없음 → 홈(§7) |
 
 - 차단형 진입 표면(시작 게이트 / 홈 at-limit 고지)에서만 `LimitReachedPanel`을 쓴다. **완주 화면의 도달 전 안내는 패널이 아니라 보조 인라인 텍스트 1줄**이다(§3).
-- 온보딩 중 시작 게이트에서 한도 도달 시 surface는 가장 구체적인 맥락인 **`onboarding_first_session`을 우선**한다.
+- 온보딩 중 시작 게이트에서 한도 도달 시 surface는 가장 구체적인 맥락인 **`onboarding_first_session`을 우선**한다. 단, 라이브 스냅샷(이어하기) 보유 게스트는 예외로 `dialogue_start_gate`를 쓴다(§7).
 - v1.1 업그레이드 훅은 이 컴포넌트의 **비가시 `upgradeSlot`**(렌더 null). v1은 가시적 placeholder(고스트 버튼·"곧 출시" 티저)도 두지 않는다(`PRD.md:217`).
 - 홈 보조 액션은 **저장 카드 복기 모듈을 노출하지 않는다**(`home-learning-entry.md:228` 준수). `기록 보기`는 기록 탭으로의 이동만 의미한다.
 
@@ -67,6 +67,7 @@
 
 - 구조상 fresh UID는 도달 불가, 재방문 미완주 게스트만 도달(`01-onboarding-first-session.md:63`).
 - 중립 문구 표시 → 홈 진입. `한 번 더 하기`류 재시도는 노출하지 않는다(`01-onboarding-first-session.md:103,163`).
+- 라이브 스냅샷(이어하기 가능) 보유 게스트는 `onboarding_first_session`에서 제외한다. 스냅샷 재개는 시작 게이트를 거치지 않으므로(`home-learning-entry.md:74`), `새로 시작`을 골라 거부될 때만 한도 패널을 보며 이때 surface는 `dialogue_start_gate`다. `onboarding_first_session`은 **스냅샷 없는** 재방문 미완주 게스트에만 적용한다([01a](01a-onboarding-first-session-followups.md) §4c).
 
 ## 8. 리셋 안내
 
@@ -99,6 +100,7 @@
 | 7 | 리셋 안내 | 암묵적("내일")만, 시각 미표기 | `firestore-schema.md:111-117` |
 | 8 | 한도 표면 | 신규 공유 `LimitReachedPanel`; surface 3종; 온보딩 우선; `upgradeSlot=null` | 본 문서 §2 |
 | 9 | 온보딩 첫 세션 | 중립 문구, 재시도 미노출, 홈 진입 | `01-onboarding-first-session.md:103,163` |
+| 9b | 스냅샷 보유 게스트 표면 | 라이브 스냅샷 보유 시 `onboarding_first_session` 제외 → `dialogue_start_gate` | [01a](01a-onboarding-first-session-followups.md) §4c, `home-learning-entry.md:74` |
 | 10 | 계측 | 정본 `limit_reached {remaining, surface}`; quota_blocked 정규화 선행 | `01-onboarding-first-session.md:182` |
 | 11 | 완주+도달 동시 | 신규 결정 — 완주 1차, 한도 보조 인라인 1줄 | `gamification-emphasis.md:35,49` |
 | 12 | 도달 보조 액션 | 홈 `기록 보기`만; 저장 카드 모듈 홈 비노출 | `home-learning-entry.md:228` |
@@ -131,3 +133,4 @@
 - 게임화 톤·금지 목록: [gamification-emphasis.md](gamification-emphasis.md) §6·§7
 - 홈 노출 정책: [home-learning-entry.md](home-learning-entry.md) §6
 - 온보딩 도달 엣지: [01-onboarding-first-session.md](01-onboarding-first-session.md)
+- 온보딩 첫 세션 후속: [01a-onboarding-first-session-followups.md](01a-onboarding-first-session-followups.md) §4

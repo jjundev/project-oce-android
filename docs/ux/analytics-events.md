@@ -55,7 +55,7 @@ D1/D7·한도 후 재방문 코호트가 anon→linked 경계를 한 사람으�
 | `first_session_started` | 기존 | ✓ | — | `topic_id`, `length`, `difficulty` |
 | `learning_session_started` | **신설** | ✓ | — | `topic_id`, `length`, `level` |
 | `turn_started` | **신설** | ✓ | ✓ | — |
-| `turn_completed` | 기존 | ✓ | ✓ | `input_mode`(`voice`\|`text`) |
+| `turn_completed` | 기존(+param) | ✓ | ✓ | `input_mode`(`voice`\|`text`), `writing_score`(int 0–100, nullable) |
 | `speaking_analyze_result` | 기존 | ✓ | ✓ | `result`(`transcript_present`\|`empty_transcript`) |
 | `deep_feedback_opened` | **신설** | ✓ | ✓ | — |
 | `session_complete` | 기존 | ✓ | — | `turn_count`, `is_first` |
@@ -91,6 +91,13 @@ D1/D7·한도 후 재방문 코호트가 anon→linked 경계를 한 사람으�
 
 - SENTENCE(deep 피드백, 완주 전)·WORD/EXPRESSION(요약 화면, 완주 후) 모두 **같은 `session_id`에 귀속**한다.
 - 요약 화면 저장은 `session_complete` 이후 `SummaryViewing`에서 발생하고 GA4 30분 유휴 경계로 다른 GA4 세션에 떨어질 수 있다. 따라서 저장률은 단일 GA4 세션 내에서 계산하지 않고 **`session_id` 조인**으로 계산한다(§6.3).
+
+### 5.4 `turn_completed.writing_score` — 계측 전용 ([01a](01a-onboarding-first-session-followups.md) §2 반영)
+
+- 각 학습자 턴의 writing 점수(`dialogue-learning-flow.md:149`의 `writingScore`)를 정수로 부착한다. 점수 미산출·빈 transcript 턴은 `null`.
+- 목적은 레벨 자기평가 **보정 신호의 축적**이다([01a-onboarding-first-session-followups.md](01a-onboarding-first-session-followups.md) §2). v1은 이 값을 **계측 전용**으로만 쓰고 레벨 자동 보정에는 쓰지 않는다.
+- 온보딩 첫 세션은 난이도가 `쉬움`으로 강제되므로 보정 신호원에서 제외한다. 분석 시 `session_complete.is_first`/`difficulty` 조인으로 첫 세션 턴을 필터하고 세션 #2 이후만 유효 신호로 본다.
+- §7 PII 경계와 양립: 점수는 bounded int(measure)이며 자유 텍스트가 아니다. 음성 숫자 점수 비표시 기조(`dialogue-learning-flow.md:113`)는 표시 정책이지 로깅 정책이 아니다.
 
 ## 6. 5대 지표 산출식
 
@@ -148,7 +155,7 @@ window = 1일 / 7일 (D1/D7형)
 ```
 
 - **`learning_session_started`를 1차 분모로 쓴다.** GA4 자동 `session_start`는 30분 비활성 타임아웃마다 발화(Android 포그라운드/백그라운드 순환 포함)해 1일/7일 window 비교에 과대계상되므로 보조로만 둔다.
-- `limit_reached.surface` ∈ `{home, dialogue_start_gate, onboarding_first_session}`(`daily-limit-ux.md:79`).
+- `limit_reached.surface` ∈ `{home, dialogue_start_gate, onboarding_first_session}`(`daily-limit-ux.md:80`).
 
 ## 7. PII / 콘텐츠 정책 (신규 계약)
 
@@ -186,9 +193,10 @@ window = 1일 / 7일 (D1/D7형)
 | 6 | 첫 세션 완주율 | distinct-user 코호트, 보정 온보딩 수렴 | `01-onboarding:125,183,187` |
 | 7 | session_complete | SummaryPreparing 진입 1회, summary/적립과 분리 | `01-onboarding:65,66`, `dialogue-learning-flow.md:204,205` |
 | 8 | 턴 이탈 | turn_completed 곡선 + turn_started(LearnerTurn 진입) | `01-onboarding:186`, `dialogue-learning-flow.md:88-98,184,306` |
+| 8b | 턴 점수 계측 | `turn_completed.writing_score`(int) 신설 · 계측 전용 · 온보딩 첫 세션 보정 제외 | [01a](01a-onboarding-first-session-followups.md) §2, `dialogue-learning-flow.md:149` |
 | 9 | 저장률 | session_id 조인, 24h window 제거, 세션 레벨 | `dialogue-learning-flow.md` §7.3·§9, `saved-cards.md` §3.3 |
 | 10 | 더보기 사용률 | deep_feedback_opened ÷ turn_completed (+세션 레벨) | `dialogue-learning-flow.md:157,292` |
-| 11 | 한도 후 재방문 | learning_session_started 1차, session_start 보조, surface 분리 | `daily-limit-ux.md:78,79` |
+| 11 | 한도 후 재방문 | learning_session_started 1차, session_start 보조, surface 분리 | `daily-limit-ux.md:79,80` |
 | 12 | 이벤트 총괄 | 신설 3 + 변경 2 + 제안확장 채택 2 | §4 |
 | 13 | 파라미터 매트릭스 | 이벤트×파라미터, is_first는 session_complete만 | `01-onboarding:187` |
 | 14 | PII | 자유 텍스트 로깅 금지, enum/id만 | 신규 결정 |
@@ -224,4 +232,5 @@ window = 1일 / 7일 (D1/D7형)
 - 홈 보조 퍼널: [home-learning-entry.md](home-learning-entry.md) §10
 - 저장 계측: [saved-cards.md](saved-cards.md) §8
 - 한도 계측: [daily-limit-ux.md](daily-limit-ux.md) §9
+- 온보딩 후속 결정: [01a-onboarding-first-session-followups.md](01a-onboarding-first-session-followups.md) §2
 - 데이터/리셋 정본: [firestore-schema.md](../design/firestore-schema.md)
