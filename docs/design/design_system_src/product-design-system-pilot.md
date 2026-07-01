@@ -21,7 +21,7 @@
 
 | mock | `MicState` | 외형(토큰) | announce | 게이트 초점 |
 |---|---|---|---|---|
-| MIC-1 | `Ready` | `voice.ready` 동심원 | "녹음 시작" | #2(96dp)·#7 |
+| MIC-1 | `Ready` | `voice.ready` 동심원 | "말할 차례" | #2(96dp)·#7 |
 | MIC-2 | `Recording` | `voice.recording` + 리플 3겹 · Waveform 활성 | "녹음 중" | #5(reduce-motion)·#7 |
 | MIC-3 | `Analyzing` | `voice.analyzing` + 프로그레스 링 | "분석 중" | #4·#7 |
 | MIC-4 | `Complete` | `voice.complete` | "완료" | #1 |

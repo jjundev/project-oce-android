@@ -144,8 +144,8 @@ LearnerTurn
 `다음` 버튼은 세 섹션이 모두 완료된 뒤 활성화한다. 레거시의 `score >= 70` 다음 버튼 gate는 v1에서 **미계승**으로 확정한다(점수 gate 없음, 정본: [turn-feedback-ia.md](turn-feedback-ia.md) §7, 정서적 안전 §12).
 
 slim 실패 정책:
-- 섹션 일부가 일시 실패하면 재시도를 먼저 제공한다.
-- 반복 실패하면 `ErrorRecoverable`로 전환하고 “이번 피드백은 건너뛰고 다음으로 갈까요?” 경로를 제공한다.
+- 섹션 일부가 일시 실패하면 그 자리에 인라인 재시도를 먼저 제공한다(재시도는 **사용자 탭 기반 수동** — 자동 재요청 아님).
+- **동일 섹션 누적 2회 실패**(최초 + 재시도 1회)하면 `ErrorRecoverable`로 전환하고 “이번 피드백은 건너뛰고 다음으로 갈까요?” 경로를 제공한다. 카운터는 섹션 단위 독립 · turn buffer 스코프(턴 종료 리셋) · deep과 비공유다([ui/05-open-decisions.md](../ui/05-open-decisions.md) P4).
 - `writingScore`가 없으면 요약 점수와 turn buffer 품질이 깨지므로 기본값을 임의 생성하지 않는다.
 - 사용자가 건너뛰면 해당 턴은 `slimScore=null`, `correctedText=null`, `naturalExpression=null`로 turn buffer에 남기고 요약에서 낮은 신뢰도로 처리한다.
 
