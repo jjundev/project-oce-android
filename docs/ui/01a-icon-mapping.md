@@ -1,6 +1,6 @@
 # F1 아이콘 매핑표 — 시맨틱 seam ↔ Material Symbols glyph
 
-> 상태: **확정 v3**(grill-yourself → grill-review deep auto, SHIP 1회 수렴) · 작성일: 2026-07-01 · 상위: [README](README.md) 표 1(F1) · [01-foundations](01-foundations.md) F1
+> 상태: **확정 v3**(grill-yourself → grill-review deep auto, SHIP 1회 수렴) · 작성일: 2026-07-01 · 갱신: 2026-07-03 · **prototype-verified(2026-07-02)**: `Foundations` 프로토타입이 본 표 26 glyph를 Material Symbols로 직접 렌더 · 상위: [README](README.md) 표 1(F1) · [01-foundations](01-foundations.md) F1
 > 정본 근거: [05-open-decisions.md](05-open-decisions.md) F1 · DS 생성 번들 `docs/design_system/design-system-498c1d19-9547-4cdb-ae4c-3313705391fb/_ds_bundle.js`(호출부 정본) · [product-design-system.md](../design/design_system_src/product-design-system.md) §4 · [06-accessibility-impl](06-accessibility-impl.md) A2·A3·A6
 > 목적: 05 F1에서 **Material Symbols (Rounded·Filled·optical 24·weight 400)** 세트가 확정된 뒤, 전 화면·컴포넌트가 소비하는 아이콘을 glyph 이름·fill 상태·사용처·라벨로 매핑한 **vector 임포트 리스트**. glyph 실제 임포트 시 그대로 입력이 된다.
 

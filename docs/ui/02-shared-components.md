@@ -1,6 +1,7 @@
-# UI 논의 — 신규 공통 컴포넌트 (디자인시스템 17종에 없음)
+# UI 논의 — 신규 공통 컴포넌트 (디자인시스템 19종에 없음)
 
-> 상태: **외형 명세 확정**(grill-yourself, 2026-07-01) · 작성일: 2026-06-30 · 상위: [README](README.md) (표 2)
+> 상태: **외형 명세 확정**(grill-yourself, 2026-07-01) · 작성일: 2026-06-30 · 갱신: 2026-07-03 · 상위: [README](README.md) (표 2)
+> **범위 주의:** 아래 C1~C20은 **앱 레벨 신규 컴포넌트**(M3 래핑 또는 scratch)로, 생성 DS 번들의 코어 19종(primitive)에는 없다. C9(SegmentedControl)·C13/C19(BottomSheet)·C14(Badge)·C17(Card)은 19종을 **재사용**한다. `Prototype Flow`는 이 중 일부를 인라인 실현했다 — 예: C6 스켈레톤/시머(번들 `FeedbackSection` 내부 `Skeleton` helper), C20 WaitQuiz(생성 대기 상태). realization-SoT 범위·타이브레이크는 [ADR-0006](../adr/0006-prototype-as-realization-sot.md).
 > 반영: 각 항목 **결정**은 [product-design-system.md](../design/design_system_src/product-design-system.md) **§2.4(신규 표)+§3.4(상태 계약) 편입 완료**(2026-07-01, 줄 보존 위해 파일 말미 배치). 본 문서가 논거 정본, §2.4가 8필드 구조화 계약. 명세 규약 = M3 래핑 우선 + 토큰 소비, from-scratch는 M3 부재 시만.
 > 정본 출처: [exception-states.md](../ux/exception-states.md) · [settings-data-account.md](../ux/settings-data-account.md) · [saved-cards.md](../ux/saved-cards.md) · [daily-limit-ux.md](../ux/daily-limit-ux.md) · [notification-reminder.md](../ux/notification-reminder.md)
 > 범례: 🔴 결정 필요 · 🟠 신규 설계 · 🟡 구현 대기 · 🟢 QA·위임
@@ -39,7 +40,7 @@
 > 각 항목 공통 양식 — **현황**(확정된 것) / **쟁점**(논의·결정) / **선택지·제안·결정**(논의로 채움).
 
 ### C1 · 확인 다이얼로그·알럿 🟠
-- **현황:** DS 17종에 Dialog 부재. settings: 초기화·로그아웃·카드삭제 단일 확인. exception[C]: 세션 중단 확인 모달.
+- **현황:** DS 19종에 Dialog 부재. settings: 초기화·로그아웃·카드삭제 단일 확인. exception[C]: 세션 중단 확인 모달.
 - **쟁점:** 표준 다이얼로그 anatomy(헤더/본문/액션 2버튼), 24dp 라운드, 위험 액션 색.
 - **결정:** `OneClickDialog` = **M3 AlertDialog 래핑**. 헤더 `type.dialogHeader`(22sp) + 본문 `type.body`/`text.secondary` + 우측 액션행(취소=ghost, 확인=primary). `radius.24`·`surface.card`·padding 24·액션갭 12. 위험 액션 = `Destructive` variant: 확인 라벨 `state.error` + **명시 동사**("삭제"/"초기화")로 색단독 회피. 진입 시 헤더 포커스(A5)·닫힘 시 호출부 복귀. `Default | Destructive` 상태.
 
@@ -81,7 +82,7 @@
 ### C9 · 음질 2지선다 (SegmentedControl 재사용) · 재사용 [스코프 철회]
 - **현황:** settings §4 — 음질 2지선다(자연스러운/빠른). SegmentedControl과 별개 라디오 형태로 표기.
 - **쟁점:** SegmentedControl 재사용 가능 여부.
-- **결정:** **신규 컴포넌트 불필요** — 음질 2지선다는 `OneClickSegmentedControl`(DS 17종) **재사용**. 재사용 우선 원칙, 별도 라디오 형태 신설 안 함. (옵션별 보조 설명이 필요하면 `OneClickListRow` + SegmentedControl 조합.)
+- **결정:** **신규 컴포넌트 불필요** — 음질 2지선다는 `OneClickSegmentedControl`(DS 19종) **재사용**. 재사용 우선 원칙, 별도 라디오 형태 신설 안 함. (옵션별 보조 설명이 필요하면 `OneClickListRow` + SegmentedControl 조합.)
 
 ### C10 · 시간 선택기(TimePicker) 🟠
 - **현황:** notification §6 — M3 `TimePicker`, 분 단위, 리마인더 토글 ON일 때만 노출.

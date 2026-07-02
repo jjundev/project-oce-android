@@ -1,9 +1,9 @@
 # 딸깍영어 v1 — UI 논의사항 인덱스
 
-> 상태: **정책 결정 + 화면 레이아웃 설계 확정**(2026-07-01, grill-review deep auto rev2 SHIP) · Compose 구현 진행전 · 작성일: 2026-06-30 · 범위: PRD v1(3탭 재집중)
+> 상태: **정책 결정 + 화면 레이아웃 설계 확정**(2026-07-01, grill-review deep auto rev2 SHIP) · Compose 구현 진행전 · 작성일: 2026-06-30 · 갱신: 2026-07-03(프로토타입 실현 반영) · 범위: PRD v1(3탭 재집중)
 > 목적: `docs/design_system`(토큰·컴포넌트 계약)과 `docs/ux`(플로우·IA·카피·예외) 사이에 남은
 > **화면·시각·인터랙션 수준의 미결정 사항**을 한곳에 모아 논의·확정한다.
-> 근거: [PRD.md](../../PRD.md) · [docs/ux/](../ux/) 13문서 · [design_system_src](../design/design_system_src/) · [docs/adr/](../adr/)
+> 근거: [PRD.md](../../PRD.md) · [docs/ux/](../ux/) 13문서 · [design_system_src](../design/design_system_src/) · [docs/adr/](../adr/) · [prototype/](../../prototype/)(실현 산출물, 2026-07-02 — 생성 번들 임베드 플로우 + F8 스캐폴드/아이콘. 계보·권위는 [PROVENANCE §2·§2.1](../design/design_system_src/PROVENANCE.md) · [ADR-0006](../adr/0006-prototype-as-realization-sot.md))
 
 ---
 
@@ -19,9 +19,9 @@
 ## 0.1 이미 확정 — 논의 불필요 (참고)
 
 - **디자인 토큰**: 컬러(라이트/다크)·타이포(Pretendard 5웨이트)·간격(4dp 스케일)·코너(4~24·pill)·모션 전부 값 확정 ([design-tokens.md](../design/design_system_src/design-tokens.md))
-- **컴포넌트 계약 17종** (3계층: Toss참고 subset 9 + 앱네이티브 `BottomSheet` 1(net-new) + 제품고유 7 · Button~SavedCard): 외형·상태축 명세 존재 ([product-design-system.md](../design/design_system_src/product-design-system.md)) — 단, 웹 JSX → **Compose 재구현 필요**
+- **컴포넌트 계약**: 스펙 17종(Toss참고 subset 9 + 앱네이티브 `BottomSheet` 1(net-new) + 제품고유 7 · Button~SavedCard) 외형·상태축 명세 존재 ([product-design-system.md](../design/design_system_src/product-design-system.md)). **생성 번들은 여기에 `BottomNav`·`FeedbackSheet` 2종을 승격해 19종을 실현**([PROVENANCE §2](../design/design_system_src/PROVENANCE.md)) — 단, 웹 JSX → **Compose 재구현 필요**
 - **정보구조**: 하단 **3탭(학습·기록·설정)** 확정, 쇼츠·게임 컷 (PRD §11)
-- **ADR 4건**: cardId 결정성 · 오프라인 레이어 분리 · 카운트업 surface 재배치 · 브랜드 색 명칭 ([docs/adr/](../adr/))
+- **ADR 6건**: cardId 결정성 · 오프라인 레이어 분리 · 카운트업 surface 재배치 · 브랜드 색 명칭 · 로딩≠복습 퀴즈 · 프로토타입 realization-SoT ([docs/adr/](../adr/))
 - **턴 피드백 IA**: 단일 시트 slim 3 + deep 3 섹션 순서·게이팅 확정 ([turn-feedback-ia.md](../ux/turn-feedback-ia.md))
 - **카피 표준**: 해요체·비난없는 에러·격려 위계·한글화 경계 확정 ([ux-writing.md](../ux/ux-writing.md))
 
@@ -35,7 +35,7 @@
 |---|:--:|---|
 | UI 논의 문서 골격 (15개) | ✅ 완료됨 | README + 01~06 + 화면 9개 생성 |
 | **정책 결정 18건 (§5)** | ✅ 완료됨 | grill-review deep auto SHIP(4회 수렴) · [05](05-open-decisions.md) 확정 + 화면 문서 전파 완료 |
-| 파운데이션 F1 아이콘 세트 | 🟨 부분 | 결정 = **Material Symbols** 확정 · **glyph 매핑표 26종 확정** ([01a](01a-icon-mapping.md), grill-review SHIP + grill-verify PASS) · 실제 vector 임포트 ⬜ |
+| 파운데이션 F1 아이콘 세트 | 🟨 부분 | 결정 = **Material Symbols** 확정 · **glyph 매핑표 26종 확정** ([01a](01a-icon-mapping.md), grill-review SHIP + grill-verify PASS) · **`Foundations` 프로토타입이 26 glyph를 Material Symbols로 직접 렌더(시각 실현)**, 단 flow 번들의 DS `Icon` seam은 BLANK 유지 → 실제 vector 임포트 ⬜(M0) |
 | **파운데이션 F2 토큰→Compose 매핑** | 🟨 부분 | **명세 확정**(grill-review deep auto rev.3 SHIP) · [01-foundations](01-foundations.md) F2 · Compose 코드/gradle/에셋은 M0 |
 | 파운데이션 F3~F7 | ⬜ 진행전 | 컴포넌트 스텁 · 모션 · 다크 · a11y 기술 |
 | **파운데이션 F8 화면 레이아웃 골격** | 🟨 부분 | **명세 확정**(grill-review deep auto rev2 SHIP) · [01-foundations](01-foundations.md) F8 — Scaffold·거터·내비 범위·타이틀·단일 LazyColumn 스크롤 · Compose 구현 ⬜(M0) |
@@ -43,6 +43,7 @@
 | 시그니처 인터랙션 I1~I4 (§3) | 🟨 부분 | **명세 확정**(grill-yourself → AskUserQuestion #17·#18 → grill-review deep auto rev.3 SHIP, 2026-07-01) · [03](03-signature-interactions.md) 정본 · I2 파형 정본 [audio-pipeline.md](../design/audio-pipeline.md) 편입 · Compose Canvas 구현 ⬜(M0) |
 | 화면 레이아웃 9개 (§4) | ✅ 완료됨 | **rev2 레이아웃 결정 전파 완료**(grill-yourself → grill-review deep auto rev2 SHIP · Blocker 0 · 사용자 확정 O1·O2·D1) · 각 화면 문서 `결정(rev2)` 라인 + [F8](01-foundations.md) · 시각 폴리시/Compose 구현 ⬜(M0) |
 | 접근성 규약 A1~A7 (§6) | 🟨 부분 | **적용 매트릭스 확정**(grill-yourself → grill-review deep auto SHIP rev.2, 2026-07-01) · [06](06-accessibility-impl.md) 산출물 A(컴포넌트×규약)·B(화면×합격선)·C(집행) + D(SoT 정합 in-place 반영 완료) · 구현·실측은 M0/QA 게이트 |
+| **프로토타입 실현 (`prototype/`)** | ✅ 완료됨 | 2026-07-02 · `Prototype Flow`(번들 19종 임베드, 온보딩→홈→대화→피드백→요약 플로우 + 시나리오/에러 [A]~[E]) · `Foundations`(F8 스캐폴드 + 아이콘 26 glyph 직접 렌더) · realization-SoT 등록 [PROVENANCE §2.1](../design/design_system_src/PROVENANCE.md)·[ADR-0006](../adr/0006-prototype-as-realization-sot.md) · Compose 구현은 M0 |
 
 > 다음 착수 후보: **v1 Compose 프로젝트 스캐폴딩(M0)** → F1 실제 vector 임포트(매핑표 [01a](01a-icon-mapping.md) 입력) → F2 토큰 매핑 반입 → §4 화면 레이아웃 Compose 구현(설계는 rev2 확정 완료).
 
@@ -52,7 +53,7 @@
 
 | ID | 논의 항목 | 상태 | 쟁점 / 결정해야 할 것 | 출처 |
 |---|---|:--:|---|---|
-| F1 | **공식 아이콘 세트 선정** | 🔴→✅ | **확정: Material Symbols (Rounded·Filled)** (자체 조달 24-grid solid 계약 충족). glyph 임포트는 진행전. (기존: `Icon` BLANK 플레이스홀더 = M0 블로커) | product-design-system §4 · [05](05-open-decisions.md) F1 |
+| F1 | **공식 아이콘 세트 선정** | 🔴→✅ | **확정: Material Symbols (Rounded·Filled)** (자체 조달 24-grid solid 계약 충족). `Foundations` 프로토타입이 26 glyph를 직접 렌더(시각 실현); 번들 DS `Icon` seam은 BLANK 유지, 실제 vector 임포트는 M0. | product-design-system §4 · [05](05-open-decisions.md) F1 |
 | F2 | 디자인 토큰 → Compose 테마 매핑 | 🟠→🟡 | **명세 확정**(grill-review deep auto rev.3 SHIP). `OneClickTheme` + `OneClickColors`/`Typography`/`Shapes`/`Motion`/`Spacing`, M3 슬롯 10 write·나머지 default, detekt hex 가드. Compose 구현은 M0 | [01-foundations](01-foundations.md) F2 · design-tokens 부록 B·C |
 | F3 | 비파일럿 컴포넌트 "TBD 스텁" 채우기 | 🟠 | IconButton·Card·ListRow·Input·Switch·SegmentedControl·Badge·BottomSheet·RewardStrip·SavedCard = 빈 계약(값 TBD). M0에서 M3 default+토큰으로 | buildspec.md:91 |
 | F4 | 화면 전환·모션 패턴 + reduce-motion 대체 | 🟠 | 300ms 슬라이드/크로스페이드 전역 패턴; reduce-motion 시 정적 대체(슬롯→스냅·시머→정적·리플/파형 축소) | accessibility #9·#11 |
@@ -60,7 +61,7 @@
 | F6 | 다크모드 화면별 대비 검증 | 🟢 | 라이트/다크 양 테마, 벤·그라데이션 카드 흰텍스트 ≥4.5 | accessibility |
 | F7 | Compose Semantics API / 스크린리더 경로 | 🟢 | announce·LocaleList(영어 발음)·focus 관리 = 신규 기술 결정, QA 실측 의존 | accessibility #3·#12 |
 
-## 2. 신규 공통 컴포넌트 (디자인시스템 17종에 없음)
+## 2. 신규 공통 컴포넌트 (디자인시스템 19종에 없음)
 
 | ID | 컴포넌트 | 상태 | 용처 / 메모 | 출처 |
 |---|---|:--:|---|---|

@@ -1,6 +1,6 @@
 # UI 논의 — 화면: 턴 피드백 시트
 
-> 상태: 논의용 스켈레톤 · 작성일: 2026-06-30 · 상위: [README](README.md) (표 4)
+> 상태: 논의용 스켈레톤 · 작성일: 2026-06-30 · **prototype-verified(2026-07-02)**: 본 화면 결정을 `Prototype Flow` 대응 상태와 육안 대조 · 상위: [README](README.md) (표 4)
 > 정본: [turn-feedback-ia.md](../ux/turn-feedback-ia.md)(초안, 19결정 중 17 확정·2 추측) · PRD §8.2.2, FR-10·11
 > 범례: 🔴 결정 필요 · 🟠 신규 설계 · 🟡 구현 대기(IA 확정)
 

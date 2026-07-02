@@ -1,6 +1,6 @@
 # UI 논의 — 화면: 설정
 
-> 상태: 논의용 스켈레톤 · 작성일: 2026-06-30 · 상위: [README](README.md) (표 4)
+> 상태: 논의용 스켈레톤 · 작성일: 2026-06-30 · **prototype-verified(2026-07-02)**: 본 화면 결정을 `Prototype Flow` 대응 상태와 육안 대조 · 상위: [README](README.md) (표 4)
 > 정본: [settings-data-account.md](../ux/settings-data-account.md)(SHIP) · PRD §9.5, FR-21~23
 > 범례: 🔴 결정 필요 · 🟠 신규 설계 · 🟡 구현 대기 · 🟢 QA·위임
 
