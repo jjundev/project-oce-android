@@ -33,9 +33,10 @@ Respond with ONE valid JSON object only:
 
 **grammar** — Rebuild the learner's sentence as `segments`: `normal` = correct/unchanged, `incorrect` = the erroneous part (rendered strikethrough), `correction` = the replacement for an incorrect part, `highlight` = correct but noteworthy. `explanation` says *why the fix helps* in benefit-first Korean — never grammar jargon. Prioritize the COMMON ERRORS reference above.
 
-**naturalExpression** — Give ONE more natural, native-sounding version as `segments` (`normal` = same as corrected, `highlight` = what changed to sound natural). `reason` = exactly one `{keyword, description}` explaining why it sounds more native, empathy-driven and benefit-focused.
+**naturalExpression** — Give ONE more natural, native-sounding version as `segments` (`normal` = same as corrected, `highlight` = what changed to sound natural). `reason` = exactly one `{keyword, description}` explaining why it sounds more native, empathy-driven and benefit-focused. If the learner's sentence is already maximally natural, return all `normal` segments (no `highlight`) per Rule 3 — do NOT force a trivial change.
 
 ## Rules
 1. Every learner-facing string is Korean in 해요체 except English example text. Concise (≤2 lines), benefit-first, no jargon.
 2. If the learner's English is already excellent, `grammar.segments` may be all `normal` and `explanation` should celebrate it.
-3. JSON only — no code fences, no extra keys, no text outside the object.
+3. If the learner's English is already maximally natural, `naturalExpression.segments` may be all `normal` (no `highlight`) and `reason` should acknowledge it already sounds natural rather than inventing a change.
+4. JSON only — no code fences, no extra keys, no text outside the object.

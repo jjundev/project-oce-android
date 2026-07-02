@@ -21,6 +21,8 @@
 
 ```text
 [바텀시트 · 24dp 라운드 · 드래그 핸들 · NestedScrollView]
+  ├─ ⓪ 과제 리캡 헤더      : 과제(koreanPrompt) + 내 답변(userText)   (즉시 · 스켈레톤 없음)
+  ├─ ──────────── divider ────────────
   ├─ ① writingScore        : 점수 + 격려              (slim)
   ├─ ② grammar             : 교정 문장 + 설명          (slim)
   ├─ ③ naturalExpression   : 자연스러운 표현 + 이유     (slim)
@@ -35,6 +37,21 @@
 - slim은 `FeedbackSlimRequest` 축, deep은 `FeedbackDeepSideRequest` 축으로 독립(`dialogue-learning-flow.md:29-30,157`). 두 축은 같은 시트를 공유하되 로딩/실패/취소가 서로를 막지 않는다.
 - deep는 라우트/시트 전환 없이 `더 보기` 아래로 이어붙인다(레거시 6섹션 단일 시트, `보고서:190`).
 
+### 2.1 과제 리캡 헤더 — 즉시 렌더
+
+시트 최상단에 분석 섹션과 divider로 구분되는 **과제 리캡 헤더**를 둔다. 두 줄이다.
+
+| 줄 | 값 | 성격 |
+|---|---|---|
+| 과제 | `koreanPrompt` (내가 영작해야 했던 한국어) | 무채색 plain |
+| 내 답변 | `userText` (교정 없는 원문 echo) | 무채색 plain |
+
+- `userText`는 음성 입력=transcript, 텍스트 입력=입력문으로 turn buffer의 `userText`와 동일 출처다([dialogue-learning-flow.md:182-183](dialogue-learning-flow.md:182)). 헤더 echo는 grammar diff와 **역할이 다르다** — echo는 *무엇을 말했나*(마크업 없음), grammar는 *무엇을 고치나*(취소선·코랄). 중복이 아니다.
+- 두 값 모두 클라이언트가 이미 보유한다(`koreanPrompt`·`userEnglish`는 feedback.slim 입력, [feedback-slim.md:5](../design/prompts/feedback-slim.md:5)). 따라서 로딩 없이 **즉시 렌더**하고 스켈레톤을 두지 않는다(§3 스켈레톤 스코프의 "즉시 데이터" 예외).
+- 라벨 리터럴("내 답변" 등)은 본 도메인 문서가 소유하고, 보이스·톤 규칙만 [ux-writing.md:107-108](ux-writing.md:107)가 소유한다. 입력모드 중립 라벨을 기본으로 둔다(음성/텍스트 공통). 헤더 라벨은 세션 오디널과 무관하게 동일하다 — 첫 세션 warmer 카피([01-onboarding-first-session.md:153](01-onboarding-first-session.md:153))는 §3.1 격려문 등 피드백 카피에 적용되지, 헤더 라벨에는 적용하지 않는다.
+- 헤더 echo는 §3.1의 transient 음성 격려와 **별개 요소**다. transient 해제 트리거는 §3.1대로 "writingScore 렌더 시점"을 유지한다 — 헤더 echo가 즉시 떠도 transient 격려·transcript는 writingScore 데이터 도착 시 교체된다. 짧은 transcript 공존은 수용한다(무-갭 보장 우선).
+- 출처: 이 헤더는 기존 IA에 없던 **신규 요소**이며, 세션 사용자 요청에서 도입됐다(온보딩/첫 세션 전용 아님 — 모든 대화 턴 공통). 파생 근거가 아니라 제품 요구다.
+
 ## 3. slim 섹션 — 항상 노출
 
 `feedback.slim`은 세 섹션을 고정 순서로 렌더한다. 순서는 프롬프트 `propertyOrdering`이 결정적으로 emit하는 순서와 일치한다(`feedback-slim.md:3`).
@@ -44,6 +61,8 @@ writingScore → grammar → naturalExpression
 ```
 
 각 섹션은 도착 전 **시머 스켈레톤**, SSE 파싱 완료 시 해당 섹션만 실데이터로 교체(섹션별 점진 렌더, `dialogue-learning-flow.md:138`).
+
+**스켈레톤 스코프(설계 판단).** 스켈레톤은 "형태가 예측되고 곧 실데이터로 교체되는" 표면에만 쓴다. 시트 내에서는 slim 3섹션(§3)·deep 3블록(§4)이 대상이고, ⓪ 헤더는 즉시 데이터라 제외한다(§2.1). 게이트·일시·불확정 표면(한도 패널, 마이크 `Analyzing`)은 스켈레톤 대신 카피/인디케이터를 쓴다. 시트 밖 표면(대본 생성·요약)의 스켈레톤 적용은 [dialogue-learning-flow.md](dialogue-learning-flow.md) §4·§9가 소유한다. 이 스코프는 단일 사례의 일반화가 아니라 설계 판단으로 둔다(주의: slim 섹션 스켈레톤 사례에서 자동 도출되는 규칙이 아님).
 
 ### 3.1 writingScore
 
@@ -71,6 +90,7 @@ writingScore → grammar → naturalExpression
 
 - `incorrect`는 취소선과 텍스트를 함께 써서 색각 사용자도 인지한다(`feedback-slim.md:34` "rendered strikethrough").
 - `explanation`은 *왜 이 교정이 도움이 되는지*를 혜택 우선·전문용어 없이 ≤2줄(`feedback-slim.md:34`).
+- **정답(고칠 것 없음) 처리:** `correctedSentence.segments`가 전부 `normal`이면(교정 세그먼트 없음) 취소선·코랄 없이 원문을 그대로 보이고, `explanation`이 정확함을 축하한다(`feedback-slim.md:40` Rule 2). 별도 빈 상태·컴포넌트를 두지 않으며 섹션을 숨기지 않는다 — 3섹션 고정 순서 불변(§1).
 
 ### 3.3 naturalExpression
 
@@ -78,6 +98,7 @@ writingScore → grammar → naturalExpression
 
 - `highlight`는 자연스러움을 위해 바뀐 부분이다. **색 + 밑줄/배경 이중 신호**로 표시한다 — 이는 plan이 더한 접근성 개선이며, 레거시(`보고서:63` "색만으로 구분")의 단순 계승이 아니다.
 - 저장(북마크) 버튼은 두지 않는다(읽기 전용, §5 참조).
+- **이미 자연스러운 경우:** `segments`에 `highlight`가 하나도 없으면(전부 `normal`) 대체 버전 diff 대신 "이미 자연스러워요" 긍정 상태로 렌더하고 `reason`은 숨긴다. 이 신호는 프롬프트가 최적 문장에 all-`normal`을 반환하는 계약에 기댄다(`feedback-slim.md` Rule 3). 표시 동작 자체는 클라이언트 UI 규칙이다. 섹션을 숨기지 않는다 — 정답에도 3섹션 불변, naturalExpression 항상 노출.
 
 ## 4. deep 분석 — 온디맨드 인라인 확장
 
@@ -166,6 +187,7 @@ deep 블록도 slim과 동일하게 블록별 시머 스켈레톤으로 점진 �
 - **색 단독 금지**: grammar `incorrect`는 취소선+텍스트, 의미색 highlight는 색+밑줄/배경, writingScore는 점수 숫자 동반.
 - **벤 대비 가드**: 런타임 대비 계산으로 라이트/다크 양쪽 가독성 강제(`VennColorContrastGuardTest` 계승).
 - **터치 타깃**: `더 보기`·`다음`·저장 버튼은 디자인 시스템 최소 터치 크기를 따른다(세부 값은 디자인 시스템 소유).
+- **스켈레톤 모션**: 시머 애니메이션 값은 디자인 시스템 소유이며 `prefers-reduced-motion`을 존중한다(감속/정적 대체). 신규 요약 번들 스켈레톤([dialogue-learning-flow.md](dialogue-learning-flow.md) §9)은 기존 slim/deep 섹션 스켈레톤과 별개의 신규 요소이므로 product-design-system에 스펙 추가가 필요하다(기존 인용이 자동 커버하지 않음).
 
 ## 11. 잔여 needs-you (제품/디자인시스템 소유)
 
