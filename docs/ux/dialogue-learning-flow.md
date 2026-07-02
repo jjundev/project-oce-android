@@ -63,6 +63,10 @@
 
 대본 생성 terminal 실패 시 서버 환불/키 삭제 정책을 전제로 재시도 경로를 제공한다.
 
+대본 생성 표면에는 콘텐츠 스켈레톤(상대역 말풍선 placeholder)을 두지 않는다. 클라이언트는 완성 턴만 렌더하고(위 문단) 캔드/placeholder 라인을 대본에 끼워넣지 않으므로([01a-onboarding-first-session-followups.md:19](01a-onboarding-first-session-followups.md:19)), 생성 중에는 중립 카피("첫 대화를 준비하고 있어요", [01-onboarding-first-session.md:162](01-onboarding-first-session.md:162))만 표시한다. 스켈레톤 스코프 규칙은 [turn-feedback-ia.md](turn-feedback-ia.md) §3이 소유한다.
+
+> **예외 — 웨이트 인터스티셜:** 이 규칙의 취지는 **가짜 대화 콘텐츠(상대역 말풍선 placeholder)를 금지**하는 것이다. 대화와 명확히 구분되는 대기 인터스티셜(예: 무채점 로딩 퀴즈)은 예외이며, 안심 카피 아래에 추가로 노출할 수 있다. 정본은 [loading-quiz-interstitial.md](loading-quiz-interstitial.md), 스코프 구분은 [ADR-0005](../adr/0005-loading-quiz-vs-review-quiz.md).
+
 ## 5. 상대역 턴
 
 ```text
@@ -212,6 +216,12 @@ turn buffer 정책:
 - 종합 점수는 slim `writingScore` 평균 기반이다.
 - 하이라이트는 slim 점수 높은 턴을 기반으로 산출한다.
 - 북마크 문장은 사용자가 §7.3에서 저장한 패러프레이즈(`SENTENCE` 카드)를 기반으로 한다. 요약 북마크 섹션은 **최대 8개**를 **최신순**으로 노출한다. 8개를 넘으면 요약에서는 상위 8개만 보여주고, 저장 카드 전체는 기록 탭 문장 탭에 남는다([saved-cards.md](saved-cards.md)).
+
+요약 로딩 스켈레톤:
+- 요약 세 섹션(`expressions`/`words`/`coaching`)은 각 프롬프트가 `stream: no`이고 **단일 SSE 번들**로 도착한다(위 canonical contract). 따라서 slim/deep식 섹션별 점진 스켈레톤을 쓰지 않는다.
+- 요약 영역 전체에 **번들 단위 단일 로딩 상태** 하나를 두고, 도착 시 성공 섹션을 일괄 렌더한다(부분 실패는 위 `done.sections`로 섹션별 재시도).
+- 종합 점수·하이라이트(base)·북마크 문장은 즉시/로컬 데이터라 스켈레톤을 두지 않는다. 단, 하이라이트 **보강**은 `coaching` 응답에 편승하므로(위 "coaching 실패: 코칭/하이라이트 보강") 번들 로딩 상태에 포함된다.
+- 시머 모션 값·`prefers-reduced-motion`은 product-design-system 소유다. 이 번들 스켈레톤은 기존 slim/deep 스켈레톤과 별개의 신규 요소다([turn-feedback-ia.md](turn-feedback-ia.md) §10).
 
 부분 실패:
 

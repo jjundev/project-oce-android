@@ -28,6 +28,7 @@
 | C17 | "이어하기" 프롬프트 | 🟠 | 미완 세션 복귀 |
 | C18 | LimitReachedPanel (surface 3종) | 🟠 | 한도 도달 |
 | C19 | ReminderOptInSheet + SettingRow | 🟠 | 리마인더 opt-in/설정 |
+| C20 | WaitQuiz (무채점 로딩 퀴즈) | 🟠 | 대본 생성 대기 |
 
 > 에러 표면 5클래스 척추(exception-states.md): **[A]** 인라인 재시도 · **[B]** 자동진행/무음큐 · **[C]** 차단 게이트 · **[D]** 글로벌 배너 · **[E]** transient(스낵바). 우선순위 C > D(공존) > A > B > E.
 
@@ -131,4 +132,9 @@
 - **현황:** notification §2·§6 — 2nd 세션 완주 후 홈에서 1회 opt-in 시트(`[알림 받기]`/`[다음에]`). 설정엔 토글+조건부 시각 행. 상세는 [09-reminder](04-screen-09-reminder-notification.md).
 - **쟁점:** BottomSheet 재사용 + 콘텐츠/2버튼 구성.
 - **결정:** `OneClickReminderOptInSheet` = `OneClickBottomSheet` **재사용**(아이콘+카피+`[알림 받기]`(primary)/`[다음에]`(ghost)), 2nd 세션 완주 후 홈 1회. `ReminderSettingRow` = `OneClickSwitch` + 조건부 `OneClickTimePicker`(C10, 토글 ON일 때만). 기본 **20:00**([05](05-open-decisions.md) P11). C13 권한 priming 연계. 상세 [09-reminder](04-screen-09-reminder-notification.md).
+
+### C20 · WaitQuiz (무채점 로딩 퀴즈) 🟠
+- **현황:** 대본 생성 대기 이탈 방지용 인터스티셜. 정본 [loading-quiz-interstitial.md](../ux/loading-quiz-interstitial.md), 스코프 [ADR-0005](../adr/0005-loading-quiz-vs-review-quiz.md)(복습 퀴즈와 별개). 첫 세션 O3·홈 §7.1 두 표면.
+- **쟁점:** 2지선다 anatomy·정답 리빌 인터랙션·상태(무채점). C9(SegmentedControl)는 reveal 개념이 없어 선례 없음 → **from scratch로 신규 정의**.
+- **결정:** `OneClickWaitQuiz` = **scratch 무상태 컴포넌트**(점수·streak·저장 영속 0). props `items: List<QuizItem>` + `onAnswered`. `QuizItem = {id, level, prompt, optionA, optionB, correctIndex, revealCopyCorrect, revealCopyWrong}`, 로컬 정적 번들(레벨 3티어 × ~25, 빌드타임 오프라인 LLM+검수). 옵션=버튼 semantics, 탭 → 정답 리빌(오답 비처벌) → 다음 카드. 리빌 애니는 신규 정의, reduce-motion 정적 대체. 라이브리전 polite. 96dp 링·안심 카피 슬롯 **아래** 배치(O3 rev3). 지연 게이트 1000ms 이후 노출. `Idle | Revealed`.
 </content>
