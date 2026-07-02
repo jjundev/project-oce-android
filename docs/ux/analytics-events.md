@@ -64,6 +64,9 @@ D1/D7·한도 후 재방문 코호트가 anon→linked 경계를 한 사람으�
 | `saved_card_delete` | 제안 확장 채택 | ✓ | — | `card_type`, `undone`(bool) |
 | `record_tab_view` | 제안 확장 채택 | — | — | `card_type` |
 | `limit_reached` | 정본 | ✓ | — | `remaining`, `surface` |
+| `wait_quiz_shown` | **신설** | ✓ | — | `surface`, `delay_ms_at_show` |
+| `wait_quiz_card_answered` | **신설** | ✓ | — | `card_id`, `chose_correct`(bool), `card_index` |
+| `wait_quiz_ended` | **신설** | ✓ | — | `surface`, `reason`(`ready`\|`failed`\|`skipped`), `cards_answered`, `dwell_ms` |
 | `mic_permission_requested` / `mic_permission_result` | 기존 | — | — | `source`, `granted` |
 | `*_latency_ms` | 일부 신설 | (해당시) | (해당시) | `outcome` |
 | (자동) `first_open`, `session_start` | GA4 자동 | — | — | — |
@@ -156,6 +159,20 @@ window = 1일 / 7일 (D1/D7형)
 
 - **`learning_session_started`를 1차 분모로 쓴다.** GA4 자동 `session_start`는 30분 비활성 타임아웃마다 발화(Android 포그라운드/백그라운드 순환 포함)해 1일/7일 window 비교에 과대계상되므로 보조로만 둔다.
 - `limit_reached.surface` ∈ `{home, dialogue_start_gate, onboarding_first_session}`(`daily-limit-ux.md:80`).
+- **공유 `surface` 정본 enum:** 위 값 집합을 이벤트 간 공유하는 정본 enum으로 승격한다. 신규 `wait_quiz_*` 이벤트는 이 중 `{onboarding_first_session, home}` 값을 재사용한다(신규 값 추가 없음). 새 표면이 생기면 이 집합에만 추가한다.
+
+### 6.6 로딩 퀴즈 참여 (session_id 조인)
+
+```
+노출율 = wait_quiz_shown distinct session_id ÷ (해당 표면 생성 시작) distinct session_id
+참여 = wait_quiz_card_answered ≥1 인 wait_quiz_shown session_id 비율
+이탈 delta = wait_quiz_shown{surface} 유무별 이탈률 비교(session_id 조인)
+대기 실측 = wait_quiz_ended.dwell_ms 분포(p50/p95, surface 분리)
+```
+
+- 첫 세션 표면은 보조 활성화 퍼널(§6.1)의 `first_session_generation_started` 하위에 nest한다.
+- 홈 표면은 대응 generation 퍼널 이벤트가 없으므로 별도 nest 없이 `session_id` + `surface=home`으로 `session_complete`에 조인한다.
+- 정본: [loading-quiz-interstitial.md](loading-quiz-interstitial.md) §8. 로딩 퀴즈는 학습 지표(5대)의 분자/분모가 아니라 대기 UX 효과 검증용 보조 계열이다.
 
 ## 7. PII / 콘텐츠 정책 (신규 계약)
 

@@ -40,6 +40,7 @@
 - **현황:** 진행/안심 표현 필요. 레거시는 로딩 카피 4단계 회전.
 - **쟁점:** 스피너 vs 단계 프로그레스 vs 스켈레톤. 첫 세션 특유의 따뜻함.
 - **결정(rev2):** OneClickProgressRing(C7, 96dp, indeterminate) + 하단 1줄 안심 카피 슬롯. 단계 로테이션(단계 수·간격·문구)은 구조로 확정하지 않고 후속 + copy review로 이관(레거시 "4단계"는 참고만, P12와 별개 신규 카피 항목). reduce-motion 시 정적(F4). 취소 없음.
+- **결정(rev3, 로딩 퀴즈 추가):** 96dp 링과 안심 카피 슬롯 **아래에** 무채점 로딩 퀴즈(C20 `OneClickWaitQuiz`)를 배치한다. 대기 1000ms 지연 게이트 이후 노출, 안심 카피 슬롯은 존치(숨기지 않음), 준비 완료 시 하단 `대화 시작하기` 유저 탭(자동전이 없음). 스택 순서 = [96dp 링] → [안심 카피] → [퀴즈 카드] → [하단 CTA]. 정본: [loading-quiz-interstitial.md](../ux/loading-quiz-interstitial.md), 스코프: [ADR-0005](../adr/0005-loading-quiz-vs-review-quiz.md).
 
 ### O4 · Google 저장 제안 (GoogleSavePrompt) 🟠
 - **현황:** 첫 세션 완주 후에만. primary `Google로 진도 저장` / secondary `한 번 더 하기` / skip `나중에 할게요`. 스킵 시 게스트 홈 진입. 카피: `가입` 대신 `진도 저장`.
