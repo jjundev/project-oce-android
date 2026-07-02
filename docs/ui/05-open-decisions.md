@@ -1,6 +1,6 @@
 # UI 논의 — 제품·디자인 정책 결정 (확정)
 
-> 상태: **확정**(grill-yourself → grill-review deep auto, 4회 수렴 SHIP) · 작성일: 2026-06-30 · 갱신: 2026-07-01 · 상위: [README](README.md) (표 5)
+> 상태: **확정**(grill-yourself → grill-review deep auto, 4회 수렴 SHIP) · 작성일: 2026-06-30 · 갱신: 2026-07-03(프로토타입 실현 반영) · 상위: [README](README.md) (표 5)
 > 목적: 화면/컴포넌트 문서 곳곳의 결정 항목을 한곳에 모아 **결정 → 해당 문서로 반영**한다.
 > Needs-you 3건(F1·P12·P13)은 사용자 확정 완료([confirmed]). 각 결정은 관련 화면 문서에 전파됨.
 
@@ -32,7 +32,7 @@
 ## 결정 (항목별)
 
 ### F1 · 공식 아이콘 세트 — 디자인/M0 · [confirmed]
-- **현황:** Icon BLANK 플레이스홀더. 교체는 단일 `OneClickIcon` seam. product-design-system.md:99-100 "자체 조달 24-grid solid, M0 확정"만 규정(특정 세트 미지목).
+- **현황:** `Foundations` 프로토타입이 01a 26 glyph를 Material Symbols로 **직접 렌더(시각 실현)**. 단 flow 번들의 DS `Icon` 컴포넌트는 여전히 BLANK 플레이스홀더를 렌더하며, 교체는 단일 `OneClickIcon` seam으로 수행 → 실제 vector 임포트는 M0(realization-SoT 갭이지 결정 미정 아님, [ADR-0006](../adr/0006-prototype-as-realization-sot.md)). product-design-system.md:99-100 "자체 조달 24-grid solid, M0 확정"만 규정(특정 세트 미지목).
 - **결정:** **Material Symbols (Rounded · Filled · optical 24 · weight 400)**. 24-grid solid 계약 충족 + Apache-2.0 + Compose 네이티브. 필요 glyph만 vector 임포트, 단일 seam으로 추후 교체 가능. (사용자 확정)
 
 ### P1 · 홈 XP 표시 여부 — 제품

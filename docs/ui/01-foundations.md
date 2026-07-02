@@ -1,6 +1,6 @@
 # UI 논의 — 파운데이션 & 시스템 공통
 
-> 상태: 논의용 스켈레톤 · 작성일: 2026-06-30 · 상위: [README](README.md) (표 1)
+> 상태: 논의용 스켈레톤 · 작성일: 2026-06-30 · 갱신: 2026-07-03(프로토타입 실현 반영) · 상위: [README](README.md) (표 1)
 > 정본: [design-tokens.md](../design/design_system_src/design-tokens.md) · [product-design-system.md](../design/design_system_src/product-design-system.md) · [accessibility.md](../ux/accessibility.md)
 > 범례: 🔴 결정 필요 · 🟠 신규 설계 · 🟡 구현 대기 · 🟢 QA·위임
 
@@ -87,7 +87,7 @@
 #### 결정 (rev2 확정)
 
 1. **골격·거터** — Compose `Scaffold`(topBar?/bottomBar?/content). 화면 가로 거터 20dp(`space-xl`), 섹션 세로 갭 24dp(`space-section-gap`), 액션 버튼 갭 12dp(`space-action-gap`), 로딩 영역 40dp(`space-loading-padding`). elevation 0 + `border.hairline` 기조.
-2. **BottomNav 노출 범위** — 홈·기록·설정 3탭에만 `bottomBar`. 온보딩·대화·피드백시트·요약·한도게이트·리마인더는 내비 없는 전체화면/오버레이. 컴포넌트 = M3 `NavigationBar` 래핑 + type token(`tabActive` 13sp Bold / `tabInactive` 11sp), `elevation-nav`(상단 hairline + 상승 그림자 오프셋, `radius.css` `--elevation-nav`; M3 elevation dp 값 아님). `OneClickBottomNav`는 DS 카탈로그 미비준 → 신규 컴포넌트 필요(플래그).
+2. **BottomNav 노출 범위** — 학습·기록·설정 3탭에만 `bottomBar`(첫 탭 라벨은 `학습`; `Foundations` 프로토타입 스캐폴드 캡션 "하단 3탭 · 학습·기록·설정" 기준). 온보딩·대화·피드백시트·요약·한도게이트·리마인더는 내비 없는 전체화면/오버레이. 컴포넌트 = M3 `NavigationBar` 래핑 + type token(`tabActive` 13sp Bold / `tabInactive` 11sp), `elevation-nav`(상단 hairline + 상승 그림자 오프셋, `radius.css` `--elevation-nav`; M3 elevation dp 값 아님). ~~`OneClickBottomNav`는 DS 카탈로그 미비준 → 신규 컴포넌트 필요(플래그).~~ → **해소: 생성 번들이 `BottomNav`를 실현·export**(`_ds_manifest.json`, 19종)하여 카탈로그에 편입됨.
 3. **타이틀 패턴** — 상시탭 = 인라인 대형 타이틀 `type.screenTitle`(28sp Bold); 플로우 = 48dp 최소 top bar(뒤로/닫기 + 진행률); 시트 = 드래그핸들 + `type.dialogHeader`(22sp). 요약 = 48dp 탑바 + 아래 56sp 점수 블록(점수 ≠ 탑바, 시맨틱 분리).
 4. **스크롤 컨테이너** — 화면별 **단일 `LazyColumn` 호스트**(홈·요약·기록·설정 포함; 정적 섹션은 item). 화면 내 가로 스트립(추천·SegmentedControl)은 `LazyRow`로 격리. 세로 `verticalScroll` + `LazyColumn` 중첩 금지(Compose 풋건). 스크롤 중 고정 컨트롤(기록 탭 3탭 SegmentedControl)은 `stickyHeader`.
 
