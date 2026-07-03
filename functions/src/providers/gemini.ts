@@ -37,6 +37,15 @@ export class TtsSynthError extends Error {
   }
 }
 
+/** Raised when speaking analysis fails after retries — mapped to 502 SPEAKING_ANALYZE_FAILED. */
+export class SpeakingAnalyzeError extends Error {
+  readonly code = ErrorCode.SPEAKING_ANALYZE_FAILED;
+  constructor(what: string) {
+    super(`SPEAKING_ANALYZE_FAILED: ${what}`);
+    this.name = "SpeakingAnalyzeError";
+  }
+}
+
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 /** default PCM rate when the response mimeType omits `rate=` (Gemini TTS is 24kHz). */
 const DEFAULT_SAMPLE_RATE_HZ = 24000;
@@ -78,14 +87,33 @@ export class GeminiProvider implements LlmProvider {
   }
 
   /**
-   * Single-shot structured JSON generation — summary sub-calls (M2-01). Resolves the
-   * model from `req.modelId` (NOT `modelFor(req.task)`: `req.task` is a sub-task string
-   * like "summary.expressions" that isn't in the closed `Task` map). On a parse failure
-   * it repairs once (prompt-system.md:91); a repeated failure throws, and the summary
-   * orchestrator maps any throw → `sections[k]="failed"` (backend-functions.md:117), so
-   * no dedicated error class is needed here (plan decision #1).
+   * Single-shot generation — two one-shot task families share this seam:
+   *   - `speaking` (M1-06): WAV audio in → `{transcript, feedbackMessage}` JSON out.
+   *   - `summary.*` (M2-01): a projected buffer slice in → structured JSON out. The model
+   *     is resolved from `req.modelId` (NOT `modelFor(req.task)`: the sub-task string
+   *     "summary.expressions" isn't in the closed `Task` map). A parse failure repairs once
+   *     (prompt-system.md:91); a repeated failure throws and the summary orchestrator maps
+   *     any throw → `sections[k]="failed"` (backend-functions.md:117).
    */
   async generateOnce(req: GenerateRequest): Promise<RawJson> {
+    if (req.task === "speaking") {
+      const audioBase64 = (req.payload as { audioBase64?: unknown } | undefined)
+        ?.audioBase64;
+      if (typeof audioBase64 !== "string" || audioBase64.length === 0) {
+        throw new SpeakingAnalyzeError("missing audioBase64 in payload");
+      }
+      const model = this.config.modelFor("speaking");
+      const url = `${GEMINI_BASE_URL}/models/${model}:generateContent`;
+      const body = JSON.stringify(buildAnalysisBody(audioBase64));
+      const responseText = await this.postWithRetry(
+        url,
+        body,
+        (msg) => new SpeakingAnalyzeError(msg)
+      );
+      return parseAnalysisResponse(responseText);
+    }
+
+    // summary sub-calls (M2-01): structured JSON, model from req.modelId, repair-once.
     const url = `${GEMINI_BASE_URL}/models/${req.modelId}:generateContent`;
     const firstText = await this.requestText(
       url,
@@ -109,10 +137,11 @@ export class GeminiProvider implements LlmProvider {
   }
 
   /**
-   * POST a generateContent body and return the raw response text. Mirrors tts()'s
-   * reliability shape: per-attempt AbortController timeout, MAX_ATTEMPTS retries on
-   * network/5xx, and no retry on 4xx (deterministic). Throws a plain Error on terminal
-   * failure.
+   * POST a generateContent body and return the raw response text — the summary sub-call
+   * transport. A sibling of `postWithRetry` (used by tts/speaking), kept distinct because
+   * summary failures are plain Errors the orchestrator catches into `sections[k]="failed"`
+   * and 4xx is terminal here (no retry). Per-attempt AbortController timeout, MAX_ATTEMPTS
+   * retries on network/5xx.
    */
   private async requestText(url: string, body: unknown): Promise<string> {
     const fetchFn = this.config.fetchFn ?? (globalThis.fetch as FetchFn);
@@ -160,11 +189,27 @@ export class GeminiProvider implements LlmProvider {
   ): Promise<TtsResult> {
     const model = this.config.modelFor("tts");
     const url = `${GEMINI_BASE_URL}/models/${model}:generateContent`;
-    const body = JSON.stringify(
-      buildSynthesisBody(text, voice, speechRate)
+    const body = JSON.stringify(buildSynthesisBody(text, voice, speechRate));
+    const responseText = await this.postWithRetry(
+      url,
+      body,
+      (msg) => new TtsSynthError(msg)
     );
-    const fetchFn = this.config.fetchFn ?? (globalThis.fetch as FetchFn);
+    return parseTtsResponse(responseText);
+  }
 
+  /**
+   * Shared Gemini `:generateContent` transport: per-attempt timeout + up to MAX_ATTEMPTS,
+   * with 4xx treated as terminal (no retry). Returns the raw response text on success, or
+   * throws the caller's typed error (TtsSynthError / SpeakingAnalyzeError) — so a failed
+   * tts and a failed speaking analysis map to their own distinct error codes.
+   */
+  private async postWithRetry(
+    url: string,
+    body: string,
+    makeError: (message: string) => Error
+  ): Promise<string> {
+    const fetchFn = this.config.fetchFn ?? (globalThis.fetch as FetchFn);
     let lastError = "";
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       const controller = new AbortController();
@@ -184,13 +229,14 @@ export class GeminiProvider implements LlmProvider {
           lastError = `HTTP ${res.status}`;
           // 4xx are deterministic (bad request/quota) — no point retrying.
           if (res.status >= 400 && res.status < 500) {
-            throw new TtsSynthError(lastError);
+            throw makeError(lastError);
           }
           continue;
         }
-        return parseTtsResponse(responseText);
+        return responseText;
       } catch (e) {
-        if (e instanceof TtsSynthError) {
+        // A typed terminal error (from the 4xx branch or a caller parser) is final.
+        if (e instanceof TtsSynthError || e instanceof SpeakingAnalyzeError) {
           throw e;
         }
         lastError = e instanceof Error ? e.message : String(e);
@@ -198,7 +244,7 @@ export class GeminiProvider implements LlmProvider {
         clearTimeout(timer);
       }
     }
-    throw new TtsSynthError(`after ${MAX_ATTEMPTS} attempts: ${lastError}`);
+    throw makeError(`after ${MAX_ATTEMPTS} attempts: ${lastError}`);
   }
 }
 
@@ -228,6 +274,100 @@ export function buildSynthesisBody(
       },
     },
   };
+}
+
+/**
+ * Speaking-analysis system prompt — B-1 content (speaking-analyze.md rules 1-4) inlined as
+ * a server constant, mirroring how `buildSynthesisBody` inlines the tts prompt (config/
+ * prompts + cachedContents migration is a documented follow-up, backend-functions.md §6).
+ * The output is intentionally narrowed to `{transcript, feedbackMessage}` — NO numeric
+ * score field (PRD A8/R3), enforced structurally by `responseSchema` below.
+ */
+export const SPEAKING_SYSTEM_PROMPT =
+  "You are an English speaking coach for Korean learners. Listen to the user's speaking " +
+  "audio and return ONE valid JSON object with keys `transcript` and `feedbackMessage`.\n" +
+  "1. `transcript` = a faithful, verbatim transcription of what the user ACTUALLY said, " +
+  "including hesitations or partial words. Do NOT guess, complete, or 'correct' it toward " +
+  "any expected sentence. If the audio is unintelligible or empty, return an empty string.\n" +
+  "2. `feedbackMessage` = one short, warm Korean coaching line in 해요체 about the delivery " +
+  "(natural, clear, confident, or e.g. '조금만 더 천천히 말해볼까요?'). It is emotional/" +
+  "encouraging support, NOT a correctness judgment of the English. Max 2 lines, benefit-" +
+  "first, no jargon.\n" +
+  "3. Do NOT output any score, number, or rating. No fluency/confidence/hesitation counts.\n" +
+  "4. Return JSON only — no code fences, no extra keys, no text outside the object.";
+
+/**
+ * Build the Gemini `:generateContent` body for speaking analysis: the WAV audio as an
+ * inline part + the system prompt, with a structured `responseSchema` forcing exactly
+ * `{transcript, feedbackMessage}` (both strings). `responseMimeType: application/json`
+ * makes Gemini emit the object as the candidate's text part.
+ */
+export function buildAnalysisBody(audioBase64: string): Record<string, unknown> {
+  return {
+    contents: [
+      {
+        parts: [
+          { inlineData: { mimeType: "audio/wav", data: audioBase64 } },
+          { text: SPEAKING_SYSTEM_PROMPT },
+        ],
+      },
+    ],
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "OBJECT",
+        properties: {
+          transcript: { type: "STRING" },
+          feedbackMessage: { type: "STRING" },
+        },
+        required: ["transcript", "feedbackMessage"],
+      },
+    },
+  };
+}
+
+/**
+ * Extract the first candidate's JSON text part and parse it into the raw model object.
+ * With `responseMimeType: application/json` Gemini returns the object as text, so we
+ * JSON.parse the text part. Throws SpeakingAnalyzeError on any shape mismatch (empty body,
+ * missing candidates/parts/text, or non-JSON text). Shape validation of the parsed keys
+ * happens one layer up in `analyzeSpeaking`.
+ */
+export function parseAnalysisResponse(responseBody: string): RawJson {
+  const trimmed = (responseBody ?? "").trim();
+  if (!trimmed) {
+    throw new SpeakingAnalyzeError("empty response");
+  }
+  let root: unknown;
+  try {
+    root = JSON.parse(trimmed);
+  } catch {
+    throw new SpeakingAnalyzeError("invalid JSON response");
+  }
+
+  const candidates = (root as { candidates?: unknown }).candidates;
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    throw new SpeakingAnalyzeError("no candidates");
+  }
+  for (const candidate of candidates) {
+    const parts = (candidate as { content?: { parts?: unknown } })?.content
+      ?.parts;
+    if (!Array.isArray(parts)) {
+      continue;
+    }
+    for (const part of parts) {
+      const text = (part as { text?: unknown })?.text;
+      if (typeof text !== "string" || text.trim().length === 0) {
+        continue;
+      }
+      try {
+        return JSON.parse(text.trim()) as RawJson;
+      } catch {
+        throw new SpeakingAnalyzeError("candidate text is not valid JSON");
+      }
+    }
+  }
+  throw new SpeakingAnalyzeError("missing text part");
 }
 
 /**

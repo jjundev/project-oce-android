@@ -21,7 +21,17 @@ import {
   orchestrateSummary,
   parseSummaryPayload,
 } from "./summary";
-import { TtsSynthError } from "../providers/gemini";
+import {
+  InvalidSpeakingPayloadError,
+  analyzeSpeaking,
+  parseSpeakingPayload,
+} from "./speaking";
+import {
+  CapExceededError,
+  SessionGate,
+  SessionInvalidError,
+} from "./session-cap";
+import { SpeakingAnalyzeError, TtsSynthError } from "../providers/gemini";
 import { LlmProvider } from "../providers/LlmProvider";
 import { ErrorCode, RequestBody } from "../types/protocol";
 
@@ -38,6 +48,9 @@ export interface HandlerRequest {
  */
 export interface HandlerDeps {
   provider?: LlmProvider;
+  /** per-session cap gate for `speaking` (backend-functions.md §8). When absent, speaking
+   *  falls back to the NOT_IMPLEMENTED stub — same pattern as an absent `provider`. */
+  sessionGate?: SessionGate;
 }
 
 export interface HandlerResponse {
@@ -60,9 +73,12 @@ export async function handle(
   res: HandlerResponse,
   deps: HandlerDeps = {}
 ): Promise<void> {
-  // 1. auth — any failure is an opaque 401 (before any stream is opened)
+  // 1. auth — any failure is an opaque 401 (before any stream is opened). Capture the
+  // decoded token: `speaking` needs the caller uid for the per-session cap gate (§8).
+  let uid: string;
   try {
-    await authenticate(header(req, "authorization"));
+    const decoded = await authenticate(header(req, "authorization"));
+    uid = decoded.uid;
   } catch {
     res.status(401).json({ code: ErrorCode.UNAUTHENTICATED });
     return;
@@ -96,8 +112,11 @@ export async function handle(
     } else if (task === "tts" && deps.provider) {
       // JSON transport, implemented — synthesize and return base64 PCM (M1-05).
       await handleTts(body.payload, deps.provider, res);
+    } else if (task === "speaking" && deps.provider && deps.sessionGate) {
+      // JSON transport, implemented — transcribe + encourage (M1-06).
+      await handleSpeaking(body, uid, deps.provider, deps.sessionGate, res);
     } else {
-      // JSON transport stub — `speaking` (M1-06) or tts without an injected provider.
+      // JSON transport stub — tts/speaking without their injected dependencies.
       res.status(501).json({ code: ErrorCode.NOT_IMPLEMENTED });
     }
   } catch {
@@ -162,6 +181,69 @@ async function handleTts(
   } catch (e) {
     if (e instanceof TtsSynthError) {
       res.status(502).json({ code: ErrorCode.TTS_SYNTH_FAILED });
+      return;
+    }
+    throw e;
+  }
+}
+
+/**
+ * Handle a speaking request: validate the envelope + payload, reserve a per-session call slot
+ * BEFORE the expensive Gemini call (NFR-2), analyze, and refund the slot on a terminal server
+ * error so only successful calls count (A1, backend-functions.md §8). Status mapping:
+ *   missing sessionId/audio → 400 INVALID_PAYLOAD
+ *   session invalid/expired/foreign → 403 SESSION_INVALID
+ *   at cap → 429 CAP_EXCEEDED
+ *   analysis failed → 502 SPEAKING_ANALYZE_FAILED (slot refunded first)
+ * An empty/unintelligible clip is a 200 with `transcript: ""` (not an error) and DOES count.
+ */
+async function handleSpeaking(
+  body: Partial<RequestBody>,
+  uid: string,
+  provider: LlmProvider,
+  gate: SessionGate,
+  res: HandlerResponse
+): Promise<void> {
+  // sessionId is a top-level envelope field (backend-functions.md:45,47), not in payload.
+  const sessionId =
+    typeof body.sessionId === "string" ? body.sessionId.trim() : "";
+  let request;
+  try {
+    if (!sessionId) {
+      throw new InvalidSpeakingPayloadError("missing sessionId");
+    }
+    request = parseSpeakingPayload(body.payload);
+  } catch (e) {
+    if (e instanceof InvalidSpeakingPayloadError) {
+      res.status(400).json({ code: ErrorCode.INVALID_PAYLOAD });
+      return;
+    }
+    throw e;
+  }
+
+  // Cap gate BEFORE spending on Gemini — blocks unmetered audio (NFR-2).
+  try {
+    await gate.reserve(uid, sessionId);
+  } catch (e) {
+    if (e instanceof CapExceededError) {
+      res.status(429).json({ code: ErrorCode.CAP_EXCEEDED });
+      return;
+    }
+    if (e instanceof SessionInvalidError) {
+      res.status(403).json({ code: ErrorCode.SESSION_INVALID });
+      return;
+    }
+    throw e;
+  }
+
+  try {
+    const response = await analyzeSpeaking(request, provider);
+    res.status(200).json(response);
+  } catch (e) {
+    // Terminal server error → refund the reserved slot so it doesn't count (A1).
+    await gate.refund(sessionId);
+    if (e instanceof SpeakingAnalyzeError) {
+      res.status(502).json({ code: ErrorCode.SPEAKING_ANALYZE_FAILED });
       return;
     }
     throw e;
