@@ -54,6 +54,41 @@ detekt {
     config.setFrom(rootProject.file("config/detekt/detekt.yml"))
 }
 
+// hex 가드(결정적 강제) — ui/theme/Color.kt 밖에서 raw hex 색상 리터럴(Color(0x…) 또는 #RRGGBB[AA])을
+// 쓰면 빌드를 실패시킨다. detekt ForbiddenMethodCall 은 타입 해석이 없으면 무발동이므로, 이 태스크가
+// 수용 기준("raw hex 사용 시 빌드 실패")을 보장한다. allowlist = ui/theme/Color.kt.
+val checkNoRawHexColors =
+    tasks.register("checkNoRawHexColors") {
+        group = "verification"
+        description = "Fails the build when a raw hex color literal appears outside ui/theme/Color.kt"
+        val kotlinRoot = layout.projectDirectory.dir("src/main/kotlin").asFile
+        doLast {
+            val allowlistSuffix = "ui/theme/Color.kt"
+            val hexLiteral = Regex("""Color\(\s*0x[0-9A-Fa-f]{6,8}\b|#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?\b""")
+            val offenders =
+                kotlinRoot
+                    .walkTopDown()
+                    .filter { it.isFile && it.extension == "kt" }
+                    .filterNot { it.invariantSeparatorsPath.endsWith(allowlistSuffix) }
+                    .flatMap { file ->
+                        file.readLines().withIndex()
+                            .filter { hexLiteral.containsMatchIn(it.value) }
+                            .map { "${file.name}:${it.index + 1}: ${it.value.trim()}" }
+                    }
+                    .toList()
+            if (offenders.isNotEmpty()) {
+                throw GradleException(
+                    "raw hex 색상 리터럴 발견 — Oce 테마 토큰을 쓰세요(allowlist: $allowlistSuffix):\n" +
+                        offenders.joinToString("\n"),
+                )
+            }
+        }
+    }
+
+tasks.named("check") {
+    dependsOn(checkNoRawHexColors)
+}
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
 
