@@ -9,6 +9,9 @@ complexity:
   LongParameterList:
     # @Composable 은 상태 호이스팅(값 in / 콜백 out)으로 파라미터가 많은 게 정상 → 기본 규칙에서 제외한다.
     ignoreAnnotated: ['Composable']
+  LongMethod:
+    # @Composable 은 선언형 UI 트리라 한 함수에 레이아웃이 길게 이어지는 게 정상 → 기본 규칙에서 제외한다.
+    ignoreAnnotated: ['Composable']
 
 style:
   MagicNumber:
