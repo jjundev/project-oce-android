@@ -1,0 +1,7 @@
+<resources>
+    <!--
+      런치 테마 스텁. 실제 브랜드 테마(라이트/다크 토큰)는 Compose 쪽 OceTheme + M0-03 에서 확정한다.
+      여기서는 액션바 없는 최소 플랫폼 테마만 둔다(Compose 가 UI 를 그림).
+    -->
+    <style name="Theme.OceApp" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
