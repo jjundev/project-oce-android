@@ -39,7 +39,7 @@
 | **파운데이션 F2 토큰→Compose 매핑** | 🟨 부분 | **명세 확정**(grill-review deep auto rev.3 SHIP) · [01-foundations](01-foundations.md) F2 · Compose 코드/gradle/에셋은 M0 |
 | 파운데이션 F3~F7 | ⬜ 진행전 | 컴포넌트 스텁 · 모션 · 다크 · a11y 기술 |
 | **파운데이션 F8 화면 레이아웃 골격** | 🟨 부분 | **명세 확정**(grill-review deep auto rev2 SHIP) · [01-foundations](01-foundations.md) F8 — Scaffold·거터·내비 범위·타이틀·단일 LazyColumn 스크롤 · Compose 구현 ⬜(M0) |
-| 공통 컴포넌트 C1~C19 (§2) | 🟨 부분 | **외형 명세 19종 확정**(grill-yourself → grill-review deep auto SHIP → grill-verify VERIFIED, 2026-07-01) · [02](02-shared-components.md) 정본 + [product-design-system.md](../design/design_system_src/product-design-system.md) §2.4/§3.4 편입 완료 · Compose 구현 ⬜(M0) |
+| 공통 컴포넌트 C1~C20 (§2) | 🟨 부분 | **외형 명세 20종 확정**(grill-yourself → grill-review deep auto SHIP → grill-verify VERIFIED, 2026-07-01) · [02](02-shared-components.md) 정본 + [product-design-system.md](../design/design_system_src/product-design-system.md) §2.4/§3.4 편입 완료 · Compose 구현 ⬜(M0) |
 | 시그니처 인터랙션 I1~I4 (§3) | 🟨 부분 | **명세 확정**(grill-yourself → AskUserQuestion #17·#18 → grill-review deep auto rev.3 SHIP, 2026-07-01) · [03](03-signature-interactions.md) 정본 · I2 파형 정본 [audio-pipeline.md](../design/audio-pipeline.md) 편입 · Compose Canvas 구현 ⬜(M0) |
 | 화면 레이아웃 9개 (§4) | ✅ 완료됨 | **rev2 레이아웃 결정 전파 완료**(grill-yourself → grill-review deep auto rev2 SHIP · Blocker 0 · 사용자 확정 O1·O2·D1) · 각 화면 문서 `결정(rev2)` 라인 + [F8](01-foundations.md) · 시각 폴리시/Compose 구현 ⬜(M0) |
 | 접근성 규약 A1~A7 (§6) | 🟨 부분 | **적용 매트릭스 확정**(grill-yourself → grill-review deep auto SHIP rev.2, 2026-07-01) · [06](06-accessibility-impl.md) 산출물 A(컴포넌트×규약)·B(화면×합격선)·C(집행) + D(SoT 정합 in-place 반영 완료) · 구현·실측은 M0/QA 게이트 |
@@ -158,7 +158,7 @@
 | [`README.md`](README.md) (본 문서) | 전체 인덱스 |
 | [`01-foundations.md`](01-foundations.md) | 표 1 — 아이콘·토큰매핑·모션·다크·접근성·**화면 레이아웃 골격(F8)** |
 | [`01a-icon-mapping.md`](01a-icon-mapping.md) | F1 아이콘 매핑표 — 시맨틱 seam ↔ Material Symbols glyph 26종(확정) |
-| [`02-shared-components.md`](02-shared-components.md) | 표 2 — 신규 공통 컴포넌트 19종 |
+| [`02-shared-components.md`](02-shared-components.md) | 표 2 — 신규 공통 컴포넌트 20종 |
 | [`03-signature-interactions.md`](03-signature-interactions.md) | 표 3 — 마이크·파형·슬롯머신·벤 |
 | [`04-screen-01-onboarding.md`](04-screen-01-onboarding.md) | 온보딩 & 첫 세션 |
 | [`04-screen-02-home.md`](04-screen-02-home.md) | 홈 & 주제 선택 |
