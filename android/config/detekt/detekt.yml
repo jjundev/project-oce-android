@@ -5,6 +5,11 @@ naming:
     # @Composable 함수는 PascalCase 가 정식 컨벤션 → detekt 기본 규칙에서 제외한다.
     ignoreAnnotated: ['Composable']
 
+complexity:
+  LongParameterList:
+    # @Composable 은 상태 호이스팅(값 in / 콜백 out)으로 파라미터가 많은 게 정상 → 기본 규칙에서 제외한다.
+    ignoreAnnotated: ['Composable']
+
 style:
   MagicNumber:
     active: false
