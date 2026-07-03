@@ -1,0 +1,92 @@
+[
+  {
+    "id": "easy-1",
+    "tier": "easy",
+    "prompt": "Which one sounds more natural?",
+    "optionA": "I have a plan.",
+    "optionB": "I have plan.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! 관사를 잘 챙겼어요.",
+    "revealCopyWrong": "괜찮아요. \"a plan\" 처럼 관사를 붙여요."
+  },
+  {
+    "id": "easy-2",
+    "tier": "easy",
+    "prompt": "How do you greet someone in the morning?",
+    "optionA": "Good morning!",
+    "optionB": "Good night!",
+    "correctIndex": 0,
+    "revealCopyCorrect": "좋아요! 아침 인사예요.",
+    "revealCopyWrong": "괜찮아요. \"Good night\" 은 밤 인사예요."
+  },
+  {
+    "id": "easy-3",
+    "tier": "easy",
+    "prompt": "Order a coffee politely.",
+    "optionA": "Coffee.",
+    "optionB": "Can I get a coffee, please?",
+    "correctIndex": 1,
+    "revealCopyCorrect": "훌륭해요! 부드러운 주문이에요.",
+    "revealCopyWrong": "괜찮아요. \"Can I get...\" 이 더 정중해요."
+  },
+  {
+    "id": "normal-1",
+    "tier": "normal",
+    "prompt": "Pick the more polite request.",
+    "optionA": "Give me the report.",
+    "optionB": "Could you send me the report?",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! 훨씬 부드러운 표현이에요.",
+    "revealCopyWrong": "괜찮아요. \"Could you...\" 가 더 정중해요."
+  },
+  {
+    "id": "normal-2",
+    "tier": "normal",
+    "prompt": "Which is correct past tense?",
+    "optionA": "I goed home.",
+    "optionB": "I went home.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! go 의 과거형은 went 예요.",
+    "revealCopyWrong": "괜찮아요. go 는 불규칙이라 went 예요."
+  },
+  {
+    "id": "normal-3",
+    "tier": "normal",
+    "prompt": "Which sounds more natural at work?",
+    "optionA": "Let's touch base tomorrow.",
+    "optionB": "Let's touch a base tomorrow.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "좋아요! 관용 표현이에요.",
+    "revealCopyWrong": "괜찮아요. \"touch base\" 가 맞는 표현이에요."
+  },
+  {
+    "id": "hard-1",
+    "tier": "hard",
+    "prompt": "Choose the more idiomatic phrasing.",
+    "optionA": "I'm looking forward to meeting you.",
+    "optionB": "I'm looking forward to meet you.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! look forward to + -ing 예요.",
+    "revealCopyWrong": "괜찮아요. \"to meeting\" 처럼 -ing 를 써요."
+  },
+  {
+    "id": "hard-2",
+    "tier": "hard",
+    "prompt": "Which is the stronger closing line?",
+    "optionA": "Please let me know if you have questions.",
+    "optionB": "Tell me questions.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "좋아요! 정중하고 자연스러워요.",
+    "revealCopyWrong": "괜찮아요. \"Please let me know...\" 가 더 자연스러워요."
+  },
+  {
+    "id": "hard-3",
+    "tier": "hard",
+    "prompt": "Pick the more precise word.",
+    "optionA": "The results were good enough.",
+    "optionB": "The results exceeded expectations.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "훌륭해요! 더 구체적이고 강해요.",
+    "revealCopyWrong": "괜찮아요. \"exceeded expectations\" 가 더 또렷해요."
+  }
+]

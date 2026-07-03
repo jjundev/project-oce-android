@@ -80,6 +80,10 @@ retrofit-kotlinx-serialization-converter = { group = "com.jakewharton.retrofit",
 okhttp-bom = { group = "com.squareup.okhttp3", name = "okhttp-bom", version.ref = "okhttp" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp" }
 okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor" }
+# okhttp-sse: 명명 SSE 이벤트(event: meta/object/done/error) 파싱 — 대본 생성 스트림(M1-01). BOM 관리(무버전).
+okhttp-sse = { group = "com.squareup.okhttp3", name = "okhttp-sse" }
+# mockwebserver: SSE 프레이밍 골든 테스트(M1-01, NFR 위험지대). BOM 관리(무버전).
+okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
 # Firebase — BoM platform + 무버전 아티팩트(analytics/auth/firestore). FCM 은 v1.1 범위라 제외(PRD §10.2).

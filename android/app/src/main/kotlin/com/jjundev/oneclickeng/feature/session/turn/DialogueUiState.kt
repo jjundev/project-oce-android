@@ -1,0 +1,138 @@
+package com.jjundev.oneclickeng.feature.session.turn
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
+import kotlinx.coroutines.delay
+
+/** 현재 발화 주체(dialogue-learning-flow.md §2 `TurnPhase`). M1-03 은 이 두 값만 쓴다. */
+enum class TurnPhase { OpponentTurn, LearnerTurn }
+
+/**
+ * 세션 전체 진행(dialogue-learning-flow.md §2 `SessionPhase`)의 M1-03 부분집합.
+ * `Starting`/`GeneratingScript`/`SummaryPreparing` 등 나머지 값은 SSE·요약 배선 이슈에서 확장한다.
+ */
+enum class SessionPhase { InTurn, Completed }
+
+/** 학습자 응답 과제(한국어 발판). D1 발판 카드가 소비한다(04-screen-03-dialogue.md D1 rev2). */
+data class ScaffoldTask(val koreanPrompt: String)
+
+/** 화면 대화 기록에 렌더되는 말풍선 1개. 영어 콘텐츠에는 `LocaleList("en")`(A4) 이 적용된다. */
+sealed interface DialogueMessage {
+    val english: String
+
+    /** 상대역 말풍선(좌측, `surface.card`). */
+    data class Opponent(override val english: String) : DialogueMessage
+
+    /**
+     * 학습자 말풍선(우측, `brand.primary`). M1-03 에서는 [DialogueTurn.referenceEnglish] 목표 문장을
+     * 스텁 재생한 것이다(실제 사용자 입력 아님 — SampleDialogue.kt 부채 주석 참조).
+     */
+    data class Learner(override val english: String) : DialogueMessage
+}
+
+/** 상대역 말풍선 렌더 후 자동 진행까지의 잠정 지연(ms). */
+const val DEFAULT_OPPONENT_ADVANCE_DELAY_MS: Int = 1200
+
+/**
+ * M1-03 대화 턴 화면의 상태 홀더. **신규 도입** 화면 스코프 홀더로, 리포에 `remember*State` 홀더 선례는
+ * 없다(루트 `AppViewModel` 만 존재). "ViewModel 은 콘텐츠 이슈에서 도입"(HomeScreen.kt:12) 규약을 따라
+ * 실 데이터(SSE) 배선 전까지는 ViewModel 없이 이 홀더가 스텁 대본을 구동한다.
+ *
+ * **상태 전이(dialogue-learning-flow.md §5·§9):**
+ * - 상대역 턴 진입 → 말풍선 즉시 append + [TurnPhase.OpponentTurn].
+ * - 상대역 자동 진행 지연 경과 → 학습자 과제 있으면 [TurnPhase.LearnerTurn], 없으면(마감 턴) [SessionPhase.Completed].
+ * - 학습자 턴 이탈은 **[submitLearnerStub] 스텁 버튼 전용**(마이크·텍스트 입력은 M1-04/M1-06 범위 밖).
+ *   목표 문장을 학습자 말풍선으로 append 후 다음 상대역 턴으로. 마지막 턴이면 [SessionPhase.Completed].
+ *
+ * 자동 진행 지연 자체는 [rememberDialogueState] 의 `LaunchedEffect` 가 구동한다(홀더는 순수 로직).
+ */
+@Stable
+class DialogueState internal constructor(
+    private val script: List<DialogueTurn>,
+) {
+    var messages by mutableStateOf<List<DialogueMessage>>(emptyList())
+        private set
+
+    var turnPhase by mutableStateOf(TurnPhase.OpponentTurn)
+        private set
+
+    var sessionPhase by mutableStateOf(SessionPhase.InTurn)
+        private set
+
+    var currentTask by mutableStateOf<ScaffoldTask?>(null)
+        private set
+
+    /** 현재 대본 턴 인덱스. 자동 진행 `LaunchedEffect` 의 재시작 키로도 쓰인다. */
+    var turnIndex by mutableStateOf(0)
+        private set
+
+    init {
+        require(script.isNotEmpty()) { "대본은 최소 1턴 이상이어야 합니다." }
+        enterOpponentTurn()
+    }
+
+    /** 자동 진행 지연 경과 후 호출. 상대역 턴을 마감하고 학습자 턴 또는 완료로 전이한다. */
+    internal fun completeOpponentTurn() {
+        if (turnPhase != TurnPhase.OpponentTurn || sessionPhase != SessionPhase.InTurn) return
+        val task = script[turnIndex].learnerTask
+        if (task != null) {
+            currentTask = task
+            turnPhase = TurnPhase.LearnerTurn
+        } else {
+            sessionPhase = SessionPhase.Completed
+        }
+    }
+
+    /**
+     * 학습자 턴 전진 스텁(임시). 실제 입력 독(M1-04/M1-08)으로 교체 대상. 목표 문장을 학습자 말풍선으로
+     * append 하고 다음 상대역 턴 또는 완료로 넘어간다.
+     */
+    fun submitLearnerStub() {
+        if (turnPhase != TurnPhase.LearnerTurn) return
+        script[turnIndex].referenceEnglish?.let { messages = messages + DialogueMessage.Learner(it) }
+        currentTask = null
+        if (turnIndex + 1 < script.size) {
+            turnIndex += 1
+            enterOpponentTurn()
+        } else {
+            sessionPhase = SessionPhase.Completed
+        }
+    }
+
+    private fun enterOpponentTurn() {
+        turnPhase = TurnPhase.OpponentTurn
+        messages = messages + DialogueMessage.Opponent(script[turnIndex].opponentEnglish)
+    }
+}
+
+/**
+ * 스텁 대본을 구동하는 상태 홀더를 생성/기억한다. 상대역 자동 진행 지연은 여기 `LaunchedEffect` 가 담당하며,
+ * `LearnerTurn` 이탈에는 관여하지 않는다(스텁 버튼 전용).
+ *
+ * @param reduceMotion true 면 자동 진행을 지연 없이 즉시 처리(A7, 06-accessibility-impl.md). 테스트/프리뷰는
+ *   이 seam 을 직접 주입해 반증가능하게 검증한다.
+ * @param advanceDelayMs 상대역 말풍선 렌더 후 자동 진행까지 잠정 지연. 출처 없는 placeholder 로, M1-05 에서
+ *   TTS 완료 게이팅(dialogue-learning-flow.md §5)으로 교체된다.
+ */
+@Composable
+fun rememberDialogueState(
+    script: List<DialogueTurn>,
+    reduceMotion: Boolean = rememberReduceMotion(),
+    advanceDelayMs: Int = DEFAULT_OPPONENT_ADVANCE_DELAY_MS,
+): DialogueState {
+    val state = remember(script) { DialogueState(script) }
+    val effectiveDelay = if (reduceMotion) 0L else advanceDelayMs.toLong()
+    LaunchedEffect(state.turnIndex) {
+        if (state.turnPhase == TurnPhase.OpponentTurn && state.sessionPhase == SessionPhase.InTurn) {
+            delay(effectiveDelay)
+            state.completeOpponentTurn()
+        }
+    }
+    return state
+}

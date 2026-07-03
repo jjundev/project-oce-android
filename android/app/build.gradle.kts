@@ -132,6 +132,8 @@ dependencies {
     implementation(platform(libs.okhttp.bom))
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
+    // 대본 생성 SSE 클라이언트(M1-01) — 명명 이벤트 파싱.
+    implementation(libs.okhttp.sse)
     implementation(libs.androidx.datastore.preferences)
 
     // Firebase — BoM 이 아티팩트 버전 정렬. Auth/Firestore/Analytics 초기화(M0-02).
@@ -149,6 +151,9 @@ dependencies {
     testImplementation(libs.androidx.work.testing)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.junit)
+    // SSE 프레이밍 통합 테스트(M1-01) — okhttp-sse EventSource 실 파싱.
+    testImplementation(platform(libs.okhttp.bom))
+    testImplementation(libs.okhttp.mockwebserver)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.junit)

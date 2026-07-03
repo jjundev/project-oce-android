@@ -22,11 +22,11 @@ blocks: []
 Ready→Recording→Analyzing→Complete가 96dp 마이크로 시각·의미 색·리플/프로그레스링으로 구분되고, 회전/복귀에도 채팅·진행이 보존된다.
 
 ## 범위
-- In: I1 4상태(회색 동심원/핑크 리플3겹/블루그레이 프로그레스링/초록), 96dp dp 고정(A7), assertive announce + stateDescription(A3), 비색 신호(A2), ViewModel+SavedState 상태보존(FR-13), "채팅으로 입력하기" 대체(FR-9).
+- In: I1 4상태(회색 동심원/핑크 리플3겹/블루그레이 프로그레스링/초록), 96dp dp 고정(A7), assertive announce + stateDescription(A3), 비색 신호(A2), ViewModel+SavedState 상태보존(FR-13) — **M1-01 대본 생성 코디네이터의 누적 턴 버퍼(`DialogueGenState.Ready.turns`) 회전/프로세스킬 보존 포함**(M1-01은 in-memory만, SavedState 생존은 본 이슈 소유), "채팅으로 입력하기" 대체(FR-9).
 - Out: 녹음 파이프라인(M1-04), 분석/피드백(M1-06/07).
 
 ## 의존성
-- Blocked by: M1-04, M1-06, M1-07
+- Blocked by: M1-01, M1-03, M1-04, M1-06, M1-07
 - Blocks: —
 
 ## 수용 기준
