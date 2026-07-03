@@ -15,6 +15,20 @@ export type Task = "dialogue" | "speaking" | "feedback" | "summary" | "tts";
 export type ResponseMode = "sse" | "json";
 
 /**
+ * `task=dialogue` request payload — M1-02. Generation inputs; `sessionId` is NOT sent by the
+ * client (the server mints it in the start-gate transaction and returns it via `event:meta`,
+ * backend-functions.md §7). `firstSession:true` forces `easy`/`length=5` server-side regardless
+ * of the supplied values (dialogue-generate.md:39). `length` (turn count, 5|10) also becomes
+ * `sessions/{id}.turnCount` — the per-session call-cap divisor (session-cap.ts:75).
+ */
+export interface DialoguePayload {
+  level: "easy" | "normal" | "hard";
+  topic: string;
+  length: number;
+  firstSession: boolean;
+}
+
+/**
  * /llm request body — backend-functions.md:45-48.
  * The scaffold validates only `task`; per-task refinement (dialogue requires
  * `idempotencyKey`; feedback/speaking/summary require `sessionId`;
@@ -86,6 +100,13 @@ export enum ErrorCode {
   NOT_IMPLEMENTED = "NOT_IMPLEMENTED",
   /** Gemini TTS synthesis failed after retries — M1-05 (backend-functions.md §12) */
   TTS_SYNTH_FAILED = "TTS_SYNTH_FAILED",
+  /**
+   * daily free-session limit reached for the KST day — M1-02 (backend-functions.md §7). Emitted
+   * pre-stream as HTTP 429 `{code, remaining:0}`; the dialogue client also accepts it as an SSE
+   * `event:error` frame (DialogueSseStream.kt:150). Distinct from CAP_EXCEEDED (per-session call
+   * cap, a different invariant). (plan-introduced)
+   */
+  DAILY_LIMIT_EXCEEDED = "DAILY_LIMIT_EXCEEDED",
   /** per-session call cap reached (callCount ≥ turnCount×factor) — M1-06 (backend-functions.md §8) */
   CAP_EXCEEDED = "CAP_EXCEEDED",
   /** sessionId missing/expired/not-owned — M1-06 (backend-functions.md §8) */
