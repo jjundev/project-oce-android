@@ -25,6 +25,34 @@ jobs:
         with:
           build-root-directory: android
 
+      # M0-02 Firebase 플러그인(google.services)이 google-services.json 을 요구하나,
+      # 실 파일은 시크릿이라 VCS/CI 에 없다(.gitignore). CI 는 네트워크 호출 없는
+      # assembleDebug/lint/test 만 돌리므로 빌드 파싱만 통과하는 리댁트 더미를 생성한다.
+      # (실 Firebase 키 아님 — project_number/app_id/api_key 전부 플레이스홀더.)
+      - name: Generate build-only dummy google-services.json
+        run: |
+          cat > app/google-services.json <<'JSON'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "oce-ci-dummy",
+              "storage_bucket": "oce-ci-dummy.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+                  "android_client_info": { "package_name": "com.jjundev.oneclickeng" }
+                },
+                "oauth_client": [],
+                "api_key": [ { "current_key": "AIzaSyCI00000000000000000000000000000000" } ],
+                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          JSON
+
       # A3: 유닛 테스트(testDebugUnitTest)를 게이트에 포함해 src/test 예시 테스트가 실제로 실행되게 한다.
       # 계측 테스트(androidTest)는 에뮬레이터가 필요하므로 CI 게이트에서 제외(로컬 스모크).
       - name: Assemble, unit test, lint, static analysis
