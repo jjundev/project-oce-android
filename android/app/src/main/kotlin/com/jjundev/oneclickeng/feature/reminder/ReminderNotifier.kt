@@ -28,7 +28,7 @@ class ReminderNotifier
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
-    ) {
+    ) : ReminderNotificationSink {
         /** 채널 생성(멱등). 최초 게시 전에 호출한다. */
         fun ensureChannel() {
             val manager = context.getSystemService(NotificationManager::class.java) ?: return
@@ -47,11 +47,17 @@ class ReminderNotifier
          * 캐시 기준 콘텐츠로 알림 게시. [today] 는 KST 오늘(worker 가 [ReminderLogic.KST] 로 계산해 전달).
          * 33+ 에서 권한 미보유면 게시하지 않는다(best-effort).
          */
-        fun post(
+        override fun post(
             cache: ReminderCache,
             today: LocalDate,
         ) {
-            if (!hasPostPermission()) return
+            if (
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                return
+            }
             ensureChannel()
             val content = ReminderLogic.buildContent(cache.streak, cache.lastStudyDate, today)
             val notification =
@@ -64,18 +70,12 @@ class ReminderNotifier
                     .setAutoCancel(true)
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .build()
-            runCatching {
+            try {
                 NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+            } catch (_: SecurityException) {
+                // Best effort: permission can be revoked between the check and notify.
             }
         }
-
-        private fun hasPostPermission(): Boolean =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
-                    PackageManager.PERMISSION_GRANTED
-            } else {
-                true
-            }
 
         /** 탭 시 MainActivity 로 진입 + nav=home extra. 앱 내부 자족 계약(§5, 딥링크 스킴 불필요). */
         private fun homePendingIntent(): PendingIntent {

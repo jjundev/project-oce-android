@@ -5,8 +5,7 @@ import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.google.firebase.FirebaseApp
-import com.jjundev.oneclickeng.feature.reminder.ReminderScheduler
-import com.jjundev.oneclickeng.feature.reminder.data.ReminderRepository
+import com.jjundev.oneclickeng.feature.reminder.ReminderOrchestrator
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -28,9 +27,7 @@ class OceApp :
     Configuration.Provider {
     @Inject lateinit var workerFactory: HiltWorkerFactory
 
-    @Inject lateinit var reminderScheduler: ReminderScheduler
-
-    @Inject lateinit var reminderRepository: ReminderRepository
+    @Inject lateinit var reminderOrchestrator: ReminderOrchestrator
 
     @Inject lateinit var appScope: CoroutineScope
 
@@ -44,10 +41,7 @@ class OceApp :
         super.onCreate()
         Log.i(TAG, "Firebase initialized: ${FirebaseApp.getInstance().name}")
         appScope.launch {
-            val config = reminderRepository.currentConfig()
-            if (config.enabled) {
-                reminderScheduler.schedule(config.hour, config.minute)
-            }
+            reminderOrchestrator.repairSchedule()
         }
     }
 

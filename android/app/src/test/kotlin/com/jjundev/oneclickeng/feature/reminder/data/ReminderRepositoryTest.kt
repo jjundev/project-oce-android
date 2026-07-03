@@ -17,7 +17,7 @@ import java.io.File
 import java.time.LocalDate
 
 /**
- * DataStore 저장소 검증. M2-02 실호출자 없이도 [ReminderRepository.recordSessionCompleted] 를 직접 호출해
+ * DataStore 저장소 검증. M2-02 실호출자 없이도 [ReminderStore.recordSessionCompleted] 를 직접 호출해
  * opt-in 게이트(count==2 && !resolved)와 캐시 미러링을 반증가능하게 확인한다(grill-review #16·#19 요구).
  * 실제 파일 백드 DataStore 를 JVM 에서 구동한다(Robolectric 불필요).
  */

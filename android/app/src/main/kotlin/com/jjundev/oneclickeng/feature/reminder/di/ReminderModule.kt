@@ -4,10 +4,16 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import com.jjundev.oneclickeng.feature.reminder.DefaultReminderOrchestrator
 import com.jjundev.oneclickeng.feature.reminder.FirebaseReminderAnalytics
 import com.jjundev.oneclickeng.feature.reminder.ReminderAnalytics
+import com.jjundev.oneclickeng.feature.reminder.ReminderNotificationSink
+import com.jjundev.oneclickeng.feature.reminder.ReminderNotifier
+import com.jjundev.oneclickeng.feature.reminder.ReminderOrchestrator
+import com.jjundev.oneclickeng.feature.reminder.ReminderSchedule
+import com.jjundev.oneclickeng.feature.reminder.ReminderScheduler
 import com.jjundev.oneclickeng.feature.reminder.data.DataStoreReminderRepository
-import com.jjundev.oneclickeng.feature.reminder.data.ReminderRepository
+import com.jjundev.oneclickeng.feature.reminder.data.ReminderStore
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -33,7 +39,19 @@ private val Context.reminderDataStore: DataStore<Preferences> by preferencesData
 abstract class ReminderBindModule {
     @Binds
     @Singleton
-    abstract fun bindReminderRepository(impl: DataStoreReminderRepository): ReminderRepository
+    abstract fun bindReminderStore(impl: DataStoreReminderRepository): ReminderStore
+
+    @Binds
+    @Singleton
+    abstract fun bindReminderSchedule(impl: ReminderScheduler): ReminderSchedule
+
+    @Binds
+    @Singleton
+    abstract fun bindReminderNotificationSink(impl: ReminderNotifier): ReminderNotificationSink
+
+    @Binds
+    @Singleton
+    abstract fun bindReminderOrchestrator(impl: DefaultReminderOrchestrator): ReminderOrchestrator
 
     @Binds
     @Singleton
