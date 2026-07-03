@@ -28,14 +28,42 @@ export interface RequestBody {
   payload?: unknown;
 }
 
+/**
+ * `task=tts` request payload — M1-05. The client sends only text + the opponent's
+ * gender + a speaking rate; voice / provider / locale are code-fixed server-side and
+ * never exposed to the client (tts.md §1, §2). `gender` drives the server voice
+ * mapping (male→Puck / else→Kore, tts.md:7); `speechRate` is a best-effort prompt
+ * hint clamped to 0.5–1.5 (tts.md:12).
+ */
+export interface TtsRequestPayload {
+  text: string;
+  gender?: "male" | "female";
+  speechRate?: number;
+}
+
+/**
+ * `task=tts` single-shot JSON response — M1-05 (backend-functions.md:52, tts.md:15).
+ * `pcmBase64` matches the field name ratified in audio-pipeline.md:98,130; the client
+ * MUST honor `sampleRate` (do not assume 24kHz) when initializing AudioTrack.
+ */
+export interface TtsResponse {
+  pcmBase64: string;
+  sampleRate: number;
+  mimeType: string;
+}
+
 /** Error codes surfaced to the client (SSE `event:error` body or JSON error body). */
 export enum ErrorCode {
   /** missing/invalid Firebase ID token — backend-functions.md:47 */
   UNAUTHENTICATED = "UNAUTHENTICATED",
   /** malformed request body / unknown task (plan-introduced) */
   UNKNOWN_TASK = "UNKNOWN_TASK",
+  /** malformed task payload (e.g. tts with empty text) — M1-05 */
+  INVALID_PAYLOAD = "INVALID_PAYLOAD",
   /** handler stub — real behavior lands in M1+ (plan-introduced) */
   NOT_IMPLEMENTED = "NOT_IMPLEMENTED",
+  /** Gemini TTS synthesis failed after retries — M1-05 (backend-functions.md §12) */
+  TTS_SYNTH_FAILED = "TTS_SYNTH_FAILED",
   /** unexpected server-side failure (plan-introduced) */
   INTERNAL = "INTERNAL",
 }

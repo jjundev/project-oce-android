@@ -11,11 +11,28 @@
 import { authenticate } from "./auth";
 import { isTask, responseModeFor } from "./dispatch";
 import { openSse, writeEvent } from "./sse";
+import {
+  InvalidTtsPayloadError,
+  parseTtsPayload,
+  synthesizeTts,
+} from "./tts";
+import { TtsSynthError } from "../providers/gemini";
+import { LlmProvider } from "../providers/LlmProvider";
 import { ErrorCode, RequestBody } from "../types/protocol";
 
 export interface HandlerRequest {
   headers: Record<string, string | string[] | undefined>;
   body: unknown;
+}
+
+/**
+ * Request-scoped dependencies. The provider is constructed in handler.ts with the
+ * Gemini Secret (only available in the onRequest context) and injected here so the
+ * pipeline stays pure/testable. When absent (e.g. tests that don't exercise tts),
+ * live tasks fall back to the NOT_IMPLEMENTED stub.
+ */
+export interface HandlerDeps {
+  provider?: LlmProvider;
 }
 
 export interface HandlerResponse {
@@ -35,7 +52,8 @@ function header(req: HandlerRequest, name: string): string | undefined {
 
 export async function handle(
   req: HandlerRequest,
-  res: HandlerResponse
+  res: HandlerResponse,
+  deps: HandlerDeps = {}
 ): Promise<void> {
   // 1. auth — any failure is an opaque 401 (before any stream is opened)
   try {
@@ -64,8 +82,11 @@ export async function handle(
       });
       writeEvent(res, { event: "done", data: { status: "error" } });
       res.end();
+    } else if (task === "tts" && deps.provider) {
+      // JSON transport, implemented — synthesize and return base64 PCM (M1-05).
+      await handleTts(body.payload, deps.provider, res);
     } else {
-      // JSON transport — same `{code}` body shape as the SSE error event
+      // JSON transport stub — `speaking` (M1-06) or tts without an injected provider.
       res.status(501).json({ code: ErrorCode.NOT_IMPLEMENTED });
     }
   } catch {
@@ -73,5 +94,39 @@ export async function handle(
     if (!res.headersSent) {
       res.status(500).json({ code: ErrorCode.INTERNAL });
     }
+  }
+}
+
+/**
+ * Synthesize a tts request and write the JSON response. Maps the two typed failures to
+ * distinct statuses: a malformed payload → 400 INVALID_PAYLOAD; a synthesis failure
+ * (after provider retries) → 502 TTS_SYNTH_FAILED. Any other throw propagates to the
+ * outer catch → 500 INTERNAL.
+ */
+async function handleTts(
+  payload: unknown,
+  provider: LlmProvider,
+  res: HandlerResponse
+): Promise<void> {
+  let request;
+  try {
+    request = parseTtsPayload(payload);
+  } catch (e) {
+    if (e instanceof InvalidTtsPayloadError) {
+      res.status(400).json({ code: ErrorCode.INVALID_PAYLOAD });
+      return;
+    }
+    throw e;
+  }
+
+  try {
+    const response = await synthesizeTts(request, provider);
+    res.status(200).json(response);
+  } catch (e) {
+    if (e instanceof TtsSynthError) {
+      res.status(502).json({ code: ErrorCode.TTS_SYNTH_FAILED });
+      return;
+    }
+    throw e;
   }
 }

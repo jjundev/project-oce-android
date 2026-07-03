@@ -6,6 +6,7 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { defineInt, defineSecret } from "firebase-functions/params";
 import { handle, HandlerRequest, HandlerResponse } from "./handle";
+import { createGeminiProvider } from "../providers/gemini";
 import {
   LLM_MIN_INSTANCES_DEFAULT,
   LLM_MIN_INSTANCES_PARAM,
@@ -33,9 +34,13 @@ export const llm = onRequest(
     minInstances: LLM_MIN_INSTANCES,
   },
   async (req, res) => {
+    // Construct the provider here — the Gemini Secret is only resolvable in the
+    // onRequest context. `.value()` is lazy, so no cost until a tts call reads it.
+    const provider = createGeminiProvider(GEMINI_API_KEY.value());
     await handle(
       req as unknown as HandlerRequest,
-      res as unknown as HandlerResponse
+      res as unknown as HandlerResponse,
+      { provider }
     );
   }
 );
