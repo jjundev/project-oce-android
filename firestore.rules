@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function owner(uid){ return request.auth != null && request.auth.uid == uid; }
+
+    match /users/{uid} {
+      allow read:   if owner(uid);
+      allow create: if owner(uid);
+      allow update: if owner(uid) && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+
+      match /saved_cards/{cardId} {
+        allow read:   if owner(uid);
+        allow create: if owner(uid)
+                      && request.resource.data.cardType in ['WORD','SENTENCE','EXPRESSION']
+                      && request.resource.data.deletedAt == null;
+        allow update: if owner(uid)
+                      && request.resource.data.cardType in ['WORD','SENTENCE','EXPRESSION'];  // 삭제=deletedAt set
+        allow delete: if false;
+      }
+
+      match /point_ledger/{sessionId} {
+        allow read:   if owner(uid);
+        allow create: if owner(uid)
+                      && request.resource.data.difficulty in ['easy','normal','hard']
+                      && request.resource.data.awardedAt == request.time;          // 서버시각 강제(streak 스푸핑 차단)
+        allow update, delete: if false;                                       // 불변, 맵 인덱싱 없음
+      }
+
+      match /progress_marks/{sessionId} { allow read: if owner(uid); allow write: if false; }
+      match /gamification/progress      { allow read: if owner(uid); allow write: if false; }
+
+      match /gamification/studytime {
+        allow read:   if owner(uid);
+        allow create: if owner(uid);                                          // create/update 분리(null resource 회피)
+        allow update: if owner(uid) && request.resource.data.totalSeconds >= resource.data.totalSeconds;
+        allow delete: if false;
+      }
+
+      match /usage/{day} { allow read: if owner(uid); allow write: if false; }
+    }
+
+    match /config/topics { allow read: if request.auth != null; allow write: if false; }
+    // config/limits, config/prompts: 매치 없음 → 클라이언트 deny(서버 전용)
+    // config/models, config/cache, sessions/*, idempotency/*: 매치 없음 → default-deny(서버 전용, backend-functions.md §11)
+  }
+}
