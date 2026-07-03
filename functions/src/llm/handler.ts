@@ -7,6 +7,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import { defineInt, defineSecret } from "firebase-functions/params";
 import { handle, HandlerRequest, HandlerResponse } from "./handle";
 import { firestoreSessionGate } from "./session-cap";
+import { firestoreLimitProvider, firestoreStartGate } from "./start-gate";
 import { createGeminiProvider } from "../providers/gemini";
 import {
   LLM_MIN_INSTANCES_DEFAULT,
@@ -40,10 +41,13 @@ export const llm = onRequest(
     const provider = createGeminiProvider(GEMINI_API_KEY.value());
     // Firestore-backed per-session cap gate for speaking (§8); getFirestore() is lazy.
     const sessionGate = firestoreSessionGate();
+    // Dialogue start gate (§7): single-txn dedup + daily limit + session create; limit from
+    // config/limits with fallback. getFirestore() is lazy (initializeApp() ran in index.ts).
+    const startGate = firestoreStartGate(firestoreLimitProvider());
     await handle(
       req as unknown as HandlerRequest,
       res as unknown as HandlerResponse,
-      { provider, sessionGate }
+      { provider, sessionGate, startGate }
     );
   }
 );

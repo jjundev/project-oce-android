@@ -31,9 +31,15 @@ import {
   SessionGate,
   SessionInvalidError,
 } from "./session-cap";
+import {
+  InvalidDialoguePayloadError,
+  orchestrateDialogue,
+  parseDialoguePayload,
+} from "./dialogue";
+import { DailyLimitError, StartGate, StartResult } from "./start-gate";
 import { SpeakingAnalyzeError, TtsSynthError } from "../providers/gemini";
 import { LlmProvider } from "../providers/LlmProvider";
-import { ErrorCode, RequestBody } from "../types/protocol";
+import { DialoguePayload, ErrorCode, RequestBody } from "../types/protocol";
 
 export interface HandlerRequest {
   headers: Record<string, string | string[] | undefined>;
@@ -51,6 +57,9 @@ export interface HandlerDeps {
   /** per-session cap gate for `speaking` (backend-functions.md §8). When absent, speaking
    *  falls back to the NOT_IMPLEMENTED stub — same pattern as an absent `provider`. */
   sessionGate?: SessionGate;
+  /** dialogue start gate (dedup + daily limit + session create, backend-functions.md §7). When
+   *  absent (or provider absent), dialogue falls back to the NOT_IMPLEMENTED SSE stub. */
+  startGate?: StartGate;
 }
 
 export interface HandlerResponse {
@@ -98,8 +107,11 @@ export async function handle(
       if (task === "summary" && deps.provider) {
         // task=summary, implemented — 3-call orchestration over a single SSE (M2-01).
         await handleSummary(body.payload, deps.provider, res);
+      } else if (task === "dialogue" && deps.startGate && deps.provider) {
+        // task=dialogue, implemented — start gate + streaming script parser (M1-02).
+        await handleDialogue(body, uid, deps.startGate, deps.provider, res);
       } else {
-        // SSE stub — dialogue/feedback (M1-02+), or summary without an injected provider.
+        // SSE stub — feedback (M1-07+), or dialogue/summary without their injected deps.
         openSse(res);
         // SoT emits the error event as `{code}` only (backend-functions.md:57).
         writeEvent(res, {
@@ -123,6 +135,73 @@ export async function handle(
     // 4. single catch → typed error (only if nothing was committed yet)
     if (!res.headersSent) {
       res.status(500).json({ code: ErrorCode.INTERNAL });
+    }
+  }
+}
+
+/**
+ * Handle `task=dialogue` (SSE, backend-functions.md §7·§9). Validates payload + idempotencyKey and
+ * runs the start-gate transaction BEFORE opening the stream, so a bad payload → 400 and a daily-limit
+ * rejection → 429 land with headers unsent (mirrors handleSummary's pre-openSse validation, and the
+ * client's pre-gate 429 quota channel — DialogueSseStream.kt). Once the gate passes it opens the
+ * stream, emits `event:meta{sessionId,remaining}` first, then delegates to the streaming parser.
+ *
+ * Failure tail (decision #19): a post-openSse generation failure emits `error`+`done`, closes the
+ * stream, THEN best-effort refunds — the client isn't blocked on the second transaction. Only a
+ * FRESH (non-deduped) start refunds: a replayed key's slot belongs to the original attempt, and
+ * deleting its idempotency doc would corrupt that attempt's dedup.
+ */
+async function handleDialogue(
+  body: Partial<RequestBody>,
+  uid: string,
+  gate: StartGate,
+  provider: LlmProvider,
+  res: HandlerResponse
+): Promise<void> {
+  // idempotencyKey is a top-level envelope field, required for dialogue (backend-functions.md:46).
+  const idempotencyKey =
+    typeof body.idempotencyKey === "string" ? body.idempotencyKey.trim() : "";
+  let payload: DialoguePayload;
+  try {
+    if (!idempotencyKey) {
+      throw new InvalidDialoguePayloadError("missing idempotencyKey");
+    }
+    payload = parseDialoguePayload(body.payload);
+  } catch (e) {
+    if (e instanceof InvalidDialoguePayloadError) {
+      res.status(400).json({ code: ErrorCode.INVALID_PAYLOAD });
+      return;
+    }
+    throw e;
+  }
+
+  // Start gate — single transaction (dedup + daily limit + session create). Reject pre-stream.
+  let start: StartResult;
+  try {
+    start = await gate.reserve(uid, idempotencyKey, payload.length);
+  } catch (e) {
+    if (e instanceof DailyLimitError) {
+      res.status(429).json({ code: ErrorCode.DAILY_LIMIT_EXCEEDED, remaining: 0 });
+      return;
+    }
+    throw e; // → outer catch 500 (headers still unsent)
+  }
+
+  // Gate passed — open the stream, emit meta first, then generate.
+  openSse(res);
+  writeEvent(res, {
+    event: "meta",
+    data: { sessionId: start.sessionId, remaining: start.remaining },
+  });
+  try {
+    await orchestrateDialogue(payload, provider, res);
+  } catch {
+    // Post-openSse failure: typed error + done + close FIRST, then best-effort refund.
+    writeEvent(res, { event: "error", data: { code: ErrorCode.INTERNAL } });
+    writeEvent(res, { event: "done", data: { status: "error" } });
+    res.end();
+    if (!start.deduped) {
+      await gate.refund(idempotencyKey, start.usageKey);
     }
   }
 }
