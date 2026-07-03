@@ -6,6 +6,7 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { defineInt, defineSecret } from "firebase-functions/params";
 import { handle, HandlerRequest, HandlerResponse } from "./handle";
+import { firestoreSessionGate } from "./session-cap";
 import { createGeminiProvider } from "../providers/gemini";
 import {
   LLM_MIN_INSTANCES_DEFAULT,
@@ -37,10 +38,12 @@ export const llm = onRequest(
     // Construct the provider here — the Gemini Secret is only resolvable in the
     // onRequest context. `.value()` is lazy, so no cost until a tts call reads it.
     const provider = createGeminiProvider(GEMINI_API_KEY.value());
+    // Firestore-backed per-session cap gate for speaking (§8); getFirestore() is lazy.
+    const sessionGate = firestoreSessionGate();
     await handle(
       req as unknown as HandlerRequest,
       res as unknown as HandlerResponse,
-      { provider }
+      { provider, sessionGate }
     );
   }
 );
