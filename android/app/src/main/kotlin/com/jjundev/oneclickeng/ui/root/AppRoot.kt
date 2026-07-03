@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.rememberNavController
 import com.jjundev.oneclickeng.ui.foundation.OceBottomNav
 import com.jjundev.oneclickeng.ui.navigation.OceNavHost
@@ -16,9 +17,13 @@ import com.jjundev.oneclickeng.ui.navigation.OceNavHost
  *
  * 탭 선택 지속은 [rememberNavController] 백스택(구성변경 생존)이, 화면별 스크롤은 각 화면의
  * rememberLazyListState 내장 Saver 가 담당한다(회전/복귀 시 상태 유지 — 수용기준 #3).
+ *
+ * [AppViewModel] 인스턴스화가 게스트 부트스트랩(익명 로그인 + 프로필 생성 · M3-01)을 비차단으로
+ * 시작한다. UI 게이팅 없이 아래 [Scaffold] 는 즉시 렌더된다(FR-1 — 로그인 화면 없음).
  */
 @Composable
 fun AppRoot() {
+    hiltViewModel<AppViewModel>()
     val navController = rememberNavController()
     Scaffold(
         modifier = Modifier.fillMaxSize(),

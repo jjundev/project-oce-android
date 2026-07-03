@@ -34,5 +34,9 @@ blocks: [M3-02, M3-03]
 - [ ] 익명 UID + profile(isGuest) 생성
 - [ ] 재실행 시 동일 게스트 세션 유지
 
+## 전제(환경)
+- 실 `android/app/google-services.json` 반입 필요(`.example`만 커밋, 실파일은 `.gitignore` 처리 — M0-02).
+- Firebase 콘솔에서 **Anonymous 인증 provider 활성화** 필수 — 미활성 시 `signInAnonymously()`가 `auth/admin-restricted-operation`으로 실패해 아래 스모크 검증이 불가하다.
+
 ## 검증
 클린 설치 시 익명 로그인 스모크. profile 문서 생성 확인.
