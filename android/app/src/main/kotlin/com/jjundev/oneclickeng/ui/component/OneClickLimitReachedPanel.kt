@@ -32,15 +32,17 @@ fun OneClickLimitReachedPanel(
     modifier: Modifier = Modifier,
     upgradeSlot: (@Composable () -> Unit)? = null,
 ) {
+    // 도달 문구는 정본 daily-limit-ux.md §3 의 마침표형 단문을 title/body 로 자연 2분할한다(PRD:217 엠대시
+    // 는 표기 차이로 제외). DialogueStartGate 가 M3-04 에서 배선되는 표면이며, home/onboarding 은 seam.
     val title =
         when (surface) {
-            LimitSurface.DialogueStartGate -> "오늘의 학습을 다 채웠어요"
+            LimitSurface.DialogueStartGate -> "오늘 무료 학습을 다 했어요"
             LimitSurface.Home -> "오늘은 여기까지예요"
             LimitSurface.OnboardingFirstSession -> "오늘의 첫 대화를 마쳤어요"
         }
     val body =
         when (surface) {
-            LimitSurface.DialogueStartGate -> "내일 다시 이어서 학습할 수 있어요."
+            LimitSurface.DialogueStartGate -> "내일 또 만나요."
             LimitSurface.Home -> "충분히 잘했어요. 내일 또 만나요."
             LimitSurface.OnboardingFirstSession -> "내일 새로운 대화가 준비돼요."
         }
@@ -95,6 +97,23 @@ enum class LimitSurface(
     Home("home"),
     OnboardingFirstSession("onboarding_first_session"),
 }
+
+/**
+ * 한도 도달 시 어떤 [LimitSurface] 로 분기할지 고르는 순수 함수(정본 daily-limit-ux.md §7 · §2). 온보딩 첫
+ * 세션 게이트에서만 `onboarding_first_session` 을 우선하되, **라이브 스냅샷(이어하기) 보유 게스트는 예외**로
+ * `dialogue_start_gate` 를 쓴다 — 스냅샷 재개는 시작 게이트를 거치지 않으므로 `새로 시작` 을 골라 거부될
+ * 때만 한도를 보게 되고, 그 맥락은 온보딩 첫 세션이 아니다(§2 line 30). M3-04 는 이 셀렉터를 seam 으로
+ * 제공하고, 실제 온보딩 게이트 배선은 온보딩 마일스톤이 소비한다.
+ */
+fun selectLimitSurface(
+    isOnboarding: Boolean,
+    hasLiveSnapshot: Boolean,
+): LimitSurface =
+    when {
+        hasLiveSnapshot -> LimitSurface.DialogueStartGate
+        isOnboarding -> LimitSurface.OnboardingFirstSession
+        else -> LimitSurface.DialogueStartGate
+    }
 
 @Suppress("UnusedPrivateMember")
 @Preview(showBackground = true, widthDp = 360, heightDp = 640)

@@ -28,11 +28,16 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
  * **보상 의미 한계(리뷰 반영):** 완주/XP/streak 적립은 "요약 라우트 실제 진입 시점"에만 발생한다
  * (dialogue-learning-flow.md §9). 이 슬라이스에서 [onViewSummary] 는 no-op 기본값이라(요약 화면 M2-02,
  * 적립 M3-05/M3-06 미배선) 완료 화면은 **시각 전용**이며 보상 게이트는 아직 실동작하지 않는다.
+ *
+ * **[limitHint] (M3-04):** 완주+도달 동시(P6) 및 도달 전 안내를 위한 보조 인라인 1줄 seam. 어떤 힌트를
+ * 보일지(remaining 판정)는 호출부(요약 라우트, M2-02)가 서버 값으로 결정하며 — 완주 화면 스스로 카운트를
+ * 신뢰하지 않는다(FR-27). 축하 hero 하단에 보조로만 놓여 위계를 지킨다.
  */
 @Composable
 fun DialogueCompletion(
     onViewSummary: () -> Unit,
     modifier: Modifier = Modifier,
+    limitHint: CompletionLimitHint = CompletionLimitHint.None,
 ) {
     Column(
         modifier = modifier.fillMaxWidth().padding(OceTheme.spacing.xl),
@@ -51,6 +56,15 @@ fun DialogueCompletion(
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
+        // 보조 인라인 1줄(축하 hero 하단). 비숫자 — 잔여 수 미노출(§0).
+        limitCompletionCopy(limitHint)?.let { hint ->
+            Text(
+                text = hint,
+                style = OceTheme.typography.helper,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
         Button(
             onClick = onViewSummary,
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
@@ -65,10 +79,18 @@ fun DialogueCompletion(
     }
 }
 
+/** 힌트별 보조 문구. 도달 문구는 정본 daily-limit-ux.md §3, 도달 전은 §4(비숫자 어포던스). */
+private fun limitCompletionCopy(hint: CompletionLimitHint): String? =
+    when (hint) {
+        CompletionLimitHint.None -> null
+        CompletionLimitHint.PreLimit -> "오늘 한 번 더 할 수 있어요"
+        CompletionLimitHint.AtLimit -> "오늘 무료 학습을 다 했어요. 내일 또 만나요."
+    }
+
 @Composable
 private fun DialogueCompletionPreviewBody(darkTheme: Boolean) {
     OceTheme(darkTheme = darkTheme) {
-        DialogueCompletion(onViewSummary = {})
+        DialogueCompletion(onViewSummary = {}, limitHint = CompletionLimitHint.AtLimit)
     }
 }
 

@@ -3,6 +3,7 @@ package com.jjundev.oneclickeng.feature.session.dialogue
 import com.jjundev.oneclickeng.core.network.DialogueEvent
 import com.jjundev.oneclickeng.core.network.DialogueRequest
 import com.jjundev.oneclickeng.core.network.DialogueStream
+import com.jjundev.oneclickeng.core.network.LimitAnalytics
 import com.jjundev.oneclickeng.core.network.WaitQuizAnalytics
 import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
 import com.jjundev.oneclickeng.ui.component.QuizItem
@@ -62,6 +63,19 @@ private class RecordingAnalytics : WaitQuizAnalytics {
         cardIndex: Int,
     ) {
         calls += Call(sessionId, cardId, choseCorrect, cardIndex)
+    }
+}
+
+private class RecordingLimitAnalytics : LimitAnalytics {
+    data class Call(val remaining: Int, val surface: String)
+
+    val calls = mutableListOf<Call>()
+
+    override fun limitReached(
+        remaining: Int,
+        surface: String,
+    ) {
+        calls += Call(remaining, surface)
     }
 }
 
@@ -129,13 +143,28 @@ class DialogueGenerationViewModelTest {
             )
         }
 
+    @Test
+    fun `onLimitReached routes limit_reached to the analytics seam with the dialogue_start_gate surface`() =
+        runTest {
+            val limit = RecordingLimitAnalytics()
+            val vm = viewModel(RecordingAnalytics(), FakeConfig(true), limitAnalytics = limit)
+
+            vm.onLimitReached(remaining = 0)
+
+            assertEquals(
+                listOf(RecordingLimitAnalytics.Call(remaining = 0, surface = "dialogue_start_gate")),
+                limit.calls,
+            )
+        }
+
     private fun TestScope.viewModel(
         analytics: RecordingAnalytics,
         config: FakeConfig,
         stream: FakeStream = FakeStream(),
+        limitAnalytics: RecordingLimitAnalytics = RecordingLimitAnalytics(),
     ): DialogueGenerationViewModel {
         val scope: CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
         val coordinator = DialogueGenerationCoordinator(stream, scope)
-        return DialogueGenerationViewModel(coordinator, bank, analytics, config)
+        return DialogueGenerationViewModel(coordinator, bank, analytics, limitAnalytics, config)
     }
 }

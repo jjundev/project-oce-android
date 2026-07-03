@@ -193,6 +193,56 @@ class DialogueGenerationCoordinatorTest {
         }
 
     @Test
+    fun `quota rejection before Ready maps to QuotaBlocked, not Failed`() =
+        runTest {
+            val stream = FakeDialogueStream()
+            val coordinator = DialogueGenerationCoordinator(stream, coordScope())
+
+            coordinator.start("easy", "coffee", 5, true)
+            runCurrent()
+            stream.push(DialogueEvent.QuotaExceeded(remaining = 0))
+            runCurrent()
+
+            assertEquals(DialogueGenState.QuotaBlocked(0), coordinator.state.value)
+        }
+
+    @Test
+    fun `quota rejection after Ready is ignored (Ready is sticky)`() =
+        runTest {
+            val stream = FakeDialogueStream()
+            val coordinator = DialogueGenerationCoordinator(stream, coordScope())
+
+            coordinator.start("easy", "coffee", 5, true)
+            runCurrent()
+            stream.push(DialogueEvent.Turn(turn("Hi")))
+            runCurrent()
+            stream.push(DialogueEvent.QuotaExceeded(remaining = 0))
+            runCurrent()
+
+            assertTrue(coordinator.state.value is DialogueGenState.Ready)
+        }
+
+    @Test
+    fun `retry is a no-op once quota-blocked (no re-request)`() =
+        runTest {
+            val stream = FakeDialogueStream()
+            val coordinator = DialogueGenerationCoordinator(stream, coordScope())
+
+            coordinator.start("easy", "coffee", 5, true)
+            runCurrent()
+            stream.push(DialogueEvent.QuotaExceeded(remaining = 0))
+            runCurrent()
+            assertEquals(DialogueGenState.QuotaBlocked(0), coordinator.state.value)
+
+            coordinator.retry()
+            runCurrent()
+
+            // 재시도는 무시 — 상태 불변, 새 요청도 안 나간다(FR-27, 한도는 재시도 대상 아님).
+            assertEquals(DialogueGenState.QuotaBlocked(0), coordinator.state.value)
+            assertEquals(1, stream.requests.size)
+        }
+
+    @Test
     fun `a superseding start resets state and drives the new attempt`() =
         runTest {
             val stream = FakeDialogueStream()

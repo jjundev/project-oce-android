@@ -20,7 +20,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jjundev.oneclickeng.ui.component.InlineErrorMode
+import com.jjundev.oneclickeng.ui.component.LimitSurface
 import com.jjundev.oneclickeng.ui.component.OneClickInlineError
+import com.jjundev.oneclickeng.ui.component.OneClickLimitReachedPanel
 import com.jjundev.oneclickeng.ui.component.OneClickProgressRing
 import com.jjundev.oneclickeng.ui.component.OneClickWaitQuiz
 import com.jjundev.oneclickeng.ui.component.ProgressRingMode
@@ -58,6 +60,8 @@ fun DialogueGeneratingScreen(
     modifier: Modifier = Modifier,
     quizEnabled: Boolean = true,
     onQuizAnswered: (item: QuizItem, selectedIndex: Int, correct: Boolean) -> Unit = { _, _, _ -> },
+    onLimitReached: (remaining: Int) -> Unit = {},
+    onViewRecords: () -> Unit = {},
 ) {
     var gatePassed by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -69,6 +73,20 @@ fun DialogueGeneratingScreen(
     val readyBeforeGate = state is DialogueGenState.Ready && !gatePassed
     LaunchedEffect(readyBeforeGate) {
         if (readyBeforeGate) onStartConversation()
+    }
+
+    // 한도 도달은 대기 화면 전체를 차단형 한도 패널(C18, dialogue_start_gate)로 점유한다 — 재시도 없음.
+    // 인라인 로딩/퀴즈용 중앙정렬 Column 밖에서 렌더해 패널이 전체화면 스캐폴드를 온전히 차지하게 한다.
+    if (state is DialogueGenState.QuotaBlocked) {
+        LaunchedEffect(Unit) { onLimitReached(state.remaining) }
+        // streakDays=0: M3-04 는 streak 넛지 제외 — 소스는 M3-05/06. 패널의 streak seam 은 유지(0 → 미렌더).
+        OneClickLimitReachedPanel(
+            surface = LimitSurface.DialogueStartGate,
+            streakDays = 0,
+            onViewRecords = onViewRecords,
+            modifier = modifier,
+        )
+        return
     }
 
     Column(
@@ -101,6 +119,9 @@ fun DialogueGeneratingScreen(
                 }
 
             DialogueGenState.Idle -> SlimLoading()
+
+            // 위에서 early-return 으로 전체화면 한도 패널을 렌더했다(도달 불가 — 망라성 유지용).
+            is DialogueGenState.QuotaBlocked -> Unit
         }
     }
 }
@@ -118,6 +139,7 @@ fun DialogueGeneratingRoute(
     firstSession: Boolean,
     onStartConversation: () -> Unit,
     modifier: Modifier = Modifier,
+    onViewRecords: () -> Unit = {},
     viewModel: DialogueGenerationViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(Unit) {
@@ -134,6 +156,8 @@ fun DialogueGeneratingRoute(
         quizEnabled = viewModel.quizEnabled,
         // Drop the tapped-option index — analytics logs only chose_correct (PII boundary).
         onQuizAnswered = { answeredItem, _, wasCorrect -> viewModel.onQuizAnswered(answeredItem, wasCorrect) },
+        onLimitReached = viewModel::onLimitReached,
+        onViewRecords = onViewRecords,
     )
 }
 
@@ -186,6 +210,20 @@ private fun DialogueGeneratingFailedPreview() {
     OceTheme {
         DialogueGeneratingScreen(
             state = DialogueGenState.Failed,
+            quizItems = previewWaitQuizItems(),
+            onStartConversation = {},
+            onRetry = {},
+        )
+    }
+}
+
+@Suppress("UnusedPrivateMember")
+@Preview(showBackground = true, widthDp = 360, heightDp = 640)
+@Composable
+private fun DialogueGeneratingQuotaBlockedPreview() {
+    OceTheme {
+        DialogueGeneratingScreen(
+            state = DialogueGenState.QuotaBlocked(remaining = 0),
             quizItems = previewWaitQuizItems(),
             onStartConversation = {},
             onRetry = {},
