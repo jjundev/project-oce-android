@@ -4,6 +4,9 @@
     <!-- 네트워크 권한: Firebase Auth/Firestore/Analytics(M0-02) + /llm 프록시 호출(TTS 등, M1-05). -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- M1-04 학습자 발화 녹음. 런타임 요청/사전 프라이밍 UI 는 M0-06/M1-08 소관. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <!-- 런처 아이콘은 M0-04(icon-vectors)에서 추가한다. 지금은 시스템 기본 아이콘을 사용. -->
     <application
         android:name=".OceApp"
