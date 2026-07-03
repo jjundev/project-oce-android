@@ -1,0 +1,5 @@
+root = true
+
+[*.{kt,kts}]
+# @Composable 함수는 PascalCase 가 정식 컨벤션 → ktlint function-naming 예외 처리.
+ktlint_function_naming_ignore_when_annotated_with = Composable

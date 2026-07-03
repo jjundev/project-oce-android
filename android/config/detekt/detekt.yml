@@ -1,0 +1,12 @@
+# Detekt 프로젝트 설정 — 기본 룰셋 위에 얹는다(app/build.gradle.kts: buildUponDefaultConfig = true).
+# 스캐폴드 단계에서는 노이즈가 큰 몇 개만 완화하고, 코드가 커지면 여기에 오버라이드를 추가한다.
+naming:
+  FunctionNaming:
+    # @Composable 함수는 PascalCase 가 정식 컨벤션 → detekt 기본 규칙에서 제외한다.
+    ignoreAnnotated: ['Composable']
+
+style:
+  MagicNumber:
+    active: false
+  ForbiddenComment:
+    active: false
