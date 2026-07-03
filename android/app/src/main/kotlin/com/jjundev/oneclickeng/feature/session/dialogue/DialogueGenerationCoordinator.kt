@@ -58,6 +58,7 @@ class DialogueGenerationCoordinator
         private var sessionId: String? = null
         private var remaining: Int? = null
         private var meta: DialogueMeta? = null
+        private var streamStatus = DialogueStreamStatus.Streaming
         private val turns = mutableListOf<DialogueTurn>()
 
         /** The server-minted sessionId of the current dialogue (or null), for the turn loop (M1-06). */
@@ -97,6 +98,7 @@ class DialogueGenerationCoordinator
             sessionId = null
             remaining = null
             meta = null
+            streamStatus = DialogueStreamStatus.Streaming
             turns.clear()
             _state.value = DialogueGenState.Generating
             armWatchdog(token)
@@ -133,7 +135,8 @@ class DialogueGenerationCoordinator
                     turns.add(event.turn)
                     // First completed turn flips Ready and retires the idle watchdog.
                     watchdogJob?.cancel()
-                    _state.value = DialogueGenState.Ready(sessionId, remaining, meta, turns.toList())
+                    streamStatus = DialogueStreamStatus.Streaming
+                    _state.value = readySnapshot()
                 }
                 is DialogueEvent.QuotaExceeded ->
                     // 일일 한도 거부: 아직 대본이 없을 때만 QuotaBlocked 로 분기(Failed 와 달리 재시도 아님).
@@ -144,19 +147,32 @@ class DialogueGenerationCoordinator
                     }
                 is DialogueEvent.Done ->
                     // Done before any turn = no usable content → Failed. After Ready = no-op.
-                    if (_state.value is DialogueGenState.Generating) fail(token)
+                    if (_state.value is DialogueGenState.Generating) {
+                        fail(token)
+                    } else if (_state.value is DialogueGenState.Ready) {
+                        streamStatus = DialogueStreamStatus.Done
+                        _state.value = readySnapshot()
+                    }
                 is DialogueEvent.Error ->
                     // Failure before Ready → Failed; after Ready the content stands (sticky), log-only.
-                    if (_state.value is DialogueGenState.Generating) fail(token)
+                    if (_state.value is DialogueGenState.Generating) {
+                        fail(token)
+                    } else if (_state.value is DialogueGenState.Ready) {
+                        streamStatus = DialogueStreamStatus.FailedAfterReady
+                        _state.value = readySnapshot()
+                    }
             }
         }
 
         /** Re-snapshot Start/Meta into an already-Ready state so late metadata isn't lost. */
         private fun refreshIfReady() {
             if (_state.value is DialogueGenState.Ready) {
-                _state.value = DialogueGenState.Ready(sessionId, remaining, meta, turns.toList())
+                _state.value = readySnapshot()
             }
         }
+
+        private fun readySnapshot(): DialogueGenState.Ready =
+            DialogueGenState.Ready(sessionId, remaining, meta, turns.toList(), streamStatus)
 
         /** Reset the idle watchdog on any pre-Ready progress (meta/start drip without a turn yet). */
         private fun rearmIfGenerating(token: Long) {

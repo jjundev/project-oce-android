@@ -73,7 +73,7 @@ fun DialogueTurnScreen(
  * 렌더한다(자동 진행 타이머에 흔들리지 않음).
  */
 @Composable
-private fun DialogueTurnContent(
+internal fun DialogueTurnContent(
     messages: List<DialogueMessage>,
     turnPhase: TurnPhase,
     sessionPhase: SessionPhase,

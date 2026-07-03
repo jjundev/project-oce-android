@@ -18,7 +18,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGeneratingRoute
-import com.jjundev.oneclickeng.feature.session.turn.DialogueTurnScreen
+import com.jjundev.oneclickeng.feature.session.turn.GeneratedDialogueSessionRoute
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /**
@@ -94,8 +94,7 @@ fun NavGraphBuilder.harnessGraph(navController: NavHostController) {
         )
     }
     composable(SESSION_TURN_ROUTE) {
-        // 대화턴은 아직 SampleDialogue 스텁을 표시한다 — 생성된 실제 턴 → 턴화면 인계는 M1-08 소관.
-        DialogueTurnScreen()
+        GeneratedDialogueSessionRoute()
     }
 }
 

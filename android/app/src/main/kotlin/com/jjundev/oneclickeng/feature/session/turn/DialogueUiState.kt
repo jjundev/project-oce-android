@@ -17,7 +17,7 @@ enum class TurnPhase { OpponentTurn, LearnerTurn }
  * 세션 전체 진행(dialogue-learning-flow.md §2 `SessionPhase`)의 M1-03 부분집합.
  * `Starting`/`GeneratingScript`/`SummaryPreparing` 등 나머지 값은 SSE·요약 배선 이슈에서 확장한다.
  */
-enum class SessionPhase { InTurn, Completed }
+enum class SessionPhase { InTurn, AwaitingStreamDone, Completed }
 
 /** 학습자 응답 과제(한국어 발판). D1 발판 카드가 소비한다(04-screen-03-dialogue.md D1 rev2). */
 data class ScaffoldTask(val koreanPrompt: String)
