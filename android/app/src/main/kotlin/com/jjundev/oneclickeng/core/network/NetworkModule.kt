@@ -17,6 +17,10 @@ import javax.inject.Singleton
  * DI for the `/llm` network stack (M1-05). The base URL is the deployed Functions
  * origin; in M1 it points at the dev/emulator target and is swapped per environment.
  * TODO(M0-02): source BASE_URL from the Firebase project config once wired.
+ *
+ * The [TokenProvider] binding lives in `AuthModule` (M3-01): the real
+ * `FirebaseTokenProvider` replaced the earlier stub. [provideOkHttpClient] still injects
+ * the bound [TokenProvider].
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -28,10 +32,6 @@ object NetworkModule {
     // OkHttp read timeout must exceed the client-side TTS watchdog (8s, tts.md §4) so the
     // watchdog — not the socket — is the authoritative bound on synthesis latency.
     private const val READ_TIMEOUT_SECONDS = 20L
-
-    @Provides
-    @Singleton
-    fun provideTokenProvider(): TokenProvider = StubTokenProvider()
 
     @Provides
     @Singleton

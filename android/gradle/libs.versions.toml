@@ -12,6 +12,8 @@ activityCompose = "1.9.3"
 composeBom = "2025.01.00"
 # navigation-compose 는 Compose BOM 비관리(독립 버전) — 명시 핀 필요. Compose 1.7.x 계열 호환 안정판.
 navigationCompose = "2.8.5"
+# hilt-navigation-compose 는 Hilt/Compose BOM 비관리(androidx.hilt 독립 버전) — hiltViewModel() 진입점(M3-01).
+hiltNavigationCompose = "1.2.0"
 
 # 네트워크 / 직렬화 / 비동기 / 저장 (M1-05)
 coroutines = "1.9.0"
@@ -52,10 +54,13 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
+androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 
 # 네트워크 / 직렬화 / 비동기 / 저장 (M1-05)
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+# Firebase Task<T> ↔ coroutine 브릿지(.await()). 게스트 익명 로그인·ID 토큰 대기(M3-01).
+kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutines" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofit-kotlinx-serialization-converter = { group = "com.jakewharton.retrofit", name = "retrofit2-kotlinx-serialization-converter", version.ref = "retrofitKotlinxConverter" }
