@@ -14,6 +14,10 @@ composeBom = "2025.01.00"
 navigationCompose = "2.8.5"
 # hilt-navigation-compose 는 Hilt/Compose BOM 비관리(androidx.hilt 독립 버전) — hiltViewModel() 진입점(M3-01).
 hiltNavigationCompose = "1.2.0"
+# androidx.hilt — hilt-work(@HiltWorker WorkerFactory) + 그 KSP 컴파일러(dagger hilt-compiler 와 별개). M3-07.
+androidxHilt = "1.2.0"
+# WorkManager — 로컬 리마인더 자기재예약 OneTime 체인(M3-07). 부팅 후 영속 작업 자동 재enqueue(2.1+).
+work = "2.10.0"
 
 # 네트워크 / 직렬화 / 비동기 / 저장 (M1-05)
 coroutines = "1.9.0"
@@ -35,6 +39,8 @@ ktlint = "12.1.1"
 junit = "4.13.2"
 androidxJunit = "1.2.1"
 espressoCore = "3.6.1"
+# Robolectric — 권한 SDK 분기(13+/이하) + WorkManager TestListenableWorkerBuilder JVM 검증(M3-07).
+robolectric = "4.14.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -55,6 +61,13 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+# @HiltWorker 통합: hilt-work(런타임 HiltWorkerFactory) + hilt-compiler(KSP, dagger 컴파일러와 별개). M3-07.
+androidx-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "androidxHilt" }
+androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "androidxHilt" }
+
+# WorkManager(M3-07) — 로컬 리마인더 스케줄링 + work-testing(TestListenableWorkerBuilder).
+androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
+androidx-work-testing = { group = "androidx.work", name = "work-testing", version.ref = "work" }
 
 # 네트워크 / 직렬화 / 비동기 / 저장 (M1-05)
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -79,6 +92,7 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

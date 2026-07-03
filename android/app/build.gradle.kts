@@ -42,6 +42,14 @@ android {
     buildFeatures {
         compose = true
     }
+
+    testOptions {
+        unitTests {
+            // Robolectric 이 매니페스트/리소스를 로드해 ReminderWorker(TestListenableWorkerBuilder)와
+            // 권한 SDK 분기를 JVM 에서 검증할 수 있게 한다(M3-07).
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 // 로컬 JDK 가 21 이어도 JDK 17 타깃으로 컴파일한다(툴체인은 settings 의 foojay-resolver 가 프로비저닝).
@@ -107,6 +115,12 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     ksp(libs.hilt.compiler)
 
+    // WorkManager + @HiltWorker 통합(M3-07 로컬 리마인더). androidx.hilt 컴파일러는 dagger 컴파일러와
+    // 별개의 KSP 프로세서라 함께 등록해야 HiltWorkerFactory 바인딩이 생성된다.
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
+
     // 네트워크 / 직렬화 / 비동기 / 저장 (M1-05)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
@@ -131,6 +145,10 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    // M3-07: ReminderWorker 를 JVM 에서 구동(TestListenableWorkerBuilder) + 권한 SDK 분기 검증.
+    testImplementation(libs.androidx.work.testing)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.junit)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.junit)

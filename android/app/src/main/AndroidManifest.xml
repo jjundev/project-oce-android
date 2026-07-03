@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- 네트워크 권한: Firebase Auth/Firestore/Analytics(M0-02) + /llm 프록시 호출(TTS 등, M1-05). -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- M1-04 학습자 발화 녹음. 런타임 요청/사전 프라이밍 UI 는 M0-06/M1-08 소관. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- M3-07 로컬 학습 리마인더 알림. API 33+ 에서만 런타임 요청(그 이하 불필요). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- 런처 아이콘은 M0-04(icon-vectors)에서 추가한다. 지금은 시스템 기본 아이콘을 사용. -->
     <application
@@ -18,12 +22,37 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.OceApp">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- M3-07: 시간대 변경 시 재예약. 부팅 리시버 없음 — WorkManager 가 영속 작업을 부팅 후 자동 재enqueue. -->
+        <receiver
+            android:name=".feature.reminder.TimezoneChangeReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
+        <!--
+          WorkManager 기본 초기화 provider 제거 — OceApp(Configuration.Provider)이 HiltWorkerFactory 를
+          실은 설정으로 온디맨드 초기화한다(@HiltWorker 주입, M3-07).
+        -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
     </application>
 
 </manifest>
