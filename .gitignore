@@ -4,3 +4,11 @@
 # Firebase 클라이언트 설정 — 실키 포함이라 커밋 금지. 구조는 .example 참조(M0-02).
 # 경로는 루트 .gitignore 기준 리터럴이라 android/.gitignore 로 옮기지 말 것.
 android/app/google-services.json
+
+# Firestore 규칙 테스트 하니스 의존성(M0-08)
+firestore-tests/node_modules/
+
+# Firebase 에뮬레이터 디버그 로그
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
