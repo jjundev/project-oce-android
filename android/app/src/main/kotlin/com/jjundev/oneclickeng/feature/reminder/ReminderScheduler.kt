@@ -22,11 +22,11 @@ class ReminderScheduler
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
-    ) {
+    ) : ReminderSchedule {
         /** 테스트에서 고정 시각을 주입하기 위한 seam. 프로덕션은 기기 로컬 현재시각. */
         var nowProvider: () -> ZonedDateTime = { ZonedDateTime.now() }
 
-        fun schedule(
+        override fun schedule(
             hour: Int,
             minute: Int,
         ) {
@@ -40,7 +40,7 @@ class ReminderScheduler
                 .enqueueUniqueWork(UNIQUE_NAME, ExistingWorkPolicy.REPLACE, request)
         }
 
-        fun cancel() {
+        override fun cancel() {
             WorkManager.getInstance(context).cancelUniqueWork(UNIQUE_NAME)
         }
 

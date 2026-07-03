@@ -3,7 +3,6 @@ package com.jjundev.oneclickeng.feature.reminder
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.jjundev.oneclickeng.feature.reminder.data.ReminderRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -16,9 +15,7 @@ import javax.inject.Inject
  */
 @AndroidEntryPoint
 class TimezoneChangeReceiver : BroadcastReceiver() {
-    @Inject lateinit var repository: ReminderRepository
-
-    @Inject lateinit var scheduler: ReminderScheduler
+    @Inject lateinit var reminderOrchestrator: ReminderOrchestrator
 
     @Inject lateinit var appScope: CoroutineScope
 
@@ -30,8 +27,7 @@ class TimezoneChangeReceiver : BroadcastReceiver() {
         val pending = goAsync()
         appScope.launch {
             try {
-                val config = repository.currentConfig()
-                if (config.enabled) scheduler.schedule(config.hour, config.minute)
+                reminderOrchestrator.handleTimezoneChanged()
             } finally {
                 pending.finish()
             }

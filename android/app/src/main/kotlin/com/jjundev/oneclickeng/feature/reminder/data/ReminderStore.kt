@@ -40,8 +40,11 @@ data class ReminderCache(
  * (M2-02 요약 확정 경로)이 [recordSessionCompleted] 를 호출하고, streak/lastStudyDate 값은 M3-05
  * 게임화가 산출해 넘긴다. M3-07 은 이 계약만 노출하므로 호출자(M2-02)가 아직 없어도 self-contained 하게
  * 머지·검증된다.
+ *
+ * 이 seam 은 [com.jjundev.oneclickeng.feature.reminder.ReminderOrchestrator] 내부 저장소 adapter 이다.
+ * UI/Worker/Application 같은 lifecycle adapter 는 이 저장소가 아니라 product seam 인 orchestrator 를 주입한다.
  */
-interface ReminderRepository {
+interface ReminderStore {
     /** 설정 행/스케줄러가 관측하는 라이브 설정 스트림. */
     val config: Flow<ReminderConfig>
 
@@ -85,7 +88,7 @@ class DataStoreReminderRepository
     @Inject
     constructor(
         @ReminderPrefs private val dataStore: DataStore<Preferences>,
-    ) : ReminderRepository {
+    ) : ReminderStore {
         override val config: Flow<ReminderConfig> = dataStore.data.map(::toConfig)
 
         override suspend fun currentConfig(): ReminderConfig = toConfig(dataStore.data.first())
