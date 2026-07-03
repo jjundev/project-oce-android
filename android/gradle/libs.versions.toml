@@ -11,6 +11,10 @@ lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.9.3"
 composeBom = "2025.01.00"
 
+# Firebase (BoM 이 아티팩트 버전을 관리 — 아래 firebase-* 라이브러리는 무버전)
+firebaseBom = "34.9.0"
+googleServices = "4.4.4"
+
 # 정적 분석
 detekt = "1.23.8"
 ktlint = "12.1.1"
@@ -37,6 +41,12 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
 
+# Firebase — BoM platform + 무버전 아티팩트(analytics/auth/firestore). FCM 은 v1.1 범위라 제외(PRD §10.2).
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
+firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
+firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
+
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -49,3 +59,4 @@ hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
