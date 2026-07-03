@@ -43,6 +43,16 @@ sealed interface DialogueEvent {
     /** `event:meta` — session start. Carries no renderable content, so it does NOT flip Ready. */
     data class Start(val sessionId: String, val remaining: Int) : DialogueEvent
 
+    /**
+     * 일일 무료 세션 한도 도달 거부(M3-04, FR-26/27). SoT `dialogue-learning-flow.md` StartGate 의
+     * `Rejected(remaining=0)` 에 대응하는 전송층 이름 — 상태층은 [DialogueGenState.QuotaBlocked] 로 매핑된다.
+     * [Start]/[Error] 와 별개인 이유: 거부는 재시도 대상이 아니라 중립 한도 패널로 분기해야 한다(패널 !=
+     * 실패 배너). 이 이벤트는 두 채널 어느 쪽에서 와도 [DialogueSseStream] 내부에서 방출된다 —
+     * (i) 사전-게이트 HTTP 비200(예: 429), (ii) SSE `event:error` 프레임의 일일-한도 code. `remaining` 은
+     * 거부 시 상수 0(정본은 잔여 수를 노출하지 않으므로 표시에 쓰지 않는다).
+     */
+    data class QuotaExceeded(val remaining: Int) : DialogueEvent
+
     /** `event:object type=dialogueMeta` — opponent/topic metadata. */
     data class Meta(val meta: DialogueMeta) : DialogueEvent
 

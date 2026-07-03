@@ -1,8 +1,10 @@
 package com.jjundev.oneclickeng.feature.session.dialogue
 
 import androidx.lifecycle.ViewModel
+import com.jjundev.oneclickeng.core.network.LimitAnalytics
 import com.jjundev.oneclickeng.core.network.WaitQuizAnalytics
 import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
+import com.jjundev.oneclickeng.ui.component.LimitSurface
 import com.jjundev.oneclickeng.ui.component.QuizItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +29,7 @@ class DialogueGenerationViewModel
         private val coordinator: DialogueGenerationCoordinator,
         private val quizBank: QuizBank,
         private val analytics: WaitQuizAnalytics,
+        private val limitAnalytics: LimitAnalytics,
         loadingQuizConfig: LoadingQuizConfig,
     ) : ViewModel() {
         val state: StateFlow<DialogueGenState> = coordinator.state
@@ -56,6 +59,14 @@ class DialogueGenerationViewModel
 
         /** Retry the current attempt, reusing its idempotencyKey (backend-functions.md §7). */
         fun retry() = coordinator.retry()
+
+        /**
+         * 대기 화면이 한도 도달(dialogue_start_gate) 패널에 진입할 때 1회 호출 — 정본 `limit_reached`
+         * 이벤트를 [LimitAnalytics] seam 으로 라우팅한다(daily-limit-ux.md §9). remaining 은 거부 시 0.
+         */
+        fun onLimitReached(remaining: Int) {
+            limitAnalytics.limitReached(remaining, LimitSurface.DialogueStartGate.value)
+        }
 
         /**
          * Route a (unscored) quiz answer to the analytics seam (`wait_quiz_card_answered`). The tapped

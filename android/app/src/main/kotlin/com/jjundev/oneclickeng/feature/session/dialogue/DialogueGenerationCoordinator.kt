@@ -79,8 +79,12 @@ class DialogueGenerationCoordinator
         }
 
         /** Retry the current attempt, REUSING its idempotencyKey (backend-functions.md §7). No-op if
-         *  nothing has been started yet. */
+         *  nothing has been started yet, or if the daily limit blocked the start — retrying a quota
+         *  rejection would just be re-rejected(FR-27), so [DialogueGenState.QuotaBlocked] is terminal
+         *  here (UI also omits the retry affordance; this guard is defense-in-depth). [lastRequest] is
+         *  left untouched so a later [start] still behaves normally. */
         fun retry() {
+            if (_state.value is DialogueGenState.QuotaBlocked) return
             val request = lastRequest ?: return
             launchAttempt(request)
         }
@@ -131,6 +135,13 @@ class DialogueGenerationCoordinator
                     watchdogJob?.cancel()
                     _state.value = DialogueGenState.Ready(sessionId, remaining, meta, turns.toList())
                 }
+                is DialogueEvent.QuotaExceeded ->
+                    // 일일 한도 거부: 아직 대본이 없을 때만 QuotaBlocked 로 분기(Failed 와 달리 재시도 아님).
+                    // Ready 이후엔 이미 렌더된 대본이 우선이므로 무시(sticky). 워치독은 중단한다.
+                    if (_state.value is DialogueGenState.Generating) {
+                        watchdogJob?.cancel()
+                        _state.value = DialogueGenState.QuotaBlocked(event.remaining)
+                    }
                 is DialogueEvent.Done ->
                     // Done before any turn = no usable content → Failed. After Ready = no-op.
                     if (_state.value is DialogueGenState.Generating) fail(token)

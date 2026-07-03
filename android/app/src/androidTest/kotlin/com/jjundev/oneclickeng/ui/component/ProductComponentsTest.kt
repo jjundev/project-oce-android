@@ -143,7 +143,7 @@ class ProductComponentsTest {
             }
         }
 
-        composeRule.onNodeWithText("오늘의 학습을 다 채웠어요").assertExists()
+        composeRule.onNodeWithText("오늘 무료 학습을 다 했어요").assertExists()
         composeRule.onNodeWithText("기록 보기").assertExists()
     }
 

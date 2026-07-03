@@ -114,4 +114,53 @@ class DialogueSseStreamTest {
             assertEquals(DialogueEvent.Start("s1", 2), events[0])
             assertEquals(DialogueEvent.Error("gen_failed"), events[1])
         }
+
+    @Test
+    fun `pre-stream HTTP 429 surfaces QuotaExceeded (daily-limit channel i)`() =
+        runBlocking {
+            // 사전-게이트 일일 한도 거부: 스트림이 열리기 전 비200(429)로 온다(backend-functions.md §7).
+            server.enqueue(
+                MockResponse()
+                    .setResponseCode(429)
+                    .setBody("{\"code\":\"DAILY_LIMIT_EXCEEDED\",\"remaining\":0}"),
+            )
+
+            val events = withTimeout(5_000) { stream().events(request).toList() }
+
+            assertEquals(1, events.size)
+            assertEquals(DialogueEvent.QuotaExceeded(0), events[0])
+        }
+
+    @Test
+    fun `error frame with daily-limit code surfaces QuotaExceeded (channel ii)`() =
+        runBlocking {
+            // 채널 탈결합: M1-02 가 거부를 열린 스트림의 event:error 로 실어 보내도 QuotaExceeded 로 수렴.
+            val body =
+                buildString {
+                    append("event: error\n")
+                    append("data: {\"code\":\"DAILY_LIMIT_EXCEEDED\"}\n\n")
+                }
+            server.enqueue(
+                MockResponse()
+                    .setHeader("Content-Type", "text/event-stream")
+                    .setBody(body),
+            )
+
+            val events = withTimeout(5_000) { stream().events(request).toList() }
+
+            assertEquals(1, events.size)
+            assertEquals(DialogueEvent.QuotaExceeded(0), events[0])
+        }
+
+    @Test
+    fun `non-429 HTTP failure stays a retryable Error, not QuotaExceeded`() =
+        runBlocking {
+            // 비-429(예: 500)는 기존 재시도형 Error("network") — 한도로 오분류하지 않는다(의도된 비대칭).
+            server.enqueue(MockResponse().setResponseCode(500))
+
+            val events = withTimeout(5_000) { stream().events(request).toList() }
+
+            assertEquals(1, events.size)
+            assertEquals(DialogueEvent.Error("network"), events[0])
+        }
 }

@@ -7,9 +7,9 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 /**
- * Binds the dialogue-generation seams (M1-01): the SSE [DialogueStream] and the WaitQuiz telemetry
- * seam (no-op until M4-01). The `/llm` OkHttpClient, Json, and Retrofit these depend on are provided
- * by [NetworkModule].
+ * Binds the dialogue-generation seams: the SSE [DialogueStream] (M1-01), the WaitQuiz telemetry seam
+ * (M1-01), and the daily-limit [LimitAnalytics] seam (M3-04) — both telemetry seams no-op until M4-01.
+ * The `/llm` OkHttpClient, Json, and Retrofit these depend on are provided by [NetworkModule].
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -21,4 +21,8 @@ abstract class DialogueModule {
     @Binds
     @Singleton
     abstract fun bindWaitQuizAnalytics(impl: NoOpWaitQuizAnalytics): WaitQuizAnalytics
+
+    @Binds
+    @Singleton
+    abstract fun bindLimitAnalytics(impl: NoOpLimitAnalytics): LimitAnalytics
 }
