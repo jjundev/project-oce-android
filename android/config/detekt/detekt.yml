@@ -10,3 +10,6 @@ style:
     active: false
   ForbiddenComment:
     active: false
+  UnusedPrivateMember:
+    # @Preview 컴포저블은 툴링/프리뷰 진입점이라 호출부가 없어도 dead code 가 아니다.
+    ignoreAnnotated: ['Preview']

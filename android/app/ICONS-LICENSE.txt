@@ -1,0 +1,48 @@
+Material Symbols — 아이콘 자산 라이선스 및 출처 고지 (M0-04)
+================================================================
+
+app/src/main/res/drawable/ic_*.xml 벡터 드로어블은 Google Material Symbols
+(Rounded)에서 파생되었습니다.
+
+  저작권: Google LLC
+  라이선스: Apache License 2.0
+  원본: https://github.com/google/material-design-icons
+  전문: https://www.apache.org/licenses/LICENSE-2.0
+
+축 고정(전 자산 동일): Style=Rounded · Weight=400 · Grade=0 · Optical size=24.
+FILL 축만 매핑표(docs/ui/01a-icon-mapping.md §A)의 fill 열에 따라 개별 지정.
+
+변환: 원본 SVG(viewBox "0 -960 960 960")를 Android 벡터 드로어블로 변환.
+viewport 960×960 + <group android:translateY="960"> 로 좌표계 정합. fillColor 는
+불투명 흑색으로 baked 하고 실제 색은 Compose tint(LocalContentColor)가 결정.
+
+--- Provenance manifest (파일 → glyph · FILL · 원본 URL) ---
+ic_chevron_right.xml        chevron_right           FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/chevron_right/materialsymbolsrounded/chevron_right_fill1_24px.svg
+ic_error.xml                error                   FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/error/materialsymbolsrounded/error_fill1_24px.svg
+ic_edit_note.xml            edit_note               FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/edit_note/materialsymbolsrounded/edit_note_fill1_24px.svg
+ic_spellcheck.xml           spellcheck              FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/spellcheck/materialsymbolsrounded/spellcheck_fill1_24px.svg
+ic_auto_awesome.xml         auto_awesome            FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/auto_awesome/materialsymbolsrounded/auto_awesome_fill1_24px.svg
+ic_format_paint.xml         format_paint            FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/format_paint/materialsymbolsrounded/format_paint_fill1_24px.svg
+ic_hub.xml                  hub                     FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/hub/materialsymbolsrounded/hub_fill1_24px.svg
+ic_bookmark.xml             bookmark                FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/bookmark/materialsymbolsrounded/bookmark_fill1_24px.svg
+ic_bookmark_border.xml      bookmark                FILL0   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/bookmark/materialsymbolsrounded/bookmark_24px.svg
+ic_local_fire_department.xml  local_fire_department   FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/local_fire_department/materialsymbolsrounded/local_fire_department_fill1_24px.svg
+ic_schedule.xml             schedule                FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/schedule/materialsymbolsrounded/schedule_fill1_24px.svg
+ic_bolt.xml                 bolt                    FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/bolt/materialsymbolsrounded/bolt_fill1_24px.svg
+ic_match_word.xml           match_word              FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/match_word/materialsymbolsrounded/match_word_fill1_24px.svg
+ic_notes.xml                notes                   FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/notes/materialsymbolsrounded/notes_fill1_24px.svg
+ic_format_quote.xml         format_quote            FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/format_quote/materialsymbolsrounded/format_quote_fill1_24px.svg
+ic_mic.xml                  mic                     FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/mic/materialsymbolsrounded/mic_fill1_24px.svg
+ic_autorenew.xml            autorenew               FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/autorenew/materialsymbolsrounded/autorenew_fill1_24px.svg
+ic_check.xml                check                   FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/check/materialsymbolsrounded/check_fill1_24px.svg
+ic_volume_up.xml            volume_up               FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/volume_up/materialsymbolsrounded/volume_up_fill1_24px.svg
+ic_graphic_eq.xml           graphic_eq              FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/graphic_eq/materialsymbolsrounded/graphic_eq_fill1_24px.svg
+ic_cloud_off.xml            cloud_off               FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/cloud_off/materialsymbolsrounded/cloud_off_fill1_24px.svg
+ic_account_circle.xml       account_circle          FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/account_circle/materialsymbolsrounded/account_circle_fill1_24px.svg
+ic_hourglass_empty.xml      hourglass_empty         FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/hourglass_empty/materialsymbolsrounded/hourglass_empty_fill1_24px.svg
+ic_forum_fill0.xml          forum                   FILL0   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/forum/materialsymbolsrounded/forum_24px.svg
+ic_forum_fill1.xml          forum                   FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/forum/materialsymbolsrounded/forum_fill1_24px.svg
+ic_history_fill0.xml        history                 FILL0   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/history/materialsymbolsrounded/history_24px.svg
+ic_history_fill1.xml        history                 FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/history/materialsymbolsrounded/history_fill1_24px.svg
+ic_settings_fill0.xml       settings                FILL0   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/settings/materialsymbolsrounded/settings_24px.svg
+ic_settings_fill1.xml       settings                FILL1   https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/settings/materialsymbolsrounded/settings_fill1_24px.svg
