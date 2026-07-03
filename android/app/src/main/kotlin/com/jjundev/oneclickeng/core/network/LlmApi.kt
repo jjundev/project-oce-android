@@ -1,5 +1,6 @@
 package com.jjundev.oneclickeng.core.network
 
+import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.Serializable
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -24,6 +25,9 @@ interface LlmApi {
 /** `/llm` request envelope for a tts task. `task` is fixed to "tts". */
 @Serializable
 data class TtsRequest(
+    // ALWAYS: the shared Json has encodeDefaults=false, but the server dispatches on `task`, so it
+    // must reach the wire even though it equals its default (same fix as DialogueRequest).
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS)
     val task: String = "tts",
     val payload: TtsPayload,
 )
@@ -58,6 +62,9 @@ data class TtsResponse(
  */
 @Serializable
 data class SpeakingRequest(
+    // ALWAYS: see TtsRequest.task — the server dispatches on `task`, which must survive
+    // encodeDefaults=false.
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS)
     val task: String = "speaking",
     val sessionId: String,
     val payload: SpeakingPayload,
