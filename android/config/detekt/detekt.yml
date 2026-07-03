@@ -13,3 +13,13 @@ style:
   UnusedPrivateMember:
     # @Preview 컴포저블은 툴링/프리뷰 진입점이라 호출부가 없어도 dead code 가 아니다.
     ignoreAnnotated: ['Preview']
+  # raw hex 색상 리터럴 금지 — Oce 테마 토큰만 사용. allowlist = ui/theme/Color.kt.
+  # 주의: ForbiddenMethodCall 은 타입 해석(type resolution)이 있어야 발동한다. Android 기본 `detekt`
+  # 태스크는 TR 없이 도므로 이 룰만으로는 빌드 실패를 보장하지 못한다 → 결정적 강제는 build.gradle.kts
+  # 의 `checkNoRawHexColors` Gradle 태스크가 담당한다(check 에 연결). 본 룰은 IDE/TR 활성 시의 보조망.
+  ForbiddenMethodCall:
+    active: true
+    methods:
+      - reason: 'raw hex 색상 리터럴 금지 — Oce 테마 토큰 사용 (allowlist: ui/theme/Color.kt)'
+        value: 'androidx.compose.ui.graphics.Color'
+    excludes: ['**/ui/theme/Color.kt']
