@@ -36,6 +36,11 @@ import {
   orchestrateDialogue,
   parseDialoguePayload,
 } from "./dialogue";
+import {
+  InvalidFeedbackPayloadError,
+  orchestrateFeedback,
+  parseFeedbackPayload,
+} from "./feedback";
 import { DailyLimitError, StartGate, StartResult } from "./start-gate";
 import { SpeakingAnalyzeError, TtsSynthError } from "../providers/gemini";
 import { LlmProvider } from "../providers/LlmProvider";
@@ -54,8 +59,8 @@ export interface HandlerRequest {
  */
 export interface HandlerDeps {
   provider?: LlmProvider;
-  /** per-session cap gate for `speaking` (backend-functions.md §8). When absent, speaking
-   *  falls back to the NOT_IMPLEMENTED stub — same pattern as an absent `provider`. */
+  /** per-session cap gate for `speaking` + `feedback` (backend-functions.md §8). When absent,
+   *  those tasks fall back to the NOT_IMPLEMENTED stub — same pattern as an absent `provider`. */
   sessionGate?: SessionGate;
   /** dialogue start gate (dedup + daily limit + session create, backend-functions.md §7). When
    *  absent (or provider absent), dialogue falls back to the NOT_IMPLEMENTED SSE stub. */
@@ -110,8 +115,11 @@ export async function handle(
       } else if (task === "dialogue" && deps.startGate && deps.provider) {
         // task=dialogue, implemented — start gate + streaming script parser (M1-02).
         await handleDialogue(body, uid, deps.startGate, deps.provider, res);
+      } else if (task === "feedback" && deps.provider && deps.sessionGate) {
+        // task=feedback, implemented — per-session cap gate + streaming slim-section parser (M1-07).
+        await handleFeedback(body, uid, deps.provider, deps.sessionGate, res);
       } else {
-        // SSE stub — feedback (M1-07+), or dialogue/summary without their injected deps.
+        // SSE stub — dialogue/feedback/summary without their injected deps.
         openSse(res);
         // SoT emits the error event as `{code}` only (backend-functions.md:57).
         writeEvent(res, {
@@ -203,6 +211,72 @@ async function handleDialogue(
     if (!start.deduped) {
       await gate.refund(idempotencyKey, start.usageKey);
     }
+  }
+}
+
+/**
+ * Handle `task=feedback` (SSE, backend-functions.md §8, feedback-slim.md). Validates the payload +
+ * sessionId and reserves a per-session cap slot BEFORE opening the stream, so a malformed body →
+ * 400, a foreign/expired session → 403, and a cap rejection → 429 all land with headers unsent
+ * (mirrors handleSpeaking's pre-call gate, on the SSE path). A cap rejection is a PRE-STREAM 429 —
+ * NOT an in-stream retryable error — matching the established cap/quota rejection pattern (speaking
+ * CAP_EXCEEDED, dialogue DAILY_LIMIT_EXCEEDED); the client branches it to a neutral limit state,
+ * not a retry affordance.
+ *
+ * Once the slot is reserved, opens the stream and delegates to the streaming slim-section parser.
+ * A post-openSse generation failure emits `error`+`done`, closes, THEN refunds the slot so only
+ * successful calls count (A1, same tail as handleDialogue/handleSpeaking).
+ */
+async function handleFeedback(
+  body: Partial<RequestBody>,
+  uid: string,
+  provider: LlmProvider,
+  gate: SessionGate,
+  res: HandlerResponse
+): Promise<void> {
+  // sessionId is a top-level envelope field (backend-functions.md:45,47), not in payload.
+  const sessionId =
+    typeof body.sessionId === "string" ? body.sessionId.trim() : "";
+  let payload;
+  try {
+    if (!sessionId) {
+      throw new InvalidFeedbackPayloadError("missing sessionId");
+    }
+    payload = parseFeedbackPayload(body.payload);
+  } catch (e) {
+    if (e instanceof InvalidFeedbackPayloadError) {
+      res.status(400).json({ code: ErrorCode.INVALID_PAYLOAD });
+      return;
+    }
+    throw e;
+  }
+
+  // Cap gate BEFORE opening the stream — a cap/invalid rejection is a pre-stream JSON status
+  // (headers unsent), never an SSE frame (mirrors handleSpeaking; #2b fix).
+  try {
+    await gate.reserve(uid, sessionId);
+  } catch (e) {
+    if (e instanceof CapExceededError) {
+      res.status(429).json({ code: ErrorCode.CAP_EXCEEDED });
+      return;
+    }
+    if (e instanceof SessionInvalidError) {
+      res.status(403).json({ code: ErrorCode.SESSION_INVALID });
+      return;
+    }
+    throw e; // → outer catch 500 (headers still unsent)
+  }
+
+  // Gate passed — open the stream and generate the three slim sections.
+  openSse(res);
+  try {
+    await orchestrateFeedback(payload, provider, res);
+  } catch {
+    // Post-openSse failure: typed error + done + close FIRST, then refund the reserved slot (A1).
+    writeEvent(res, { event: "error", data: { code: ErrorCode.INTERNAL } });
+    writeEvent(res, { event: "done", data: { status: "error" } });
+    res.end();
+    await gate.refund(sessionId);
   }
 }
 
