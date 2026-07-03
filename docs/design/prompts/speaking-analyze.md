@@ -1,7 +1,7 @@
 <!--
 CALL: speaking.analyze | model: Gemini Flash (native audio) | stream: no | responseSchema: yes
 PREPEND (cached): _shared/safety-scope.md, _shared/tone-and-style.md
-INPUT (variable): audio part only — audio/wav (proxy wraps 16kHz PCM -> WAV). DO NOT pass the expected/correct English line (would bias the transcript).
+INPUT (variable): audio part only — audio/wav. The CLIENT wraps its 16kHz PCM into WAV (WavEncoder) and sends it as payload.audioBase64; the proxy forwards it verbatim as an inline audio/wav part (backend-functions.md §4 is the envelope SoT). DO NOT pass the expected/correct English line (would bias the transcript).
 NOTE: output is intentionally narrowed vs legacy {fluency,confidence,hesitations,...} — those numeric fields are REMOVED (PRD A8).
 -->
 

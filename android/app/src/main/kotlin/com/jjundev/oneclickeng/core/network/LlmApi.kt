@@ -14,6 +14,11 @@ interface LlmApi {
     suspend fun tts(
         @Body body: TtsRequest,
     ): TtsResponse
+
+    @POST("llm")
+    suspend fun speaking(
+        @Body body: SpeakingRequest,
+    ): SpeakingResponse
 }
 
 /** `/llm` request envelope for a tts task. `task` is fixed to "tts". */
@@ -44,4 +49,33 @@ data class TtsResponse(
     val pcmBase64: String,
     val sampleRate: Int,
     val mimeType: String,
+)
+
+/**
+ * `/llm` request envelope for a speaking task (M1-06). `sessionId` is a TOP-LEVEL envelope
+ * field (not inside [SpeakingPayload]) per the `/llm` contract (backend-functions.md §4);
+ * feedback/summary reuse the same envelope shape.
+ */
+@Serializable
+data class SpeakingRequest(
+    val task: String = "speaking",
+    val sessionId: String,
+    val payload: SpeakingPayload,
+)
+
+/** speaking payload — the learner's utterance as base64 16kHz·16bit·mono WAV. */
+@Serializable
+data class SpeakingPayload(
+    val audioBase64: String,
+)
+
+/**
+ * speaking response — a faithful transcript + one qualitative Korean encouragement line.
+ * There is NO numeric score field by design (speaking-analyze.md, PRD A8/R3); the "no score"
+ * guarantee is structural. `transcript` may be empty for an unintelligible clip.
+ */
+@Serializable
+data class SpeakingResponse(
+    val transcript: String,
+    val feedbackMessage: String,
 )

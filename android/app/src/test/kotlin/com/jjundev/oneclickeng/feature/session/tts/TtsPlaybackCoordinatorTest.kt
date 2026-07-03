@@ -2,6 +2,8 @@ package com.jjundev.oneclickeng.feature.session.tts
 
 import com.jjundev.oneclickeng.core.audio.PcmPlayer
 import com.jjundev.oneclickeng.core.network.LlmApi
+import com.jjundev.oneclickeng.core.network.SpeakingRequest
+import com.jjundev.oneclickeng.core.network.SpeakingResponse
 import com.jjundev.oneclickeng.core.network.TtsRequest
 import com.jjundev.oneclickeng.core.network.TtsResponse
 import com.jjundev.oneclickeng.core.settings.TtsQuality
@@ -45,6 +47,8 @@ private class FakeLlmApi(
         error?.let { throw it }
         return response
     }
+
+    override suspend fun speaking(body: SpeakingRequest): SpeakingResponse = error("unused")
 }
 
 private class FakePcmPlayer(var throwOnPlay: Boolean = false) : PcmPlayer {
