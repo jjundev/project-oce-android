@@ -61,6 +61,9 @@ fun OneClickIcon(
 object OceIconSize {
     val Default: Dp = 24.dp
 
+    /** 빈 상태(C5) 중앙 일러스트 아이콘 (02-shared-components.md:65 `96dp`). */
+    val EmptyState: Dp = 96.dp
+
     /** ListRow disclosure chevron (01a §A `chevron_right` size 22). */
     val ListDisclosure: Dp = 22.dp
 
