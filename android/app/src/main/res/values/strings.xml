@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">딸깍영어</string>
+
+    <!-- 하단 3탭 라벨 겸 화면 인라인 타이틀 (M0-09 · PRD §11 정보구조) -->
+    <string name="tab_home">학습</string>
+    <string name="tab_records">기록</string>
+    <string name="tab_settings">설정</string>
 </resources>
