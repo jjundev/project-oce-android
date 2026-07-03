@@ -16,6 +16,11 @@ import {
   parseTtsPayload,
   synthesizeTts,
 } from "./tts";
+import {
+  InvalidSummaryPayloadError,
+  orchestrateSummary,
+  parseSummaryPayload,
+} from "./summary";
 import { TtsSynthError } from "../providers/gemini";
 import { LlmProvider } from "../providers/LlmProvider";
 import { ErrorCode, RequestBody } from "../types/protocol";
@@ -74,14 +79,20 @@ export async function handle(
   // 3. dispatch to a stub by response mode
   try {
     if (responseModeFor(task) === "sse") {
-      openSse(res);
-      // SoT emits the error event as `{code}` only (backend-functions.md:57).
-      writeEvent(res, {
-        event: "error",
-        data: { code: ErrorCode.NOT_IMPLEMENTED },
-      });
-      writeEvent(res, { event: "done", data: { status: "error" } });
-      res.end();
+      if (task === "summary" && deps.provider) {
+        // task=summary, implemented — 3-call orchestration over a single SSE (M2-01).
+        await handleSummary(body.payload, deps.provider, res);
+      } else {
+        // SSE stub — dialogue/feedback (M1-02+), or summary without an injected provider.
+        openSse(res);
+        // SoT emits the error event as `{code}` only (backend-functions.md:57).
+        writeEvent(res, {
+          event: "error",
+          data: { code: ErrorCode.NOT_IMPLEMENTED },
+        });
+        writeEvent(res, { event: "done", data: { status: "error" } });
+        res.end();
+      }
     } else if (task === "tts" && deps.provider) {
       // JSON transport, implemented — synthesize and return base64 PCM (M1-05).
       await handleTts(body.payload, deps.provider, res);
@@ -95,6 +106,32 @@ export async function handle(
       res.status(500).json({ code: ErrorCode.INTERNAL });
     }
   }
+}
+
+/**
+ * Handle `task=summary` (SSE). Validates the payload BEFORE opening the stream so a
+ * malformed body → 400 INVALID_PAYLOAD with headers unsent (mirrors the tts precedent,
+ * but on the SSE path). Once validated, opens the stream and hands off to the 3-call
+ * orchestrator, which owns all card/done emission and closes the stream. Any non-typed
+ * throw propagates to the outer catch (→ 500 only if nothing was committed yet).
+ */
+async function handleSummary(
+  payload: unknown,
+  provider: LlmProvider,
+  res: HandlerResponse
+): Promise<void> {
+  let parsed;
+  try {
+    parsed = parseSummaryPayload(payload);
+  } catch (e) {
+    if (e instanceof InvalidSummaryPayloadError) {
+      res.status(400).json({ code: ErrorCode.INVALID_PAYLOAD });
+      return;
+    }
+    throw e;
+  }
+  openSse(res);
+  await orchestrateSummary(parsed, provider, res);
 }
 
 /**

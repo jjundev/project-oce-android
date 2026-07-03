@@ -30,9 +30,23 @@ export interface TtsResult {
 }
 
 export interface GenerateRequest {
+  /** sub-task id, e.g. "summary.expressions" — for prompt/cache selection + logging. */
   task: string;
+  /** resolved model for the request URL (caller resolves via config/models). */
   modelId: string;
+  /** the variable input (a projected buffer slice for summary sub-calls). */
   payload: unknown;
+  /** resolved system instruction — sent inline as `systemInstruction` (M2-01). */
+  system?: string;
+  /** JSON schema for structured output — `generationConfig.responseSchema` (M2-01). */
+  responseSchema?: unknown;
+  /**
+   * Reserved cache handle key (task, promptVersion, modelId — backend-functions.md §6).
+   * The provider currently ignores it (explicit cachedContents deferred; inline path),
+   * but the orchestrator computes it so the future Firestore `config/cache` layer can
+   * key off it without a call-site change.
+   */
+  cacheKey?: string;
 }
 
 export interface LlmProvider {

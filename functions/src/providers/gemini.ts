@@ -77,10 +77,80 @@ export class GeminiProvider implements LlmProvider {
     );
   }
 
+  /**
+   * Single-shot structured JSON generation — summary sub-calls (M2-01). Resolves the
+   * model from `req.modelId` (NOT `modelFor(req.task)`: `req.task` is a sub-task string
+   * like "summary.expressions" that isn't in the closed `Task` map). On a parse failure
+   * it repairs once (prompt-system.md:91); a repeated failure throws, and the summary
+   * orchestrator maps any throw → `sections[k]="failed"` (backend-functions.md:117), so
+   * no dedicated error class is needed here (plan decision #1).
+   */
   async generateOnce(req: GenerateRequest): Promise<RawJson> {
-    throw new NotImplementedError(
-      `GeminiProvider.generateOnce (model=${this.config.modelFor(req.task)})`
+    const url = `${GEMINI_BASE_URL}/models/${req.modelId}:generateContent`;
+    const firstText = await this.requestText(
+      url,
+      buildGenerateBody(req.payload, req.system, req.responseSchema)
     );
+    try {
+      return extractJson(firstText);
+    } catch (parseError) {
+      const repaired = await this.requestText(
+        url,
+        buildRepairBody(
+          req.payload,
+          req.system,
+          req.responseSchema,
+          firstText,
+          parseError instanceof Error ? parseError.message : String(parseError)
+        )
+      );
+      return extractJson(repaired);
+    }
+  }
+
+  /**
+   * POST a generateContent body and return the raw response text. Mirrors tts()'s
+   * reliability shape: per-attempt AbortController timeout, MAX_ATTEMPTS retries on
+   * network/5xx, and no retry on 4xx (deterministic). Throws a plain Error on terminal
+   * failure.
+   */
+  private async requestText(url: string, body: unknown): Promise<string> {
+    const fetchFn = this.config.fetchFn ?? (globalThis.fetch as FetchFn);
+    const payload = JSON.stringify(body);
+    let lastError = "";
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+      try {
+        const res = await fetchFn(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": this.config.apiKey(),
+          },
+          body: payload,
+          signal: controller.signal,
+        });
+        const text = await res.text();
+        if (res.ok) {
+          return text;
+        }
+        lastError = `HTTP ${res.status}`;
+        // 4xx are deterministic (bad request/quota) — no point retrying.
+        if (res.status >= 400 && res.status < 500) {
+          throw new Error(`generateOnce ${lastError}`);
+        }
+        // 5xx — fall through to retry
+      } catch (e) {
+        if (e instanceof Error && e.message.startsWith("generateOnce HTTP 4")) {
+          throw e;
+        }
+        lastError = e instanceof Error ? e.message : String(e);
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+    throw new Error(`generateOnce failed after ${MAX_ATTEMPTS} attempts: ${lastError}`);
   }
 
   async tts(
@@ -236,4 +306,100 @@ export function createGeminiProvider(apiKey: string): GeminiProvider {
     modelFor: (task: string) => modelFor(task as Task),
     apiKey: () => apiKey,
   });
+}
+
+/**
+ * Build a Gemini `:generateContent` body for structured JSON output (M2-01). The payload
+ * slice is sent as one user text part; the resolved prompt goes in `systemInstruction`.
+ */
+export function buildGenerateBody(
+  payload: unknown,
+  system?: string,
+  responseSchema?: unknown
+): Record<string, unknown> {
+  const generationConfig: Record<string, unknown> = {
+    responseMimeType: "application/json",
+  };
+  if (responseSchema !== undefined) {
+    generationConfig.responseSchema = responseSchema;
+  }
+  const body: Record<string, unknown> = {
+    contents: [{ role: "user", parts: [{ text: JSON.stringify(payload ?? {}) }] }],
+    generationConfig,
+  };
+  if (system) {
+    body.systemInstruction = { parts: [{ text: system }] };
+  }
+  return body;
+}
+
+/**
+ * Build a repair request: the original body plus the malformed model output and the
+ * parse error, asking for valid JSON (prompt-system.md:91 — repair once).
+ */
+export function buildRepairBody(
+  payload: unknown,
+  system: string | undefined,
+  responseSchema: unknown,
+  badOutput: string,
+  parseError: string
+): Record<string, unknown> {
+  const body = buildGenerateBody(payload, system, responseSchema);
+  (body.contents as unknown[]).push(
+    { role: "model", parts: [{ text: badOutput }] },
+    {
+      role: "user",
+      parts: [
+        {
+          text:
+            `The previous response was not valid JSON (${parseError}). ` +
+            "Respond again with ONE valid JSON object only — no code fences, " +
+            "no commentary — matching the required schema.",
+        },
+      ],
+    }
+  );
+  return body;
+}
+
+/**
+ * Pull the first text part out of a generateContent response and JSON.parse it into a
+ * top-level object. Throws on a shapeless response or non-object/invalid JSON — the
+ * caller (generateOnce) treats a throw as a parse failure and repairs once.
+ */
+export function extractJson(responseBody: string): RawJson {
+  const text = extractFirstText(responseBody);
+  const parsed = JSON.parse(stripCodeFences(text));
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error("generateOnce: expected a top-level JSON object");
+  }
+  return parsed as RawJson;
+}
+
+function extractFirstText(responseBody: string): string {
+  const trimmed = (responseBody ?? "").trim();
+  if (!trimmed) {
+    throw new Error("generateOnce: empty response");
+  }
+  const root = JSON.parse(trimmed) as {
+    candidates?: Array<{ content?: { parts?: Array<{ text?: unknown }> } }>;
+  };
+  const parts = root.candidates?.[0]?.content?.parts;
+  if (!Array.isArray(parts)) {
+    throw new Error("generateOnce: no candidate parts");
+  }
+  const text = parts
+    .map((p) => (typeof p.text === "string" ? p.text : ""))
+    .join("");
+  if (!text) {
+    throw new Error("generateOnce: no text part");
+  }
+  return text;
+}
+
+/** Strip a leading/trailing ```json … ``` fence if the model added one. */
+function stripCodeFences(text: string): string {
+  const trimmed = text.trim();
+  const fenced = /^```(?:json)?\s*([\s\S]*?)\s*```$/.exec(trimmed);
+  return (fenced ? fenced[1] : trimmed).trim();
 }
