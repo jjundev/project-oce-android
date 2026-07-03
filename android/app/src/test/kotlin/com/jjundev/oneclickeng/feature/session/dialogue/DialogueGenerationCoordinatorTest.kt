@@ -42,6 +42,13 @@ private class FakeDialogueStream : DialogueStream {
         channels.last().trySend(event)
     }
 
+    fun pushAt(
+        index: Int,
+        event: DialogueEvent,
+    ) {
+        channels[index].trySend(event)
+    }
+
     /** Close the current stream (SSE connection ends). */
     fun end() {
         channels.last().close()
@@ -138,7 +145,7 @@ class DialogueGenerationCoordinatorTest {
         }
 
     @Test
-    fun `error after Ready is ignored (Ready is sticky)`() =
+    fun `error after Ready keeps content and marks failed-after-ready`() =
         runTest {
             val stream = FakeDialogueStream()
             val coordinator = DialogueGenerationCoordinator(stream, coordScope())
@@ -152,7 +159,29 @@ class DialogueGenerationCoordinatorTest {
 
             val state = coordinator.state.value
             assertTrue(state is DialogueGenState.Ready)
-            assertEquals(listOf("Hi"), (state as DialogueGenState.Ready).turns.map { it.en })
+            state as DialogueGenState.Ready
+            assertEquals(listOf("Hi"), state.turns.map { it.en })
+            assertEquals(DialogueStreamStatus.FailedAfterReady, state.streamStatus)
+        }
+
+    @Test
+    fun `done after Ready keeps content and marks stream Done`() =
+        runTest {
+            val stream = FakeDialogueStream()
+            val coordinator = DialogueGenerationCoordinator(stream, coordScope())
+
+            coordinator.start("easy", "coffee", 5, true)
+            runCurrent()
+            stream.push(DialogueEvent.Turn(turn("Hi")))
+            runCurrent()
+            stream.push(DialogueEvent.Done("ok"))
+            runCurrent()
+
+            val state = coordinator.state.value
+            assertTrue(state is DialogueGenState.Ready)
+            state as DialogueGenState.Ready
+            assertEquals(listOf("Hi"), state.turns.map { it.en })
+            assertEquals(DialogueStreamStatus.Done, state.streamStatus)
         }
 
     @Test
@@ -263,6 +292,27 @@ class DialogueGenerationCoordinatorTest {
             runCurrent()
             val state = coordinator.state.value as DialogueGenState.Ready
             assertEquals(listOf("second-attempt"), state.turns.map { it.en })
+        }
+
+    @Test
+    fun `late event from superseded stream does not mutate current state`() =
+        runTest {
+            val stream = FakeDialogueStream()
+            val coordinator = DialogueGenerationCoordinator(stream, coordScope())
+
+            coordinator.start("easy", "coffee", 5, true)
+            runCurrent()
+            coordinator.start("normal", "travel", 10, false)
+            runCurrent()
+
+            stream.pushAt(0, DialogueEvent.Turn(turn("stale-attempt")))
+            runCurrent()
+            assertEquals(DialogueGenState.Generating, coordinator.state.value)
+
+            stream.push(DialogueEvent.Turn(turn("fresh-attempt")))
+            runCurrent()
+            val state = coordinator.state.value as DialogueGenState.Ready
+            assertEquals(listOf("fresh-attempt"), state.turns.map { it.en })
         }
 
     /** Coordinator scope on an unconfined dispatcher tied to the test scheduler (see speaking test). */

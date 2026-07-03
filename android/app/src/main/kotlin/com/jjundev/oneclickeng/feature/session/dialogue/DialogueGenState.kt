@@ -24,6 +24,7 @@ sealed interface DialogueGenState {
         val remaining: Int?,
         val meta: DialogueMeta?,
         val turns: List<DialogueTurn>,
+        val streamStatus: DialogueStreamStatus = DialogueStreamStatus.Streaming,
     ) : DialogueGenState
 
     /** Generation failed before producing any turn (error, premature close, or idle watchdog). */
@@ -36,4 +37,15 @@ sealed interface DialogueGenState {
      * 이미 렌더된 대본이 우선 — sticky). [remaining] 은 거부 시 상수 0이며 표시엔 쓰지 않는다(비숫자 정본).
      */
     data class QuotaBlocked(val remaining: Int) : DialogueGenState
+}
+
+/**
+ * Terminal status of the dialogue stream after the first renderable turn.
+ * [Ready] stays sticky for already-rendered content, while generated-session handoff still needs to know
+ * whether an unpaired final opponent line can be treated as a real closing turn.
+ */
+enum class DialogueStreamStatus {
+    Streaming,
+    Done,
+    FailedAfterReady,
 }
