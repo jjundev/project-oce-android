@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.navigation.compose.rememberNavController
 import com.jjundev.oneclickeng.ui.foundation.OceBottomNav
 import com.jjundev.oneclickeng.ui.root.AppRoot
+import com.jjundev.oneclickeng.ui.root.MAIN_TABS_ROUTE
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import org.junit.Rule
 import org.junit.Test
@@ -32,8 +33,10 @@ class AppNavigationTest {
 
     @Test
     fun threeTabsRenderAndSwitchContent() {
+        // 하니스(M1-09)는 debug 변이에서 기본 시작 목적지를 하니스 런처로 바꾼다. androidTest 는 debug
+        // 로 컴파일되므로, 3탭 부팅을 단언하려면 시작 목적지를 명시적으로 3탭 셸로 주입한다.
         composeRule.setContent {
-            OceTheme { AppRoot() }
+            OceTheme { AppRoot(startRoute = MAIN_TABS_ROUTE) }
         }
 
         // 3탭 모두 렌더.
