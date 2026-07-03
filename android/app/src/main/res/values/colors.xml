@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      리마인더 알림 강조색 = game.streak(#FF5C00). notification-reminder.md §5: 에러/경고색 재사용 금지,
+      streak 색만 사용. Compose 토큰(Color.kt GameStreakLight)과 동일 값의 플랫폼 리소스 미러 —
+      NotificationCompat.setColor 가 리소스 int 를 요구하므로 여기에 둔다.
+    -->
+    <color name="reminder_accent">#FFFF5C00</color>
+</resources>
