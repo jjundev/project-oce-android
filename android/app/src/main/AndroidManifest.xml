@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- /llm 프록시 호출(TTS 합성 등)을 위한 네트워크 권한 (M1-05). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- 런처 아이콘은 M0-04(icon-vectors)에서 추가한다. 지금은 시스템 기본 아이콘을 사용. -->
     <application
         android:name=".OceApp"
