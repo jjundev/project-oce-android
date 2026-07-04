@@ -141,6 +141,13 @@ dependencies {
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+    // mergeGuestData 콜러블 호출(M3-03 게스트 이관).
+    implementation(libs.firebase.functions)
+
+    // Credential Manager + Google ID 로그인(M3-03 Google 연결).
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

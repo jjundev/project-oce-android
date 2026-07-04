@@ -162,8 +162,8 @@ private fun NavGraphBuilder.summaryDestination(navController: NavHostController)
             sessionId = sessionId,
             userLevel = level,
             isFirstSession = first,
-            // primary(Google): M3-02 스텁 — 홈으로. 실제 linkWithCredential 은 M3-03 이 이 seam 을 교체.
-            onLinkGoogle = { navController.exitOnboardingToHome() },
+            // 연결/이관 성공(FR-3a/3b) 시 홈으로. 실제 linkWithCredential·mergeGuestData 는 시트가 소유(M3-03).
+            onLinked = { navController.exitOnboardingToHome() },
             onOneMore = { navController.navigate(onboardingTopicRoute(level = level, first = false)) },
             onExitToHome = { navController.exitOnboardingToHome() },
         )
@@ -180,7 +180,7 @@ private fun OnboardingSummaryDestination(
     sessionId: String,
     userLevel: String,
     isFirstSession: Boolean,
-    onLinkGoogle: () -> Unit,
+    onLinked: () -> Unit,
     onOneMore: () -> Unit,
     onExitToHome: () -> Unit,
 ) {
@@ -196,7 +196,7 @@ private fun OnboardingSummaryDestination(
         if (isFirstSession) {
             GoogleSavePromptSheet(
                 sessionId = sessionId,
-                onLinkGoogle = onLinkGoogle,
+                onLinked = onLinked,
                 onOneMore = onOneMore,
                 onSkip = onExitToHome,
             )
