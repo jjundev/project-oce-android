@@ -46,10 +46,20 @@ class StudytimeStore
             val unsynced: Boolean,
         )
 
-        /** [state] after an [accrue]; [changed] is false when the session was already settled (no-op). */
+        /**
+         * [state] after an [accrue]; [changed] is false when the session was already settled (no-op).
+         *
+         * [todaySecondsBefore]/[sameDayRepeat] are the accrual-strip count-up baseline (M3-06): the study
+         * time slot rolls its today bucket [todaySecondsBefore]→[State.todaySeconds], and the streak stays
+         * static on a same-day repeat ([sameDayRepeat]). Both are captured BEFORE the settled-set gate, so
+         * on an idempotent replay `before == after` (the settled session is already folded into the bucket)
+         * and [sameDayRepeat] is true — the strip snaps static, which is the desired replay behaviour.
+         */
         data class AccrualResult(
             val state: State,
             val changed: Boolean,
+            val todaySecondsBefore: Long,
+            val sameDayRepeat: Boolean,
         )
 
         /**
@@ -64,8 +74,16 @@ class StudytimeStore
             dayKey: String,
         ): AccrualResult {
             var changed = false
+            var todaySecondsBefore = 0L
+            var sameDayRepeat = false
             val prefs =
                 dataStore.edit { p ->
+                    // Capture the pre-accrual baseline BEFORE the settled-set gate (M3-06 count-up):
+                    // today's bucket is the study-time roll's "before" (0 on a KST day rollover), and a
+                    // same-day repeat holds the streak static.
+                    todaySecondsBefore = if (p[KEY_TODAY_KEY] == dayKey) p[KEY_TODAY_SECONDS] ?: 0L else 0L
+                    sameDayRepeat = p[KEY_LAST_STUDY_DATE] == dayKey
+
                     val settled = decodeIds(p[KEY_SETTLED])
                     if (sessionId in settled) return@edit // already accrued — leave everything untouched
                     changed = true
@@ -84,7 +102,7 @@ class StudytimeStore
                     p[KEY_SETTLED] = encodeIds((settled + sessionId).takeLast(MAX_SETTLED))
                     p[KEY_UNSYNCED] = true
                 }
-            return AccrualResult(toState(prefs), changed)
+            return AccrualResult(toState(prefs), changed, todaySecondsBefore, sameDayRepeat)
         }
 
         /** Current snapshot (drain / display reads). */

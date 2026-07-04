@@ -102,6 +102,68 @@ class StudytimeStoreTest {
         }
 
     @Test
+    fun `first accrual reports before=0 and not a same-day repeat (M3-06 countup baseline)`() =
+        runTest {
+            val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
+            val store = newStore(scope)
+
+            val r = store.accrue("s1", 300, "2026-07-04")
+
+            assertEquals(0L, r.todaySecondsBefore) // nothing studied today yet → roll 0→after
+            assertFalse(r.sameDayRepeat) // first study of the day → streak animates
+
+            scope.cancel()
+        }
+
+    @Test
+    fun `same-day second session reports before=prior bucket and same-day repeat (streak static)`() =
+        runTest {
+            val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
+            val store = newStore(scope)
+
+            store.accrue("s1", 300, "2026-07-04")
+            val r = store.accrue("s2", 120, "2026-07-04")
+
+            assertEquals(300L, r.todaySecondsBefore) // before = today bucket prior to this session
+            assertEquals(420L, r.state.todaySeconds) // after = accumulated
+            assertTrue(r.sameDayRepeat) // already studied today → streak stays static
+
+            scope.cancel()
+        }
+
+    @Test
+    fun `replay reports before==after and same-day repeat (strip snaps static)`() =
+        runTest {
+            val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
+            val store = newStore(scope)
+
+            store.accrue("s1", 300, "2026-07-04")
+            val replay = store.accrue("s1", 300, "2026-07-04")
+
+            assertFalse(replay.changed) // idempotent no-op
+            assertEquals(replay.state.todaySeconds, replay.todaySecondsBefore) // before == after → static
+            assertTrue(replay.sameDayRepeat)
+
+            scope.cancel()
+        }
+
+    @Test
+    fun `day rollover reports before=0 (new day bucket rolls from zero)`() =
+        runTest {
+            val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
+            val store = newStore(scope)
+
+            store.accrue("s1", 300, "2026-07-04")
+            val r = store.accrue("s2", 200, "2026-07-05")
+
+            assertEquals(0L, r.todaySecondsBefore) // new KST day → today bucket starts at 0
+            assertEquals(200L, r.state.todaySeconds)
+            assertFalse(r.sameDayRepeat) // different day → streak animates
+
+            scope.cancel()
+        }
+
+    @Test
     fun `markSynced clears the write-ahead flag`() =
         runTest {
             val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())

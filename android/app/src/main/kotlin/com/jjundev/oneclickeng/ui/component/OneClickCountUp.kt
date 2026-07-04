@@ -29,7 +29,8 @@ import kotlin.math.roundToInt
  * 03-signature-interactions.md I3(:45-46). RewardStrip 이 이를 **합성**하지 흡수하지 않는다.
  *
  * 두 애니메이터로 구성한다(정본 인용, 재결정 금지 — 수치·구조는 SoT, Compose 이징명은 그 매핑):
- *  1. **값 롤업** [Animatable] 0→[target] 을 `keyframes`(총 [OceMotion.slotMachineTotalMs]=1260ms,
+ *  1. **값 롤업** [Animatable] [from]→[target] 을 `keyframes`(기본 [from]=0; 학습시간 오늘 누계 before→after
+ *     롤업(§4.4)은 [from]=세션 전 값. 총 [OceMotion.slotMachineTotalMs]=1260ms,
  *     [OceMotion.slotMachineFastPhaseMs]=800ms 지점까지 0.98·target 급가속 후 감속) 로 굴린다.
  *  2. **scaleY 스프링 바운스** [Animatable] [OceMotion.slotMachineSnapFrom](0.92)→
  *     [OceMotion.slotMachineSnapTo](1.0) 을 `spring` 으로 튕긴다(롤업과 독립 축).
@@ -42,6 +43,7 @@ import kotlin.math.roundToInt
 fun OneClickCountUp(
     target: Int,
     modifier: Modifier = Modifier,
+    from: Int = 0,
     unit: String = "",
     static: Boolean = false,
     reduceMotion: Boolean = rememberReduceMotion(),
@@ -50,25 +52,26 @@ fun OneClickCountUp(
 ) {
     val snap = static || reduceMotion
     val motion = OceTheme.motion
-    val value = remember { Animatable(if (snap) target.toFloat() else 0f) }
+    val value = remember { Animatable(if (snap) target.toFloat() else from.toFloat()) }
     val scale = remember { Animatable(if (snap) motion.slotMachineSnapTo else motion.slotMachineSnapFrom) }
     val finalLabel = "$target$unit"
 
-    LaunchedEffect(target, snap) {
+    LaunchedEffect(target, from, snap) {
         if (snap) {
             value.snapTo(target.toFloat())
             scale.snapTo(motion.slotMachineSnapTo)
         } else {
-            value.snapTo(0f)
+            value.snapTo(from.toFloat())
             scale.snapTo(motion.slotMachineSnapFrom)
+            // fast-phase 지점은 [from]→[target] 구간의 slotMachineSnapFrom(92%) 지점(0-베이스일 때 기존과 동일).
+            val fastPhaseValue = from + (target - from) * motion.slotMachineSnapFrom
             value.animateTo(
                 targetValue = target.toFloat(),
                 animationSpec =
                     keyframes {
                         durationMillis = motion.slotMachineTotalMs
-                        0f at 0 using FastOutLinearInEasing
-                        (target * motion.slotMachineSnapFrom) at
-                            motion.slotMachineFastPhaseMs using LinearOutSlowInEasing
+                        from.toFloat() at 0 using FastOutLinearInEasing
+                        fastPhaseValue at motion.slotMachineFastPhaseMs using LinearOutSlowInEasing
                         target.toFloat() at motion.slotMachineTotalMs
                     },
             )

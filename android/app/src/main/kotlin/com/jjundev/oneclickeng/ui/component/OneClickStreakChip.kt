@@ -27,11 +27,15 @@ private val StreakChipIconSize = 16.dp
  *
  * 주: DS `OneClickBadge`(비파일럿) 는 컨테이너가 `primary` 로 고정돼 `game.streak` 를 표현할 수 없어,
  * 그 프리미티브가 KDoc 으로 예고한 대로 여기서 pill 변형을 **합성**한다(아이콘 노드는 실제 [OneClickIcon]).
+ *
+ * 숫자는 [OneClickCountUp](C16)으로 굴린다. [static] 기본값은 true 라 홈(M3-08)·한도 패널 등 상시 노출 surface
+ * 는 정적 유지(ADR-0003 홈 제외)하고, 완주 보상 스트립만 `static=false` 로 슬롯머신 롤업한다(M3-06).
  */
 @Composable
 fun OneClickStreakChip(
     days: Int,
     modifier: Modifier = Modifier,
+    static: Boolean = true,
 ) {
     Row(
         modifier =
@@ -48,8 +52,10 @@ fun OneClickStreakChip(
             tint = MaterialTheme.colorScheme.onPrimary,
             size = StreakChipIconSize,
         )
-        Text(
-            text = "$days 일",
+        OneClickCountUp(
+            target = days,
+            unit = " 일",
+            static = static,
             style = OceTheme.typography.sectionLabel,
             color = MaterialTheme.colorScheme.onPrimary,
         )
