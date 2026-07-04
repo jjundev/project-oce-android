@@ -3,12 +3,14 @@
 package com.jjundev.oneclickeng.feature.session.summary
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -32,6 +34,7 @@ import com.jjundev.oneclickeng.ui.component.OneClickXpChip
 import com.jjundev.oneclickeng.ui.component.SkeletonShape
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
+import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /**
@@ -51,6 +54,8 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
 fun SummaryScreen(
     state: SummaryState,
     onRetry: (SummarySection) -> Unit,
+    onToggleSaveWord: (Int) -> Unit,
+    onToggleSaveExpression: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // "더 보기" 접힘 상태(#15): 섹션별 독립, 초기 접힘. 기본 표시 [COLLAPSED_PREVIEW]개.
@@ -71,6 +76,10 @@ fun SummaryScreen(
             bundle = state.bundle,
             expanded = expanded,
             onRetry = onRetry,
+            savedWordIndices = state.savedWordIndices,
+            savedExprIndices = state.savedExprIndices,
+            onToggleSaveWord = onToggleSaveWord,
+            onToggleSaveExpression = onToggleSaveExpression,
         )
         BookmarkSection(state.bookmarks)
     }
@@ -188,6 +197,10 @@ private fun SseBundle(
     bundle: SectionBundle,
     expanded: MutableMap<SummarySection, Boolean>,
     onRetry: (SummarySection) -> Unit,
+    savedWordIndices: Set<Int>,
+    savedExprIndices: Set<Int>,
+    onToggleSaveWord: (Int) -> Unit,
+    onToggleSaveExpression: (Int) -> Unit,
 ) {
     when (bundle) {
         is SectionBundle.BundleLoading ->
@@ -216,19 +229,24 @@ private fun SseBundle(
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sectionGap),
             ) {
-                ExpressionSection(bundle.expression, expanded, onRetry)
-                WordSection(bundle.word, expanded, onRetry)
+                ExpressionSection(bundle.expression, expanded, onRetry, savedExprIndices, onToggleSaveExpression)
+                WordSection(bundle.word, expanded, onRetry, savedWordIndices, onToggleSaveWord)
                 CoachingSection(bundle.coaching, onRetry)
             }
     }
 }
 
-/** ④ 표현 개선(≤8) — Ready 카드 + "더 보기", Failed 인라인 재시도, Loading(재시도 중) 스켈레톤. */
+/**
+ * ④ 표현 개선(≤8) — Ready 카드 + "더 보기", Failed 인라인 재시도, Loading(재시도 중) 스켈레톤. Ready 카드에만
+ * 저장 토글이 붙는다(M2-04). 저장 어포던스가 Ready 에만 있어 retry(Failed 전용) 재생성과 인덱스가 충돌하지 않는다.
+ */
 @Composable
 private fun ExpressionSection(
     stateOf: SummarySectionState<List<ExpressionCard>>,
     expanded: MutableMap<SummarySection, Boolean>,
     onRetry: (SummarySection) -> Unit,
+    savedIndices: Set<Int>,
+    onToggleSave: (Int) -> Unit,
 ) {
     SectionScaffold(title = "표현 개선") {
         SectionBody(
@@ -238,17 +256,23 @@ private fun ExpressionSection(
             emptyTitle = "이번 세션엔 다듬을 표현이 없었어요",
             emptySubtitle = "다음 대화에서 새 표현을 만나볼까요?",
         ) { items ->
-            ExpandableCards(SummarySection.Expression, items, expanded) { card -> ExpressionCardBody(card) }
+            ExpandableCards(SummarySection.Expression, items, expanded) { index, card ->
+                SavableCardRow(saved = index in savedIndices, onToggle = { onToggleSave(index) }) {
+                    ExpressionCardBody(card)
+                }
+            }
         }
     }
 }
 
-/** ⑤ 신규 단어(≤12) — 동일 패턴. */
+/** ⑤ 신규 단어(≤12) — 동일 패턴(저장 토글 포함). */
 @Composable
 private fun WordSection(
     stateOf: SummarySectionState<List<WordCard>>,
     expanded: MutableMap<SummarySection, Boolean>,
     onRetry: (SummarySection) -> Unit,
+    savedIndices: Set<Int>,
+    onToggleSave: (Int) -> Unit,
 ) {
     SectionScaffold(title = "새로 만난 단어") {
         SectionBody(
@@ -258,7 +282,11 @@ private fun WordSection(
             emptyTitle = "이번 세션엔 새 단어가 없었어요",
             emptySubtitle = "조금 더 어려운 주제도 시도해볼 수 있어요.",
         ) { items ->
-            ExpandableCards(SummarySection.Word, items, expanded) { card -> WordCardBody(card) }
+            ExpandableCards(SummarySection.Word, items, expanded) { index, card ->
+                SavableCardRow(saved = index in savedIndices, onToggle = { onToggleSave(index) }) {
+                    WordCardBody(card)
+                }
+            }
         }
     }
 }
@@ -398,19 +426,23 @@ private fun RetryRow(
     }
 }
 
-/** "더 보기" 접힘 카드 목록(#15): 초기 [COLLAPSED_PREVIEW]개 → 전개 시 전체(상한은 코디네이터가 이미 컷). */
+/**
+ * "더 보기" 접힘 카드 목록(#15): 초기 [COLLAPSED_PREVIEW]개 → 전개 시 전체(상한은 코디네이터가 이미 컷).
+ * [card] 에 넘기는 index 는 원본 [items] 의 0-기반 순번(=cardId sourceIndex) — `take`/전체 모두 front prefix 라
+ * 표시 인덱스가 원본 인덱스와 일치한다.
+ */
 @Composable
 private fun <T> ExpandableCards(
     section: SummarySection,
     items: List<T>,
     expanded: MutableMap<SummarySection, Boolean>,
-    card: @Composable (T) -> Unit,
+    card: @Composable (Int, T) -> Unit,
 ) {
     val isExpanded = expanded[section] == true
     val visible = if (isExpanded) items else items.take(COLLAPSED_PREVIEW)
     Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
-        visible.forEach { item ->
-            OneClickCard { card(item) }
+        visible.forEachIndexed { index, item ->
+            OneClickCard { card(index, item) }
         }
         if (items.size > COLLAPSED_PREVIEW) {
             TextButton(onClick = { expanded[section] = !isExpanded }) {
@@ -420,6 +452,33 @@ private fun <T> ExpandableCards(
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
+        }
+    }
+}
+
+/**
+ * 저장 토글이 붙은 카드 행(M2-04) — 본문(weight 1f) + 우상단 북마크 IconToggleButton(deep `ParaphraseCard`
+ * 미러). 저장=채운 북마크 + primary tint, 미저장=빈 북마크. 낙관적: 탭 즉시 표시, 영속은 코디네이터가 배경 처리.
+ */
+@Composable
+private fun SavableCardRow(
+    saved: Boolean,
+    onToggle: () -> Unit,
+    body: @Composable () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Box(modifier = Modifier.weight(1f)) { body() }
+        val tint =
+            if (saved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+        IconToggleButton(checked = saved, onCheckedChange = { onToggle() }) {
+            OneClickIcon(
+                icon = if (saved) OceIcon.Bookmark else OceIcon.BookmarkBorder,
+                contentDescription = if (saved) "저장 해제" else "저장",
+                tint = tint,
+            )
         }
     }
 }
@@ -557,8 +616,11 @@ private fun SummaryRichPreview() {
                     bookmarks = listOf(BookmarkCard("I got lost on the way.", "오는 길에 길을 잃었어요.")),
                     accrual = previewAccrual,
                     bundle = previewRichBundle,
+                    savedWordIndices = setOf(0),
                 ),
             onRetry = {},
+            onToggleSaveWord = {},
+            onToggleSaveExpression = {},
         )
     }
 }
@@ -578,6 +640,8 @@ private fun SummaryLoadingPreview() {
                     bundle = SectionBundle.BundleLoading,
                 ),
             onRetry = {},
+            onToggleSaveWord = {},
+            onToggleSaveExpression = {},
         )
     }
 }

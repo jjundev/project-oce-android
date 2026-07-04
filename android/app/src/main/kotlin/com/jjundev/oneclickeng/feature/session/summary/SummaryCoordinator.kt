@@ -5,6 +5,10 @@ import com.jjundev.oneclickeng.core.network.SummaryEvent
 import com.jjundev.oneclickeng.core.network.SummaryPayload
 import com.jjundev.oneclickeng.core.network.SummaryRequest
 import com.jjundev.oneclickeng.core.network.SummaryStream
+import com.jjundev.oneclickeng.feature.session.saved.CardType
+import com.jjundev.oneclickeng.feature.session.saved.SavedCard
+import com.jjundev.oneclickeng.feature.session.saved.SavedCardId
+import com.jjundev.oneclickeng.feature.session.saved.SavedCardRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -56,6 +60,7 @@ class SummaryCoordinator
         private val turnBuffer: SessionTurnBufferStore,
         private val bookmarkSource: BookmarkSource,
         private val ledger: CompletionLedger,
+        private val savedCardRepository: SavedCardRepository,
         private val scope: CoroutineScope,
     ) {
         private val _state = MutableStateFlow(EMPTY)
@@ -77,6 +82,10 @@ class SummaryCoordinator
         private var accrual: AccrualStrip = AccrualStrip(streakDays = 0, studyTimeLabel = "", xp = 0)
         private var bookmarks: List<BookmarkCard> = emptyList()
         private var isFirstSession = false
+
+        // 저장 카드 낙관적 UI 축(M2-04). sourceIndex=표시 인덱스. start()/reset() 에서만 초기화된다.
+        private var savedWordIndices = emptySet<Int>()
+        private var savedExprIndices = emptySet<Int>()
 
         // Per-section accumulators. Before the first `done`, arrived cards set Ready but the bundle
         // still shows BundleLoading (single skeleton) until [sectioned] flips.
@@ -110,6 +119,8 @@ class SummaryCoordinator
             totalScore = turnBuffer.totalScore()
             highlight = turnBuffer.highlightBase()
             bookmarks = emptyList()
+            savedWordIndices = emptySet()
+            savedExprIndices = emptySet()
             payloadTurns = turnBuffer.turns()
             payloadScore = totalScore ?: 0
             expression = SummarySectionState.Loading
@@ -153,7 +164,43 @@ class SummaryCoordinator
             watchdogJob?.cancel()
             currentJob = null
             sessionId = null
+            savedWordIndices = emptySet()
+            savedExprIndices = emptySet()
             _state.value = EMPTY
+        }
+
+        /**
+         * 단어 카드 저장 토글(M2-04, sourceIndex=[index]). Ready 섹션에서만 호출된다(호출부 게이팅). 낙관적으로
+         * [savedWordIndices] 를 토글하고 결정적 cardId 로 영속화한다(add→save / remove→톰스톤). 세션·해당 인덱스
+         * 카드가 없으면 no-op.
+         */
+        fun toggleSaveWord(index: Int) {
+            val id = sessionId ?: return
+            val card = (word as? SummarySectionState.Ready)?.value?.getOrNull(index) ?: return
+            val added = index !in savedWordIndices
+            savedWordIndices = if (added) savedWordIndices + index else savedWordIndices - index
+            val cardId = SavedCardId.forSummary(id, CardType.WORD, index)
+            if (added) {
+                savedCardRepository.save(cardId, card.toSavedCard())
+            } else {
+                savedCardRepository.setDeleted(cardId, CardType.WORD, deleted = true)
+            }
+            emit()
+        }
+
+        /** 표현 카드 저장 토글(M2-04, sourceIndex=[index]). [toggleSaveWord] 와 동형(EXPRESSION 타입). */
+        fun toggleSaveExpression(index: Int) {
+            val id = sessionId ?: return
+            val card = (expression as? SummarySectionState.Ready)?.value?.getOrNull(index) ?: return
+            val added = index !in savedExprIndices
+            savedExprIndices = if (added) savedExprIndices + index else savedExprIndices - index
+            val cardId = SavedCardId.forSummary(id, CardType.EXPRESSION, index)
+            if (added) {
+                savedCardRepository.save(cardId, card.toSavedCard())
+            } else {
+                savedCardRepository.setDeleted(cardId, CardType.EXPRESSION, deleted = true)
+            }
+            emit()
         }
 
         private fun loadBookmarks(sessionId: String) {
@@ -345,6 +392,8 @@ class SummaryCoordinator
                     bookmarks = bookmarks,
                     accrual = accrual,
                     bundle = bundle,
+                    savedWordIndices = savedWordIndices,
+                    savedExprIndices = savedExprIndices,
                     isFirstSession = isFirstSession,
                 )
         }
