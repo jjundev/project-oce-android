@@ -23,8 +23,15 @@
 import { getFirestore } from "firebase-admin/firestore";
 import { ErrorCode } from "../types/protocol";
 
-/** default per-session cap multiplier: cap = turnCount × factor (backend-functions.md:99,150). */
-export const DEFAULT_CAP_FACTOR = 2;
+/**
+ * default per-session cap multiplier: cap = turnCount × factor (backend-functions.md:99,150).
+ *
+ * Bumped 2→3 for M2-03: `feedbackDeep` joins `feedback` + `speaking` as a THIRD per-turn consumer
+ * of the shared `sessions/{id}.callCount` budget (user-confirmed shared-counter policy). Deep is
+ * on-demand (≤1/turn, cached after first expand — turn-feedback-ia.md P3), so the added pressure is
+ * bounded, but the per-turn allowance widens to cover slim + speaking + deep without starving them.
+ */
+export const DEFAULT_CAP_FACTOR = 3;
 
 /** per-session cap reached — mapped to 429 CAP_EXCEEDED. */
 export class CapExceededError extends Error {

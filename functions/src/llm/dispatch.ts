@@ -9,6 +9,7 @@ export const TASKS: readonly Task[] = [
   "dialogue",
   "speaking",
   "feedback",
+  "feedbackDeep",
   "summary",
   "tts",
 ];
@@ -16,12 +17,13 @@ export const TASKS: readonly Task[] = [
 const RESPONSE_MODE: Record<Task, ResponseMode> = {
   dialogue: "sse",
   feedback: "sse",
+  feedbackDeep: "sse",
   summary: "sse",
   speaking: "json",
   tts: "json",
 };
 
-/** type guard — is the value one of the five known tasks? */
+/** type guard — is the value one of the known tasks? */
 export function isTask(value: unknown): value is Task {
   return (
     typeof value === "string" && (TASKS as readonly string[]).includes(value)

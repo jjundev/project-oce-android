@@ -12,6 +12,7 @@ export const MODEL_IDS: Record<Task, string> = {
   dialogue: "gemini-2.5-flash",
   speaking: "gemini-2.5-flash",
   feedback: "gemini-2.5-flash",
+  feedbackDeep: "gemini-2.5-flash",
   summary: "gemini-2.5-flash",
   tts: "gemini-2.5-flash-preview-tts",
 };

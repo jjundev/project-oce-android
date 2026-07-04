@@ -2,7 +2,6 @@ package com.jjundev.oneclickeng.feature.session.feedback
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -31,17 +30,30 @@ import com.jjundev.oneclickeng.ui.component.primitive.OneClickBottomSheet
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /**
- * 화면 04 — 턴 슬림 피드백 시트(M1-07). 단일 [OneClickBottomSheet] 에 ⓪ 리캡 헤더(즉시)+ slim 3섹션(시머
- * 점진 렌더)+ [더 보기(비활성)]·[다음] 을 싣는다. 정본: turn-feedback-ia.md §2·§3 · 04-screen-04-feedback-sheet.md.
+ * 화면 04 — 턴 피드백 시트(M1-07 slim + M2-03 deep). 단일 [OneClickBottomSheet] 에 ⓪ 리캡 헤더(즉시)+
+ * slim 3섹션(시머 점진 렌더)+ [더 보기/접기]·(deep 영역)·[다음] 을 싣는다. 정본: turn-feedback-ia.md
+ * §2·§3·§4 · 04-screen-04-feedback-sheet.md.
  *
  * 섹션 렌더는 [SectionState] 로 분기: Loading → 시머 스켈레톤(C6) · Ready → 실데이터 · Failed → 인라인 에러
  * (canRetry 에 따라 재시도/스킵) · Skipped → 무음 건너뜀 표시. "다음" 은 3섹션이 모두 settled 일 때만 활성
- * (점수 gate 없음, §7). deep "더 보기" 는 비활성 플레이스홀더(M2-03 소관, §20).
+ * (점수 gate 없음, §7).
+ *
+ * **deep "더 보기"(M2-03):** slim 3섹션이 모두 settled([SlimFeedbackState.Active.nextEnabled] 재사용 —
+ * "다음"과 동일 게이트)면 활성화된다. 탭 시 [onExpandDeep]/[onCollapseDeep] 로 접기↔펴기하고, 펼침 상태에서
+ * slim 섹션 아래·"다음" 위에 [DeepFeedbackRegion] 을 인라인 렌더한다. deep 상태([deepState])·재시도·북마크
+ * 토글은 호스트가 [DeepFeedbackCoordinator] 로 구동한다(라이브 배선은 통합 소관 — M1-08).
  *
  * @param onRetry 실패 섹션 재시도(코디네이터 [SlimFeedbackCoordinator.retry]).
  * @param onSkip 반복 실패 섹션 스킵([SlimFeedbackCoordinator.skip]).
  * @param onNext 다음 턴 진행(활성 조건은 시트가 게이팅).
  * @param onDismiss 시트 dismiss.
+ * @param deepState deep 상태축([DeepFeedbackCoordinator.state]).
+ * @param deepExpanded "더 보기" 펼침 여부(호스트 소유 UI 상태).
+ * @param onExpandDeep "더 보기" 첫 탭 → deep 개시/펼침([DeepFeedbackCoordinator.start]).
+ * @param onCollapseDeep "접기" 탭 → 접기(재호출 없음, 캐시 유지, P3).
+ * @param onRetryDeep deep 영역 재시도([DeepFeedbackCoordinator.retry]).
+ * @param bookmarkedLevels 턴 내 ephemeral 북마크 레벨.
+ * @param onToggleBookmark 패러프레이즈 저장 토글 seam(M2-04 영속).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +64,13 @@ fun SlimFeedbackSheet(
     onNext: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    deepState: DeepFeedbackState = DeepFeedbackState.Idle,
+    deepExpanded: Boolean = false,
+    onExpandDeep: () -> Unit = {},
+    onCollapseDeep: () -> Unit = {},
+    onRetryDeep: () -> Unit = {},
+    bookmarkedLevels: Set<Int> = emptySet(),
+    onToggleBookmark: (Paraphrase) -> Unit = {},
 ) {
     if (state is SlimFeedbackState.Idle) return
 
@@ -86,7 +105,21 @@ fun SlimFeedbackSheet(
                         onRetry = onRetry,
                         onSkip = onSkip,
                     ) { NaturalContent(it) }
-                    SheetActions(nextEnabled = state.nextEnabled, onNext = onNext)
+                    // 더 보기 게이트 = nextEnabled 재사용(모두 settled) — "다음"과 동일 술어(A4/A5).
+                    MoreToggleButton(
+                        expanded = deepExpanded,
+                        enabled = state.nextEnabled,
+                        onClick = { if (deepExpanded) onCollapseDeep() else onExpandDeep() },
+                    )
+                    if (deepExpanded && deepState !is DeepFeedbackState.Idle) {
+                        DeepFeedbackRegion(
+                            state = deepState,
+                            onRetry = onRetryDeep,
+                            bookmarkedLevels = bookmarkedLevels,
+                            onToggleBookmark = onToggleBookmark,
+                        )
+                    }
+                    NextButton(enabled = state.nextEnabled, onNext = onNext)
                 }
                 is SlimFeedbackState.QuotaBlocked -> {
                     RecapHeaderBlock(state.header)
@@ -96,7 +129,8 @@ fun SlimFeedbackSheet(
                         style = OceTheme.typography.body,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    SheetActions(nextEnabled = true, onNext = onNext)
+                    // 슬림 캡 거부 → Ready 섹션이 없으므로 "더 보기" 미노출, "다음"만.
+                    NextButton(enabled = true, onNext = onNext)
                 }
                 is SlimFeedbackState.Idle -> Unit // unreachable (early return)
             }
@@ -218,40 +252,46 @@ private fun NaturalContent(value: NaturalExpression) {
     }
 }
 
-/** [더 보기(비활성 플레이스홀더, M2-03)] · [다음(settled 시 활성, §7)]. */
+/**
+ * [더 보기/접기] 토글(M2-03). slim 3섹션이 모두 settled([enabled])이면 활성 — deep 를 개시/펼치거나 접는다.
+ * 스킵된 슬림 섹션이 있으면(settled=true) 활성이 유지된다(nextEnabled 재사용, "다음"과 동일 게이트).
+ */
 @Composable
-private fun SheetActions(
-    nextEnabled: Boolean,
+private fun MoreToggleButton(
+    expanded: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = if (expanded) "접기" else "더 보기",
+            style = OceTheme.typography.sectionLabel,
+            textDecoration = TextDecoration.None,
+        )
+    }
+}
+
+/** [다음(settled 시 활성, §7 — 점수 gate 없음)]. */
+@Composable
+private fun NextButton(
+    enabled: Boolean,
     onNext: () -> Unit,
 ) {
-    Row(
+    Button(
+        onClick = onNext,
+        enabled = enabled,
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+        colors =
+            ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ),
     ) {
-        OutlinedButton(
-            onClick = {},
-            enabled = false,
-            modifier = Modifier.weight(1f),
-        ) {
-            // deep 확장은 M2-03 소관 — 슬롯만 잡아두는 비활성 플레이스홀더(§20).
-            Text(
-                text = "더 보기",
-                style = OceTheme.typography.sectionLabel,
-                textDecoration = TextDecoration.None,
-            )
-        }
-        Button(
-            onClick = onNext,
-            enabled = nextEnabled,
-            modifier = Modifier.weight(1f),
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-        ) {
-            Text(text = "다음", style = OceTheme.typography.sectionLabel)
-        }
+        Text(text = "다음", style = OceTheme.typography.sectionLabel)
     }
 }
 
@@ -289,20 +329,13 @@ private fun SlimFeedbackReadyPreview() {
                     reason = Reason(keyword = "구어체", description = "가볍게 주문할 때 자연스러운 표현이에요."),
                 ),
             )
+            // 이미 자연스러운 경우(all-normal → reason 숨김, §3.3).
+            NaturalContent(
+                NaturalExpression(
+                    segments = listOf(RichSegment.Normal("Could I grab a coffee?")),
+                    reason = Reason(keyword = "자연스러움", description = "이미 자연스러워요."),
+                ),
+            )
         }
-    }
-}
-
-@Suppress("UnusedPrivateMember")
-@Preview(showBackground = true, widthDp = 360)
-@Composable
-private fun SlimFeedbackAlreadyNaturalPreview() {
-    OceTheme {
-        NaturalContent(
-            NaturalExpression(
-                segments = listOf(RichSegment.Normal("Could I grab a coffee?")),
-                reason = Reason(keyword = "자연스러움", description = "이미 자연스러워요."),
-            ),
-        )
     }
 }

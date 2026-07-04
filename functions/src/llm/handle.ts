@@ -41,6 +41,10 @@ import {
   orchestrateFeedback,
   parseFeedbackPayload,
 } from "./feedback";
+import {
+  orchestrateFeedbackDeep,
+  parseFeedbackDeepPayload,
+} from "./feedbackDeep";
 import { DailyLimitError, StartGate, StartResult } from "./start-gate";
 import { SpeakingAnalyzeError, TtsSynthError } from "../providers/gemini";
 import { LlmProvider } from "../providers/LlmProvider";
@@ -118,6 +122,9 @@ export async function handle(
       } else if (task === "feedback" && deps.provider && deps.sessionGate) {
         // task=feedback, implemented — per-session cap gate + streaming slim-section parser (M1-07).
         await handleFeedback(body, uid, deps.provider, deps.sessionGate, res);
+      } else if (task === "feedbackDeep" && deps.provider && deps.sessionGate) {
+        // task=feedbackDeep, implemented — shared cap gate + streaming deep-section parser (M2-03).
+        await handleFeedbackDeep(body, uid, deps.provider, deps.sessionGate, res);
       } else {
         // SSE stub — dialogue/feedback/summary without their injected deps.
         openSse(res);
@@ -271,6 +278,69 @@ async function handleFeedback(
   openSse(res);
   try {
     await orchestrateFeedback(payload, provider, res);
+  } catch {
+    // Post-openSse failure: typed error + done + close FIRST, then refund the reserved slot (A1).
+    writeEvent(res, { event: "error", data: { code: ErrorCode.INTERNAL } });
+    writeEvent(res, { event: "done", data: { status: "error" } });
+    res.end();
+    await gate.refund(sessionId);
+  }
+}
+
+/**
+ * Handle `task=feedbackDeep` (SSE, backend-functions.md §8, feedback-deep.md) — the on-demand
+ * "더 보기" deep analysis (M2-03). Structurally identical to `handleFeedback`: validate payload +
+ * sessionId, reserve a per-session cap slot (the SHARED counter — deep is a third consumer alongside
+ * slim feedback + speaking, factor bumped 2→3) BEFORE opening the stream, so a malformed body → 400,
+ * a foreign/expired session → 403, and a cap rejection → 429 all land with headers unsent (a cap
+ * rejection is a PRE-STREAM 429, never an in-stream retryable error). Once reserved, opens the stream
+ * and delegates to the streaming deep-section parser; a post-openSse failure emits `error`+`done`,
+ * closes, THEN refunds the slot so only successful calls count (A1).
+ */
+async function handleFeedbackDeep(
+  body: Partial<RequestBody>,
+  uid: string,
+  provider: LlmProvider,
+  gate: SessionGate,
+  res: HandlerResponse
+): Promise<void> {
+  // sessionId is a top-level envelope field (backend-functions.md:45,47), not in payload.
+  const sessionId =
+    typeof body.sessionId === "string" ? body.sessionId.trim() : "";
+  let payload;
+  try {
+    if (!sessionId) {
+      throw new InvalidFeedbackPayloadError("missing sessionId");
+    }
+    payload = parseFeedbackDeepPayload(body.payload);
+  } catch (e) {
+    if (e instanceof InvalidFeedbackPayloadError) {
+      res.status(400).json({ code: ErrorCode.INVALID_PAYLOAD });
+      return;
+    }
+    throw e;
+  }
+
+  // Cap gate BEFORE opening the stream — a cap/invalid rejection is a pre-stream JSON status
+  // (headers unsent), never an SSE frame (mirrors handleFeedback).
+  try {
+    await gate.reserve(uid, sessionId);
+  } catch (e) {
+    if (e instanceof CapExceededError) {
+      res.status(429).json({ code: ErrorCode.CAP_EXCEEDED });
+      return;
+    }
+    if (e instanceof SessionInvalidError) {
+      res.status(403).json({ code: ErrorCode.SESSION_INVALID });
+      return;
+    }
+    throw e; // → outer catch 500 (headers still unsent)
+  }
+
+  // Gate passed — open the stream and generate the three deep sections.
+  openSse(res);
+  try {
+    await orchestrateFeedbackDeep(payload, provider, res);
   } catch {
     // Post-openSse failure: typed error + done + close FIRST, then refund the reserved slot (A1).
     writeEvent(res, { event: "error", data: { code: ErrorCode.INTERNAL } });

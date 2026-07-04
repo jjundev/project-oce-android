@@ -16,6 +16,7 @@ export type SseObjectType =
   | "dialogueMeta"
   | "turn"
   | "feedbackSection"
+  | "feedbackDeepSection"
   | "summaryCard";
 
 /** summary card variants — backend-functions.md:55 */
@@ -30,9 +31,22 @@ export type SummaryCardKind = "expression" | "word" | "coaching";
 export type FeedbackSection = "writingScore" | "grammar" | "naturalExpression";
 
 /**
+ * deep feedback section discriminator — M2-03. Deep analysis is a SEPARATE on-demand call
+ * ("더 보기") with its OWN outer `event:object type` fixed to "feedbackDeepSection" — kept
+ * distinct from slim's "feedbackSection" so the two contracts don't share a section union
+ * (widening `FeedbackSection` with deep-only names would pollute the slim type). Fixed emit
+ * order: conceptualBridge → toneStyle → paraphrasing (feedback-deep.md propertyOrdering).
+ */
+export type DeepFeedbackSection =
+  | "conceptualBridge"
+  | "toneStyle"
+  | "paraphrasing";
+
+/**
  * Per-object payload, discriminated by `type`. `turn` / dialogue meta bodies are
- * filled in by the M1 handlers; `feedbackSection` (M1-07) and `summaryCard` carry an
- * inner section/kind discriminator the SoT fixes (backend-functions.md:53-55).
+ * filled in by the M1 handlers; `feedbackSection` (M1-07), `feedbackDeepSection` (M2-03),
+ * and `summaryCard` carry an inner section/kind discriminator the SoT fixes
+ * (backend-functions.md:53-55).
  */
 export type SseObject =
   | { type: "dialogueMeta"; data: unknown }
@@ -40,6 +54,10 @@ export type SseObject =
   | {
       type: "feedbackSection";
       data: { section: FeedbackSection } & Record<string, unknown>;
+    }
+  | {
+      type: "feedbackDeepSection";
+      data: { section: DeepFeedbackSection } & Record<string, unknown>;
     }
   | { type: "summaryCard"; data: { kind: SummaryCardKind } & Record<string, unknown> };
 
