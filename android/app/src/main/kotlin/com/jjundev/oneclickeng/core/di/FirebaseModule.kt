@@ -7,6 +7,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
+import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.functions.functions
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,4 +35,14 @@ object FirebaseModule {
     @Provides
     @Singleton
     fun provideFirebaseAnalytics(): FirebaseAnalytics = Firebase.analytics
+
+    /**
+     * `mergeGuestData` 콜러블용 Functions 클라이언트(M3-03). 리전은 백엔드 배포와 반드시 일치해야 한다
+     * (asia-northeast3 — `llm`·모든 함수와 동일, backend-functions.md:25). 리전 불일치는 콜러블 NOT_FOUND 로 죽는다.
+     */
+    @Provides
+    @Singleton
+    fun provideFirebaseFunctions(): FirebaseFunctions = Firebase.functions(FUNCTIONS_REGION)
+
+    private const val FUNCTIONS_REGION = "asia-northeast3"
 }

@@ -3,7 +3,7 @@ milestone: M3
 area: android/backend
 size: M
 labels: [milestone:M3, area:android, area:backend, ready-for-agent]
-blocked_by: [M3-01, M3-02, M0-07]
+blocked_by: [M3-01, M3-02, M0-07, M3-05]
 blocks: []
 ---
 
@@ -22,11 +22,11 @@ blocks: []
 "Google로 계속하기" 시 신규 신원은 인플레이스 승격(데이터 자동 보존), 복귀 사용자는 saved_cards·gamification을 멱등 머지로 이관한다.
 
 ## 범위
-- In: Credential Manager + Google ID 로그인, `linkWithCredential`, FR-3a(인플레이스 승격), FR-3b(`credential-already-in-use` → 기존 계정 로그인 + `mergeGuestData` callable 호출 + 게스트 doc 폐기), usage는 이관 안 함.
-- Out: 이관 서버 로직 자체(firestore-schema §4.4 정본, mergeGuestData 함수 = M0-07/스키마 소유), 설정 계정 관리(M3-09).
+- In: Credential Manager + Google ID 로그인, `linkWithCredential`, FR-3a(인플레이스 승격), FR-3b(`credential-already-in-use` → 기존 계정 로그인 + `mergeGuestData` callable 호출 + 게스트 doc 폐기), usage는 이관 안 함. **`mergeGuestData` 콜러블 서버 함수 구현도 포함**(firestore-schema §4.4 정본 — grill 리뷰에서 어느 이슈도 미소유로 확인돼 M3-03 범위로 승격). 서버가 saved_cards union·point_ledger 복사(awardedAt 보존)·studytime 가산·게스트 서브트리+Auth 레코드 삭제를 소유한다.
+- Out: 집계 트리거 `onLedgerCreate`(M3-05 소유 — FR-3b 게임화 이관은 이 트리거 배포 후에만 재유도됨, blocked_by 참조), 설정 계정 관리(M3-09).
 
 ## 의존성
-- Blocked by: M3-01, M0-07
+- Blocked by: M3-01, M3-02, M0-07, **M3-05**(onLedgerCreate — point_ledger 복사가 게임화 progress 를 재유도하려면 필요)
 - Blocks: —
 
 ## 수용 기준

@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jjundev.oneclickeng.core.auth.AuthRepository
+import com.jjundev.oneclickeng.core.auth.GoogleAccountLinker
 import com.jjundev.oneclickeng.core.auth.ProfileRepository
 import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -41,6 +42,7 @@ class AppViewModel
     constructor(
         private val authRepository: AuthRepository,
         private val profileRepository: ProfileRepository,
+        private val googleAccountLinker: GoogleAccountLinker,
         private val studytimeRepository: StudytimeRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<BootState>(BootState.Loading)
@@ -50,6 +52,10 @@ class AppViewModel
             viewModelScope.launch {
                 runCatching {
                     val uid = authRepository.ensureSignedIn()
+                    // 중도 종료된 게스트 이관(FR-3b) 복구: target 재로그인 상태 + 유효 마커면 mergeGuestData 재시도.
+                    // ensureProfile/readLevel 이전에 await 해 부트 게이트가 post-merge 상태를 관측하게 한다(결정 A8).
+                    // 실패/무관은 no-op 로 삼켜 부트를 막지 않는다(마커는 다음 실행에서 재시도).
+                    runCatching { googleAccountLinker.retryPendingMerge() }
                     profileRepository.ensureProfile(uid)
                     profileRepository.readLevel(uid)
                 }.onSuccess { level ->

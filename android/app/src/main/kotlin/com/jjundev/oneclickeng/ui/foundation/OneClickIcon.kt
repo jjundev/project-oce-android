@@ -90,6 +90,8 @@ enum class OceIcon(
     Hub(R.drawable.ic_hub),
     Bookmark(R.drawable.ic_bookmark),
     BookmarkBorder(R.drawable.ic_bookmark_border),
+    Delete(R.drawable.ic_delete),
+    ContentCopy(R.drawable.ic_content_copy),
     LocalFireDepartment(R.drawable.ic_local_fire_department),
     Schedule(R.drawable.ic_schedule),
     Bolt(R.drawable.ic_bolt),

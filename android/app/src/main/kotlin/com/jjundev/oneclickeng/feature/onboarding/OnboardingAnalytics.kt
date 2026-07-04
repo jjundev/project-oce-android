@@ -26,6 +26,15 @@ interface OnboardingAnalytics {
 
     /** 저장 제안 스킵/보류(`나중에 할게요` 또는 시트 dismiss). */
     fun googleLinkSkipped(sessionId: String)
+
+    /** FR-3a 인플레이스 승격 성공(신규 신원). */
+    fun googleLinkSucceeded(sessionId: String)
+
+    /** FR-3b 충돌 후 mergeGuestData 이관 성공(복귀 사용자). */
+    fun googleLinkConflictMerged(sessionId: String)
+
+    /** 연결/이관 실패(취소 제외 — 네트워크·머지 오류). */
+    fun googleLinkFailed(sessionId: String)
 }
 
 /** M4-01 이 실제 디스패치를 배선하기 전까지의 기본 no-op 바인딩. */
@@ -44,4 +53,10 @@ class NoOpOnboardingAnalytics
         override fun googleSavePromptShown(sessionId: String) = Unit
 
         override fun googleLinkSkipped(sessionId: String) = Unit
+
+        override fun googleLinkSucceeded(sessionId: String) = Unit
+
+        override fun googleLinkConflictMerged(sessionId: String) = Unit
+
+        override fun googleLinkFailed(sessionId: String) = Unit
     }

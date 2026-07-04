@@ -31,6 +31,10 @@ datastore = "1.1.1"
 firebaseBom = "34.9.0"
 googleServices = "4.4.4"
 
+# Credential Manager + Google ID (M3-03 Google 연결). BOM 비관리 — 명시 핀 필요.
+credentials = "1.3.0"
+googleid = "1.1.1"
+
 # 정적 분석
 detekt = "1.23.8"
 ktlint = "12.1.1"
@@ -86,11 +90,18 @@ okhttp-sse = { group = "com.squareup.okhttp3", name = "okhttp-sse" }
 okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
-# Firebase — BoM platform + 무버전 아티팩트(analytics/auth/firestore). FCM 은 v1.1 범위라 제외(PRD §10.2).
+# Firebase — BoM platform + 무버전 아티팩트(analytics/auth/firestore/functions). FCM 은 v1.1 범위라 제외(PRD §10.2).
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
+# mergeGuestData 콜러블 호출(M3-03). Firebase.functions(region) 확장 포함(BOM 관리, 무버전).
+firebase-functions = { group = "com.google.firebase", name = "firebase-functions" }
+
+# Credential Manager + Google ID 토큰(M3-03 Google 연결). credentials-play-services-auth 는 Google 계정 흐름 런타임.
+androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
+androidx-credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
+googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
