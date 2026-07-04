@@ -42,13 +42,18 @@ interface StudytimeRepository {
     /** First-launch seed of the local authority from the server (no-op once local state exists). */
     suspend fun seedFromServerIfEmpty()
 
-    /** Re-push any write-ahead state that never reached Firestore (app-start recovery). */
-    suspend fun drainOnStart()
+    /**
+     * Re-push any write-ahead state that never reached Firestore. Called at app start AND on an
+     * offline→online reconnect (M4-04): the reactive [com.jjundev.oneclickeng.core.connectivity.ConnectivityObserver]
+     * transition drives it so a device that regains connectivity without a process restart re-syncs
+     * without waiting for the next launch.
+     */
+    suspend fun drain()
 }
 
 /**
  * Firestore-backed implementation. Firestore writes are fire-and-forget on [appScope] (a failed push
- * leaves the state unsynced for the next [drainOnStart]); the reminder-cache update is best-effort.
+ * leaves the state unsynced for the next [drain]); the reminder-cache update is best-effort.
  * Mirrors the FirestoreCompletionLedger fire-and-forget seam. The write-ahead queue / drain mechanism
  * itself is new — no prior codebase pattern to copy (built per ADR-0002).
  */
@@ -98,7 +103,7 @@ class FirestoreStudytimeRepository
             }
         }
 
-        override suspend fun drainOnStart() {
+        override suspend fun drain() {
             val state = store.snapshot()
             if (state.unsynced && state.todayDayKey != null) pushStudytime(state)
         }
@@ -126,7 +131,7 @@ class FirestoreStudytimeRepository
                         ).await()
                     store.markSynced()
                 } catch (e: Exception) {
-                    // Stays unsynced → drainOnStart re-pushes on the next launch (write-ahead recovery).
+                    // Stays unsynced → drain re-pushes on next launch/reconnect (write-ahead recovery).
                     Log.d(TAG, "studytime push skipped (offline/permission): ${e.message}")
                 }
             }

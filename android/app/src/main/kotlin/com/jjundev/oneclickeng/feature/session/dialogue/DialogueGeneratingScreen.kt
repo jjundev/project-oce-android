@@ -19,7 +19,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jjundev.oneclickeng.ui.component.BlockingGateSurface
 import com.jjundev.oneclickeng.ui.component.InlineErrorMode
+import com.jjundev.oneclickeng.ui.component.OneClickBlockingGate
 import com.jjundev.oneclickeng.ui.component.OneClickInlineError
 import com.jjundev.oneclickeng.ui.component.OneClickLimitReachedPanel
 import com.jjundev.oneclickeng.ui.component.OneClickProgressRing
@@ -63,6 +65,7 @@ fun DialogueGeneratingScreen(
     onQuizAnswered: (item: QuizItem, selectedIndex: Int, correct: Boolean) -> Unit = { _, _, _ -> },
     onLimitReached: (remaining: Int) -> Unit = {},
     onViewRecords: () -> Unit = {},
+    onExit: () -> Unit = {},
 ) {
     var gatePassed by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -92,40 +95,79 @@ fun DialogueGeneratingScreen(
         return
     }
 
+    // 오프라인 새 세션 차단 게이트[C](M4-04, exception-states.md 결정 #4·#5) — 전체화면 점유, 인라인 로딩
+    // 밖에서 렌더. 다시 시도는 연결성 재확인(재시도 어포던스는 오프라인이 transient 라 유효), 홈으로 이탈 제공.
+    if (state is DialogueGenState.OfflineBlocked) {
+        OneClickBlockingGate(
+            surface = BlockingGateSurface.Offline,
+            onRetry = onRetry,
+            onHome = onExit,
+            modifier = modifier,
+        )
+        return
+    }
+
     Column(
         modifier = modifier.fillMaxSize().padding(OceTheme.spacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        when (state) {
-            DialogueGenState.Failed ->
-                OneClickInlineError(
-                    mode = InlineErrorMode.Recoverable,
-                    message = FAILURE_COPY,
-                    onRetry = onRetry,
-                    onSkip = {},
-                )
+        GeneratingContent(
+            state = state,
+            quizItems = quizItems,
+            gatePassed = gatePassed,
+            quizEnabled = quizEnabled,
+            onStartConversation = onStartConversation,
+            onRetry = onRetry,
+            onQuizAnswered = onQuizAnswered,
+        )
+    }
+}
 
-            is DialogueGenState.Ready ->
-                if (gatePassed) {
-                    if (quizEnabled) OneClickWaitQuiz(items = quizItems, onAnswered = onQuizAnswered) else SlimLoading()
-                    StartConversationCta(onStartConversation)
-                } else {
-                    SlimLoading() // <1s 준비: 위 LaunchedEffect가 자동 전이 처리
-                }
+/**
+ * 인라인(비게이트) 표면 렌더 — 전체화면 게이트(한도[C]/오프라인[C])는 상위에서 early-return 으로 처리되므로
+ * 여기 도달하지 않는다(망라성 유지용 no-op 브랜치). 상위 [DialogueGeneratingScreen] 의 순환 복잡도를 낮추려
+ * 분리한다.
+ */
+@Composable
+private fun GeneratingContent(
+    state: DialogueGenState,
+    quizItems: List<QuizItem>,
+    gatePassed: Boolean,
+    quizEnabled: Boolean,
+    onStartConversation: () -> Unit,
+    onRetry: () -> Unit,
+    onQuizAnswered: (item: QuizItem, selectedIndex: Int, correct: Boolean) -> Unit,
+) {
+    when (state) {
+        DialogueGenState.Failed ->
+            OneClickInlineError(
+                mode = InlineErrorMode.Recoverable,
+                message = FAILURE_COPY,
+                onRetry = onRetry,
+                onSkip = {},
+            )
 
-            DialogueGenState.Generating ->
-                if (gatePassed && quizEnabled) {
-                    OneClickWaitQuiz(items = quizItems, onAnswered = onQuizAnswered)
-                } else {
-                    SlimLoading()
-                }
+        is DialogueGenState.Ready ->
+            if (gatePassed) {
+                if (quizEnabled) OneClickWaitQuiz(items = quizItems, onAnswered = onQuizAnswered) else SlimLoading()
+                StartConversationCta(onStartConversation)
+            } else {
+                SlimLoading() // <1s 준비: 위 LaunchedEffect가 자동 전이 처리
+            }
 
-            DialogueGenState.Idle -> SlimLoading()
+        DialogueGenState.Generating ->
+            if (gatePassed && quizEnabled) {
+                OneClickWaitQuiz(items = quizItems, onAnswered = onQuizAnswered)
+            } else {
+                SlimLoading()
+            }
 
-            // 위에서 early-return 으로 전체화면 한도 패널을 렌더했다(도달 불가 — 망라성 유지용).
-            is DialogueGenState.QuotaBlocked -> Unit
-        }
+        DialogueGenState.Idle -> SlimLoading()
+
+        // 위에서 early-return 으로 전체화면 한도/오프라인 게이트를 렌더했다(도달 불가 — 망라성 유지용).
+        is DialogueGenState.QuotaBlocked -> Unit
+        DialogueGenState.OfflineBlocked -> Unit
     }
 }
 
@@ -144,6 +186,7 @@ fun DialogueGeneratingRoute(
     modifier: Modifier = Modifier,
     isOnboarding: Boolean = false,
     onViewRecords: () -> Unit = {},
+    onExit: () -> Unit = {},
     viewModel: DialogueGenerationViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(Unit) {
@@ -163,6 +206,7 @@ fun DialogueGeneratingRoute(
         onQuizAnswered = { answeredItem, _, wasCorrect -> viewModel.onQuizAnswered(answeredItem, wasCorrect) },
         onLimitReached = viewModel::onLimitReached,
         onViewRecords = onViewRecords,
+        onExit = onExit,
     )
 }
 

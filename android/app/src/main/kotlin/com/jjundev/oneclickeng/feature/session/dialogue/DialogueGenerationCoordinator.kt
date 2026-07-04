@@ -1,5 +1,7 @@
 package com.jjundev.oneclickeng.feature.session.dialogue
 
+import com.jjundev.oneclickeng.core.connectivity.ConnectivityObserver
+import com.jjundev.oneclickeng.core.connectivity.OnlineConnectivityObserver
 import com.jjundev.oneclickeng.core.network.DialogueEvent
 import com.jjundev.oneclickeng.core.network.DialogueMeta
 import com.jjundev.oneclickeng.core.network.DialoguePayload
@@ -44,6 +46,9 @@ class DialogueGenerationCoordinator
     constructor(
         private val stream: DialogueStream,
         private val scope: CoroutineScope,
+        // in-flight 실패의 오프라인 분류원(M4-04). 기본값은 항상-Online stub — 연결성 무관 단위 테스트/프리뷰가
+        // 기존 [DialogueGenState.Failed] 기대를 유지하도록. 프로덕션은 Hilt 가 실 옵저버를 주입한다.
+        private val connectivity: ConnectivityObserver = OnlineConnectivityObserver,
     ) {
         private val _state = MutableStateFlow<DialogueGenState>(DialogueGenState.Idle)
         val state: StateFlow<DialogueGenState> = _state.asStateFlow()
@@ -69,19 +74,31 @@ class DialogueGenerationCoordinator
         /** The generation level of the current attempt (or null), for the slim feedback call (M1-08). */
         fun level(): String? = lastRequest?.payload?.level
 
-        /** Begin a fresh generation. Mints a new idempotencyKey; supersedes any in-flight attempt. */
+        /**
+         * Begin a fresh generation. Mints a new idempotencyKey; supersedes any in-flight attempt.
+         *
+         * pre-flight 오프라인 게이트(M4-04): 오프라인이면 스트림을 열지 않고 [DialogueGenState.OfflineBlocked]
+         * 로 전이하고 [StartOutcome.OfflineGated] 를 반환한다 — 연결성 소유는 이 코디네이터 하나이며(모호성
+         * 제거), 호출자([DialogueGenerationViewModel])는 결과로 퀴즈 스킵·계측만 분기한다. 온라인이면 정상
+         * 시작하고 [StartOutcome.Started] 를 반환한다.
+         */
         fun start(
             level: String,
             topic: String,
             length: Int,
             firstSession: Boolean,
-        ) {
+        ): StartOutcome {
+            if (connectivity.isOffline()) {
+                blockOffline()
+                return StartOutcome.OfflineGated
+            }
             launchAttempt(
                 DialogueRequest(
                     idempotencyKey = UUID.randomUUID().toString(),
                     payload = DialoguePayload(level, topic, length, firstSession),
                 ),
             )
+            return StartOutcome.Started
         }
 
         /** Retry the current attempt, REUSING its idempotencyKey (backend-functions.md §7). No-op if
@@ -93,6 +110,19 @@ class DialogueGenerationCoordinator
             if (_state.value is DialogueGenState.QuotaBlocked) return
             val request = lastRequest ?: return
             launchAttempt(request)
+        }
+
+        /**
+         * pre-flight 오프라인 게이트의 상태 전이(M4-04): 스트림을 열지 않고 [DialogueGenState.OfflineBlocked]
+         * 로 전이한다. [start] 가 오프라인일 때 호출한다. 진행 중 시도가 있으면 토큰을 올려 무효화하고,
+         * [lastRequest] 는 건드리지 않는다(아무것도 전송하지 않았으므로 재시도는 ViewModel 이 새 start 로 처리
+         * — usage 중복 없음).
+         */
+        fun blockOffline() {
+            ++sessionToken
+            currentJob?.cancel()
+            watchdogJob?.cancel()
+            _state.value = DialogueGenState.OfflineBlocked
         }
 
         private fun launchAttempt(request: DialogueRequest) {
@@ -199,7 +229,10 @@ class DialogueGenerationCoordinator
         private fun fail(token: Long) {
             if (token != sessionToken) return
             watchdogJob?.cancel()
-            _state.value = DialogueGenState.Failed
+            // in-flight 분류(M4-04): 실패 시점 오프라인이면 차단 게이트[C], 아니면 일반 실패[A]. 인플라이트
+            // 요청을 사전 차단하진 않고(거짓 음성 방지) 실패를 신호로 매핑한다(exception-states.md:59·§6).
+            _state.value =
+                if (connectivity.isOffline()) DialogueGenState.OfflineBlocked else DialogueGenState.Failed
         }
 
         companion object {

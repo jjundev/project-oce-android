@@ -5,6 +5,9 @@
     <!-- 네트워크 권한: Firebase Auth/Firestore/Analytics(M0-02) + /llm 프록시 호출(TTS 등, M1-05). -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- M4-04 오프라인 감지: ConnectivityObserver 가 registerDefaultNetworkCallback/activeNetwork 로 OS 도달성을 읽는다. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <!-- M1-04 학습자 발화 녹음. 런타임 요청/사전 프라이밍 UI 는 M0-06/M1-08 소관. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
