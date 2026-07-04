@@ -1,0 +1,104 @@
+package com.jjundev.oneclickeng.feature.records
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import com.jjundev.oneclickeng.ui.component.OneClickCountUp
+import com.jjundev.oneclickeng.ui.theme.OceTheme
+
+/**
+ * ① 평생 통계 헤더(카드 아님, R1) — `누적 N XP · 총 N시간 N분 · N일 학습`. XP·학습일은 [OneClickCountUp] 시그니처
+ * 카운트업(I3)을 통과시키고, 학습시간은 복합 표기라 정적 텍스트다.
+ *
+ * [lifetime] 이 null 이면(M3-05 배선 전 스텁) 0 지표를 **정적**으로 렌더한다 — [animate] 와 무관하게 스냅해
+ * 0→0 죽은 애니메이션을 막는다. 실데이터가 붙고([lifetime] 비-null) 세션 최초 진입일 때만 [animate] 로 롤업한다.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun LifetimeStatsHeader(
+    lifetime: LifetimeStats?,
+    animate: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val stats = lifetime ?: LifetimeStats(xp = 0, studyMinutes = 0, studyDays = 0)
+    val static = lifetime == null || !animate
+    val hours = stats.studyMinutes / MINUTES_PER_HOUR
+    val minutes = stats.studyMinutes % MINUTES_PER_HOUR
+
+    FlowRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+    ) {
+        Metric(prefix = "누적", value = stats.xp, unit = "XP", static = static)
+        Dot()
+        Text(
+            text = "총 ${hours}시간 ${minutes}분",
+            style = OceTheme.typography.body,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Dot()
+        Metric(value = stats.studyDays, unit = "일 학습", static = static)
+    }
+}
+
+@Composable
+private fun Metric(
+    value: Int,
+    unit: String,
+    static: Boolean,
+    prefix: String? = null,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+    ) {
+        if (prefix != null) {
+            Text(
+                text = prefix,
+                style = OceTheme.typography.body,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        OneClickCountUp(
+            target = value,
+            unit = " $unit",
+            static = static,
+            style = OceTheme.typography.body,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+@Composable
+private fun Dot() {
+    Text(
+        text = "·",
+        style = OceTheme.typography.body,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+private const val MINUTES_PER_HOUR = 60
+
+@Suppress("UnusedPrivateMember")
+@Preview(showBackground = true, widthDp = 360)
+@Composable
+private fun LifetimeStatsHeaderPreview() {
+    OceTheme {
+        LifetimeStatsHeader(
+            lifetime = LifetimeStats(xp = 1240, studyMinutes = 135, studyDays = 12),
+            animate = false,
+            modifier = Modifier.padding(OceTheme.spacing.xl),
+        )
+    }
+}
