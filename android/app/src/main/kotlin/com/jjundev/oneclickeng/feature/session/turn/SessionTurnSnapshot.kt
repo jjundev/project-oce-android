@@ -25,6 +25,12 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class SessionTurnSnapshot(
     val schemaVersion: Int = SCHEMA_VERSION,
+    // --- 세션 식별(M3-08 내구 복귀) ---
+    // 크로스-프로세스 복원 시 Singleton 코디네이터는 Idle 이라 sessionId/level 을 잃는다. 피드백·발화분석은
+    // 이 두 값을 요구하므로(triggerFeedback → generation.sessionId()/level()) 스냅샷에 함께 보존한다.
+    // 라이브(같은 프로세스) 복원 경로는 코디네이터가 여전히 정본이라 이 값을 쓰지 않는다.
+    val sessionId: String? = null,
+    val level: String? = null,
     // --- L1: 파생 상태(replay 없이 직접 seed) ---
     val messages: List<MessageData>,
     val turnPhase: String,
@@ -42,8 +48,11 @@ data class SessionTurnSnapshot(
     val turns: List<TurnData>,
 ) {
     companion object {
-        /** 스키마 버전. 역직렬화 실패(버전 변경 등)는 소비처가 빈 세션으로 안전 복원한다. */
-        const val SCHEMA_VERSION = 1
+        /**
+         * 스키마 버전. 역직렬화 실패(버전 변경 등)는 소비처가 빈 세션으로 안전 복원한다.
+         * v2(M3-08): [sessionId]·[level] 추가(내구 스냅샷 크로스-프로세스 복원 시 피드백 재부착용).
+         */
+        const val SCHEMA_VERSION = 2
     }
 }
 

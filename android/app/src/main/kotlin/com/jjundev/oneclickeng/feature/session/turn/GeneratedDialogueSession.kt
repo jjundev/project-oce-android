@@ -25,6 +25,7 @@ import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenState
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenerationCoordinator
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueStreamStatus
 import com.jjundev.oneclickeng.feature.session.feedback.SlimFeedbackCoordinator
+import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
 import com.jjundev.oneclickeng.feature.session.speaking.SpeakingAnalysisCoordinator
 import com.jjundev.oneclickeng.feature.session.speaking.SpeakingAnalysisState
 import com.jjundev.oneclickeng.ui.audio.MicState
@@ -93,7 +94,8 @@ fun GeneratedDialogueSessionRoute(
  * 콜백이 없고(orphan 없음), 사용자에겐 재시도 힌트로 고지한다(무증명 아님, 결정 #12b).
  */
 // 마이크 4상태 루프 + 텍스트 대체 + SavedState 결선이라 작은 전이 헬퍼가 많다(SlimFeedbackCoordinator 선례).
-@Suppress("TooManyFunctions")
+// LongParameterList: 세션 루프 DI 허브(생성·녹음·발화·피드백 코디네이터 + durable 스냅샷 + SavedState).
+@Suppress("TooManyFunctions", "LongParameterList")
 @HiltViewModel
 class GeneratedDialogueSessionViewModel
     @Inject
@@ -103,12 +105,22 @@ class GeneratedDialogueSessionViewModel
         private val speaking: SpeakingAnalysisCoordinator,
         private val feedback: SlimFeedbackCoordinator,
         private val appScope: CoroutineScope,
+        private val snapshotStore: SessionSnapshotStore,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         val generationState = generation.state
 
         /** 서버 발급 sessionId(요약 라우팅용, M3-02). 대본 미도착이면 null → 요약 진입은 완주 후에만 일어나 non-null. */
         fun sessionId(): String? = generation.sessionId()
+
+        // 크로스-프로세스 durable 복원 시 코디네이터는 Idle 이라 sessionId/level 을 잃는다. 스냅샷에서 복원한
+        // 값을 폴백으로 들어 피드백/발화분석이 계속 동작하게 한다(M3-08 §2.5 내구 복귀).
+        private var restoredSessionId: String? = null
+        private var restoredLevel: String? = null
+
+        private fun currentSessionId(): String? = generation.sessionId() ?: restoredSessionId
+
+        private fun currentLevel(): String? = generation.level() ?: restoredLevel
 
         // 내부 턴머신 타입이라 internal(같은 모듈 Route/테스트만 접근). public 노출 금지.
         internal val turnState = GeneratedDialogueState()
@@ -144,21 +156,54 @@ class GeneratedDialogueSessionViewModel
                     ?.let { runCatching { json.decodeFromString<SessionTurnSnapshot>(it) }.getOrNull() }
                     ?.takeIf { it.schemaVersion == SessionTurnSnapshot.SCHEMA_VERSION }
             if (restored != null) {
-                turnState.restoreFrom(restored)
-                latestTurns = restored.turns.map { it.toDomain() }
-                val settled = micStateFromName(restored.micState)
-                // 진행 중 캡처/분석은 프로세스킬로 소멸 → Ready 강등 + 재시도 고지.
-                if (settled == MicState.Recording || settled == MicState.Analyzing) {
-                    micState = MicState.Ready
-                    retryHint = HINT_RETRY
-                } else {
-                    micState = settled
+                seedFrom(restored)
+            } else if (generation.state.value !is DialogueGenState.Ready) {
+                // SavedStateHandle 에 화면-체류 스냅샷이 없다 = 새 NavBackStackEntry(홈-복귀 재진입 등).
+                // durable 스냅샷(§2.5)은 라이브 코디네이터가 세션을 들고 있지 **않을 때**(크로스-프로세스,
+                // 코디네이터 non-Ready)만 정본이다. 같은 프로세스에서 코디네이터가 이미 Ready 면 Route 의
+                // onGenerationState→accept() 가 정본이므로 durable read 를 아예 시작하지 않는다 — 이 동기
+                // 분기로 async read 와 accept() 사이 순서 경쟁을 제거한다(둘 중 무엇이 정본인지 결정적).
+                // messages.isEmpty() 는 그래도 남겨 belt-and-suspenders 로 이중 seed 를 막는다.
+                viewModelScope.launch {
+                    val durable = snapshotStore.read()
+                    if (durable != null && turnState.messages.isEmpty()) seedFrom(durable)
                 }
             }
             // onGenerationState 는 Route 의 collectAsStateWithLifecycle 가 구동한다(중복 collect 회피).
             viewModelScope.launch { speaking.state.collect(::onAnalysisState) }
             savedStateHandle.setSavedStateProvider(PROVIDER_KEY) {
-                bundleOf(BUNDLE_JSON to json.encodeToString(turnState.toSnapshot(micState, latestTurns)))
+                bundleOf(BUNDLE_JSON to json.encodeToString(currentSnapshot()))
+            }
+        }
+
+        /** L1 파생 상태 + 앰비언트 + 세션 식별을 스냅샷에서 복원한다(SavedStateHandle·durable 공용). */
+        private fun seedFrom(snapshot: SessionTurnSnapshot) {
+            turnState.restoreFrom(snapshot)
+            latestTurns = snapshot.turns.map { it.toDomain() }
+            restoredSessionId = snapshot.sessionId
+            restoredLevel = snapshot.level
+            val settled = micStateFromName(snapshot.micState)
+            // 진행 중 캡처/분석은 프로세스킬/이탈로 소멸 → Ready 강등 + 재시도 고지.
+            if (settled == MicState.Recording || settled == MicState.Analyzing) {
+                micState = MicState.Ready
+                retryHint = HINT_RETRY
+            } else {
+                micState = settled
+            }
+        }
+
+        private fun currentSnapshot(): SessionTurnSnapshot =
+            turnState.toSnapshot(micState, latestTurns, currentSessionId(), currentLevel())
+
+        /**
+         * durable 스냅샷 저장/폐기(§2.5). 완주(Completed)면 폐기(미완 아님 → 복귀 후보 아님), 아니면 현 상태를
+         * 영속화한다. appScope 로 실행해 화면 이탈(onCleared)로 취소되지 않게 한다.
+         */
+        private fun persistResume() {
+            val snapshot = currentSnapshot()
+            val completed = turnState.sessionPhase == SessionPhase.Completed
+            appScope.launch {
+                if (completed) snapshotStore.clear() else snapshotStore.write(snapshot)
             }
         }
 
@@ -166,6 +211,7 @@ class GeneratedDialogueSessionViewModel
         fun onGenerationState(state: DialogueGenState) {
             if (state is DialogueGenState.Ready) latestTurns = state.turns
             turnState.accept(state)
+            persistResume()
         }
 
         /** 도크 마이크 탭. 정착 상태별 분기(결정 #12). */
@@ -200,7 +246,7 @@ class GeneratedDialogueSessionViewModel
             viewModelScope.launch {
                 when (val result = recording.stop()) {
                     is RecordingResult.Captured -> {
-                        val sid = generation.sessionId()
+                        val sid = currentSessionId()
                         if (sid != null) {
                             micState = MicState.Analyzing
                             speaking.analyze(result, sid)
@@ -229,6 +275,7 @@ class GeneratedDialogueSessionViewModel
                     turnState.appendLearnerAnswer(state.transcript)
                     micState = MicState.Complete
                     triggerFeedback(state.transcript)
+                    persistResume()
                 }
                 SpeakingAnalysisState.Empty -> {
                     micState = MicState.Ready
@@ -250,6 +297,7 @@ class GeneratedDialogueSessionViewModel
             retryHint = null
             speaking.reset()
             feedback.reset()
+            persistResume()
         }
 
         fun onToggleTextMode(on: Boolean) {
@@ -271,11 +319,12 @@ class GeneratedDialogueSessionViewModel
             textValue = ""
             retryHint = null
             triggerFeedback(text)
+            persistResume()
         }
 
         private fun triggerFeedback(userEnglish: String) {
-            val sid = generation.sessionId() ?: return
-            val level = generation.level() ?: return
+            val sid = currentSessionId() ?: return
+            val level = currentLevel() ?: return
             val task = turnState.currentTask?.koreanPrompt
             val ref = turnState.currentReferenceEnglish()
             if (task != null && ref != null) {
@@ -497,12 +546,16 @@ internal class GeneratedDialogueState {
 
     // --- M1-08 SavedState (L1 파생 상태 export/seed, replay 없음) ---
 
-    /** 현 상태 + 앰비언트 micState/turns 를 [SessionTurnSnapshot] 으로 직렬화(L1+L2). */
+    /** 현 상태 + 앰비언트 micState/turns + 세션 식별(sessionId/level)을 [SessionTurnSnapshot] 으로 직렬화. */
     fun toSnapshot(
         micState: MicState,
         turns: List<NetworkDialogueTurn>,
+        sessionId: String?,
+        level: String?,
     ): SessionTurnSnapshot =
         SessionTurnSnapshot(
+            sessionId = sessionId,
+            level = level,
             messages = messages.map { MessageData(it is DialogueMessage.Learner, it.english) },
             turnPhase = turnPhase.name,
             sessionPhase = sessionPhase.name,

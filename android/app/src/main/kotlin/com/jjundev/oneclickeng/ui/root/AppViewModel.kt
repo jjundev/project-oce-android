@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.jjundev.oneclickeng.core.auth.AuthRepository
 import com.jjundev.oneclickeng.core.auth.GoogleAccountLinker
 import com.jjundev.oneclickeng.core.auth.ProfileRepository
+import com.jjundev.oneclickeng.core.network.ConnectivityMonitor
 import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,9 +45,13 @@ class AppViewModel
         private val profileRepository: ProfileRepository,
         private val googleAccountLinker: GoogleAccountLinker,
         private val studytimeRepository: StudytimeRepository,
+        connectivityMonitor: ConnectivityMonitor,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<BootState>(BootState.Loading)
         val uiState: StateFlow<BootState> = _uiState.asStateFlow()
+
+        /** 글로벌 오프라인 배너(C4)용 앱 스코프 연결 상태(M3-08, H7/P8). */
+        val isOnline: StateFlow<Boolean> = connectivityMonitor.isOnline
 
         init {
             viewModelScope.launch {

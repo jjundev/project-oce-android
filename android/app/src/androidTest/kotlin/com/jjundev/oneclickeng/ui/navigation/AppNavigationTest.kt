@@ -33,8 +33,8 @@ class AppNavigationTest {
 
     @Test
     fun threeTabsRenderAndSwitchContent() {
-        // 하니스(M1-09)는 debug 변이에서 기본 시작 목적지를 하니스 런처로 바꾼다. androidTest 는 debug
-        // 로 컴파일되므로, 3탭 부팅을 단언하려면 시작 목적지를 명시적으로 3탭 셸로 주입한다.
+        // 부트 게이트(Firestore 왕복)를 우회해 3탭 셸을 결정적으로 부팅하려고 시작 목적지를 직접 주입한다
+        // (M3-08 로 M1-09 하니스는 제거됨 — 홈이 유일 정본 진입).
         composeRule.setContent {
             OceTheme { AppRoot(startRoute = MAIN_TABS_ROUTE) }
         }
@@ -67,7 +67,12 @@ class AppNavigationTest {
             OceTheme {
                 val navController = rememberNavController()
                 androidx.compose.foundation.layout.Column {
-                    OceNavHost(navController = navController, reduceMotion = true)
+                    OceNavHost(
+                        navController = navController,
+                        onStartLearning = {},
+                        onResume = {},
+                        reduceMotion = true,
+                    )
                     OceBottomNav(navController)
                 }
             }
