@@ -1,5 +1,7 @@
 package com.jjundev.oneclickeng.ui.root
 
+import com.jjundev.oneclickeng.core.auth.AccountRepository
+import com.jjundev.oneclickeng.core.auth.AccountResetBus
 import com.jjundev.oneclickeng.core.auth.AuthRepository
 import com.jjundev.oneclickeng.core.auth.GoogleAccountLinker
 import com.jjundev.oneclickeng.core.auth.LinkOutcome
@@ -81,9 +83,21 @@ class AppViewModelTest {
         profileRepository = FakeProfile,
         googleAccountLinker = FakeLinker,
         studytimeRepository = studytime,
+        accountRepository = FakeAccount,
+        accountResetBus = AccountResetBus(),
         connectivity = connectivity,
         offlineAnalytics = offlineAnalytics,
     )
+}
+
+private object FakeAccount : AccountRepository {
+    override fun isGuest(): Boolean = false
+
+    override suspend fun signOut() = Unit
+
+    override suspend fun deleteAccount() = Unit
+
+    override suspend fun completePendingDeletion(): Boolean = false
 }
 
 private object FakeAuth : AuthRepository {
@@ -101,6 +115,13 @@ private object FakeProfile : ProfileRepository {
     ) = Unit
 
     override suspend fun readLevel(uid: String): String = "easy"
+
+    override suspend fun saveNickname(
+        uid: String,
+        nickname: String,
+    ) = Unit
+
+    override suspend fun readNickname(uid: String): String? = null
 }
 
 private object FakeLinker : GoogleAccountLinker {
@@ -124,6 +145,8 @@ private class RecordingStudytime : StudytimeRepository {
     override suspend fun drain() {
         drainCount++
     }
+
+    override suspend fun resetMetrics() = Unit
 }
 
 private class RecordingOfflineAnalytics : OfflineAnalytics {

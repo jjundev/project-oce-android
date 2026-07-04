@@ -88,6 +88,18 @@ private class FakeSettings(var value: TtsSettings = TtsSettings()) : TtsSettings
     override val settings: Flow<TtsSettings> = flowOf(value)
 
     override suspend fun current(): TtsSettings = value
+
+    override suspend fun setQuality(quality: com.jjundev.oneclickeng.core.settings.TtsQuality) {
+        value = value.copy(quality = quality)
+    }
+
+    override suspend fun setSpeechRate(rate: Float) {
+        value = value.copy(speechRate = rate)
+    }
+
+    override suspend fun setMuted(muted: Boolean) {
+        value = value.copy(muted = muted)
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

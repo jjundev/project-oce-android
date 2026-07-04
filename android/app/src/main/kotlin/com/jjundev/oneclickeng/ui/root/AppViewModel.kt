@@ -3,6 +3,8 @@ package com.jjundev.oneclickeng.ui.root
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jjundev.oneclickeng.core.auth.AccountRepository
+import com.jjundev.oneclickeng.core.auth.AccountResetBus
 import com.jjundev.oneclickeng.core.auth.AuthRepository
 import com.jjundev.oneclickeng.core.auth.GoogleAccountLinker
 import com.jjundev.oneclickeng.core.auth.ProfileRepository
@@ -40,6 +42,7 @@ import javax.inject.Inject
  * configuration changes (no re-sign-in on rotation). `ensureSignedIn`/`ensureProfile` are both
  * no-ops when the session/profile already exist, so re-running on the next launch is cheap and safe.
  */
+@Suppress("LongParameterList")
 @HiltViewModel
 class AppViewModel
     @Inject
@@ -48,6 +51,8 @@ class AppViewModel
         private val profileRepository: ProfileRepository,
         private val googleAccountLinker: GoogleAccountLinker,
         private val studytimeRepository: StudytimeRepository,
+        private val accountRepository: AccountRepository,
+        accountResetBus: AccountResetBus,
         private val connectivity: ConnectivityObserver,
         private val offlineAnalytics: OfflineAnalytics,
     ) : ViewModel() {
@@ -55,33 +60,56 @@ class AppViewModel
         val uiState: StateFlow<BootState> = _uiState.asStateFlow()
 
         init {
+            viewModelScope.launch { bootstrap() }
+            // Logout / account-deletion (M3-09) re-run bootstrap through here: reset the gate to Loading
+            // (which drops the outer NavHost, AppRoot.kt) then re-bootstrap → fresh anonymous guest →
+            // onboarding. The collect serializes overlapping resets. The bus emits ONLY on explicit
+            // signOut/delete, never on the anonymous re-sign-in bootstrap itself (no re-entrancy loop).
             viewModelScope.launch {
-                runCatching {
-                    val uid = authRepository.ensureSignedIn()
-                    // 중도 종료된 게스트 이관(FR-3b) 복구: target 재로그인 상태 + 유효 마커면 mergeGuestData 재시도.
+                accountResetBus.events.collect {
+                    _uiState.value = BootState.Loading
+                    bootstrap()
+                }
+            }
+        }
+
+        /**
+         * App-entry bootstrap, re-runnable (init + [AccountResetBus] reset). Resumes an interrupted
+         * account deletion FIRST (precedence over guest-merge resume: a to-be-deleted identity must not be
+         * merged into), then signs in / gates on `profile.level`.
+         */
+        private suspend fun bootstrap() {
+            // (0) Resume a pending deletion before anything else. Never throws; true = deletion in
+            //     progress → skip guest-merge resume this pass (routes to a fresh guest once torn down).
+            val resumedDelete = accountRepository.completePendingDeletion()
+
+            runCatching {
+                val uid = authRepository.ensureSignedIn()
+                if (!resumedDelete) {
+                    // 중도 종료된 게스트 이관(FR-3b) 복구: target 재로그인 + 유효 마커면 mergeGuestData 재시도.
                     // ensureProfile/readLevel 이전에 await 해 부트 게이트가 post-merge 상태를 관측하게 한다(결정 A8).
                     // 실패/무관은 no-op 로 삼켜 부트를 막지 않는다(마커는 다음 실행에서 재시도).
                     runCatching { googleAccountLinker.retryPendingMerge() }
-                    profileRepository.ensureProfile(uid)
-                    profileRepository.readLevel(uid)
-                }.onSuccess { level ->
-                    _uiState.value = bootStateForLevel(level)
-                }.onFailure {
-                    // Stay Loading: the next launch re-runs this bootstrap, and the next `/llm` call
-                    // re-attempts sign-in lazily via the token provider. (A dedicated auth-failure
-                    // retry surface is a follow-up seam — OneClickBlockingGate/Auth already exists.)
-                    Log.w(TAG, "Guest bootstrap failed — retries on next launch or /llm call", it)
                 }
+                profileRepository.ensureProfile(uid)
+                profileRepository.readLevel(uid)
+            }.onSuccess { level ->
+                _uiState.value = bootStateForLevel(level)
+            }.onFailure {
+                // Stay Loading: the next launch re-runs this bootstrap, and the next `/llm` call
+                // re-attempts sign-in lazily via the token provider. (A dedicated auth-failure
+                // retry surface is a follow-up seam — OneClickBlockingGate/Auth already exists.)
+                Log.w(TAG, "Guest bootstrap failed — retries on next launch or /llm call", it)
+            }
 
-                // Gamification studytime seed/drain (M3-05). Sequenced after sign-in (both no-op without
-                // a uid) but in its OWN runCatching so a gamification hiccup is never swallowed by — nor
-                // swallows — the auth/profile bootstrap above. Retries on the next launch.
-                runCatching {
-                    studytimeRepository.seedFromServerIfEmpty()
-                    studytimeRepository.drain()
-                }.onFailure {
-                    Log.w(TAG, "Gamification seed/drain failed — retries on next launch", it)
-                }
+            // Gamification studytime seed/drain (M3-05). Sequenced after sign-in (both no-op without
+            // a uid) but in its OWN runCatching so a gamification hiccup is never swallowed by — nor
+            // swallows — the auth/profile bootstrap above. Retries on the next launch.
+            runCatching {
+                studytimeRepository.seedFromServerIfEmpty()
+                studytimeRepository.drain()
+            }.onFailure {
+                Log.w(TAG, "Gamification seed/drain failed — retries on next launch", it)
             }
 
             observeConnectivity()

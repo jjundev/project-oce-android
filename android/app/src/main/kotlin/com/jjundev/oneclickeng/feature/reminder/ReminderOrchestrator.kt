@@ -43,6 +43,9 @@ interface ReminderOrchestrator {
         streak: Int,
         lastStudyDate: LocalDate,
     )
+
+    /** 누적 기록 초기화(M3-09) 시 streak/lastStudyDate 캐시 미러를 비운다. */
+    suspend fun clearProgressCache()
 }
 
 sealed interface ReminderPromptDecision {
@@ -180,5 +183,9 @@ class DefaultReminderOrchestrator
             lastStudyDate: LocalDate,
         ) {
             store.recordSessionCompleted(streak, lastStudyDate)
+        }
+
+        override suspend fun clearProgressCache() {
+            store.resetProgressCache()
         }
     }

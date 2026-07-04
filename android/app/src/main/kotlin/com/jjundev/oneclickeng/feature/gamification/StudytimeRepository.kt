@@ -4,6 +4,7 @@ import android.util.Log
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.functions.FirebaseFunctions
 import com.jjundev.oneclickeng.core.auth.AuthRepository
 import com.jjundev.oneclickeng.feature.gamification.data.StudytimeStore
 import com.jjundev.oneclickeng.feature.reminder.ReminderOrchestrator
@@ -49,6 +50,16 @@ interface StudytimeRepository {
      * without waiting for the next launch.
      */
     suspend fun drain()
+
+    /**
+     * 누적 기록 초기화(M3-09, FR-22). Local-first: zero the local authority (StudytimeStore) and the
+     * reminder cache mirror FIRST, then call the `resetMetrics` callable to zero the server. Throws if the
+     * callable fails — the caller surfaces an error; the local state is already zeroed (user sees the
+     * reset) and the server reconciles on a retry (the callable is idempotent). Local-first + a synced,
+     * non-null-total local state means neither drain nor seed can revive the pre-reset values regardless of
+     * when the server callable lands.
+     */
+    suspend fun resetMetrics()
 }
 
 /**
@@ -62,6 +73,7 @@ class FirestoreStudytimeRepository
     @Inject
     constructor(
         private val firestore: FirebaseFirestore,
+        private val functions: FirebaseFunctions,
         private val authRepository: AuthRepository,
         private val store: StudytimeStore,
         private val reminderOrchestrator: ReminderOrchestrator,
@@ -108,6 +120,17 @@ class FirestoreStudytimeRepository
             if (state.unsynced && state.todayDayKey != null) pushStudytime(state)
         }
 
+        override suspend fun resetMetrics() {
+            // Local-first (revival-proof): zero the local authority + reminder cache before the server call.
+            store.reset()
+            runCatching { reminderOrchestrator.clearProgressCache() }
+                .onFailure { Log.d(TAG, "reminder cache reset skipped: ${it.message}") }
+            // Server reset (Admin-only: progress/studytime are rule-protected). Awaited — a failure
+            // propagates so the caller can surface an error; local is already zeroed and the callable is
+            // idempotent, so a retry reconciles the server.
+            functions.getHttpsCallable(FN_RESET_METRICS).call().await()
+        }
+
         // Fire-and-forget idempotent monotonic set; clears the write-ahead flag only on success.
         @Suppress("TooGenericExceptionCaught")
         private fun pushStudytime(state: StudytimeStore.State) {
@@ -139,6 +162,7 @@ class FirestoreStudytimeRepository
 
         private companion object {
             const val TAG = "StudytimeRepository"
+            const val FN_RESET_METRICS = "resetMetrics"
             const val USERS = "users"
             const val GAMIFICATION = "gamification"
             const val STUDYTIME = "studytime"

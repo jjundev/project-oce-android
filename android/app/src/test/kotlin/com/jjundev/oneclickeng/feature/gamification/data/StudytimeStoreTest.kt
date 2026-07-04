@@ -9,6 +9,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -132,6 +133,44 @@ class StudytimeStoreTest {
             snap = store.snapshot()
             assertEquals(5000L, snap.totalSeconds)
             assertEquals(7, snap.streak)
+
+            scope.cancel()
+        }
+
+    @Test
+    fun `reset zeroes state and clears unsynced so drain cannot re-push (M3-09 revival guard)`() =
+        runTest {
+            val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
+            val store = newStore(scope)
+            store.accrue("s1", 300, "2026-07-04") // total=300, streak=1, unsynced=true
+
+            store.reset()
+
+            val snap = store.snapshot()
+            assertEquals(0L, snap.totalSeconds)
+            assertEquals(0L, snap.todaySeconds)
+            assertEquals(0, snap.streak)
+            assertNull(snap.lastStudyDate)
+            assertFalse("unsynced must be false after reset — else drain() revives the total", snap.unsynced)
+
+            scope.cancel()
+        }
+
+    @Test
+    fun `seedIfEmpty is a no-op after reset (non-null total blocks re-seed from a not-yet-reset server)`() =
+        runTest {
+            val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
+            val store = newStore(scope)
+            store.accrue("s1", 300, "2026-07-04")
+            store.reset() // total=0 (non-null), lastStudyDate=null, streak=0
+
+            // A server that has NOT been reset yet must not revive streak/lastStudyDate/total.
+            store.seedIfEmpty(serverTotalSeconds = 5000, serverStreak = 9, serverLastStudyDate = "2026-07-03")
+
+            val snap = store.snapshot()
+            assertEquals(0L, snap.totalSeconds)
+            assertEquals(0, snap.streak)
+            assertNull(snap.lastStudyDate)
 
             scope.cancel()
         }

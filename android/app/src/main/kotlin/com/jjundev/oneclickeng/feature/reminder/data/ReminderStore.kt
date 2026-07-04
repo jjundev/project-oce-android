@@ -80,9 +80,16 @@ interface ReminderStore {
 
     /** Worker 가 읽는 캐시 스냅샷. */
     suspend fun cacheSnapshot(): ReminderCache
+
+    /**
+     * 누적 기록 초기화(M3-09, FR-22) 시 streak/lastStudyDate 캐시 미러를 비운다. 초기화로 streak=0 이 되므로
+     * 리마인더 카피가 stale streak 을 참조하지 않게 한다. on/off·시각 설정은 건드리지 않는다.
+     */
+    suspend fun resetProgressCache()
 }
 
 /** DataStore 구현. 누락 키는 기본값으로 폴백(리마인더 off·20:00·캐시 부재). */
+@Suppress("TooManyFunctions")
 @Singleton
 class DataStoreReminderRepository
     @Inject
@@ -145,6 +152,13 @@ class DataStoreReminderRepository
                     },
                 streak = prefs[KEY_STREAK_CACHE],
             )
+        }
+
+        override suspend fun resetProgressCache() {
+            dataStore.edit { prefs ->
+                prefs.remove(KEY_STREAK_CACHE)
+                prefs.remove(KEY_LAST_STUDY_DATE_CACHE)
+            }
         }
 
         private fun toConfig(prefs: Preferences): ReminderConfig =
