@@ -315,6 +315,36 @@ class DialogueGenerationCoordinatorTest {
             assertEquals(listOf("fresh-attempt"), state.turns.map { it.en })
         }
 
+    @Test
+    fun `pre-flight offline gates OfflineBlocked without opening a stream`() =
+        runTest {
+            val stream = FakeDialogueStream()
+            val coordinator = DialogueGenerationCoordinator(stream, coordScope(), FakeConnectivity(offline = true))
+
+            val outcome = coordinator.start("easy", "coffee", 5, true)
+            runCurrent()
+
+            assertEquals(StartOutcome.OfflineGated, outcome)
+            assertEquals(DialogueGenState.OfflineBlocked, coordinator.state.value)
+            assertTrue(stream.requests.isEmpty()) // 스트림 미기동
+        }
+
+    @Test
+    fun `in-flight stream failure while offline maps to OfflineBlocked instead of Failed`() =
+        runTest {
+            val stream = FakeDialogueStream()
+            val connectivity = SwitchableConnectivity(offline = false)
+            val coordinator = DialogueGenerationCoordinator(stream, coordScope(), connectivity)
+
+            coordinator.start("easy", "coffee", 5, true) // online → stream opens
+            runCurrent()
+            connectivity.offline() // 턴 도착 전 연결 끊김
+            stream.push(DialogueEvent.Error("dropped"))
+            runCurrent()
+
+            assertEquals(DialogueGenState.OfflineBlocked, coordinator.state.value)
+        }
+
     /** Coordinator scope on an unconfined dispatcher tied to the test scheduler (see speaking test). */
     private fun TestScope.coordScope(): CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
 }

@@ -8,11 +8,15 @@ import com.jjundev.oneclickeng.core.auth.AccountResetBus
 import com.jjundev.oneclickeng.core.auth.AuthRepository
 import com.jjundev.oneclickeng.core.auth.GoogleAccountLinker
 import com.jjundev.oneclickeng.core.auth.ProfileRepository
+import com.jjundev.oneclickeng.core.connectivity.Connectivity
+import com.jjundev.oneclickeng.core.connectivity.ConnectivityObserver
+import com.jjundev.oneclickeng.core.connectivity.OfflineAnalytics
 import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -38,6 +42,7 @@ import javax.inject.Inject
  * configuration changes (no re-sign-in on rotation). `ensureSignedIn`/`ensureProfile` are both
  * no-ops when the session/profile already exist, so re-running on the next launch is cheap and safe.
  */
+@Suppress("LongParameterList")
 @HiltViewModel
 class AppViewModel
     @Inject
@@ -48,6 +53,8 @@ class AppViewModel
         private val studytimeRepository: StudytimeRepository,
         private val accountRepository: AccountRepository,
         accountResetBus: AccountResetBus,
+        private val connectivity: ConnectivityObserver,
+        private val offlineAnalytics: OfflineAnalytics,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<BootState>(BootState.Loading)
         val uiState: StateFlow<BootState> = _uiState.asStateFlow()
@@ -100,9 +107,31 @@ class AppViewModel
             // swallows — the auth/profile bootstrap above. Retries on the next launch.
             runCatching {
                 studytimeRepository.seedFromServerIfEmpty()
-                studytimeRepository.drainOnStart()
+                studytimeRepository.drain()
             }.onFailure {
                 Log.w(TAG, "Gamification seed/drain failed — retries on next launch", it)
+            }
+
+            observeConnectivity()
+        }
+
+        /**
+         * 연결성 전이 관측(M4-04): (1) `connectivity_changed` 계측, (2) offline→online 복귀 시 studytime
+         * write-ahead 큐를 재드레인 — 프로세스 재시작 없이 연결이 돌아와도 재동기화한다(재접속 훅). 초기값은
+         * [drop] 로 건너뛰어 전이(edge)만 다룬다. `distinctUntilChanged` 소스라 emit 은 실제 전이에서만 온다.
+         * saved_cards/point_ledger 는 Firestore SDK 가 자동 재생하므로 여기 훅은 studytime WAQ 전용이다.
+         */
+        private fun observeConnectivity() {
+            viewModelScope.launch {
+                var prev = connectivity.state.value
+                connectivity.state.drop(1).collect { current ->
+                    offlineAnalytics.connectivityChanged(online = current == Connectivity.Online)
+                    if (prev == Connectivity.Offline && current == Connectivity.Online) {
+                        runCatching { studytimeRepository.drain() }
+                            .onFailure { Log.w(TAG, "reconnect drain failed — retries on next transition", it) }
+                    }
+                    prev = current
+                }
             }
         }
 

@@ -151,7 +151,7 @@ class StudytimeStoreTest {
             assertEquals(0L, snap.todaySeconds)
             assertEquals(0, snap.streak)
             assertNull(snap.lastStudyDate)
-            assertFalse("unsynced must be false after reset — else drainOnStart revives the total", snap.unsynced)
+            assertFalse("unsynced must be false after reset — else drain() revives the total", snap.unsynced)
 
             scope.cancel()
         }
