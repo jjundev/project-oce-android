@@ -89,4 +89,6 @@ private class RecordingReminderOrchestrator : ReminderOrchestrator {
         streak: Int,
         lastStudyDate: LocalDate,
     ) = Unit
+
+    override suspend fun clearProgressCache() = Unit
 }

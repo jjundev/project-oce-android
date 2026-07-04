@@ -327,6 +327,10 @@ private class FakeReminderStore(
     }
 
     override suspend fun cacheSnapshot(): ReminderCache = cacheValue
+
+    override suspend fun resetProgressCache() {
+        cacheValue = ReminderCache(lastStudyDate = null, streak = null)
+    }
 }
 
 private class RecordingReminderSchedule : ReminderSchedule {

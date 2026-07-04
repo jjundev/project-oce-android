@@ -107,6 +107,8 @@ private class FakeStudytimeRepository(
     override suspend fun seedFromServerIfEmpty() = Unit
 
     override suspend fun drainOnStart() = Unit
+
+    override suspend fun resetMetrics() = Unit
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
