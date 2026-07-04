@@ -5,12 +5,15 @@ import com.jjundev.oneclickeng.core.connectivity.OfflineAnalytics
 import com.jjundev.oneclickeng.core.network.LimitAnalytics
 import com.jjundev.oneclickeng.core.network.WaitQuizAnalytics
 import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
+import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
 import com.jjundev.oneclickeng.ui.component.QuizItem
 import com.jjundev.oneclickeng.ui.component.selectLimitSurface
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -23,6 +26,7 @@ import javax.inject.Inject
  * Scoped to the caller's ViewModelStore, so an in-flight generation and its accumulated turns survive
  * configuration changes (process-death survival remains M1-08's concern).
  */
+@Suppress("LongParameterList") // DI: SSE 브리지 + 퀴즈/분석 seam + durable 스냅샷 폐기(appScope) 조립.
 @HiltViewModel
 class DialogueGenerationViewModel
     @Inject
@@ -31,6 +35,8 @@ class DialogueGenerationViewModel
         private val quizBank: QuizBank,
         private val analytics: WaitQuizAnalytics,
         private val limitAnalytics: LimitAnalytics,
+        private val snapshotStore: SessionSnapshotStore,
+        private val appScope: CoroutineScope,
         private val offlineAnalytics: OfflineAnalytics,
         loadingQuizConfig: LoadingQuizConfig,
     ) : ViewModel() {
@@ -80,6 +86,10 @@ class DialogueGenerationViewModel
                     val tier = if (firstSession) FIRST_SESSION_TIER else level
                     _quizItems.value = if (quizEnabled) quizBank.forTier(tier) else emptyList()
                     answeredCount = 0
+                    // 세션이 **실제로 시작**됐을 때만 직전 미완 세션 durable 스냅샷 폐기(§2.5 "새 세션 시작
+                    // 시에만 폐기"). 오프라인 게이트로 막혔으면 아무 세션도 시작 안 됐으므로 이전 스냅샷을
+                    // 보존한다(온라인 복귀 후 이어하기 가능). appScope 로 실행해 화면 이탈로 취소되지 않게 한다.
+                    appScope.launch { snapshotStore.clear() }
                 }
             }
         }

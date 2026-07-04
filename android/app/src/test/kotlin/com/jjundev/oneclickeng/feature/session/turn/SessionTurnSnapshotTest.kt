@@ -76,7 +76,7 @@ class SessionTurnSnapshotTest {
         original.completeOpponentTurn()
         original.appendLearnerAnswer("Coffee, my own words.")
 
-        val encoded = json.encodeToString(original.toSnapshot(MicState.Complete, TWO_PAIRS))
+        val encoded = json.encodeToString(original.toSnapshot(MicState.Complete, TWO_PAIRS, "s1", "easy"))
         val decoded = json.decodeFromString<SessionTurnSnapshot>(encoded)
         val restored = GeneratedDialogueState().apply { restoreFrom(decoded) }
 
@@ -85,6 +85,9 @@ class SessionTurnSnapshotTest {
         assertEquals(original.turnPhase, restored.turnPhase)
         assertEquals(original.currentTask, restored.currentTask)
         assertEquals(MicState.Complete.name, decoded.micState)
+        // v2: 세션 식별(sessionId/level)이 round-trip 으로 보존된다(크로스-프로세스 피드백 재부착).
+        assertEquals("s1", decoded.sessionId)
+        assertEquals("easy", decoded.level)
 
         // bufferedPending 생존: 전진→상대역 진행 시 버퍼된 "Anything else?" 가 살아나야 한다(D2 결함 방지).
         restored.advanceTurn()
@@ -99,7 +102,7 @@ class SessionTurnSnapshotTest {
         val state = GeneratedDialogueState()
         state.accept(ready(TWO_PAIRS))
 
-        val snapshot = state.toSnapshot(MicState.Ready, TWO_PAIRS)
+        val snapshot = state.toSnapshot(MicState.Ready, TWO_PAIRS, sessionId = null, level = null)
 
         assertEquals(TWO_PAIRS.size, snapshot.turns.size)
         assertEquals("Hello", snapshot.turns.first().en)

@@ -14,9 +14,12 @@ import com.jjundev.oneclickeng.core.connectivity.OfflineAnalytics
 import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -58,6 +61,15 @@ class AppViewModel
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<BootState>(BootState.Loading)
         val uiState: StateFlow<BootState> = _uiState.asStateFlow()
+
+        /**
+         * 글로벌 오프라인 배너(C4)용 앱 스코프 연결 상태(M3-08, H7/P8). M4-04 [ConnectivityObserver] 를 단일
+         * 연결성 소스로 삼아 Boolean 으로 파생한다(M3-08 의 별도 ConnectivityMonitor 는 이 병합에서 폐기).
+         */
+        val isOnline: StateFlow<Boolean> =
+            connectivity.state
+                .map { it == Connectivity.Online }
+                .stateIn(viewModelScope, SharingStarted.Eagerly, connectivity.state.value == Connectivity.Online)
 
         init {
             viewModelScope.launch { bootstrap() }

@@ -4,15 +4,20 @@ import com.jjundev.oneclickeng.core.connectivity.ConnectivityObserver
 import com.jjundev.oneclickeng.core.connectivity.OfflineAnalytics
 import com.jjundev.oneclickeng.core.network.DialogueEvent
 import com.jjundev.oneclickeng.core.network.DialogueRequest
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
 import com.jjundev.oneclickeng.core.network.DialogueStream
 import com.jjundev.oneclickeng.core.network.LimitAnalytics
 import com.jjundev.oneclickeng.core.network.WaitQuizAnalytics
 import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
+import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
 import com.jjundev.oneclickeng.ui.component.QuizItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -236,6 +241,29 @@ class DialogueGenerationViewModelTest {
     ): DialogueGenerationViewModel {
         val scope: CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
         val coordinator = DialogueGenerationCoordinator(stream, scope, connectivity)
-        return DialogueGenerationViewModel(coordinator, bank, analytics, limitAnalytics, offlineAnalytics, config)
+        val snapshotStore = SessionSnapshotStore(inMemoryPrefsDataStore())
+        return DialogueGenerationViewModel(
+            coordinator,
+            bank,
+            analytics,
+            limitAnalytics,
+            snapshotStore,
+            scope,
+            offlineAnalytics,
+            config,
+        )
     }
 }
+
+/** 파일 I/O 없는 인메모리 [DataStore] — snapshotStore 주입용(테스트는 store 를 직접 검증하지 않는다). */
+private fun inMemoryPrefsDataStore(): DataStore<Preferences> =
+    object : DataStore<Preferences> {
+        private val flow = MutableStateFlow(emptyPreferences())
+        override val data: Flow<Preferences> = flow
+
+        override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+            val updated = transform(flow.value)
+            flow.value = updated
+            return updated
+        }
+    }
