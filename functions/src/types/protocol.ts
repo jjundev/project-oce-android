@@ -9,7 +9,13 @@
  */
 
 /** task discriminant — backend-functions.md:46 */
-export type Task = "dialogue" | "speaking" | "feedback" | "summary" | "tts";
+export type Task =
+  | "dialogue"
+  | "speaking"
+  | "feedback"
+  | "feedbackDeep"
+  | "summary"
+  | "tts";
 
 /** per-task response transport — backend-functions.md:50-52 */
 export type ResponseMode = "sse" | "json";

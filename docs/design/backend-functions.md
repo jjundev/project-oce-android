@@ -43,16 +43,16 @@
 
 ## 4. `/llm` 프록시 계약
 - **요청:** `POST /llm`, `Authorization: Bearer <FirebaseIdToken>`, body `{ task, sessionId?, idempotencyKey?, payload }`.
-  - task ∈ `{dialogue, speaking, feedback, summary, tts}`.
-  - `dialogue`: `idempotencyKey` 필수(§7). `feedback|speaking|summary`: `sessionId` 필수(§8).
+  - task ∈ `{dialogue, speaking, feedback, feedbackDeep, summary, tts}`.
+  - `dialogue`: `idempotencyKey` 필수(§7). `feedback|feedbackDeep|speaking|summary`: `sessionId` 필수(§8). `feedbackDeep`는 "더 보기" 온디맨드 깊은 분석(M2-03) — §8 per-session 캡을 `feedback`/`speaking`과 공유(shared counter; factor 2→3 상향으로 슬림+speaking+deep 수용).
   - `speaking`: `payload.audioBase64`(16kHz·16bit·mono WAV).
 - **인증:** Firebase ID 토큰 검증(Admin). **익명(게스트) 허용**, 미인증 거부.
 - **응답 모드(task별 선언):**
-  - **SSE**(`text/event-stream`): `dialogue`, `feedback`, `summary`
+  - **SSE**(`text/event-stream`): `dialogue`, `feedback`, `feedbackDeep`, `summary`
   - **단발 JSON**: `speaking`, `tts`
 - **타입드 SSE 엔벨로프:**
   - `event: meta` → `{sessionId, remaining}` (dialogue 시작 시)
-  - `event: object` → `{type, data}`, `type ∈ {dialogueMeta, turn, feedbackSection, summaryCard}` (`summaryCard.data.kind ∈ {expression, word, coaching}`)
+  - `event: object` → `{type, data}`, `type ∈ {dialogueMeta, turn, feedbackSection, feedbackDeepSection, summaryCard}` (`feedbackDeepSection.data.section ∈ {conceptualBridge, toneStyle, paraphrasing}` · `summaryCard.data.kind ∈ {expression, word, coaching}`)
   - `event: done` → `{status, sections?}` (summary는 `{expressions: ok|failed, words: ok|failed, coaching: ok|failed}` — §10)
   - `event: error` → `{code}`
 - **SSE 전송 규칙(중요):** compression 미들웨어 **금지**, 객체마다 `res.write()`+flush, `Content-Type: text/event-stream`, **no `Content-Length`**, `X-Accel-Buffering: no`. (안 그러면 배치로 회귀 → NFR-3 무효)
