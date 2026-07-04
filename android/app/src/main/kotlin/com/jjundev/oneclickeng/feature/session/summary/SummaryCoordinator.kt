@@ -5,6 +5,8 @@ import com.jjundev.oneclickeng.core.network.SummaryEvent
 import com.jjundev.oneclickeng.core.network.SummaryPayload
 import com.jjundev.oneclickeng.core.network.SummaryRequest
 import com.jjundev.oneclickeng.core.network.SummaryStream
+import com.jjundev.oneclickeng.feature.gamification.GamificationTime
+import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
 import com.jjundev.oneclickeng.feature.session.saved.CardType
 import com.jjundev.oneclickeng.feature.session.saved.SavedCard
 import com.jjundev.oneclickeng.feature.session.saved.SavedCardId
@@ -47,11 +49,15 @@ enum class SummarySection(val wireKey: String) {
  * (늦은 이벤트는 토큰 불일치로 드롭). 워치독은 번들이 아직 확정되지 않았거나(초기) 재시도 섹션이 Loading 인
  * 동안 인터-이벤트 idle 타임아웃을 걸어, 발화 시 소켓을 닫고 미도착 섹션을 Failed 로 만든다.
  *
- * **완주 적립(#20):** [start] 는 요약 진입 시점에 [CompletionLedger.recordCompletion] 으로 point_ledger
- * create 를 시도한다(멱등). 집계(XP/streak)는 M3 소관.
+ * **완주 적립(#20·M3-05):** [start] 는 요약 진입 시점에 [CompletionLedger.recordCompletion] 으로
+ * point_ledger create(XP 원장, 멱등)를, [StudytimeRepository.recordSession] 으로 studytime 누적(멱등)을
+ * 시도한다. XP/streak 서버 집계는 `onLedgerCreate` 트리거 소관이며, 적립 스트립([accrual])은 로컬 낙관
+ * 값으로 갱신되어 서버가 사후 정합한다.
  */
-// 상태 머신 코디네이터라 작은 전이 헬퍼가 많다(SlimFeedbackCoordinator 선례와 동일 판단).
-@Suppress("TooManyFunctions")
+// 상태 머신 코디네이터라 작은 전이 헬퍼가 많다(SlimFeedbackCoordinator 선례와 동일 판단). 주입 seam 이
+// 많아(스트림·버퍼·북마크·원장·저장카드·studytime·scope) LongParameterList 를 억제한다 — 페이로드 분해가
+// 오히려 불투명(DeepFeedbackCoordinator 선례와 동일 판단).
+@Suppress("TooManyFunctions", "LongParameterList")
 @Singleton
 class SummaryCoordinator
     @Inject
@@ -61,6 +67,7 @@ class SummaryCoordinator
         private val bookmarkSource: BookmarkSource,
         private val ledger: CompletionLedger,
         private val savedCardRepository: SavedCardRepository,
+        private val studytime: StudytimeRepository,
         private val scope: CoroutineScope,
     ) {
         private val _state = MutableStateFlow(EMPTY)
@@ -134,6 +141,8 @@ class SummaryCoordinator
 
             // 완주 적립 시도(요약 진입 시점, #20). fire-and-forget · 멱등.
             ledger.recordCompletion(sessionId = sessionId, difficulty = difficulty, modeId = modeId)
+            // studytime 적립 + 적립 스트립 산출(M3-05). 비동기 — 완료 시 accrual 갱신.
+            recordAccrual(sessionId, difficulty)
             // 북마크 비동기 로드(M2-04 착지 전엔 빈 리스트). 도착 시 로컬 블록만 갱신.
             loadBookmarks(sessionId)
 
@@ -209,6 +218,34 @@ class SummaryCoordinator
                 // Apply only if still the current session (a reset/new start supersedes this load).
                 if (sessionId == this@SummaryCoordinator.sessionId) {
                     bookmarks = loaded
+                    emit()
+                }
+            }
+        }
+
+        /**
+         * studytime 적립(M3-05). 세션 시작 벽시계([SessionTurnBufferStore.sessionStartMillis])에서 완주까지
+         * 경과 학습시간을 산출해 [StudytimeRepository.recordSession] 으로 로컬 누적(멱등)·서버 push 하고, 반환된
+         * 오늘 학습시간/streak 로 적립 스트립을 갱신한다. XP 는 난이도의 순수 함수(서버 권위 미러). 비동기라 진입
+         * 시엔 주입된 초기 [accrual] 이 보이고, 완료 시 실제 값으로 교체된다(로컬 블록 async 패턴, 북마크와 동일).
+         */
+        private fun recordAccrual(
+            sessionId: String,
+            difficulty: String,
+        ) {
+            scope.launch {
+                val nowMs = System.currentTimeMillis()
+                val dayKey = GamificationTime.kstDayKey(nowMs)
+                val elapsed = GamificationTime.elapsedStudySeconds(turnBuffer.sessionStartMillis(), nowMs)
+                val snap = studytime.recordSession(sessionId, elapsed, dayKey)
+                // Apply only if still the current session (a reset/new start supersedes this).
+                if (sessionId == this@SummaryCoordinator.sessionId) {
+                    accrual =
+                        AccrualStrip(
+                            streakDays = snap.streak,
+                            studyTimeLabel = GamificationTime.studyTimeLabel(snap.todaySeconds),
+                            xp = GamificationTime.XP_BY_DIFFICULTY[difficulty] ?: 0,
+                        )
                     emit()
                 }
             }
