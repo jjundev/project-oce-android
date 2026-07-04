@@ -25,7 +25,6 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
@@ -82,6 +81,8 @@ internal fun DialogueTurnContent(
     onSubmitStub: () -> Unit,
     onViewSummary: () -> Unit,
     modifier: Modifier = Modifier,
+    // 입력 독 slot(M1-08). 미주입(스텁 라우트·프리뷰)이면 기존 [ScaffoldDock] 로 폴백해 M1-03 화면을 유지한다.
+    dock: (@Composable (ScaffoldTask) -> Unit)? = null,
 ) {
     Scaffold(
         modifier = modifier,
@@ -116,7 +117,11 @@ internal fun DialogueTurnContent(
                     DialogueCompletion(onViewSummary = onViewSummary)
 
                 turnPhase == TurnPhase.LearnerTurn && currentTask != null ->
-                    ScaffoldDock(task = currentTask, onSubmitStub = onSubmitStub)
+                    if (dock != null) {
+                        dock(currentTask)
+                    } else {
+                        ScaffoldDock(task = currentTask, onSubmitStub = onSubmitStub)
+                    }
             }
         }
     }
@@ -140,21 +145,7 @@ private fun ScaffoldDock(
         modifier = modifier.fillMaxWidth().padding(OceTheme.spacing.lg),
         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
     ) {
-        OneClickCard(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(OceTheme.spacing.lg)) {
-                Text(
-                    text = "이 한국어를 영어로 말해보세요",
-                    style = OceTheme.typography.helper,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = task.koreanPrompt,
-                    style = OceTheme.typography.body,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(top = OceTheme.spacing.xs),
-                )
-            }
-        }
+        ScaffoldPromptCard(task = task)
         // 임시 스텁: 실 입력 독(M1-04/M1-08)으로 교체. 터치 타깃 ≥48dp(A 접근성).
         Button(
             onClick = onSubmitStub,
