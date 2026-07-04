@@ -31,10 +31,17 @@ class SummaryViewModel
             difficulty: String,
             modeId: String,
             accrual: AccrualStrip,
+            isFirstSession: Boolean = false,
         ) {
             if (started) return
             started = true
-            coordinator.start(sessionId = sessionId, difficulty = difficulty, modeId = modeId, accrual = accrual)
+            coordinator.start(
+                sessionId = sessionId,
+                difficulty = difficulty,
+                modeId = modeId,
+                accrual = accrual,
+                isFirstSession = isFirstSession,
+            )
         }
 
         fun retry(section: SummarySection) = coordinator.retry(section)
@@ -58,10 +65,17 @@ fun SummaryRoute(
     modeId: String,
     accrual: AccrualStrip,
     modifier: Modifier = Modifier,
+    isFirstSession: Boolean = false,
     viewModel: SummaryViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(sessionId) {
-        viewModel.start(sessionId = sessionId, difficulty = difficulty, modeId = modeId, accrual = accrual)
+        viewModel.start(
+            sessionId = sessionId,
+            difficulty = difficulty,
+            modeId = modeId,
+            accrual = accrual,
+            isFirstSession = isFirstSession,
+        )
     }
     val state by viewModel.state.collectAsStateWithLifecycle()
     SummaryScreen(state = state, onRetry = viewModel::retry, modifier = modifier)

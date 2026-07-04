@@ -64,7 +64,7 @@ fun SummaryScreen(
                 .padding(OceTheme.spacing.sheetPadding),
         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sectionGap),
     ) {
-        ScoreHero(state.totalScore)
+        ScoreHero(state.totalScore, state.isFirstSession)
         AccrualStripBlock(state.accrual)
         state.highlight?.let { HighlightSection(it) }
         SseBundle(
@@ -78,7 +78,10 @@ fun SummaryScreen(
 
 /** ① 종합 점수 hero — 56sp `scoreDisplay` brand.primary + 격려 1차. 점수 없으면(전 턴 스킵) 중립 안내. */
 @Composable
-private fun ScoreHero(totalScore: Int?) {
+private fun ScoreHero(
+    totalScore: Int?,
+    isFirstSession: Boolean,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs)) {
         if (totalScore != null) {
             Text(
@@ -87,13 +90,18 @@ private fun ScoreHero(totalScore: Int?) {
                 color = MaterialTheme.colorScheme.primary,
             )
             Text(
-                text = encouragement(totalScore),
+                text = encouragement(totalScore, isFirstSession),
                 style = OceTheme.typography.body,
                 color = MaterialTheme.colorScheme.onSurface,
             )
         } else {
             Text(
-                text = "이번 세션은 점수를 낼 수 없었어요. 다음엔 한 문장이라도 말해볼까요?",
+                text =
+                    if (isFirstSession) {
+                        "첫 대화를 끝까지 해냈어요. 그거면 충분해요. 다음엔 한 문장 더 말해볼까요?"
+                    } else {
+                        "이번 세션은 점수를 낼 수 없었어요. 다음엔 한 문장이라도 말해볼까요?"
+                    },
                 style = OceTheme.typography.body,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -101,12 +109,26 @@ private fun ScoreHero(totalScore: Int?) {
     }
 }
 
-/** 격려 1차 카피(위계: 격려 우선, 점수 보조 — ux-writing). 비난 없음, 해요체. */
-private fun encouragement(score: Int): String =
-    when {
-        score >= HIGH_SCORE -> "정말 잘했어요! 오늘 표현이 자연스러웠어요."
-        score >= MID_SCORE -> "좋아요, 꾸준히 늘고 있어요."
-        else -> "끝까지 해낸 게 가장 중요해요. 계속 가봐요."
+/**
+ * 격려 1차 카피(위계: 격려 우선, 점수 보조 — ux-writing). 비난 없음, 해요체. 온보딩 첫 세션([isFirstSession])은
+ * 일반 세션보다 더 따뜻한 변형을 쓴다(01-onboarding §8 "첫 세션 피드백은 일반 세션보다 더 따뜻하게").
+ */
+private fun encouragement(
+    score: Int,
+    isFirstSession: Boolean,
+): String =
+    if (isFirstSession) {
+        when {
+            score >= HIGH_SCORE -> "첫 대화부터 정말 잘했어요! 영어로 말하는 게 이렇게 되네요."
+            score >= MID_SCORE -> "첫 대화를 멋지게 해냈어요. 시작이 반이에요, 잘하고 있어요."
+            else -> "첫 영어 대화를 끝까지 해냈어요. 이게 가장 큰 한 걸음이에요."
+        }
+    } else {
+        when {
+            score >= HIGH_SCORE -> "정말 잘했어요! 오늘 표현이 자연스러웠어요."
+            score >= MID_SCORE -> "좋아요, 꾸준히 늘고 있어요."
+            else -> "끝까지 해낸 게 가장 중요해요. 계속 가봐요."
+        }
     }
 
 /**
