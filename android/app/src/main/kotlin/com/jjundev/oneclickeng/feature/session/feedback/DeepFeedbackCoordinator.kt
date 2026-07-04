@@ -4,6 +4,10 @@ import com.jjundev.oneclickeng.core.network.DeepFeedbackStream
 import com.jjundev.oneclickeng.core.network.FeedbackDeepEvent
 import com.jjundev.oneclickeng.core.network.FeedbackDeepRequest
 import com.jjundev.oneclickeng.core.network.FeedbackPayload
+import com.jjundev.oneclickeng.feature.session.saved.CardType
+import com.jjundev.oneclickeng.feature.session.saved.SavedCard
+import com.jjundev.oneclickeng.feature.session.saved.SavedCardId
+import com.jjundev.oneclickeng.feature.session.saved.SavedCardRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -30,8 +34,9 @@ import javax.inject.Singleton
  * 도착 블록은 보존한 채 [DeepFeedbackState.Error] 로 만든다(sticky). 캡 거부는 [DeepFeedbackState.QuotaBlocked]
  * 로 분기한다(재시도 아님).
  *
- * **북마크:** 패러프레이즈 저장 토글은 턴 내 ephemeral([bookmarkedLevels]) — Firestore 영속·턴 간 생존은
- * M2-04 소관이며 [toggleBookmark] 가 반환하는 [ParaphraseBookmark] 가 그 seam 이다.
+ * **북마크:** 패러프레이즈 저장 토글은 턴 내 ephemeral([bookmarkedLevels]) 이면서, M2-04 부터 [toggleBookmark]
+ * 가 [SavedCardRepository] 로 SENTENCE 카드를 영속화한다(cardId=`{sessionId}__SENTENCE__{turnIndex}__{level}`).
+ * 반환하는 [ParaphraseBookmark] 는 계측/호스트용 seam 으로 유지한다.
  */
 // 상태 머신 코디네이터라 작은 전이 헬퍼가 많다(SlimFeedbackCoordinator 선례와 동일 판단).
 @Suppress("TooManyFunctions")
@@ -40,6 +45,7 @@ class DeepFeedbackCoordinator
     @Inject
     constructor(
         private val stream: DeepFeedbackStream,
+        private val savedCardRepository: SavedCardRepository,
         private val scope: CoroutineScope,
     ) {
         private val _state = MutableStateFlow<DeepFeedbackState>(DeepFeedbackState.Idle)
@@ -129,14 +135,35 @@ class DeepFeedbackCoordinator
         }
 
         /**
-         * 패러프레이즈 북마크 토글(턴 내 ephemeral). 레벨을 [bookmarkedLevels] 에서 토글하고, 저장 seam 페이로드
-         * [ParaphraseBookmark] 를 반환한다 — 호출자(호스트)가 M2-04 영속 계층으로 넘긴다(M2-03 는 seam 만).
+         * 패러프레이즈 북마크 토글. 턴 내 ephemeral 레벨을 [bookmarkedLevels] 에서 토글하고, 결정적 cardId 로
+         * SENTENCE 카드를 영속화한다(add→save / remove→톰스톤 setDeleted, fire-and-forget). [ParaphraseBookmark]
+         * 를 반환해 호스트 계측 seam 을 유지한다.
+         *
+         * **불변식:** 토글은 `para != null`(Ready/Loading/Error, DeepFeedbackSections)에서만 도달 가능하고 그
+         * 상태는 `beginAttempt()` 실행 = `lastRequest != null` 을 함의한다. 방어적으로 [lastRequest] 가 null 이면
+         * 영속을 건너뛴다(ephemeral 토글만 반영).
          */
         fun toggleBookmark(paraphrase: Paraphrase): ParaphraseBookmark {
-            _bookmarkedLevels.value =
-                _bookmarkedLevels.value.toMutableSet().apply {
-                    if (!add(paraphrase.level)) remove(paraphrase.level)
+            val next = _bookmarkedLevels.value.toMutableSet()
+            val added = next.add(paraphrase.level)
+            if (!added) next.remove(paraphrase.level)
+            _bookmarkedLevels.value = next
+
+            lastRequest?.sessionId?.let { sessionId ->
+                val cardId = SavedCardId.forSentence(sessionId, turnIndex, paraphrase.level)
+                if (added) {
+                    savedCardRepository.save(
+                        cardId,
+                        SavedCard.Sentence(
+                            english = paraphrase.sentence,
+                            korean = paraphrase.sentenceTranslation,
+                        ),
+                    )
+                } else {
+                    savedCardRepository.setDeleted(cardId, CardType.SENTENCE, deleted = true)
                 }
+            }
+
             return ParaphraseBookmark(
                 turnIndex = turnIndex,
                 level = paraphrase.level,

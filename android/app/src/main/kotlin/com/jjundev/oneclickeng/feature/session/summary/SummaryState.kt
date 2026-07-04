@@ -3,6 +3,7 @@ package com.jjundev.oneclickeng.feature.session.summary
 import com.jjundev.oneclickeng.core.network.CoachingDto
 import com.jjundev.oneclickeng.core.network.ExpressionItemDto
 import com.jjundev.oneclickeng.core.network.WordItemDto
+import com.jjundev.oneclickeng.feature.session.saved.SavedCard
 
 /**
  * 세션 요약 화면(M2-02)의 UI 상태축. 정본: 04-screen-05-summary.md · gamification-emphasis.md §4 ·
@@ -27,6 +28,13 @@ data class SummaryState(
     val accrual: AccrualStrip,
     /** 요약 SSE 번들 영역 상태. */
     val bundle: SectionBundle,
+    /**
+     * 저장(북마크)된 단어/표현 카드의 sourceIndex 집합(M2-04, 낙관적 UI 축). deep 북마크([bookmarkedLevels])의
+     * 요약 대칭 — 토글 즉시 채워짐 표시하고 [SavedCardRepository] 로 영속화한다. 인덱스=표시 인덱스이며 Ready
+     * 섹션에서만 저장 어포던스가 열리고 retry 는 Failed 섹션만 대상이라 저장된 섹션은 재생성되지 않는다.
+     */
+    val savedWordIndices: Set<Int> = emptySet(),
+    val savedExprIndices: Set<Int> = emptySet(),
     /**
      * 온보딩 첫 세션 여부(M3-02). true 면 격려 카피를 더 따뜻한 변형으로 고른다("보장된 승리"의 격려 강조,
      * 01-onboarding §8). 일반 세션은 false. 점수 계산·SSE 로직에는 영향이 없다 — 카피 톤만 바꾼다.
@@ -183,4 +191,25 @@ fun CoachingDto.toDomain(): Coaching =
     Coaching(
         positive = futureSelfFeedback.positive,
         toImprove = futureSelfFeedback.toImprove,
+    )
+
+// ---- 도메인→저장 카드(M2-04) ----
+
+/** WORD 카드 저장 페이로드(firestore-schema §3). 스키마에 없는 partOfSpeech/level/note 는 싣지 않는다. */
+fun WordCard.toSavedCard(): SavedCard.Word =
+    SavedCard.Word(
+        english = en,
+        korean = ko,
+        exampleEnglish = exampleEn,
+        exampleKorean = exampleKo,
+    )
+
+/** EXPRESSION 카드 저장 페이로드. [type] 은 스키마 문자열; afterHighlights 는 소스 필드가 없어 생략(#6). */
+fun ExpressionCard.toSavedCard(): SavedCard.Expression =
+    SavedCard.Expression(
+        type = if (type == ExpressionType.Accurate) "accurate" else "natural",
+        koreanPrompt = koreanPrompt,
+        before = before,
+        after = after,
+        explanation = explanation,
     )

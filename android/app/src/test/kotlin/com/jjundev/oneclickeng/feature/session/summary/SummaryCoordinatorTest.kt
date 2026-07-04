@@ -10,6 +10,8 @@ import com.jjundev.oneclickeng.core.network.SummaryStream
 import com.jjundev.oneclickeng.core.network.WordExampleDto
 import com.jjundev.oneclickeng.core.network.WordItemDto
 import com.jjundev.oneclickeng.feature.session.feedback.TurnFeedbackBuffer
+import com.jjundev.oneclickeng.feature.session.saved.CardType
+import com.jjundev.oneclickeng.feature.session.saved.FakeSavedCardRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
@@ -110,8 +112,8 @@ class SummaryCoordinatorTest {
         stream: FakeSummaryStream,
         bookmarks: FakeBookmarkSource = FakeBookmarkSource(),
         ledger: FakeLedger = FakeLedger(),
-        turnBuffer: SessionTurnBufferStore = store(),
-    ) = SummaryCoordinator(stream, turnBuffer, bookmarks, ledger, scope)
+        savedCards: FakeSavedCardRepository = FakeSavedCardRepository(),
+    ) = SummaryCoordinator(stream, store(), bookmarks, ledger, savedCards, scope)
 
     private val accrual = AccrualStrip(streakDays = 3, studyTimeLabel = "10분", xp = 40)
 
@@ -139,6 +141,83 @@ class SummaryCoordinatorTest {
                 assertEquals(3, it.accrual.streakDays)
                 assertTrue(it.bundle is SectionBundle.BundleLoading)
             }
+        }
+
+    @Test
+    fun `toggleSaveWord persists WORD by sourceIndex and toggles savedWordIndices`() =
+        runTest {
+            val stream = FakeSummaryStream()
+            val repo = FakeSavedCardRepository()
+            val coordinator = coordinator(coordScope(), stream, savedCards = repo)
+
+            coordinator.begin() // sessionId=s1
+            stream.push(wordCard()) // word[0]
+            stream.push(done())
+            runCurrent()
+
+            coordinator.toggleSaveWord(0) // save
+            runCurrent()
+            assertTrue(0 in coordinator.state.value.savedWordIndices)
+            assertEquals(1, repo.saves.size)
+            assertEquals("s1__WORD__0", repo.saves.first().cardId)
+
+            coordinator.toggleSaveWord(0) // unsave → tombstone
+            runCurrent()
+            assertFalse(0 in coordinator.state.value.savedWordIndices)
+            assertEquals(1, repo.deletes.size)
+            repo.deletes.first().let {
+                assertEquals("s1__WORD__0", it.cardId)
+                assertEquals(CardType.WORD, it.cardType)
+                assertTrue(it.deleted)
+            }
+        }
+
+    @Test
+    fun `toggleSaveExpression persists EXPRESSION by sourceIndex and toggles savedExprIndices`() =
+        runTest {
+            val stream = FakeSummaryStream()
+            val repo = FakeSavedCardRepository()
+            val coordinator = coordinator(coordScope(), stream, savedCards = repo)
+
+            coordinator.begin() // sessionId=s1
+            stream.push(expressionCard()) // expression[0]
+            stream.push(done())
+            runCurrent()
+
+            coordinator.toggleSaveExpression(0) // save
+            runCurrent()
+            assertTrue(0 in coordinator.state.value.savedExprIndices)
+            assertEquals(1, repo.saves.size)
+            assertEquals("s1__EXPRESSION__0", repo.saves.first().cardId)
+            assertEquals(CardType.EXPRESSION, repo.saves.first().card.cardType)
+
+            coordinator.toggleSaveExpression(0) // unsave → tombstone
+            runCurrent()
+            assertFalse(0 in coordinator.state.value.savedExprIndices)
+            assertEquals(1, repo.deletes.size)
+            repo.deletes.first().let {
+                assertEquals("s1__EXPRESSION__0", it.cardId)
+                assertEquals(CardType.EXPRESSION, it.cardType)
+                assertTrue(it.deleted)
+            }
+        }
+
+    @Test
+    fun `toggleSaveWord is a no-op for an out-of-range index`() =
+        runTest {
+            val stream = FakeSummaryStream()
+            val repo = FakeSavedCardRepository()
+            val coordinator = coordinator(coordScope(), stream, savedCards = repo)
+
+            coordinator.begin()
+            stream.push(wordCard())
+            stream.push(done())
+            runCurrent()
+
+            coordinator.toggleSaveWord(9) // no card at 9
+            runCurrent()
+            assertTrue(coordinator.state.value.savedWordIndices.isEmpty())
+            assertTrue(repo.saves.isEmpty())
         }
 
     @Test

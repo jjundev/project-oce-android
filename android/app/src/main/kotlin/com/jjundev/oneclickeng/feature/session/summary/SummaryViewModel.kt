@@ -46,6 +46,11 @@ class SummaryViewModel
 
         fun retry(section: SummarySection) = coordinator.retry(section)
 
+        /** 단어/표현 카드 저장 토글(M2-04) — 코디네이터로 위임. */
+        fun toggleSaveWord(index: Int) = coordinator.toggleSaveWord(index)
+
+        fun toggleSaveExpression(index: Int) = coordinator.toggleSaveExpression(index)
+
         override fun onCleared() {
             coordinator.reset()
         }
@@ -78,5 +83,11 @@ fun SummaryRoute(
         )
     }
     val state by viewModel.state.collectAsStateWithLifecycle()
-    SummaryScreen(state = state, onRetry = viewModel::retry, modifier = modifier)
+    SummaryScreen(
+        state = state,
+        onRetry = viewModel::retry,
+        onToggleSaveWord = viewModel::toggleSaveWord,
+        onToggleSaveExpression = viewModel::toggleSaveExpression,
+        modifier = modifier,
+    )
 }
