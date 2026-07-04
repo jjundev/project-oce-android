@@ -138,7 +138,7 @@ private class RecordingStudytime : StudytimeRepository {
         sessionId: String,
         elapsedSeconds: Long,
         dayKey: String,
-    ): AccrualSnapshot = AccrualSnapshot(todaySeconds = 0, streak = 0)
+    ): AccrualSnapshot = AccrualSnapshot(todaySeconds = 0, streak = 0, todaySecondsBefore = 0, streakStatic = false)
 
     override suspend fun seedFromServerIfEmpty() = Unit
 

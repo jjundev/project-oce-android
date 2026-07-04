@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import com.jjundev.oneclickeng.ui.component.InlineErrorMode
+import com.jjundev.oneclickeng.ui.component.OneClickCountUp
 import com.jjundev.oneclickeng.ui.component.OneClickEmptyState
 import com.jjundev.oneclickeng.ui.component.OneClickInlineError
 import com.jjundev.oneclickeng.ui.component.OneClickSkeleton
@@ -142,25 +143,54 @@ private fun encouragement(
 
 /**
  * ② 적립 스트립 — 종합 점수와 **별도 블록**(같은 행 금지, gamification §4.2). 순서 streak🔥 → 학습시간 →
- * XP(§4.3). 정적 값(카운트업 및 same-day streak 정적 규칙은 M3-06 에서 도입, [AccrualStrip] 참조).
+ * XP(§4.3). [AccrualStrip.animate] 가 true(M3-05 실값 착지)면 세 지표를 슬롯머신 카운트업(I3, §4.4)으로
+ * 굴린다: XP 0→델타, 학습시간 오늘 누계 before→after, streak 0→N(단 same-day 2번째 세션은 정적). 주입 초기/
+ * EMPTY(animate=false)는 정적. reduce-motion 은 [OneClickCountUp] 내부에서 스냅(F4).
  */
 @Composable
 private fun AccrualStripBlock(accrual: AccrualStrip) {
+    val beforeMin = accrual.todayStudySecondsBefore?.div(SECONDS_PER_MINUTE)
+    val afterMin = accrual.todayStudySecondsAfter / SECONDS_PER_MINUTE
+    // before 불명(이관/롤오버=null) 또는 before·after 동일 분이면 학습시간 정적 스냅(§4.4 이관 예외·죽은 롤 방지).
+    val studyStatic = beforeMin == null || beforeMin == afterMin || !accrual.animate
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
     ) {
-        OneClickStreakChip(days = accrual.streakDays)
-        if (accrual.studyTimeLabel.isNotBlank()) {
-            Text(
-                text = accrual.studyTimeLabel,
-                style = OceTheme.typography.helper,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        OneClickStreakChip(
+            days = accrual.streakDays,
+            static = accrual.streakStatic || !accrual.animate,
+        )
+        // 학습시간 슬롯은 실값 착지(animate) 후에만 노출한다(주입 초기 "오늘 0분" 잔상 방지).
+        if (accrual.animate) {
+            StudyTimeSlot(from = beforeMin ?: afterMin, target = afterMin, static = studyStatic)
         }
-        // 스트립에서 XP 는 항상 정적 스냅(카운트업 연출은 M3-06 완주 보상 surface 한정).
-        OneClickXpChip(xp = accrual.xp, static = true)
+        OneClickXpChip(xp = accrual.xp, static = !accrual.animate)
+    }
+}
+
+/** `오늘 N분` — "오늘 " 접두는 정적, 분(N)만 [OneClickCountUp] 으로 [from]→[target] 롤업(§4.4). */
+@Composable
+private fun StudyTimeSlot(
+    from: Int,
+    target: Int,
+    static: Boolean,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = "오늘 ",
+            style = OceTheme.typography.helper,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OneClickCountUp(
+            target = target,
+            from = from,
+            unit = "분",
+            static = static,
+            style = OceTheme.typography.helper,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -558,10 +588,19 @@ private fun CoachingBlock(
 private const val HIGH_SCORE = 80
 private const val MID_SCORE = 50
 private const val COLLAPSED_PREVIEW = 3
+private const val SECONDS_PER_MINUTE = 60
 
 // ---- Previews (프로토타입 summary/summaryRich 대조용) ----
 
-private val previewAccrual = AccrualStrip(streakDays = 7, studyTimeLabel = "12분 학습", xp = 120)
+private val previewAccrual =
+    AccrualStrip(
+        streakDays = 7,
+        xp = 120,
+        todayStudySecondsBefore = 0,
+        todayStudySecondsAfter = 720,
+        streakStatic = false,
+        animate = true,
+    )
 
 private val previewRichBundle =
     SectionBundle.Sectioned(
@@ -602,6 +641,32 @@ private val previewRichBundle =
                 Coaching(positive = "끝까지 대화를 이어간 게 좋았어요.", toImprove = "다음엔 과거형을 한 번 노려볼까요?"),
             ),
     )
+
+@Suppress("UnusedPrivateMember")
+@Preview(name = "accrualStrip", showBackground = true, widthDp = 360)
+@Composable
+private fun AccrualStripPreview() {
+    OceTheme {
+        Column(
+            modifier = Modifier.padding(OceTheme.spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.lg),
+        ) {
+            // 첫 세션(롤업): streak 0→7, 학습시간 0→12분, XP 0→120.
+            AccrualStripBlock(previewAccrual)
+            // same-day 2번째(streak 정적, 학습시간·XP 롤): 12분→18분.
+            AccrualStripBlock(
+                AccrualStrip(
+                    streakDays = 7,
+                    xp = 120,
+                    todayStudySecondsBefore = 720,
+                    todayStudySecondsAfter = 1080,
+                    streakStatic = true,
+                    animate = true,
+                ),
+            )
+        }
+    }
+}
 
 @Suppress("UnusedPrivateMember")
 @Preview(name = "summaryRich", showBackground = true, widthDp = 360, heightDp = 900)

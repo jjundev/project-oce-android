@@ -149,8 +149,8 @@ private fun NavGraphBuilder.summaryDestination(navController: NavHostController)
                 sessionId = sessionId,
                 difficulty = difficulty,
                 modeId = "default",
-                // 적립 값 실소스는 M3-05(요약 코디네이터가 기록 시 산출) — 여기선 정적 placeholder.
-                accrual = AccrualStrip(streakDays = 0, studyTimeLabel = "", xp = 0),
+                // 적립 값 실소스는 M3-05(요약 코디네이터가 기록 시 산출) — 여기선 정적 placeholder(animate=false).
+                accrual = AccrualStrip(streakDays = 0, xp = 0),
             )
             Button(
                 onClick = { navController.exitToTabs() },

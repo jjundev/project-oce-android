@@ -24,7 +24,7 @@ data class SummaryState(
     val highlight: HighlightTurn?,
     /** 북마크 문장(SENTENCE) 최신순 ≤8, 표시 전용. M2-04 착지 전엔 빈 리스트(BookmarkSource seam). */
     val bookmarks: List<BookmarkCard>,
-    /** 적립 스트립(streak/학습시간/XP) — 주입 seam 정적 값. 실제 배선 M3-05, 카운트업 M3-06. */
+    /** 적립 스트립(streak/학습시간/XP) — 실데이터 배선 M3-05, 슬롯머신 카운트업 M3-06([AccrualStrip.animate]). */
     val accrual: AccrualStrip,
     /** 요약 SSE 번들 영역 상태. */
     val bundle: SectionBundle,
@@ -150,15 +150,26 @@ data class BookmarkCard(
 )
 
 /**
- * 적립 스트립 정적 값(주입 seam). 순서 = streak → 학습시간 → XP(gamification-emphasis.md §4.3). 이 화면은
- * 값을 정적으로 렌더만 한다 — 실제 데이터 소스 배선은 M3-05, 슬롯머신 카운트업(및 same-day 2번째 세션의
- * streak 정적 유지 규칙, SM1)은 카운트업 컴포넌트가 착지하는 M3-06 에서 함께 도입한다(현 [OneClickStreakChip]
- * 은 애니메이션 변형이 없어 정적/동적 구분이 아직 무의미).
+ * 적립 스트립 값(주입 seam). 순서 = streak → 학습시간 → XP(gamification-emphasis.md §4.3). 실데이터 소스
+ * 배선은 M3-05, 슬롯머신 카운트업(I3)은 M3-06 에서 착지한다.
+ *
+ * **카운트업 게이팅(M3-06, gamification §4.4):** [animate] 가 true 일 때만 세 지표를 굴린다 — 주입 초기/EMPTY
+ * 값은 false 라 정적(0→0 죽은 애니메이션 방지). XP 는 0→델타, 학습시간은 오늘 누계
+ * [todayStudySecondsBefore]→[todayStudySecondsAfter] 로 롤업하고, streak 는 0→N 이되 same-day 2번째 세션
+ * ([streakStatic]=true)은 정적으로 유지한다(§4.4). [todayStudySecondsBefore] 가 null(이관/롤오버로 before 불명)
+ * 이거나 before·after 가 같은 분이면 학습시간은 정적 스냅한다.
  */
 data class AccrualStrip(
     val streakDays: Int,
-    val studyTimeLabel: String,
     val xp: Int,
+    /** 오늘 학습시간 세션 전 누계(초). null=before 불명(이관/롤오버) → 학습시간 정적. */
+    val todayStudySecondsBefore: Int? = null,
+    /** 오늘 학습시간 세션 후 누계(초) = 롤업 target. */
+    val todayStudySecondsAfter: Int = 0,
+    /** same-day 2번째 세션 = streak 정적(§4.4). */
+    val streakStatic: Boolean = false,
+    /** 실데이터 착지 여부. false=주입 초기/EMPTY(정적), true=M3-05 실값(카운트업 대상). */
+    val animate: Boolean = false,
 )
 
 // ---- DTO→도메인 매핑 ----

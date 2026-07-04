@@ -91,7 +91,8 @@ private class FakeLedger : CompletionLedger {
 }
 
 private class FakeStudytimeRepository(
-    private val snapshot: AccrualSnapshot = AccrualSnapshot(todaySeconds = 600, streak = 3),
+    private val snapshot: AccrualSnapshot =
+        AccrualSnapshot(todaySeconds = 600, streak = 3, todaySecondsBefore = 0, streakStatic = false),
 ) : StudytimeRepository {
     val sessions = mutableListOf<Triple<String, Long, String>>()
 
@@ -140,7 +141,7 @@ class SummaryCoordinatorTest {
         studytime: FakeStudytimeRepository = FakeStudytimeRepository(),
     ) = SummaryCoordinator(stream, store(), bookmarks, ledger, savedCards, studytime, scope)
 
-    private val accrual = AccrualStrip(streakDays = 3, studyTimeLabel = "10분", xp = 40)
+    private val accrual = AccrualStrip(streakDays = 3, xp = 40)
 
     private fun SummaryCoordinator.begin() =
         start(sessionId = "s1", difficulty = "normal", modeId = "default", accrual = accrual)
@@ -163,10 +164,14 @@ class SummaryCoordinatorTest {
             coordinator.state.value.let {
                 assertEquals(85, it.totalScore) // mean(80, 90)
                 assertEquals(90, it.highlight?.score) // highest slim turn
-                // accrual is recomputed from studytime (M3-05): streak + "오늘 N분" + xp(normal=20)
+                // accrual is recomputed from studytime (M3-05): streak + study seconds before→after + xp
+                // (normal=20), and animate flips true so the strip counts up (M3-06).
                 assertEquals(3, it.accrual.streakDays)
-                assertEquals("오늘 10분", it.accrual.studyTimeLabel)
                 assertEquals(20, it.accrual.xp)
+                assertEquals(0, it.accrual.todayStudySecondsBefore)
+                assertEquals(600, it.accrual.todayStudySecondsAfter)
+                assertFalse(it.accrual.streakStatic)
+                assertTrue(it.accrual.animate)
                 assertTrue(it.bundle is SectionBundle.BundleLoading)
             }
         }

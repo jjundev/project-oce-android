@@ -191,8 +191,8 @@ private fun OnboardingSummaryDestination(
             sessionId = sessionId,
             difficulty = if (isFirstSession) FIRST_SESSION_LEVEL else userLevel,
             modeId = "default",
-            // 적립 값 소스는 M3-05, 카운트업은 M3-06 — 여기선 정적 placeholder(스트립 0 렌더).
-            accrual = AccrualStrip(streakDays = 0, studyTimeLabel = "", xp = 0),
+            // 적립 값 소스는 M3-05(요약 코디네이터가 산출) — 여기선 정적 placeholder(animate=false, 스트립 0 렌더).
+            accrual = AccrualStrip(streakDays = 0, xp = 0),
             isFirstSession = isFirstSession,
         )
         if (isFirstSession) {

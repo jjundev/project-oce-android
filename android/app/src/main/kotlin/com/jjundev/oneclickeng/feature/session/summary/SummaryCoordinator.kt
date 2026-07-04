@@ -86,7 +86,7 @@ class SummaryCoordinator
         // Local-immediate blocks (set once at start; bookmarks fill async).
         private var totalScore: Int? = null
         private var highlight: HighlightTurn? = null
-        private var accrual: AccrualStrip = AccrualStrip(streakDays = 0, studyTimeLabel = "", xp = 0)
+        private var accrual: AccrualStrip = AccrualStrip(streakDays = 0, xp = 0)
         private var bookmarks: List<BookmarkCard> = emptyList()
         private var isFirstSession = false
 
@@ -240,11 +240,16 @@ class SummaryCoordinator
                 val snap = studytime.recordSession(sessionId, elapsed, dayKey)
                 // Apply only if still the current session (a reset/new start supersedes this).
                 if (sessionId == this@SummaryCoordinator.sessionId) {
+                    // 실데이터 착지 → animate=true 로 카운트업 대상(M3-06). 학습시간은 오늘 누계 before→after
+                    // 롤업, streak 는 same-day 반복이면 정적(§4.4).
                     accrual =
                         AccrualStrip(
                             streakDays = snap.streak,
-                            studyTimeLabel = GamificationTime.studyTimeLabel(snap.todaySeconds),
                             xp = GamificationTime.XP_BY_DIFFICULTY[difficulty] ?: 0,
+                            todayStudySecondsBefore = snap.todaySecondsBefore.toInt(),
+                            todayStudySecondsAfter = snap.todaySeconds.toInt(),
+                            streakStatic = snap.streakStatic,
+                            animate = true,
                         )
                     emit()
                 }
@@ -480,7 +485,7 @@ class SummaryCoordinator
                     totalScore = null,
                     highlight = null,
                     bookmarks = emptyList(),
-                    accrual = AccrualStrip(streakDays = 0, studyTimeLabel = "", xp = 0),
+                    accrual = AccrualStrip(streakDays = 0, xp = 0),
                     bundle = SectionBundle.BundleLoading,
                 )
         }

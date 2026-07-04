@@ -15,10 +15,16 @@ import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Display values for the summary accrual strip after a session is recorded. */
+/**
+ * Display values for the summary accrual strip after a session is recorded. [todaySecondsBefore]/
+ * [streakStatic] drive the M3-06 count-up: the study-time slot rolls [todaySecondsBefore]→[todaySeconds]
+ * and the streak stays static on a same-day repeat.
+ */
 data class AccrualSnapshot(
     val todaySeconds: Long,
     val streak: Int,
+    val todaySecondsBefore: Long,
+    val streakStatic: Boolean,
 )
 
 /**
@@ -93,7 +99,12 @@ class FirestoreStudytimeRepository
                 runCatching { reminderOrchestrator.recordSessionCompleted(state.streak, LocalDate.parse(dayKey)) }
                     .onFailure { Log.d(TAG, "reminder cache update skipped: ${it.message}") }
             }
-            return AccrualSnapshot(state.todaySeconds, state.streak)
+            return AccrualSnapshot(
+                todaySeconds = state.todaySeconds,
+                streak = state.streak,
+                todaySecondsBefore = result.todaySecondsBefore,
+                streakStatic = result.sameDayRepeat,
+            )
         }
 
         override suspend fun seedFromServerIfEmpty() {
