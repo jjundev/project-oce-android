@@ -141,5 +141,11 @@ class OnboardingViewModelTest {
         override fun googleSavePromptShown(sessionId: String) = Unit
 
         override fun googleLinkSkipped(sessionId: String) = Unit
+
+        override fun googleLinkSucceeded(sessionId: String) = Unit
+
+        override fun googleLinkConflictMerged(sessionId: String) = Unit
+
+        override fun googleLinkFailed(sessionId: String) = Unit
     }
 }
