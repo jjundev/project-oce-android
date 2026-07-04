@@ -116,6 +116,8 @@ private fun NavGraphBuilder.generatingDestination(navController: NavHostControll
                 }
             },
             onViewRecords = { navController.exitOnboardingToHome() },
+            // 오프라인 새 세션 게이트[C]에서 홈으로 이탈(M4-04). 온보딩 문맥이라 홈 진입으로 수렴.
+            onExit = { navController.exitOnboardingToHome() },
         )
     }
 }

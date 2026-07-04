@@ -4,6 +4,7 @@ import android.util.Log
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.functions.FirebaseFunctions
 import com.jjundev.oneclickeng.core.auth.AuthRepository
 import com.jjundev.oneclickeng.feature.gamification.data.StudytimeStore
 import com.jjundev.oneclickeng.feature.reminder.ReminderOrchestrator
@@ -42,13 +43,28 @@ interface StudytimeRepository {
     /** First-launch seed of the local authority from the server (no-op once local state exists). */
     suspend fun seedFromServerIfEmpty()
 
-    /** Re-push any write-ahead state that never reached Firestore (app-start recovery). */
-    suspend fun drainOnStart()
+    /**
+     * Re-push any write-ahead state that never reached Firestore. Called at app start AND on an
+     * offline→online reconnect (M4-04): the reactive [com.jjundev.oneclickeng.core.connectivity.ConnectivityObserver]
+     * transition drives it so a device that regains connectivity without a process restart re-syncs
+     * without waiting for the next launch.
+     */
+    suspend fun drain()
+
+    /**
+     * 누적 기록 초기화(M3-09, FR-22). Local-first: zero the local authority (StudytimeStore) and the
+     * reminder cache mirror FIRST, then call the `resetMetrics` callable to zero the server. Throws if the
+     * callable fails — the caller surfaces an error; the local state is already zeroed (user sees the
+     * reset) and the server reconciles on a retry (the callable is idempotent). Local-first + a synced,
+     * non-null-total local state means neither drain nor seed can revive the pre-reset values regardless of
+     * when the server callable lands.
+     */
+    suspend fun resetMetrics()
 }
 
 /**
  * Firestore-backed implementation. Firestore writes are fire-and-forget on [appScope] (a failed push
- * leaves the state unsynced for the next [drainOnStart]); the reminder-cache update is best-effort.
+ * leaves the state unsynced for the next [drain]); the reminder-cache update is best-effort.
  * Mirrors the FirestoreCompletionLedger fire-and-forget seam. The write-ahead queue / drain mechanism
  * itself is new — no prior codebase pattern to copy (built per ADR-0002).
  */
@@ -57,6 +73,7 @@ class FirestoreStudytimeRepository
     @Inject
     constructor(
         private val firestore: FirebaseFirestore,
+        private val functions: FirebaseFunctions,
         private val authRepository: AuthRepository,
         private val store: StudytimeStore,
         private val reminderOrchestrator: ReminderOrchestrator,
@@ -98,9 +115,20 @@ class FirestoreStudytimeRepository
             }
         }
 
-        override suspend fun drainOnStart() {
+        override suspend fun drain() {
             val state = store.snapshot()
             if (state.unsynced && state.todayDayKey != null) pushStudytime(state)
+        }
+
+        override suspend fun resetMetrics() {
+            // Local-first (revival-proof): zero the local authority + reminder cache before the server call.
+            store.reset()
+            runCatching { reminderOrchestrator.clearProgressCache() }
+                .onFailure { Log.d(TAG, "reminder cache reset skipped: ${it.message}") }
+            // Server reset (Admin-only: progress/studytime are rule-protected). Awaited — a failure
+            // propagates so the caller can surface an error; local is already zeroed and the callable is
+            // idempotent, so a retry reconciles the server.
+            functions.getHttpsCallable(FN_RESET_METRICS).call().await()
         }
 
         // Fire-and-forget idempotent monotonic set; clears the write-ahead flag only on success.
@@ -126,7 +154,7 @@ class FirestoreStudytimeRepository
                         ).await()
                     store.markSynced()
                 } catch (e: Exception) {
-                    // Stays unsynced → drainOnStart re-pushes on the next launch (write-ahead recovery).
+                    // Stays unsynced → drain re-pushes on next launch/reconnect (write-ahead recovery).
                     Log.d(TAG, "studytime push skipped (offline/permission): ${e.message}")
                 }
             }
@@ -134,6 +162,7 @@ class FirestoreStudytimeRepository
 
         private companion object {
             const val TAG = "StudytimeRepository"
+            const val FN_RESET_METRICS = "resetMetrics"
             const val USERS = "users"
             const val GAMIFICATION = "gamification"
             const val STUDYTIME = "studytime"

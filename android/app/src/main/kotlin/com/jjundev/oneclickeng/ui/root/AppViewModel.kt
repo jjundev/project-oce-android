@@ -3,15 +3,23 @@ package com.jjundev.oneclickeng.ui.root
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jjundev.oneclickeng.core.auth.AccountRepository
+import com.jjundev.oneclickeng.core.auth.AccountResetBus
 import com.jjundev.oneclickeng.core.auth.AuthRepository
 import com.jjundev.oneclickeng.core.auth.GoogleAccountLinker
 import com.jjundev.oneclickeng.core.auth.ProfileRepository
-import com.jjundev.oneclickeng.core.network.ConnectivityMonitor
+import com.jjundev.oneclickeng.core.connectivity.Connectivity
+import com.jjundev.oneclickeng.core.connectivity.ConnectivityObserver
+import com.jjundev.oneclickeng.core.connectivity.OfflineAnalytics
 import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -37,6 +45,7 @@ import javax.inject.Inject
  * configuration changes (no re-sign-in on rotation). `ensureSignedIn`/`ensureProfile` are both
  * no-ops when the session/profile already exist, so re-running on the next launch is cheap and safe.
  */
+@Suppress("LongParameterList")
 @HiltViewModel
 class AppViewModel
     @Inject
@@ -45,41 +54,95 @@ class AppViewModel
         private val profileRepository: ProfileRepository,
         private val googleAccountLinker: GoogleAccountLinker,
         private val studytimeRepository: StudytimeRepository,
-        connectivityMonitor: ConnectivityMonitor,
+        private val accountRepository: AccountRepository,
+        accountResetBus: AccountResetBus,
+        private val connectivity: ConnectivityObserver,
+        private val offlineAnalytics: OfflineAnalytics,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<BootState>(BootState.Loading)
         val uiState: StateFlow<BootState> = _uiState.asStateFlow()
 
-        /** 글로벌 오프라인 배너(C4)용 앱 스코프 연결 상태(M3-08, H7/P8). */
-        val isOnline: StateFlow<Boolean> = connectivityMonitor.isOnline
+        /**
+         * 글로벌 오프라인 배너(C4)용 앱 스코프 연결 상태(M3-08, H7/P8). M4-04 [ConnectivityObserver] 를 단일
+         * 연결성 소스로 삼아 Boolean 으로 파생한다(M3-08 의 별도 ConnectivityMonitor 는 이 병합에서 폐기).
+         */
+        val isOnline: StateFlow<Boolean> =
+            connectivity.state
+                .map { it == Connectivity.Online }
+                .stateIn(viewModelScope, SharingStarted.Eagerly, connectivity.state.value == Connectivity.Online)
 
         init {
+            viewModelScope.launch { bootstrap() }
+            // Logout / account-deletion (M3-09) re-run bootstrap through here: reset the gate to Loading
+            // (which drops the outer NavHost, AppRoot.kt) then re-bootstrap → fresh anonymous guest →
+            // onboarding. The collect serializes overlapping resets. The bus emits ONLY on explicit
+            // signOut/delete, never on the anonymous re-sign-in bootstrap itself (no re-entrancy loop).
             viewModelScope.launch {
-                runCatching {
-                    val uid = authRepository.ensureSignedIn()
-                    // 중도 종료된 게스트 이관(FR-3b) 복구: target 재로그인 상태 + 유효 마커면 mergeGuestData 재시도.
+                accountResetBus.events.collect {
+                    _uiState.value = BootState.Loading
+                    bootstrap()
+                }
+            }
+        }
+
+        /**
+         * App-entry bootstrap, re-runnable (init + [AccountResetBus] reset). Resumes an interrupted
+         * account deletion FIRST (precedence over guest-merge resume: a to-be-deleted identity must not be
+         * merged into), then signs in / gates on `profile.level`.
+         */
+        private suspend fun bootstrap() {
+            // (0) Resume a pending deletion before anything else. Never throws; true = deletion in
+            //     progress → skip guest-merge resume this pass (routes to a fresh guest once torn down).
+            val resumedDelete = accountRepository.completePendingDeletion()
+
+            runCatching {
+                val uid = authRepository.ensureSignedIn()
+                if (!resumedDelete) {
+                    // 중도 종료된 게스트 이관(FR-3b) 복구: target 재로그인 + 유효 마커면 mergeGuestData 재시도.
                     // ensureProfile/readLevel 이전에 await 해 부트 게이트가 post-merge 상태를 관측하게 한다(결정 A8).
                     // 실패/무관은 no-op 로 삼켜 부트를 막지 않는다(마커는 다음 실행에서 재시도).
                     runCatching { googleAccountLinker.retryPendingMerge() }
-                    profileRepository.ensureProfile(uid)
-                    profileRepository.readLevel(uid)
-                }.onSuccess { level ->
-                    _uiState.value = bootStateForLevel(level)
-                }.onFailure {
-                    // Stay Loading: the next launch re-runs this bootstrap, and the next `/llm` call
-                    // re-attempts sign-in lazily via the token provider. (A dedicated auth-failure
-                    // retry surface is a follow-up seam — OneClickBlockingGate/Auth already exists.)
-                    Log.w(TAG, "Guest bootstrap failed — retries on next launch or /llm call", it)
                 }
+                profileRepository.ensureProfile(uid)
+                profileRepository.readLevel(uid)
+            }.onSuccess { level ->
+                _uiState.value = bootStateForLevel(level)
+            }.onFailure {
+                // Stay Loading: the next launch re-runs this bootstrap, and the next `/llm` call
+                // re-attempts sign-in lazily via the token provider. (A dedicated auth-failure
+                // retry surface is a follow-up seam — OneClickBlockingGate/Auth already exists.)
+                Log.w(TAG, "Guest bootstrap failed — retries on next launch or /llm call", it)
+            }
 
-                // Gamification studytime seed/drain (M3-05). Sequenced after sign-in (both no-op without
-                // a uid) but in its OWN runCatching so a gamification hiccup is never swallowed by — nor
-                // swallows — the auth/profile bootstrap above. Retries on the next launch.
-                runCatching {
-                    studytimeRepository.seedFromServerIfEmpty()
-                    studytimeRepository.drainOnStart()
-                }.onFailure {
-                    Log.w(TAG, "Gamification seed/drain failed — retries on next launch", it)
+            // Gamification studytime seed/drain (M3-05). Sequenced after sign-in (both no-op without
+            // a uid) but in its OWN runCatching so a gamification hiccup is never swallowed by — nor
+            // swallows — the auth/profile bootstrap above. Retries on the next launch.
+            runCatching {
+                studytimeRepository.seedFromServerIfEmpty()
+                studytimeRepository.drain()
+            }.onFailure {
+                Log.w(TAG, "Gamification seed/drain failed — retries on next launch", it)
+            }
+
+            observeConnectivity()
+        }
+
+        /**
+         * 연결성 전이 관측(M4-04): (1) `connectivity_changed` 계측, (2) offline→online 복귀 시 studytime
+         * write-ahead 큐를 재드레인 — 프로세스 재시작 없이 연결이 돌아와도 재동기화한다(재접속 훅). 초기값은
+         * [drop] 로 건너뛰어 전이(edge)만 다룬다. `distinctUntilChanged` 소스라 emit 은 실제 전이에서만 온다.
+         * saved_cards/point_ledger 는 Firestore SDK 가 자동 재생하므로 여기 훅은 studytime WAQ 전용이다.
+         */
+        private fun observeConnectivity() {
+            viewModelScope.launch {
+                var prev = connectivity.state.value
+                connectivity.state.drop(1).collect { current ->
+                    offlineAnalytics.connectivityChanged(online = current == Connectivity.Online)
+                    if (prev == Connectivity.Offline && current == Connectivity.Online) {
+                        runCatching { studytimeRepository.drain() }
+                            .onFailure { Log.w(TAG, "reconnect drain failed — retries on next transition", it) }
+                    }
+                    prev = current
                 }
             }
         }

@@ -31,6 +31,15 @@ sealed interface DialogueGenState {
     data object Failed : DialogueGenState
 
     /**
+     * 오프라인이라 새 세션(핵심 루프)을 시작할 수 없는 종료 상태(M4-04, exception-states.md 결정 #4·#5). [Failed]
+     * 와 분리한 이유: 일반 실패는 인라인 재시도[A] + 일반 카피지만, 오프라인은 차단 게이트[C] + 오프라인 카피
+     * 로 분기해야 한다(신호 분리, exception-states.md:56-59). 두 진입: (1) pre-flight — [DialogueGenerationViewModel]
+     * 이 시작 전 [com.jjundev.oneclickeng.core.connectivity.ConnectivityObserver.isOffline] 로 게이트, (2) in-flight
+     * — [DialogueGenerationCoordinator.fail] 이 실패 시점 오프라인이면 [Failed] 대신 이 상태로 분류.
+     */
+    data object OfflineBlocked : DialogueGenState
+
+    /**
      * 일일 무료 세션 한도 도달로 서버가 시작을 거부한 종료 상태(M3-04). [Failed] 와 분리한 이유: 실패는
      * 재시도 어포던스를 주지만 한도는 재시도가 아니라 중립 한도 패널(비상업 문구)로 분기해야 한다.
      * [DialogueEvent.QuotaExceeded] 수신 시에만, 그리고 아직 [Ready] 가 아닐 때만 진입한다(Ready 이후엔
@@ -48,4 +57,14 @@ enum class DialogueStreamStatus {
     Streaming,
     Done,
     FailedAfterReady,
+}
+
+/**
+ * Result of [DialogueGenerationCoordinator.start] (M4-04). [OfflineGated] = pre-flight 오프라인이라 스트림을
+ * 열지 않고 [DialogueGenState.OfflineBlocked] 로 막힘(호출자는 퀴즈 스킵·`offline_blocked_action` 계측만
+ * 분기). [Started] = 정상 시작.
+ */
+enum class StartOutcome {
+    Started,
+    OfflineGated,
 }

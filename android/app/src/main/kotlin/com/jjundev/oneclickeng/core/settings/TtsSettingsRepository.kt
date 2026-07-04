@@ -3,6 +3,7 @@ package com.jjundev.oneclickeng.core.settings
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
@@ -12,8 +13,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Reads TTS settings for the playback coordinator. Kept as an interface so the
- * coordinator can be tested with a fixed-value fake. The edit UI (M3-09) will add writes.
+ * Reads and writes TTS settings. Reads feed the playback coordinator (M1-05); writes back the
+ * settings screen (M3-09). Kept as an interface so the coordinator can be tested with a fake.
  */
 interface TtsSettingsRepository {
     /** live settings stream. */
@@ -21,6 +22,15 @@ interface TtsSettingsRepository {
 
     /** one-shot snapshot for a single playback decision. */
     suspend fun current(): TtsSettings
+
+    /** Persist the 음질 toggle (server/device). */
+    suspend fun setQuality(quality: TtsQuality)
+
+    /** Persist the 말하기 속도, clamped to [TtsSettings.MIN_SPEECH_RATE]..[TtsSettings.MAX_SPEECH_RATE]. */
+    suspend fun setSpeechRate(rate: Float)
+
+    /** Persist the 전체 음소거 toggle. */
+    suspend fun setMuted(muted: Boolean)
 }
 
 /** DataStore-backed implementation. Missing keys fall back to [TtsSettings] defaults. */
@@ -33,6 +43,19 @@ class DataStoreTtsSettingsRepository
         override val settings: Flow<TtsSettings> = dataStore.data.map(::toSettings)
 
         override suspend fun current(): TtsSettings = toSettings(dataStore.data.first())
+
+        override suspend fun setQuality(quality: TtsQuality) {
+            dataStore.edit { it[KEY_QUALITY] = quality.name }
+        }
+
+        override suspend fun setSpeechRate(rate: Float) {
+            val clamped = rate.coerceIn(TtsSettings.MIN_SPEECH_RATE, TtsSettings.MAX_SPEECH_RATE)
+            dataStore.edit { it[KEY_SPEECH_RATE] = clamped }
+        }
+
+        override suspend fun setMuted(muted: Boolean) {
+            dataStore.edit { it[KEY_MUTED] = muted }
+        }
 
         private fun toSettings(prefs: Preferences): TtsSettings {
             val quality =

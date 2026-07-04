@@ -2,7 +2,8 @@ package com.jjundev.oneclickeng.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jjundev.oneclickeng.core.network.ConnectivityMonitor
+import com.jjundev.oneclickeng.core.connectivity.Connectivity
+import com.jjundev.oneclickeng.core.connectivity.ConnectivityObserver
 import com.jjundev.oneclickeng.feature.gamification.GamificationTime
 import com.jjundev.oneclickeng.feature.gamification.data.StudytimeStore
 import com.jjundev.oneclickeng.feature.session.resume.SessionLimitHolder
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -19,7 +21,7 @@ import javax.inject.Inject
 /**
  * 홈 탭 상태 소유자(M3-08). 학습 시작 허브의 낮은 비중 보조들을 조립한다:
  * - 게임화 스트립: [StudytimeStore.snapshot] (suspend) → 오늘 학습시간 라벨 + streak.
- * - 오프라인: [ConnectivityMonitor] (CTA 비활성 + 글로벌 배너).
+ * - 오프라인: [ConnectivityObserver] (M4-04 단일 연결성 소스) → Boolean 파생(CTA 비활성 + 글로벌 배너).
  * - 미완 복귀: [SessionSnapshotStore.recoverable] (durable, §2.5).
  * - at-limit: [SessionLimitHolder.freshRemaining] (fresh==0 일 때만 고지, unknown→억제).
  *
@@ -34,7 +36,7 @@ class HomeViewModel
     @Inject
     constructor(
         private val studytimeStore: StudytimeStore,
-        connectivityMonitor: ConnectivityMonitor,
+        connectivity: ConnectivityObserver,
         snapshotStore: SessionSnapshotStore,
         limitHolder: SessionLimitHolder,
         private val analytics: HomeAnalytics,
@@ -44,7 +46,7 @@ class HomeViewModel
 
         val uiState: StateFlow<HomeUiState> =
             combine(
-                connectivityMonitor.isOnline,
+                connectivity.state.map { it == Connectivity.Online },
                 snapshotStore.recoverable,
                 limitHolder.freshRemaining,
                 gamification,

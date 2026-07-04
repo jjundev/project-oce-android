@@ -1,5 +1,7 @@
 package com.jjundev.oneclickeng.feature.session.dialogue
 
+import com.jjundev.oneclickeng.core.connectivity.ConnectivityObserver
+import com.jjundev.oneclickeng.core.connectivity.OfflineAnalytics
 import com.jjundev.oneclickeng.core.network.DialogueEvent
 import com.jjundev.oneclickeng.core.network.DialogueRequest
 import androidx.datastore.core.DataStore
@@ -40,6 +42,9 @@ private fun item(id: String) =
 
 private class FakeStream : DialogueStream {
     private val channels = mutableListOf<Channel<DialogueEvent>>()
+
+    /** How many times a stream was opened — 0 means generation never started (pre-flight offline gate). */
+    val opened: Int get() = channels.size
 
     override fun events(request: DialogueRequest): Flow<DialogueEvent> {
         val channel = Channel<DialogueEvent>(Channel.UNLIMITED)
@@ -85,6 +90,19 @@ private class RecordingLimitAnalytics : LimitAnalytics {
 }
 
 private class FakeConfig(override val loadingQuizEnabled: Boolean) : LoadingQuizConfig
+
+private class RecordingOfflineAnalytics : OfflineAnalytics {
+    val blocked = mutableListOf<String>()
+    val transitions = mutableListOf<Boolean>()
+
+    override fun connectivityChanged(online: Boolean) {
+        transitions += online
+    }
+
+    override fun offlineBlocked(surface: String) {
+        blocked += surface
+    }
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DialogueGenerationViewModelTest {
@@ -162,16 +180,78 @@ class DialogueGenerationViewModelTest {
             )
         }
 
+    @Test
+    fun `offline start gates OfflineBlocked without opening a stream and logs offline_blocked_action`() =
+        runTest {
+            val stream = FakeStream()
+            val offline = RecordingOfflineAnalytics()
+            val vm =
+                viewModel(
+                    RecordingAnalytics(),
+                    FakeConfig(true),
+                    stream,
+                    connectivity = FakeConnectivity(offline = true),
+                    offlineAnalytics = offline,
+                )
+
+            vm.start(level = "easy", topic = "t", length = 5, firstSession = true)
+            runCurrent()
+
+            assertEquals(DialogueGenState.OfflineBlocked, vm.state.value)
+            assertTrue(vm.quizItems.value.isEmpty())
+            assertEquals(0, stream.opened) // 스트림 미기동(전송 없음)
+            assertEquals(listOf("dialogue_start_gate"), offline.blocked)
+        }
+
+    @Test
+    fun `retry after a pre-flight offline gate re-checks connectivity and starts once online`() =
+        runTest {
+            val stream = FakeStream()
+            val connectivity = SwitchableConnectivity(offline = true)
+            val vm =
+                viewModel(
+                    RecordingAnalytics(),
+                    FakeConfig(true),
+                    stream,
+                    connectivity = connectivity,
+                    offlineAnalytics = RecordingOfflineAnalytics(),
+                )
+
+            vm.start(level = "easy", topic = "t", length = 5, firstSession = false)
+            runCurrent()
+            assertEquals(DialogueGenState.OfflineBlocked, vm.state.value)
+            assertEquals(0, stream.opened)
+
+            connectivity.online() // 연결 복귀
+            vm.retry()
+            runCurrent()
+
+            assertEquals(DialogueGenState.Generating, vm.state.value)
+            assertEquals(1, stream.opened) // 이제 스트림 기동
+        }
+
+    @Suppress("LongParameterList") // 테스트 팩토리 — seam 별 fake 를 명시 주입한다(운영 코드 아님).
     private fun TestScope.viewModel(
         analytics: RecordingAnalytics,
         config: FakeConfig,
         stream: FakeStream = FakeStream(),
         limitAnalytics: RecordingLimitAnalytics = RecordingLimitAnalytics(),
+        connectivity: ConnectivityObserver = FakeConnectivity(offline = false),
+        offlineAnalytics: OfflineAnalytics = RecordingOfflineAnalytics(),
     ): DialogueGenerationViewModel {
         val scope: CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
-        val coordinator = DialogueGenerationCoordinator(stream, scope)
+        val coordinator = DialogueGenerationCoordinator(stream, scope, connectivity)
         val snapshotStore = SessionSnapshotStore(inMemoryPrefsDataStore())
-        return DialogueGenerationViewModel(coordinator, bank, analytics, limitAnalytics, snapshotStore, scope, config)
+        return DialogueGenerationViewModel(
+            coordinator,
+            bank,
+            analytics,
+            limitAnalytics,
+            snapshotStore,
+            scope,
+            offlineAnalytics,
+            config,
+        )
     }
 }
 

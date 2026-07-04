@@ -40,6 +40,13 @@ class OnboardingScreensTest {
                     ) = Unit
 
                     override suspend fun readLevel(uid: String): String? = null
+
+                    override suspend fun saveNickname(
+                        uid: String,
+                        nickname: String,
+                    ) = Unit
+
+                    override suspend fun readNickname(uid: String): String? = null
                 },
             analytics = NoOpOnboardingAnalytics(),
         )

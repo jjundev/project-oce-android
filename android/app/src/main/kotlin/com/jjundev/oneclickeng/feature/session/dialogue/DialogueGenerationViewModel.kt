@@ -1,6 +1,7 @@
 package com.jjundev.oneclickeng.feature.session.dialogue
 
 import androidx.lifecycle.ViewModel
+import com.jjundev.oneclickeng.core.connectivity.OfflineAnalytics
 import com.jjundev.oneclickeng.core.network.LimitAnalytics
 import com.jjundev.oneclickeng.core.network.WaitQuizAnalytics
 import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
@@ -36,6 +37,7 @@ class DialogueGenerationViewModel
         private val limitAnalytics: LimitAnalytics,
         private val snapshotStore: SessionSnapshotStore,
         private val appScope: CoroutineScope,
+        private val offlineAnalytics: OfflineAnalytics,
         loadingQuizConfig: LoadingQuizConfig,
     ) : ViewModel() {
         val state: StateFlow<DialogueGenState> = coordinator.state
@@ -55,6 +57,11 @@ class DialogueGenerationViewModel
         // (via [onLimitReached]) so the two never disagree.
         private var isOnboarding = false
 
+        // 마지막 start 파라미터 + pre-flight 오프라인 게이트 여부(M4-04). pre-flight 로 막혔으면 재시도는
+        // 스트림 재개가 아니라 새 start(연결성 재확인)로 가야 한다 — 아무것도 전송하지 않았으므로 usage 중복 없음.
+        private var lastStart: StartParams? = null
+        private var preflightBlocked = false
+
         /** Begin generation and load the tier's quiz items (first session → easy). */
         fun start(
             level: String,
@@ -64,17 +71,42 @@ class DialogueGenerationViewModel
             isOnboarding: Boolean = false,
         ) {
             this.isOnboarding = isOnboarding
-            val tier = if (firstSession) FIRST_SESSION_TIER else level
-            _quizItems.value = if (quizEnabled) quizBank.forTier(tier) else emptyList()
-            answeredCount = 0
-            // 새 세션 시작 = 직전 미완 세션 durable 스냅샷 폐기(§2.5 "새 세션 시작 시에만 폐기").
-            // appScope 로 실행해 생성 화면 이탈로 취소되지 않게 한다.
-            appScope.launch { snapshotStore.clear() }
-            coordinator.start(level, topic, length, firstSession)
+            lastStart = StartParams(level, topic, length, firstSession)
+            // pre-flight 게이트(M4-04, exception-states.md 결정 #4): 연결성 소유는 코디네이터 하나다. 오프라인
+            // 이면 [StartOutcome.OfflineGated] 를 받아 퀴즈를 스킵하고 `offline_blocked_action` 만 계측한다
+            // (핵심 루프=온라인 필수, 로그인된 캐시보유 사용자에만 도달).
+            when (coordinator.start(level, topic, length, firstSession)) {
+                StartOutcome.OfflineGated -> {
+                    preflightBlocked = true
+                    _quizItems.value = emptyList()
+                    offlineAnalytics.offlineBlocked(OFFLINE_GATE_SURFACE)
+                }
+                StartOutcome.Started -> {
+                    preflightBlocked = false
+                    val tier = if (firstSession) FIRST_SESSION_TIER else level
+                    _quizItems.value = if (quizEnabled) quizBank.forTier(tier) else emptyList()
+                    answeredCount = 0
+                    // 세션이 **실제로 시작**됐을 때만 직전 미완 세션 durable 스냅샷 폐기(§2.5 "새 세션 시작
+                    // 시에만 폐기"). 오프라인 게이트로 막혔으면 아무 세션도 시작 안 됐으므로 이전 스냅샷을
+                    // 보존한다(온라인 복귀 후 이어하기 가능). appScope 로 실행해 화면 이탈로 취소되지 않게 한다.
+                    appScope.launch { snapshotStore.clear() }
+                }
+            }
         }
 
-        /** Retry the current attempt, reusing its idempotencyKey (backend-functions.md §7). */
-        fun retry() = coordinator.retry()
+        /**
+         * 재시도. pre-flight 오프라인으로 막혔던 경우 새 [start] 로 연결성을 재확인한다(전송 이력 없음 →
+         * 새 idempotencyKey 무해). in-flight 실패였으면 [DialogueGenerationCoordinator.retry] 로 같은
+         * idempotencyKey 를 재사용한다(backend-functions.md §7 — 서버가 transient/terminal 판별).
+         */
+        fun retry() {
+            val params = lastStart
+            if (preflightBlocked && params != null) {
+                start(params.level, params.topic, params.length, params.firstSession, isOnboarding)
+            } else {
+                coordinator.retry()
+            }
+        }
 
         /**
          * 대기 화면이 한도 도달 패널에 진입할 때 1회 호출 — 정본 `limit_reached` 이벤트를 [LimitAnalytics]
@@ -104,7 +136,19 @@ class DialogueGenerationViewModel
             )
         }
 
+        /** Retained start params, so a pre-flight-offline retry can re-attempt with the same inputs. */
+        private data class StartParams(
+            val level: String,
+            val topic: String,
+            val length: Int,
+            val firstSession: Boolean,
+        )
+
         private companion object {
             const val FIRST_SESSION_TIER = "easy"
+
+            // `offline_blocked_action` surface(exception-states.md §9). LimitSurface.DialogueStartGate 와 동일
+            // 표면 문자열을 재사용해 한도 게이트와 오프라인 게이트가 같은 표면으로 계측된다.
+            const val OFFLINE_GATE_SURFACE = "dialogue_start_gate"
         }
     }

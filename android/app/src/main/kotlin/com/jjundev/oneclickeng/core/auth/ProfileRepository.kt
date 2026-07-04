@@ -43,6 +43,22 @@ interface ProfileRepository {
      * rather than being re-onboarded.
      */
     suspend fun readLevel(uid: String): String?
+
+    /**
+     * Persists the settings nickname to `users/{uid}.nickname` + `updatedAt` (M3-09, FR-21). A merge
+     * write so `createdAt`/`level` survive (the update rule forbids touching `createdAt`,
+     * firestore-schema.md:213). Fire-and-forget-safe: Firestore's on-disk write queue persists across
+     * process death, so the value is not discarded offline. [nickname] is the already-validated value
+     * (1–20 chars trimmed, empty allowed) — server-side length is NOT rule-enforced (client trust
+     * boundary; the update rule imposes no field constraint on `nickname`, firestore.rules:9).
+     */
+    suspend fun saveNickname(
+        uid: String,
+        nickname: String,
+    )
+
+    /** Reads `users/{uid}.nickname`, or null when unset. Firestore's on-disk cache answers offline. */
+    suspend fun readNickname(uid: String): String?
 }
 
 /**
@@ -96,10 +112,35 @@ class FirestoreProfileRepository
                 .await()
                 .getString(FIELD_LEVEL)
 
+        override suspend fun saveNickname(
+            uid: String,
+            nickname: String,
+        ) {
+            db.collection(COLLECTION_USERS)
+                .document(uid)
+                .set(
+                    mapOf(
+                        FIELD_NICKNAME to nickname,
+                        FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+                    ),
+                    // merge keeps createdAt/level (the update rule forbids touching createdAt,
+                    // firestore-schema.md:213). The queued write survives process death.
+                    SetOptions.merge(),
+                ).await()
+        }
+
+        override suspend fun readNickname(uid: String): String? =
+            db.collection(COLLECTION_USERS)
+                .document(uid)
+                .get()
+                .await()
+                .getString(FIELD_NICKNAME)
+
         private companion object {
             const val COLLECTION_USERS = "users"
             const val FIELD_CREATED_AT = "createdAt"
             const val FIELD_UPDATED_AT = "updatedAt"
             const val FIELD_LEVEL = "level"
+            const val FIELD_NICKNAME = "nickname"
         }
     }

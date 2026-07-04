@@ -93,6 +93,12 @@ class StudytimeStore
         /**
          * Seed the local authority from the server ONCE, only when this device has no local gamification
          * state yet (fresh install / reinstall). After seeding, the local total/streak are authoritative.
+         *
+         * All three fields are gated on `KEY_TOTAL == null` together (truly-empty local), NOT each on its
+         * own key: a metrics reset ([reset]) writes `KEY_TOTAL = 0` (non-null) but clears
+         * `KEY_LAST_STUDY_DATE`/`KEY_STREAK`, so a per-key guard would re-seed lastStudyDate/streak from a
+         * not-yet-reset server and silently revive them. Seeding atomically on the total's presence closes
+         * that revival path (M3-09 §reset).
          */
         suspend fun seedIfEmpty(
             serverTotalSeconds: Long,
@@ -100,11 +106,33 @@ class StudytimeStore
             serverLastStudyDate: String?,
         ) {
             dataStore.edit { p ->
-                if (p[KEY_TOTAL] == null) p[KEY_TOTAL] = serverTotalSeconds
-                if (p[KEY_STREAK] == null && serverStreak != null) p[KEY_STREAK] = serverStreak
-                if (p[KEY_LAST_STUDY_DATE] == null && serverLastStudyDate != null) {
-                    p[KEY_LAST_STUDY_DATE] = serverLastStudyDate
-                }
+                if (p[KEY_TOTAL] != null) return@edit // local already authoritative (studied or reset)
+                p[KEY_TOTAL] = serverTotalSeconds
+                if (serverStreak != null) p[KEY_STREAK] = serverStreak
+                if (serverLastStudyDate != null) p[KEY_LAST_STUDY_DATE] = serverLastStudyDate
+            }
+        }
+
+        /**
+         * Zero the local gamification authority for a 누적 기록 초기화 (M3-09, FR-22). Sets `KEY_TOTAL = 0`
+         * (non-null → blocks any re-seed, see [seedIfEmpty]), zeroes today/streak, clears the last-study
+         * date, and marks the state SYNCED (`KEY_UNSYNCED = false`) so the next [State.unsynced]-gated
+         * drain does NOT re-push the pre-reset total onto the freshly-reset server (the monotonic
+         * `totalSeconds >=` rule would otherwise ACCEPT such a re-push and revive it). `KEY_SETTLED` is
+         * left intact so a late WAQ replay of an already-settled pre-reset session cannot re-accrue.
+         *
+         * Called BEFORE the `resetMetrics` callable (local-first): local-first + `unsynced=false` +
+         * non-null total means neither drain nor seed can revive, regardless of whether/when the server
+         * callable lands.
+         */
+        suspend fun reset() {
+            dataStore.edit { p ->
+                p[KEY_TOTAL] = 0L
+                p.remove(KEY_TODAY_KEY)
+                p[KEY_TODAY_SECONDS] = 0L
+                p[KEY_STREAK] = 0
+                p.remove(KEY_LAST_STUDY_DATE)
+                p[KEY_UNSYNCED] = false
             }
         }
 
