@@ -36,6 +36,8 @@ import javax.inject.Singleton
  * turn arrives ([DialogueGenState.Ready]) the state is sticky and a stalled/late stream no longer
  * fails it.
  */
+// SSE 상태 머신이라 작은 전이 헬퍼가 많다(SlimFeedbackCoordinator 선례와 동일 판단).
+@Suppress("TooManyFunctions")
 @Singleton
 class DialogueGenerationCoordinator
     @Inject
@@ -63,6 +65,9 @@ class DialogueGenerationCoordinator
 
         /** The server-minted sessionId of the current dialogue (or null), for the turn loop (M1-06). */
         fun sessionId(): String? = sessionId
+
+        /** The generation level of the current attempt (or null), for the slim feedback call (M1-08). */
+        fun level(): String? = lastRequest?.payload?.level
 
         /** Begin a fresh generation. Mints a new idempotencyKey; supersedes any in-flight attempt. */
         fun start(
