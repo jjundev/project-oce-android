@@ -9,6 +9,8 @@ import com.jjundev.oneclickeng.core.network.SummaryRequest
 import com.jjundev.oneclickeng.core.network.SummaryStream
 import com.jjundev.oneclickeng.core.network.WordExampleDto
 import com.jjundev.oneclickeng.core.network.WordItemDto
+import com.jjundev.oneclickeng.feature.gamification.AccrualSnapshot
+import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
 import com.jjundev.oneclickeng.feature.session.feedback.TurnFeedbackBuffer
 import com.jjundev.oneclickeng.feature.session.saved.CardType
 import com.jjundev.oneclickeng.feature.session.saved.FakeSavedCardRepository
@@ -88,6 +90,25 @@ private class FakeLedger : CompletionLedger {
     }
 }
 
+private class FakeStudytimeRepository(
+    private val snapshot: AccrualSnapshot = AccrualSnapshot(todaySeconds = 600, streak = 3),
+) : StudytimeRepository {
+    val sessions = mutableListOf<Triple<String, Long, String>>()
+
+    override suspend fun recordSession(
+        sessionId: String,
+        elapsedSeconds: Long,
+        dayKey: String,
+    ): AccrualSnapshot {
+        sessions += Triple(sessionId, elapsedSeconds, dayKey)
+        return snapshot
+    }
+
+    override suspend fun seedFromServerIfEmpty() = Unit
+
+    override suspend fun drainOnStart() = Unit
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class SummaryCoordinatorTest {
     private fun TestScope.coordScope(): CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
@@ -107,13 +128,15 @@ class SummaryCoordinatorTest {
             )
         }
 
+    @Suppress("LongParameterList") // 코디네이터 seam 을 그대로 반영하는 테스트 팩토리 — 기본값 오버라이드용.
     private fun coordinator(
         scope: CoroutineScope,
         stream: FakeSummaryStream,
         bookmarks: FakeBookmarkSource = FakeBookmarkSource(),
         ledger: FakeLedger = FakeLedger(),
         savedCards: FakeSavedCardRepository = FakeSavedCardRepository(),
-    ) = SummaryCoordinator(stream, store(), bookmarks, ledger, savedCards, scope)
+        studytime: FakeStudytimeRepository = FakeStudytimeRepository(),
+    ) = SummaryCoordinator(stream, store(), bookmarks, ledger, savedCards, studytime, scope)
 
     private val accrual = AccrualStrip(streakDays = 3, studyTimeLabel = "10분", xp = 40)
 
@@ -138,9 +161,26 @@ class SummaryCoordinatorTest {
             coordinator.state.value.let {
                 assertEquals(85, it.totalScore) // mean(80, 90)
                 assertEquals(90, it.highlight?.score) // highest slim turn
+                // accrual is recomputed from studytime (M3-05): streak + "오늘 N분" + xp(normal=20)
                 assertEquals(3, it.accrual.streakDays)
+                assertEquals("오늘 10분", it.accrual.studyTimeLabel)
+                assertEquals(20, it.accrual.xp)
                 assertTrue(it.bundle is SectionBundle.BundleLoading)
             }
+        }
+
+    @Test
+    fun `start records the session's studytime once`() =
+        runTest {
+            val stream = FakeSummaryStream()
+            val studytime = FakeStudytimeRepository()
+            val coordinator = coordinator(coordScope(), stream, studytime = studytime)
+
+            coordinator.begin()
+            runCurrent()
+
+            assertEquals(1, studytime.sessions.size)
+            assertEquals("s1", studytime.sessions.first().first)
         }
 
     @Test

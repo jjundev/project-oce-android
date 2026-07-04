@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jjundev.oneclickeng.core.auth.AuthRepository
 import com.jjundev.oneclickeng.core.auth.ProfileRepository
+import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,6 +41,7 @@ class AppViewModel
     constructor(
         private val authRepository: AuthRepository,
         private val profileRepository: ProfileRepository,
+        private val studytimeRepository: StudytimeRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<BootState>(BootState.Loading)
         val uiState: StateFlow<BootState> = _uiState.asStateFlow()
@@ -57,6 +59,16 @@ class AppViewModel
                     // re-attempts sign-in lazily via the token provider. (A dedicated auth-failure
                     // retry surface is a follow-up seam — OneClickBlockingGate/Auth already exists.)
                     Log.w(TAG, "Guest bootstrap failed — retries on next launch or /llm call", it)
+                }
+
+                // Gamification studytime seed/drain (M3-05). Sequenced after sign-in (both no-op without
+                // a uid) but in its OWN runCatching so a gamification hiccup is never swallowed by — nor
+                // swallows — the auth/profile bootstrap above. Retries on the next launch.
+                runCatching {
+                    studytimeRepository.seedFromServerIfEmpty()
+                    studytimeRepository.drainOnStart()
+                }.onFailure {
+                    Log.w(TAG, "Gamification seed/drain failed — retries on next launch", it)
                 }
             }
         }

@@ -26,18 +26,25 @@ class SessionTurnBufferStore
         private var currentSessionId: String? = null
         private val turns = mutableListOf<SummaryTurnDto>()
 
+        // 세션 시작 벽시계(M3-05 studytime). 새 세션 시작 시 캡처, 요약이 완주 시 경과 학습시간을 산출한다.
+        private var startAtMillis: Long? = null
+
         /**
-         * 세션 시작/전환 시 호출 — 새 sessionId 면 이전 세션 버퍼를 비운다(같은 세션 재진입이면 유지).
-         * 멱등: 같은 sessionId 로 여러 번 불러도 안전하다.
+         * 세션 시작/전환 시 호출 — 새 sessionId 면 이전 세션 버퍼를 비우고 시작 벽시계를 캡처한다(같은 세션
+         * 재진입이면 유지). 멱등: 같은 sessionId 로 여러 번 불러도 안전하다.
          */
         fun startSession(sessionId: String) {
             synchronized(lock) {
                 if (sessionId != currentSessionId) {
                     turns.clear()
                     currentSessionId = sessionId
+                    startAtMillis = System.currentTimeMillis()
                 }
             }
         }
+
+        /** 현재 세션의 시작 벽시계(epoch millis) — 없으면 null. 요약 완주 시 studytime 경과 산출용(M3-05). */
+        fun sessionStartMillis(): Long? = synchronized(lock) { startAtMillis }
 
         /**
          * 완료된 한 턴을 기록한다(§8). `koreanPrompt`/`userText` 는 과제·내 답변 echo, 나머지는 슬림
@@ -88,6 +95,7 @@ class SessionTurnBufferStore
             synchronized(lock) {
                 turns.clear()
                 currentSessionId = null
+                startAtMillis = null
             }
         }
     }
