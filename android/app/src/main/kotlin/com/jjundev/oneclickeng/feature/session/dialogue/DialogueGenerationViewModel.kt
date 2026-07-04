@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import com.jjundev.oneclickeng.core.network.LimitAnalytics
 import com.jjundev.oneclickeng.core.network.WaitQuizAnalytics
 import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
-import com.jjundev.oneclickeng.ui.component.LimitSurface
 import com.jjundev.oneclickeng.ui.component.QuizItem
+import com.jjundev.oneclickeng.ui.component.selectLimitSurface
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,13 +44,20 @@ class DialogueGenerationViewModel
         // (analytics-events.md §6.6) — the WaitQuiz callback does not carry the card position.
         private var answeredCount = 0
 
+        // Whether this generation is the onboarding first-session gate (M3-02). Drives the limit
+        // surface for BOTH the panel render (via the screen) and the `limit_reached` analytics event
+        // (via [onLimitReached]) so the two never disagree.
+        private var isOnboarding = false
+
         /** Begin generation and load the tier's quiz items (first session → easy). */
         fun start(
             level: String,
             topic: String,
             length: Int,
             firstSession: Boolean,
+            isOnboarding: Boolean = false,
         ) {
+            this.isOnboarding = isOnboarding
             val tier = if (firstSession) FIRST_SESSION_TIER else level
             _quizItems.value = if (quizEnabled) quizBank.forTier(tier) else emptyList()
             answeredCount = 0
@@ -61,11 +68,14 @@ class DialogueGenerationViewModel
         fun retry() = coordinator.retry()
 
         /**
-         * 대기 화면이 한도 도달(dialogue_start_gate) 패널에 진입할 때 1회 호출 — 정본 `limit_reached`
-         * 이벤트를 [LimitAnalytics] seam 으로 라우팅한다(daily-limit-ux.md §9). remaining 은 거부 시 0.
+         * 대기 화면이 한도 도달 패널에 진입할 때 1회 호출 — 정본 `limit_reached` 이벤트를 [LimitAnalytics]
+         * seam 으로 라우팅한다(daily-limit-ux.md §9). remaining 은 거부 시 0. surface 는 패널 렌더와 동일한
+         * [selectLimitSurface] 로 산출해(온보딩이면 `onboarding_first_session`) 두 표면이 어긋나지 않게 한다.
+         * 라이브 스냅샷 재개는 시작 게이트를 거치지 않으므로 이 경로에선 항상 `hasLiveSnapshot=false`.
          */
         fun onLimitReached(remaining: Int) {
-            limitAnalytics.limitReached(remaining, LimitSurface.DialogueStartGate.value)
+            val surface = selectLimitSurface(isOnboarding = isOnboarding, hasLiveSnapshot = false)
+            limitAnalytics.limitReached(remaining, surface.value)
         }
 
         /**

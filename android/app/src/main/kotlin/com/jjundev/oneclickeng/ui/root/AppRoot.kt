@@ -1,18 +1,26 @@
 package com.jjundev.oneclickeng.ui.root
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.jjundev.oneclickeng.MainActivity
 import com.jjundev.oneclickeng.dev.harnessGraph
 import com.jjundev.oneclickeng.dev.harnessStartRoute
+import com.jjundev.oneclickeng.feature.onboarding.ONBOARDING_ROUTE
+import com.jjundev.oneclickeng.feature.onboarding.onboardingGraph
+import com.jjundev.oneclickeng.ui.component.OneClickProgressRing
+import com.jjundev.oneclickeng.ui.component.ProgressRingMode
 import com.jjundev.oneclickeng.ui.foundation.OceBottomNav
 import com.jjundev.oneclickeng.ui.navigation.OceNavHost
 import com.jjundev.oneclickeng.ui.navigation.OceTab
@@ -21,33 +29,69 @@ import com.jjundev.oneclickeng.ui.navigation.OceTab
 const val MAIN_TABS_ROUTE = "main_tabs"
 
 /**
- * 앱 루트 컴포저블(F8 스캐폴드 · M0-09). 단일 Activity 위에 **바깥 NavHost** 를 세운다. 평시(릴리즈)엔
- * 목적지가 [MAIN_TABS_ROUTE] 하나뿐이라 사실상 예전과 동일하게 3탭 셸([MainTabsScaffold])만 뜬다.
+ * 앱 루트 컴포저블(F8 스캐폴드 · M0-09). 단일 Activity 위에 **바깥 NavHost** 를 세운다. 세 목적지가 형제로
+ * 산다: 3탭 셸([MAIN_TABS_ROUTE]) · 온보딩 그래프([ONBOARDING_ROUTE]) · (debug) 하니스 그래프.
  *
- * **하니스 seam(M1-09):** [startRoute] 기본값과 [harnessGraph] 호출이 개발 하니스의 유일한 진입 seam
- * 이다. debug 변이에서만 [harnessStartRoute] 가 `dev_harness` 를 반환하고 [harnessGraph] 가 하니스
- * 라우트(런처·세션 생성·대화턴)를 등록한다. release 변이에선 둘 다 no-op(startRoute=null→[MAIN_TABS_ROUTE],
- * harnessGraph 미등록)이라 하니스 표면이 물리적으로 부재한다. 세션 라우트를 이 바깥 그래프에 두어
- * 3탭 Scaffold **밖** 풀스크린으로 띄운다(M3-08 완료 시 이 래핑을 해제해 제거).
+ * **진입 게이트(M3-02):** 시작 목적지는 게스트 부트 이후 비동기로 정해진다([AppViewModel.uiState]). Compose
+ * Navigation 의 `startDestination` 은 첫 컴포지션에 고정되므로, boot 이 확정될 때까지 **NavHost 를 아예
+ * 컴포즈하지 않고** splash 만 띄운 뒤, 확정된 시작 목적지로 그때 NavHost 를 최초 컴포즈한다(값만 바꾸면
+ * 동결돼 라우트가 안 바뀌는 함정 회피).
  *
- * @param startRoute 바깥 그래프 시작 목적지. 테스트/하니스 격리를 위한 주입 seam(기본: 하니스 여부에 따라
- *   `dev_harness` 또는 [MAIN_TABS_ROUTE]). 기존 3탭 스모크는 이 인자에 [MAIN_TABS_ROUTE] 를 주입한다.
+ * **우선순위:** ① [startRoute] 명시 주입(테스트) → ② debug [harnessStartRoute]("dev_harness", 게이트 우회 —
+ * 개발은 splash/Firestore 왕복 없이 곧장 하니스) → ③ boot 게이트(Loading=splash / NeedsOnboarding=온보딩 /
+ * MainReady=3탭). release 에선 ②가 null 이라 항상 ③이 동작한다.
+ *
+ * @param startRoute 명시 시작 목적지 override(테스트/하니스 격리 seam). null 이면 위 ②③으로 결정한다.
+ *   기존 3탭 스모크는 이 인자에 [MAIN_TABS_ROUTE] 를 주입해 게이트를 우회한다.
  * @param pendingNav 알림 탭 nav 명령(M3-07). [MainTabsScaffold] 로 전달돼 홈 이동으로 소비된다.
  */
 @Composable
 fun AppRoot(
-    startRoute: String = harnessStartRoute() ?: MAIN_TABS_ROUTE,
+    startRoute: String? = null,
     pendingNav: String? = null,
     onNavConsumed: () -> Unit = {},
 ) {
-    hiltViewModel<AppViewModel>()
+    val appViewModel = hiltViewModel<AppViewModel>()
+    val bootState by appViewModel.uiState.collectAsStateWithLifecycle()
+
+    val harnessRoute = harnessStartRoute()
+    val resolvedStart: String? =
+        when {
+            startRoute != null -> startRoute
+            harnessRoute != null -> harnessRoute
+            else ->
+                when (bootState) {
+                    BootState.Loading -> null // 부트 확정 전 — NavHost 미컴포즈, splash 만.
+                    BootState.NeedsOnboarding -> ONBOARDING_ROUTE
+                    BootState.MainReady -> MAIN_TABS_ROUTE
+                }
+        }
+
+    if (resolvedStart == null) {
+        BootSplash()
+        return
+    }
+
     val outerNavController = rememberNavController()
-    NavHost(navController = outerNavController, startDestination = startRoute) {
+    NavHost(navController = outerNavController, startDestination = resolvedStart) {
         composable(MAIN_TABS_ROUTE) {
             MainTabsScaffold(pendingNav = pendingNav, onNavConsumed = onNavConsumed)
         }
+        // 온보딩 그래프(M3-02): 3탭 밖 풀스크린 형제. 완주/스킵 시 MAIN_TABS 로 이탈하며 그래프를 pop.
+        onboardingGraph(outerNavController)
         // debug: 하니스 라우트 등록 / release: no-op(하니스 부재).
         harnessGraph(outerNavController)
+    }
+}
+
+/** 부트 게이트 대기 화면(AnonymousStarting) — 중앙 인디케이터. boot 확정 시 NavHost 로 교체된다. */
+@Composable
+private fun BootSplash() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        OneClickProgressRing(mode = ProgressRingMode.Indeterminate)
     }
 }
 
@@ -56,9 +100,7 @@ fun AppRoot(
  * 탭 선택 지속은 자체 [rememberNavController] 백스택이 담당한다(회전/복귀 시 상태 유지 · M0-09 수용기준 #3).
  *
  * [pendingNav] 는 알림 탭에서 온 nav 명령(M3-07 §5). `home` 이면 이 스코프의 NavController 를 홈 탭으로
- * 옮기고 [onNavConsumed] 로 소비를 통지한다. inner NavController 와 이 효과는 3탭 셸에 함께 묶여 있어,
- * 하니스 화면이 포그라운드일 땐 이 목적지가 컴포즈되지 않으므로 소비가 지연될 수 있으나(드롭 아님 —
- * [MainActivity] 의 pendingNav 값이 살아 있어 복귀 시 1회 발화), 하니스는 비노출 개발 전용이라 허용한다.
+ * 옮기고 [onNavConsumed] 로 소비를 통지한다.
  */
 @Composable
 private fun MainTabsScaffold(

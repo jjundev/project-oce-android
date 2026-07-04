@@ -20,7 +20,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jjundev.oneclickeng.ui.component.InlineErrorMode
-import com.jjundev.oneclickeng.ui.component.LimitSurface
 import com.jjundev.oneclickeng.ui.component.OneClickInlineError
 import com.jjundev.oneclickeng.ui.component.OneClickLimitReachedPanel
 import com.jjundev.oneclickeng.ui.component.OneClickProgressRing
@@ -28,6 +27,7 @@ import com.jjundev.oneclickeng.ui.component.OneClickWaitQuiz
 import com.jjundev.oneclickeng.ui.component.ProgressRingMode
 import com.jjundev.oneclickeng.ui.component.QuizItem
 import com.jjundev.oneclickeng.ui.component.previewWaitQuizItems
+import com.jjundev.oneclickeng.ui.component.selectLimitSurface
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import kotlinx.coroutines.delay
 
@@ -59,6 +59,7 @@ fun DialogueGeneratingScreen(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
     quizEnabled: Boolean = true,
+    isOnboarding: Boolean = false,
     onQuizAnswered: (item: QuizItem, selectedIndex: Int, correct: Boolean) -> Unit = { _, _, _ -> },
     onLimitReached: (remaining: Int) -> Unit = {},
     onViewRecords: () -> Unit = {},
@@ -79,9 +80,11 @@ fun DialogueGeneratingScreen(
     // 인라인 로딩/퀴즈용 중앙정렬 Column 밖에서 렌더해 패널이 전체화면 스캐폴드를 온전히 차지하게 한다.
     if (state is DialogueGenState.QuotaBlocked) {
         LaunchedEffect(Unit) { onLimitReached(state.remaining) }
+        // 온보딩 첫 세션 게이트면 중립 온보딩 표면, 아니면 일반 시작 게이트(라이브 스냅샷 재개는 이 경로에
+        // 도달하지 않으므로 hasLiveSnapshot=false). VM 의 limit_reached 분석 표면과 동일 셀렉터를 쓴다.
         // streakDays=0: M3-04 는 streak 넛지 제외 — 소스는 M3-05/06. 패널의 streak seam 은 유지(0 → 미렌더).
         OneClickLimitReachedPanel(
-            surface = LimitSurface.DialogueStartGate,
+            surface = selectLimitSurface(isOnboarding = isOnboarding, hasLiveSnapshot = false),
             streakDays = 0,
             onViewRecords = onViewRecords,
             modifier = modifier,
@@ -139,11 +142,12 @@ fun DialogueGeneratingRoute(
     firstSession: Boolean,
     onStartConversation: () -> Unit,
     modifier: Modifier = Modifier,
+    isOnboarding: Boolean = false,
     onViewRecords: () -> Unit = {},
     viewModel: DialogueGenerationViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(Unit) {
-        viewModel.start(level, topic, length, firstSession)
+        viewModel.start(level, topic, length, firstSession, isOnboarding)
     }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val quizItems by viewModel.quizItems.collectAsStateWithLifecycle()
@@ -154,6 +158,7 @@ fun DialogueGeneratingRoute(
         onRetry = viewModel::retry,
         modifier = modifier,
         quizEnabled = viewModel.quizEnabled,
+        isOnboarding = isOnboarding,
         // Drop the tapped-option index — analytics logs only chose_correct (PII boundary).
         onQuizAnswered = { answeredItem, _, wasCorrect -> viewModel.onQuizAnswered(answeredItem, wasCorrect) },
         onLimitReached = viewModel::onLimitReached,

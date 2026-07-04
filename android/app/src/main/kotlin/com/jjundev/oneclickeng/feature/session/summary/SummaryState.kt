@@ -27,6 +27,11 @@ data class SummaryState(
     val accrual: AccrualStrip,
     /** 요약 SSE 번들 영역 상태. */
     val bundle: SectionBundle,
+    /**
+     * 온보딩 첫 세션 여부(M3-02). true 면 격려 카피를 더 따뜻한 변형으로 고른다("보장된 승리"의 격려 강조,
+     * 01-onboarding §8). 일반 세션은 false. 점수 계산·SSE 로직에는 영향이 없다 — 카피 톤만 바꾼다.
+     */
+    val isFirstSession: Boolean = false,
 )
 
 /**

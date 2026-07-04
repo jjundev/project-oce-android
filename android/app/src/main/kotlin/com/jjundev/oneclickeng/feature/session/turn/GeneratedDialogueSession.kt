@@ -48,7 +48,7 @@ import javax.inject.Inject
 fun GeneratedDialogueSessionRoute(
     modifier: Modifier = Modifier,
     reduceMotion: Boolean = rememberReduceMotion(),
-    onViewSummary: () -> Unit = {},
+    onViewSummary: (sessionId: String) -> Unit = {},
     viewModel: GeneratedDialogueSessionViewModel = hiltViewModel(),
 ) {
     val generationState by viewModel.generationState.collectAsStateWithLifecycle()
@@ -69,7 +69,9 @@ fun GeneratedDialogueSessionRoute(
 
     GeneratedDialogueSessionContent(
         state = state,
-        onViewSummary = onViewSummary,
+        // 완료 CTA 탭 시점의 sessionId 를 상위 요약 라우팅에 전달(M3-02 대화→요약 배선). 완주 후에만
+        // 도달하므로 sessionId 는 non-null 이나 방어적으로 orEmpty.
+        onViewSummary = { onViewSummary(viewModel.sessionId().orEmpty()) },
         modifier = modifier,
         dock = { task ->
             MicSessionDock(
@@ -104,6 +106,9 @@ class GeneratedDialogueSessionViewModel
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         val generationState = generation.state
+
+        /** 서버 발급 sessionId(요약 라우팅용, M3-02). 대본 미도착이면 null → 요약 진입은 완주 후에만 일어나 non-null. */
+        fun sessionId(): String? = generation.sessionId()
 
         // 내부 턴머신 타입이라 internal(같은 모듈 Route/테스트만 접근). public 노출 금지.
         internal val turnState = GeneratedDialogueState()

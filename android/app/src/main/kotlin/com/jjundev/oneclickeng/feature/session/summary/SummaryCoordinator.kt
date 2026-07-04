@@ -76,6 +76,7 @@ class SummaryCoordinator
         private var highlight: HighlightTurn? = null
         private var accrual: AccrualStrip = AccrualStrip(streakDays = 0, studyTimeLabel = "", xp = 0)
         private var bookmarks: List<BookmarkCard> = emptyList()
+        private var isFirstSession = false
 
         // Per-section accumulators. Before the first `done`, arrived cards set Ready but the bundle
         // still shows BundleLoading (single skeleton) until [sectioned] flips.
@@ -101,9 +102,11 @@ class SummaryCoordinator
             difficulty: String,
             modeId: String,
             accrual: AccrualStrip,
+            isFirstSession: Boolean = false,
         ) {
             this.sessionId = sessionId
             this.accrual = accrual
+            this.isFirstSession = isFirstSession
             totalScore = turnBuffer.totalScore()
             highlight = turnBuffer.highlightBase()
             bookmarks = emptyList()
@@ -342,6 +345,7 @@ class SummaryCoordinator
                     bookmarks = bookmarks,
                     accrual = accrual,
                     bundle = bundle,
+                    isFirstSession = isFirstSession,
                 )
         }
 

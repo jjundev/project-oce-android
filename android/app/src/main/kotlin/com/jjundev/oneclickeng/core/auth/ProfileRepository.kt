@@ -2,6 +2,7 @@ package com.jjundev.oneclickeng.core.auth
 
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,6 +20,29 @@ interface ProfileRepository {
      * firestore-schema.md:213). Safe to call on every app start.
      */
     suspend fun ensureProfile(uid: String)
+
+    /**
+     * Persists the self-reported onboarding [level] to `users/{uid}.level` (M3-02, FR-2). A
+     * merge write so `createdAt` and any other fields survive (the update rule forbids touching
+     * `createdAt`, firestore-schema.md:213). The onboarding caller invokes this fire-and-forget on
+     * the level tap without gating navigation: Firestore's on-disk write queue persists and retries
+     * the mutation across process death, so the value is not discarded even offline — the "폐기 안
+     * 함" guarantee rests on that queue, not on awaiting the round-trip. The first session is still
+     * forced to `easy`; this stored level is what session #2 onward reads (consumption is M3-08).
+     */
+    suspend fun saveLevel(
+        uid: String,
+        level: String,
+    )
+
+    /**
+     * Reads `users/{uid}.level`, or null when the profile has no level yet (never onboarded). The
+     * app-entry gate uses this to route: a returning user with a level goes to Home, an absent
+     * level goes to onboarding. On Android, Firestore's default on-disk cache answers this from the
+     * last synced snapshot when offline, so a returning-but-offline user still resolves their level
+     * rather than being re-onboarded.
+     */
+    suspend fun readLevel(uid: String): String?
 }
 
 /**
@@ -48,9 +72,34 @@ class FirestoreProfileRepository
             }.await()
         }
 
+        override suspend fun saveLevel(
+            uid: String,
+            level: String,
+        ) {
+            db.collection(COLLECTION_USERS)
+                .document(uid)
+                .set(
+                    mapOf(
+                        FIELD_LEVEL to level,
+                        FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+                    ),
+                    // merge keeps createdAt and any other fields (the update rule forbids touching
+                    // createdAt, firestore-schema.md:213). The queued write survives process death.
+                    SetOptions.merge(),
+                ).await()
+        }
+
+        override suspend fun readLevel(uid: String): String? =
+            db.collection(COLLECTION_USERS)
+                .document(uid)
+                .get()
+                .await()
+                .getString(FIELD_LEVEL)
+
         private companion object {
             const val COLLECTION_USERS = "users"
             const val FIELD_CREATED_AT = "createdAt"
             const val FIELD_UPDATED_AT = "updatedAt"
+            const val FIELD_LEVEL = "level"
         }
     }
