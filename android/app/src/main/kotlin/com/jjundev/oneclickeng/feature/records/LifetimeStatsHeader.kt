@@ -1,6 +1,7 @@
 package com.jjundev.oneclickeng.feature.records
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -11,8 +12,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import com.jjundev.oneclickeng.ui.component.OneClickCountUp
+import com.jjundev.oneclickeng.ui.foundation.OceIcon
+import com.jjundev.oneclickeng.ui.foundation.OceIconSize
+import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /**
@@ -34,46 +40,90 @@ fun LifetimeStatsHeader(
     val hours = stats.studyMinutes / MINUTES_PER_HOUR
     val minutes = stats.studyMinutes % MINUTES_PER_HOUR
 
-    FlowRow(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
     ) {
-        Metric(prefix = "누적", value = stats.xp, unit = "XP", static = static)
-        Dot()
         Text(
-            text = "총 ${hours}시간 ${minutes}분",
-            style = OceTheme.typography.body,
+            text = "평생 통계",
+            style = OceTheme.typography.sectionLabel,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Dot()
-        Metric(value = stats.studyDays, unit = "일 학습", static = static)
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+        ) {
+            Metric(
+                icon = OceIcon.Bolt,
+                iconTint = MaterialTheme.colorScheme.primary,
+                value = stats.xp,
+                unit = "XP",
+                static = static,
+            )
+            Dot()
+            TimeMetric(
+                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = "${hours}시간 ${minutes}분",
+            )
+            Dot()
+            Metric(
+                icon = OceIcon.LocalFireDepartment,
+                iconTint = OceTheme.colors.gameStreak,
+                value = stats.studyDays,
+                unit = "일 학습",
+                static = static,
+            )
+        }
     }
 }
 
 @Composable
 private fun Metric(
+    icon: OceIcon,
+    iconTint: Color,
     value: Int,
     unit: String,
     static: Boolean,
-    prefix: String? = null,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
     ) {
-        if (prefix != null) {
-            Text(
-                text = prefix,
-                style = OceTheme.typography.body,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        OneClickIcon(
+            icon = icon,
+            contentDescription = null,
+            tint = iconTint,
+            size = OceIconSize.FeedbackInline,
+        )
         OneClickCountUp(
             target = value,
             unit = " $unit",
             static = static,
-            style = OceTheme.typography.body,
+            style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+@Composable
+private fun TimeMetric(
+    iconTint: Color,
+    text: String,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+    ) {
+        OneClickIcon(
+            icon = OceIcon.Schedule,
+            contentDescription = null,
+            tint = iconTint,
+            size = OceIconSize.FeedbackInline,
+        )
+        Text(
+            text = text,
+            style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onSurface,
         )
     }

@@ -46,6 +46,7 @@ private fun oceStyle(
 @Immutable
 data class OceTypography(
     val screenTitle: TextStyle,
+    val homeTitle: TextStyle,
     val scoreDisplay: TextStyle,
     val turnScore: TextStyle,
     val dialogHeader: TextStyle,
@@ -59,6 +60,7 @@ data class OceTypography(
 internal val OceTypographyTokens =
     OceTypography(
         screenTitle = oceStyle(FontWeight.Bold, 28.sp, 1.2f, -0.02f),
+        homeTitle = oceStyle(FontWeight.ExtraBold, 25.sp, 1.25f, -0.02f),
         scoreDisplay = oceStyle(FontWeight.Bold, 56.sp, 1.2f, -0.02f),
         turnScore = oceStyle(FontWeight.Bold, 28.sp, 1.2f, -0.02f),
         dialogHeader = oceStyle(FontWeight.Bold, 22.sp, 1.35f, -0.02f),

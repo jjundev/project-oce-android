@@ -1,6 +1,7 @@
 package com.jjundev.oneclickeng.feature.records
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,8 +14,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import com.jjundev.oneclickeng.feature.session.saved.SavedCard
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
@@ -83,9 +87,10 @@ private fun Collapsed(card: SavedCard) {
             PrimaryText("${card.english} · ${card.korean}")
         }
         is SavedCard.Expression -> {
-            HelperText(if (card.type == "accurate") "정확한 표현" else "자연스러운 표현")
-            if (card.before.isNotBlank()) HelperText(card.before)
-            PrimaryText(card.after)
+            CategoryBadge(card)
+            if (card.koreanPrompt.isNotBlank()) PrimaryText(card.koreanPrompt)
+            if (card.before.isNotBlank()) StrikeHelperText(card.before)
+            AfterLine(card.after)
         }
         is SavedCard.Sentence -> {
             PrimaryText(card.english)
@@ -118,6 +123,26 @@ private fun copyText(card: SavedCard): String =
         is SavedCard.Sentence -> "${card.english}\n${card.korean}"
     }
 
+/** 개선 표현 라인 = 초록 `→` + 굵은 결과 표현(프로토타입 기록 카드 정합). */
+@Composable
+private fun AfterLine(text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+    ) {
+        Text(
+            text = "→",
+            style = OceTheme.typography.body,
+            color = OceTheme.colors.feedbackNaturalAccent,
+        )
+        Text(
+            text = text,
+            style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
 @Composable
 private fun PrimaryText(text: String) {
     Text(text = text, style = OceTheme.typography.body, color = MaterialTheme.colorScheme.onSurface)
@@ -126,6 +151,34 @@ private fun PrimaryText(text: String) {
 @Composable
 private fun HelperText(text: String) {
     Text(text = text, style = OceTheme.typography.helper, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+/** before(교정 전) 표현 = 취소선 헬퍼(프로토타입 기록 카드 정합). */
+@Composable
+private fun StrikeHelperText(text: String) {
+    Text(
+        text = text,
+        style = OceTheme.typography.helper.copy(textDecoration = TextDecoration.LineThrough),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+/** 표현 유형 pill 배지(자연/정확) — 피드백 색 토큰 tint. */
+@Composable
+private fun CategoryBadge(card: SavedCard.Expression) {
+    val accurate = card.type == "accurate"
+    val bg = if (accurate) OceTheme.colors.feedbackCorrectBg else OceTheme.colors.feedbackNaturalBg
+    val fg = if (accurate) OceTheme.colors.feedbackCorrectAccent else OceTheme.colors.feedbackNaturalAccent
+    Text(
+        text = if (accurate) "정확한 표현" else "자연스러운 표현",
+        style = OceTheme.typography.helper,
+        color = fg,
+        modifier =
+            Modifier
+                .clip(OceTheme.shapes.pill)
+                .background(bg)
+                .padding(horizontal = OceTheme.spacing.sm, vertical = OceTheme.spacing.xs),
+    )
 }
 
 @Suppress("UnusedPrivateMember")

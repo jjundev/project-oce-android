@@ -70,7 +70,8 @@
 
 | 토큰 | 크기/굵기 | 용도 |
 |---|---|---|
-| `type.screenTitle` | 28sp Bold | 화면 제목 |
+| `type.screenTitle` | 28sp Bold | 화면 제목(기록·설정 등 탭 타이틀) |
+| `type.homeTitle` | 24sp ExtraBold (tracking -0.02em) | 홈 허브 맥락 H1·히어로 CTA 제목("이어서 말해볼까요?"·"이어서 대화하기") — 프로토타입(realization-SoT)이 이 제목들을 `screenTitle`보다 작고(24 vs 28) **더 굵게(800 ExtraBold vs 700)** 렌더해 홈 전용으로 분리(ADR-0006 시각 우선). 탭 타이틀(`screenTitle`)과 시맨틱 구분 |
 | `type.scoreDisplay` | 56sp Bold (`brand.primary`) | 요약 종합 점수 |
 | `type.turnScore` | 28sp Bold (tracking -0.02em) | 턴 피드백 writingScore 점수 (요약 hero 하위 · `screenTitle`과 값 동일하나 **시맨틱 분리**: 점수 ≠ 화면 제목, 향후 독립 조정) |
 | `type.dialogHeader` | 22sp Bold | 다이얼로그/시트 헤더 |

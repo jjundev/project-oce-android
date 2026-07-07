@@ -15,6 +15,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,7 +57,6 @@ fun RecordsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    var expandedId by rememberSaveable { mutableStateOf<String?>(null) }
 
     // 삭제 → undo 스낵바(6초, Indefinite 로 띄워 OneClickSnackbar 의 자동 소멸 타이머를 발동). 액션=undo,
     // 소멸=커밋. undoBar 가 갱신되면(연속 삭제) 이전 스낵바는 취소되고 최신 삭제만 되돌릴 수 있다.
@@ -73,6 +73,32 @@ fun RecordsScreen(
             SnackbarResult.Dismissed -> viewModel.commitDelete()
         }
     }
+
+    RecordsContent(
+        state = state,
+        onSelectTab = viewModel::selectTab,
+        onDelete = viewModel::onSwipeDelete,
+        onLoadMore = viewModel::loadMore,
+        snackbarHostState = snackbarHostState,
+        modifier = modifier,
+    )
+}
+
+/**
+ * 기록 콘텐츠(stateless) — VM 없이 [RecordsUiState] 로 렌더하는 스크린샷 seam. undo 스낵바 트리거
+ * (LaunchedEffect(undoBar))는 상태 소유자([RecordsScreen])에 남고, 여기선 호스트만 얹는다.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+internal fun RecordsContent(
+    state: RecordsUiState,
+    onSelectTab: (CardType) -> Unit,
+    onDelete: (SavedCardEntry) -> Unit,
+    onLoadMore: () -> Unit,
+    modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+) {
+    var expandedId by rememberSaveable { mutableStateOf<String?>(null) }
 
     Box(modifier = modifier.fillMaxSize()) {
         TabScreenScaffold(titleRes = R.string.tab_records) {
@@ -94,8 +120,18 @@ fun RecordsScreen(
                     OneClickSegmentedControl(
                         options = state.tabs,
                         selected = state.selected,
-                        onSelect = viewModel::selectTab,
+                        onSelect = onSelectTab,
                         label = ::tabLabel,
+                    )
+                }
+            }
+            if (state.cards.isNotEmpty()) {
+                item(key = "count") {
+                    Text(
+                        text = "${state.cards.size}개 · 최신순",
+                        style = OceTheme.typography.helper,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = OceTheme.spacing.sm),
                     )
                 }
             }
@@ -103,8 +139,8 @@ fun RecordsScreen(
                 state = state,
                 expandedId = expandedId,
                 onToggleExpand = { id -> expandedId = if (expandedId == id) null else id },
-                onDelete = viewModel::onSwipeDelete,
-                onLoadMore = viewModel::loadMore,
+                onDelete = onDelete,
+                onLoadMore = onLoadMore,
             )
         }
         OneClickSnackbarHost(
