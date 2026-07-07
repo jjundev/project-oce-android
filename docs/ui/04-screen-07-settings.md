@@ -25,11 +25,13 @@
 - **현황:** 단일 스크롤 6섹션. 셰브론 행 = "다음 화면/시트로 진입"(ListRow와 별개 패턴). 앱 버전 = 비-인터랙티브 정보 행.
 - **쟁점:** 섹션 헤더 외형, ListRow 변형 범위.
 - **결정(rev2):** 단일 LazyColumn 6섹션. 각 섹션 sectionLabel(14sp Bold, text.tertiary) 헤더 + surface.card 위 hairline 그룹 셰브론 행(OneClickListRow 변형). 앱 버전=비인터랙티브 정보 행.
+- **실현(2026-07-07):** 6섹션 모두 surface.card 그룹으로 실현. 프로필 닉네임은 인라인 Input → 표시행+"변경하기" 버튼→편집 다이얼로그(1~20자)로 실현(behavior 변경, 비준=§ux [settings-data-account.md 2.1](../ux/settings-data-account.md)).
 
 ### ST2 · 음성 섹션 (음질 2지선다·속도 슬라이더·음소거 토글) 🟠
 - **현황:** 음질 2지선다(자연스러운●/빠른, 구 명세는 라디오2로 표기), 속도 슬라이더(기본 1.0), 음소거 토글. 음소거 ON → 속도·음질 회색 비활성. 단말 폴백도 `setSpeechRate` 동일 적용(신규 결정).
 - **쟁점:** 라디오 그룹([02](02-shared-components.md) C9)·슬라이더(C8) 신규, 비활성 처리 시각.
 - **결정(rev2):** 음질 2지선다 = OneClickSegmentedControl 재사용(C9 확정 — 별도 라디오 그룹 신설 안 함). 속도 = OneClickSlider(C8, 0.5~1.5x, 기본 1.0). 전체 음소거 = OneClickSwitch. 음소거 ON 시 속도·음질 회색 비활성(alpha 0.38). 단말 폴백도 setSpeechRate 동일 적용.
+- **실현(2026-07-07):** 각 행에 선행 아이콘(graphic_eq·speed·volume_up) + 보조 마이크로카피, 속도 슬라이더 하단 눈금(0.5x·1.0x·1.5x)+우측 현재값 반영. 마이크로카피 정본·비준=§ux [settings-data-account.md 2.1](../ux/settings-data-account.md).
 
 ### ST3 · 데이터 관리 (카드 정리 시트 / 초기화 다이얼로그) 🔴
 - **현황:** 카드 정리 = 바텀시트(30일/90일/전체) → 영향 건수 표시 + 확인 다이얼로그(`N개 카드를 삭제할까요? 되돌릴 수 없어요`). 초기화 = 단일 확인 다이얼로그(XP·streak·시간 0, 저장 카드 유지).

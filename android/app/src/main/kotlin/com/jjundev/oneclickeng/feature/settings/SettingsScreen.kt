@@ -11,17 +11,28 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,8 +44,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -55,11 +71,16 @@ import com.jjundev.oneclickeng.ui.component.OneClickSnackbarHost
 import com.jjundev.oneclickeng.ui.component.ReminderSettingRow
 import com.jjundev.oneclickeng.ui.component.SliderMode
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickBottomSheet
+import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickInput
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickListRow
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickSwitch
+import com.jjundev.oneclickeng.ui.foundation.OceIcon
+import com.jjundev.oneclickeng.ui.foundation.OceIconSize
+import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.foundation.TabScreenScaffold
 import com.jjundev.oneclickeng.ui.theme.OceTheme
+import java.util.Locale
 import kotlinx.coroutines.launch
 
 /**
@@ -274,143 +295,150 @@ internal fun SettingsContent(
     TabScreenScaffold(titleRes = R.string.tab_settings, modifier = modifier) {
         // ----- 프로필 -----
         sectionHeader(R.string.settings_section_profile)
-        item(key = "profile_nickname") {
-            OneClickInput(
-                value = state.nickname,
-                onValueChange = onNicknameChange,
-                label = stringResource(R.string.settings_nickname_label),
-                placeholder = stringResource(R.string.settings_nickname_placeholder),
-                modifier = Modifier.fillMaxWidth().padding(vertical = OceTheme.spacing.sm),
-            )
+        item(key = "profile_card") {
+            OneClickCard(modifier = Modifier.fillMaxWidth()) {
+                ProfileRow(nickname = state.nickname, onNicknameChange = onNicknameChange)
+            }
         }
 
         // ----- 음성 -----
         sectionHeader(R.string.settings_section_voice)
-        item(key = "voice_quality") {
+        item(key = "voice_card") {
             val enabled = state.voiceControlsEnabled
             // Resolve labels outside the segmented control's (non-@Composable) label lambda.
             val serverLabel = stringResource(R.string.settings_voice_quality_server)
             val deviceLabel = stringResource(R.string.settings_voice_quality_device)
-            Column(modifier = Modifier.padding(vertical = OceTheme.spacing.sm)) {
-                Text(
-                    text = stringResource(R.string.settings_voice_quality_label),
-                    style = OceTheme.typography.body,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(bottom = OceTheme.spacing.sm),
-                )
-                OneClickSegmentedControl(
-                    options = listOf(TtsQuality.SERVER, TtsQuality.DEVICE),
-                    selected = state.ttsQuality,
-                    onSelect = { if (enabled) onQualityChange(it) },
-                    label = { quality -> if (quality == TtsQuality.SERVER) serverLabel else deviceLabel },
-                    modifier = Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA),
-                )
-            }
-        }
-        item(key = "voice_speed") {
-            val enabled = state.voiceControlsEnabled
             var speed by remember(state.speechRate) { mutableStateOf(state.speechRate) }
-            Column(modifier = Modifier.padding(vertical = OceTheme.spacing.sm)) {
-                Text(
-                    text = stringResource(R.string.settings_voice_speed_label),
-                    style = OceTheme.typography.body,
-                    color = MaterialTheme.colorScheme.onSurface,
+            OneClickCard(modifier = Modifier.fillMaxWidth()) {
+                SettingsRow(
+                    icon = OceIcon.GraphicEq,
+                    title = stringResource(R.string.settings_voice_quality_label),
+                    desc = stringResource(R.string.settings_voice_quality_desc),
+                    below = {
+                        OneClickSegmentedControl(
+                            options = listOf(TtsQuality.SERVER, TtsQuality.DEVICE),
+                            selected = state.ttsQuality,
+                            onSelect = { if (enabled) onQualityChange(it) },
+                            label = { quality -> if (quality == TtsQuality.SERVER) serverLabel else deviceLabel },
+                            modifier = Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA),
+                        )
+                    },
                 )
-                OneClickSlider(
-                    value = speed,
-                    onValueChange = { if (enabled) speed = it },
-                    mode = SliderMode.Continuous(),
-                    onValueChangeFinished = { if (enabled) onSpeedChange(speed) },
-                    modifier = Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA),
+                SettingsDivider()
+                SettingsRow(
+                    icon = OceIcon.Speed,
+                    title = stringResource(R.string.settings_voice_speed_label),
+                    desc = stringResource(R.string.settings_voice_speed_desc),
+                    trailing = {
+                        Text(
+                            text = speedLabel(speed),
+                            style = OceTheme.typography.body.copy(fontWeight = FontWeight.ExtraBold, fontSize = 16.sp),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    },
+                    below = {
+                        OneClickSlider(
+                            value = speed,
+                            onValueChange = { if (enabled) speed = it },
+                            mode = SliderMode.Continuous(),
+                            onValueChangeFinished = { if (enabled) onSpeedChange(speed) },
+                            modifier = Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA),
+                            showValueLabel = false,
+                        )
+                        SpeedTicks(modifier = Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA))
+                    },
+                )
+                SettingsDivider()
+                SettingsRow(
+                    icon = OceIcon.VolumeUp,
+                    title = stringResource(R.string.settings_voice_mute_label),
+                    desc = stringResource(R.string.settings_voice_mute_desc),
+                    trailing = { OneClickSwitch(checked = state.ttsMuted, onCheckedChange = onMuteChange) },
                 )
             }
-        }
-        item(key = "voice_mute") {
-            SettingToggleRow(
-                label = stringResource(R.string.settings_voice_mute_label),
-                checked = state.ttsMuted,
-                onCheckedChange = onMuteChange,
-            )
         }
 
         // ----- 알림 -----
         sectionHeader(R.string.settings_section_notify)
-        item(key = "notify_reminder") {
-            ReminderSettingRow(
-                enabled = state.reminderEnabled,
-                onEnabledChange = onReminderToggle,
-                hour = state.reminderHour,
-                minute = state.reminderMinute,
-                onTimeChange = onReminderTimeChange,
-            )
+        item(key = "notify_card") {
+            OneClickCard(modifier = Modifier.fillMaxWidth()) {
+                ReminderSettingRow(
+                    enabled = state.reminderEnabled,
+                    onEnabledChange = onReminderToggle,
+                    hour = state.reminderHour,
+                    minute = state.reminderMinute,
+                    onTimeChange = onReminderTimeChange,
+                    leadingIcon = OceIcon.Notifications,
+                    supporting = stringResource(R.string.settings_reminder_desc),
+                )
+            }
         }
 
         // ----- 데이터 관리 -----
         sectionHeader(R.string.settings_section_data)
-        item(key = "data_purge") {
-            OneClickListRow(
-                headline = stringResource(R.string.settings_data_purge),
-                onClick = onPurgeClick,
-            )
-        }
-        item(key = "data_reset") {
-            OneClickListRow(
-                headline = stringResource(R.string.settings_data_reset),
-                onClick = onResetClick,
-            )
+        item(key = "data_card") {
+            OneClickCard(modifier = Modifier.fillMaxWidth()) {
+                OneClickListRow(
+                    headline = stringResource(R.string.settings_data_purge),
+                    onClick = onPurgeClick,
+                )
+                SettingsDivider()
+                OneClickListRow(
+                    headline = stringResource(R.string.settings_data_reset),
+                    onClick = onResetClick,
+                )
+            }
         }
 
         // ----- 계정 (적응형) -----
         sectionHeader(R.string.settings_section_account)
-        if (state.isGuest) {
-            item(key = "account_google_save") {
-                OneClickListRow(
-                    headline = stringResource(R.string.settings_account_google_save),
-                    onClick = onGoogleSave,
-                )
-            }
-        } else {
-            item(key = "account_logout") {
-                OneClickListRow(
-                    headline = stringResource(R.string.settings_account_logout),
-                    onClick = onLogoutClick,
-                )
-            }
-            item(key = "account_delete") {
-                OneClickListRow(
-                    headline = stringResource(R.string.settings_account_delete),
-                    onClick = onDeleteClick,
-                )
-            }
-        }
-        if (state.showRetryMerge) {
-            item(key = "account_retry_merge") {
-                OneClickListRow(
-                    headline = stringResource(R.string.settings_account_retry_merge),
-                    onClick = onRetryMerge,
-                )
+        item(key = "account_card") {
+            OneClickCard(modifier = Modifier.fillMaxWidth()) {
+                if (state.isGuest) {
+                    OneClickListRow(
+                        headline = stringResource(R.string.settings_account_google_save),
+                        onClick = onGoogleSave,
+                    )
+                } else {
+                    OneClickListRow(
+                        headline = stringResource(R.string.settings_account_logout),
+                        onClick = onLogoutClick,
+                    )
+                    SettingsDivider()
+                    OneClickListRow(
+                        headline = stringResource(R.string.settings_account_delete),
+                        onClick = onDeleteClick,
+                    )
+                }
+                if (state.showRetryMerge) {
+                    SettingsDivider()
+                    OneClickListRow(
+                        headline = stringResource(R.string.settings_account_retry_merge),
+                        onClick = onRetryMerge,
+                    )
+                }
             }
         }
 
         // ----- 정보 -----
         sectionHeader(R.string.settings_section_info)
-        item(key = "info_version") {
-            SettingValueRow(
-                label = stringResource(R.string.settings_info_version),
-                value = versionLabel,
-            )
-        }
-        item(key = "info_privacy") {
-            OneClickListRow(
-                headline = stringResource(R.string.settings_info_privacy),
-                onClick = onPrivacy,
-            )
-        }
-        item(key = "info_terms") {
-            OneClickListRow(
-                headline = stringResource(R.string.settings_info_terms),
-                onClick = onTerms,
-            )
+        item(key = "info_card") {
+            OneClickCard(modifier = Modifier.fillMaxWidth()) {
+                SettingValueRow(
+                    label = stringResource(R.string.settings_info_version),
+                    value = versionLabel,
+                )
+                SettingsDivider()
+                OneClickListRow(
+                    headline = stringResource(R.string.settings_info_privacy),
+                    onClick = onPrivacy,
+                )
+                SettingsDivider()
+                OneClickListRow(
+                    headline = stringResource(R.string.settings_info_terms),
+                    onClick = onTerms,
+                )
+            }
         }
     }
 }
@@ -455,30 +483,203 @@ private fun LazyListScope.sectionHeader(
             text = stringResource(titleRes),
             style = OceTheme.typography.sectionLabel,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = OceTheme.spacing.lg, bottom = OceTheme.spacing.xs),
+            modifier = Modifier.padding(top = OceTheme.spacing.lg, bottom = OceTheme.spacing.sm),
         )
     }
 }
 
-/** 라벨 + 우측 토글 행(음소거 등). */
+/**
+ * 설정 카드 행(프로토 정합) — 선행 tinted 아이콘 원 + (제목 + 보조 문구) + 우측 [trailing] + 하단 [below] 컨트롤.
+ * 음질/속도/음소거처럼 컨트롤이 제목 아래로 오면 [below], 토글/값처럼 우측이면 [trailing] 을 쓴다.
+ */
 @Composable
-private fun SettingToggleRow(
-    label: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
+private fun SettingsRow(
+    icon: OceIcon,
+    title: String,
+    modifier: Modifier = Modifier,
+    desc: String? = null,
+    trailing: (@Composable () -> Unit)? = null,
+    below: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = OceTheme.spacing.lg, vertical = OceTheme.spacing.md),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
+        ) {
+            SettingsIcon(icon)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style =
+                        OceTheme.typography.body.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp,
+                            lineHeightStyle = TrimmedLineHeight,
+                        ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                if (desc != null) {
+                    Text(
+                        text = desc,
+                        style = OceTheme.typography.helper.copy(lineHeightStyle = TrimmedLineHeight),
+                        color = OceTheme.colors.textTertiary,
+                        modifier = Modifier.padding(top = LABEL_TITLE_DESC_GAP),
+                    )
+                }
+            }
+            trailing?.invoke()
+        }
+        if (below != null) {
+            Spacer(modifier = Modifier.height(OceTheme.spacing.sm))
+            below()
+        }
+    }
+}
+
+/** 설정 행 선행 아이콘 — 프로토 정합 tinted 회색 원(radius.12) 안 24-grid glyph. */
+@Composable
+private fun SettingsIcon(icon: OceIcon) {
+    Box(
+        modifier =
+            Modifier
+                .size(SETTINGS_ICON_BOX)
+                .clip(OceTheme.shapes.radius12)
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = SETTINGS_ICON_BG_ALPHA)),
+        contentAlignment = Alignment.Center,
+    ) {
+        OneClickIcon(
+            icon = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            size = OceIconSize.ListDisclosure,
+        )
+    }
+}
+
+/** 카드 내부 행 구분선 — hairline(outline.variant), 선행 아이콘 폭만큼 좌측 인셋(프로토 정합). */
+@Composable
+private fun SettingsDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(start = SETTINGS_DIVIDER_INSET),
+        thickness = 1.dp,
+        color = MaterialTheme.colorScheme.outlineVariant,
+    )
+}
+
+/** 속도 슬라이더 눈금 라벨(0.5x·1.0x·1.5x). */
+@Composable
+private fun SpeedTicks(modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = OceTheme.spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        listOf("0.5x", "1.0x", "1.5x").forEach { tick ->
+            Text(
+                text = tick,
+                style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold, fontSize = 11.sp),
+                color = OceTheme.colors.textTertiary,
+            )
+        }
+    }
+}
+
+/** 프로필 행 — 닉네임 표시 + "변경하기" 버튼 → 편집 다이얼로그(1~[NICKNAME_MAX_LEN]자, 빈값 허용). */
+@Composable
+private fun ProfileRow(
+    nickname: String,
+    onNicknameChange: (String) -> Unit,
+) {
+    var editing by remember { mutableStateOf(false) }
+    SettingsRow(
+        icon = OceIcon.AccountCircle,
+        title = stringResource(R.string.settings_nickname_label),
+        desc = nickname.ifBlank { stringResource(R.string.settings_nickname_placeholder) },
+        trailing = { ChangeButton(onClick = { editing = true }) },
+    )
+    if (editing) {
+        NicknameEditDialog(
+            initial = nickname,
+            onConfirm = {
+                onNicknameChange(it)
+                editing = false
+            },
+            onDismiss = { editing = false },
+        )
+    }
+}
+
+/** "변경하기" 알약 버튼(hairline 보더 · text.primary). */
+@Composable
+private fun ChangeButton(onClick: () -> Unit) {
+    Box(
+        modifier =
+            Modifier
+                .clip(OceTheme.shapes.pill)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, OceTheme.shapes.pill)
+                .clickable(onClick = onClick)
+                .padding(horizontal = OceTheme.spacing.md, vertical = OceTheme.spacing.xs),
+        contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = label,
-            style = OceTheme.typography.body,
+            text = stringResource(R.string.settings_nickname_change),
+            style = OceTheme.typography.tabActive,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
         )
-        OneClickSwitch(checked = checked, onCheckedChange = onCheckedChange)
     }
+}
+
+/** 닉네임 편집 다이얼로그 — 텍스트 필드 + 저장/취소. 저장은 [onConfirm] 으로 값 전달(1~[NICKNAME_MAX_LEN]자). */
+@Composable
+private fun NicknameEditDialog(
+    initial: String,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var text by remember { mutableStateOf(initial) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = OceTheme.shapes.radius24,
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = {
+            Text(
+                text = stringResource(R.string.settings_nickname_edit_title),
+                style = OceTheme.typography.dialogHeader,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        },
+        text = {
+            OneClickInput(
+                value = text,
+                onValueChange = { if (it.length <= NICKNAME_MAX_LEN) text = it },
+                label = stringResource(R.string.settings_nickname_label),
+                placeholder = stringResource(R.string.settings_nickname_placeholder),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(text) }) {
+                Text(
+                    text = stringResource(R.string.settings_nickname_edit_save),
+                    style = OceTheme.typography.sectionLabel,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = stringResource(R.string.settings_dialog_cancel),
+                    style = OceTheme.typography.sectionLabel,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+    )
 }
 
 /** 비인터랙티브 라벨 + 우측 값 행(앱 버전). */
@@ -550,6 +751,22 @@ private fun openAppNotificationSettings(context: Context) {
 }
 
 private const val DISABLED_ALPHA = 0.38f
+
+/** 설정 카드 행 시각 상수(프로토 정합). */
+private val SETTINGS_ICON_BOX = 40.dp
+private const val SETTINGS_ICON_BG_ALPHA = 0.10f
+private val SETTINGS_DIVIDER_INSET = 68.dp
+private const val NICKNAME_MAX_LEN = 20
+
+/** 제목↔보조 문구 세로 간격(프로토 실측 2~3dp). lineHeight leading 은 [TrimmedLineHeight] 로 제거 후 명시. */
+private val LABEL_TITLE_DESC_GAP = 2.dp
+
+/** 스택된 라벨의 상/하단 lineHeight leading 제거(제목↔설명 간격을 명시값으로 통제). */
+private val TrimmedLineHeight =
+    LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.Both)
+
+/** 배속 실수 → "1.0x" 라벨(로케일 고정). */
+private fun speedLabel(speed: Float): String = String.format(Locale.US, "%.1fx", speed)
 
 /** 설정 경로의 Google 연결 계측 sessionId(온보딩 세션 아님). */
 private const val LINK_SESSION_ID = "settings"
