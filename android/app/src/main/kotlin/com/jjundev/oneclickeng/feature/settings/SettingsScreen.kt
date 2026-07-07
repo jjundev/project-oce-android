@@ -65,9 +65,10 @@ import kotlinx.coroutines.launch
 /**
  * 설정 탭(M3-09). 단일 스크롤 6섹션(프로필·음성·알림·데이터 관리·계정·정보). 위험 동작은 확인 다이얼로그로 마찰
  * 차등한다(초기화·정리=C1 단일 / 계정삭제=C2 2단계). 상태·동작은 [SettingsViewModel] 이 소유하고, 여기선 렌더링과
- * 권한/자격증명 등 Activity 컨텍스트가 필요한 조각만 다룬다.
+ * 권한/자격증명 등 Activity 컨텍스트가 필요한 조각 + 오버레이만 다룬다. 스크롤 리스트 본문은 stateless
+ * [SettingsContent] 로 위임한다(스크린샷 seam).
  */
-@Suppress("LongMethod", "CyclomaticComplexMethod", "TooGenericExceptionCaught", "SwallowedException")
+@Suppress("TooGenericExceptionCaught", "SwallowedException", "CyclomaticComplexMethod")
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
@@ -155,148 +156,24 @@ fun SettingsScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        TabScreenScaffold(titleRes = R.string.tab_settings) {
-            // ----- 프로필 -----
-            sectionHeader(R.string.settings_section_profile)
-            item(key = "profile_nickname") {
-                OneClickInput(
-                    value = state.nickname,
-                    onValueChange = viewModel::onNicknameChange,
-                    label = stringResource(R.string.settings_nickname_label),
-                    placeholder = stringResource(R.string.settings_nickname_placeholder),
-                    modifier = Modifier.fillMaxWidth().padding(vertical = OceTheme.spacing.sm),
-                )
-            }
-
-            // ----- 음성 -----
-            sectionHeader(R.string.settings_section_voice)
-            item(key = "voice_quality") {
-                val enabled = state.voiceControlsEnabled
-                // Resolve labels outside the segmented control's (non-@Composable) label lambda.
-                val serverLabel = stringResource(R.string.settings_voice_quality_server)
-                val deviceLabel = stringResource(R.string.settings_voice_quality_device)
-                Column(modifier = Modifier.padding(vertical = OceTheme.spacing.sm)) {
-                    Text(
-                        text = stringResource(R.string.settings_voice_quality_label),
-                        style = OceTheme.typography.body,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(bottom = OceTheme.spacing.sm),
-                    )
-                    OneClickSegmentedControl(
-                        options = listOf(TtsQuality.SERVER, TtsQuality.DEVICE),
-                        selected = state.ttsQuality,
-                        onSelect = { if (enabled) viewModel.onQualityChange(it) },
-                        label = { quality -> if (quality == TtsQuality.SERVER) serverLabel else deviceLabel },
-                        modifier = Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA),
-                    )
-                }
-            }
-            item(key = "voice_speed") {
-                val enabled = state.voiceControlsEnabled
-                var speed by remember(state.speechRate) { mutableStateOf(state.speechRate) }
-                Column(modifier = Modifier.padding(vertical = OceTheme.spacing.sm)) {
-                    Text(
-                        text = stringResource(R.string.settings_voice_speed_label),
-                        style = OceTheme.typography.body,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    OneClickSlider(
-                        value = speed,
-                        onValueChange = { if (enabled) speed = it },
-                        mode = SliderMode.Continuous(),
-                        onValueChangeFinished = { if (enabled) viewModel.onSpeedChange(speed) },
-                        modifier = Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA),
-                    )
-                }
-            }
-            item(key = "voice_mute") {
-                SettingToggleRow(
-                    label = stringResource(R.string.settings_voice_mute_label),
-                    checked = state.ttsMuted,
-                    onCheckedChange = viewModel::onMuteChange,
-                )
-            }
-
-            // ----- 알림 -----
-            sectionHeader(R.string.settings_section_notify)
-            item(key = "notify_reminder") {
-                ReminderSettingRow(
-                    enabled = state.reminderEnabled,
-                    onEnabledChange = onReminderToggle,
-                    hour = state.reminderHour,
-                    minute = state.reminderMinute,
-                    onTimeChange = viewModel::onReminderTimeChange,
-                )
-            }
-
-            // ----- 데이터 관리 -----
-            sectionHeader(R.string.settings_section_data)
-            item(key = "data_purge") {
-                OneClickListRow(
-                    headline = stringResource(R.string.settings_data_purge),
-                    onClick = { showPurgeSheet = true },
-                )
-            }
-            item(key = "data_reset") {
-                OneClickListRow(
-                    headline = stringResource(R.string.settings_data_reset),
-                    onClick = { showResetDialog = true },
-                )
-            }
-
-            // ----- 계정 (적응형) -----
-            sectionHeader(R.string.settings_section_account)
-            if (state.isGuest) {
-                item(key = "account_google_save") {
-                    OneClickListRow(
-                        headline = stringResource(R.string.settings_account_google_save),
-                        onClick = { onGoogleSave() },
-                    )
-                }
-            } else {
-                item(key = "account_logout") {
-                    OneClickListRow(
-                        headline = stringResource(R.string.settings_account_logout),
-                        onClick = { showLogoutDialog = true },
-                    )
-                }
-                item(key = "account_delete") {
-                    OneClickListRow(
-                        headline = stringResource(R.string.settings_account_delete),
-                        onClick = { showDeleteDialog = true },
-                    )
-                }
-            }
-            if (state.showRetryMerge) {
-                item(key = "account_retry_merge") {
-                    OneClickListRow(
-                        headline = stringResource(R.string.settings_account_retry_merge),
-                        onClick = { linkViewModel.retryMerge(LINK_SESSION_ID) },
-                    )
-                }
-            }
-
-            // ----- 정보 -----
-            sectionHeader(R.string.settings_section_info)
-            item(key = "info_version") {
-                SettingValueRow(
-                    label = stringResource(R.string.settings_info_version),
-                    value = appVersionLabel(context),
-                )
-            }
-            item(key = "info_privacy") {
-                OneClickListRow(
-                    headline = stringResource(R.string.settings_info_privacy),
-                    onClick = { openUrl(context, SettingsUrls.PRIVACY) },
-                )
-            }
-            item(key = "info_terms") {
-                OneClickListRow(
-                    headline = stringResource(R.string.settings_info_terms),
-                    onClick = { openUrl(context, SettingsUrls.TERMS) },
-                )
-            }
-        }
+        SettingsContent(
+            state = state,
+            versionLabel = appVersionLabel(context),
+            onNicknameChange = viewModel::onNicknameChange,
+            onQualityChange = viewModel::onQualityChange,
+            onSpeedChange = viewModel::onSpeedChange,
+            onMuteChange = viewModel::onMuteChange,
+            onReminderToggle = onReminderToggle,
+            onReminderTimeChange = viewModel::onReminderTimeChange,
+            onPurgeClick = { showPurgeSheet = true },
+            onResetClick = { showResetDialog = true },
+            onGoogleSave = { onGoogleSave() },
+            onLogoutClick = { showLogoutDialog = true },
+            onDeleteClick = { showDeleteDialog = true },
+            onRetryMerge = { linkViewModel.retryMerge(LINK_SESSION_ID) },
+            onPrivacy = { openUrl(context, SettingsUrls.PRIVACY) },
+            onTerms = { openUrl(context, SettingsUrls.TERMS) },
+        )
 
         // ----- 오버레이(다이얼로그·시트·스낵바) -----
         if (showPurgeSheet) {
@@ -365,6 +242,176 @@ fun SettingsScreen(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
+    }
+}
+
+/**
+ * 설정 콘텐츠(stateless) — VM/Activity 없이 [SettingsUiState] + 콜백으로 렌더하는 스크린샷 seam. 6섹션 스크롤
+ * 리스트. 위험 동작 행은 콜백으로만 노출하고(다이얼로그 트리거는 상태 소유자가 소유), 앱 버전은 이미 해석된
+ * [versionLabel] 로 받는다(Context 미의존).
+ */
+@Suppress("LongMethod", "LongParameterList")
+@Composable
+internal fun SettingsContent(
+    state: SettingsUiState,
+    versionLabel: String,
+    onNicknameChange: (String) -> Unit,
+    onQualityChange: (TtsQuality) -> Unit,
+    onSpeedChange: (Float) -> Unit,
+    onMuteChange: (Boolean) -> Unit,
+    onReminderToggle: (Boolean) -> Unit,
+    onReminderTimeChange: (Int, Int) -> Unit,
+    onPurgeClick: () -> Unit,
+    onResetClick: () -> Unit,
+    onGoogleSave: () -> Unit,
+    onLogoutClick: () -> Unit,
+    onDeleteClick: () -> Unit,
+    onRetryMerge: () -> Unit,
+    onPrivacy: () -> Unit,
+    onTerms: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    TabScreenScaffold(titleRes = R.string.tab_settings, modifier = modifier) {
+        // ----- 프로필 -----
+        sectionHeader(R.string.settings_section_profile)
+        item(key = "profile_nickname") {
+            OneClickInput(
+                value = state.nickname,
+                onValueChange = onNicknameChange,
+                label = stringResource(R.string.settings_nickname_label),
+                placeholder = stringResource(R.string.settings_nickname_placeholder),
+                modifier = Modifier.fillMaxWidth().padding(vertical = OceTheme.spacing.sm),
+            )
+        }
+
+        // ----- 음성 -----
+        sectionHeader(R.string.settings_section_voice)
+        item(key = "voice_quality") {
+            val enabled = state.voiceControlsEnabled
+            // Resolve labels outside the segmented control's (non-@Composable) label lambda.
+            val serverLabel = stringResource(R.string.settings_voice_quality_server)
+            val deviceLabel = stringResource(R.string.settings_voice_quality_device)
+            Column(modifier = Modifier.padding(vertical = OceTheme.spacing.sm)) {
+                Text(
+                    text = stringResource(R.string.settings_voice_quality_label),
+                    style = OceTheme.typography.body,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = OceTheme.spacing.sm),
+                )
+                OneClickSegmentedControl(
+                    options = listOf(TtsQuality.SERVER, TtsQuality.DEVICE),
+                    selected = state.ttsQuality,
+                    onSelect = { if (enabled) onQualityChange(it) },
+                    label = { quality -> if (quality == TtsQuality.SERVER) serverLabel else deviceLabel },
+                    modifier = Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA),
+                )
+            }
+        }
+        item(key = "voice_speed") {
+            val enabled = state.voiceControlsEnabled
+            var speed by remember(state.speechRate) { mutableStateOf(state.speechRate) }
+            Column(modifier = Modifier.padding(vertical = OceTheme.spacing.sm)) {
+                Text(
+                    text = stringResource(R.string.settings_voice_speed_label),
+                    style = OceTheme.typography.body,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                OneClickSlider(
+                    value = speed,
+                    onValueChange = { if (enabled) speed = it },
+                    mode = SliderMode.Continuous(),
+                    onValueChangeFinished = { if (enabled) onSpeedChange(speed) },
+                    modifier = Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA),
+                )
+            }
+        }
+        item(key = "voice_mute") {
+            SettingToggleRow(
+                label = stringResource(R.string.settings_voice_mute_label),
+                checked = state.ttsMuted,
+                onCheckedChange = onMuteChange,
+            )
+        }
+
+        // ----- 알림 -----
+        sectionHeader(R.string.settings_section_notify)
+        item(key = "notify_reminder") {
+            ReminderSettingRow(
+                enabled = state.reminderEnabled,
+                onEnabledChange = onReminderToggle,
+                hour = state.reminderHour,
+                minute = state.reminderMinute,
+                onTimeChange = onReminderTimeChange,
+            )
+        }
+
+        // ----- 데이터 관리 -----
+        sectionHeader(R.string.settings_section_data)
+        item(key = "data_purge") {
+            OneClickListRow(
+                headline = stringResource(R.string.settings_data_purge),
+                onClick = onPurgeClick,
+            )
+        }
+        item(key = "data_reset") {
+            OneClickListRow(
+                headline = stringResource(R.string.settings_data_reset),
+                onClick = onResetClick,
+            )
+        }
+
+        // ----- 계정 (적응형) -----
+        sectionHeader(R.string.settings_section_account)
+        if (state.isGuest) {
+            item(key = "account_google_save") {
+                OneClickListRow(
+                    headline = stringResource(R.string.settings_account_google_save),
+                    onClick = onGoogleSave,
+                )
+            }
+        } else {
+            item(key = "account_logout") {
+                OneClickListRow(
+                    headline = stringResource(R.string.settings_account_logout),
+                    onClick = onLogoutClick,
+                )
+            }
+            item(key = "account_delete") {
+                OneClickListRow(
+                    headline = stringResource(R.string.settings_account_delete),
+                    onClick = onDeleteClick,
+                )
+            }
+        }
+        if (state.showRetryMerge) {
+            item(key = "account_retry_merge") {
+                OneClickListRow(
+                    headline = stringResource(R.string.settings_account_retry_merge),
+                    onClick = onRetryMerge,
+                )
+            }
+        }
+
+        // ----- 정보 -----
+        sectionHeader(R.string.settings_section_info)
+        item(key = "info_version") {
+            SettingValueRow(
+                label = stringResource(R.string.settings_info_version),
+                value = versionLabel,
+            )
+        }
+        item(key = "info_privacy") {
+            OneClickListRow(
+                headline = stringResource(R.string.settings_info_privacy),
+                onClick = onPrivacy,
+            )
+        }
+        item(key = "info_terms") {
+            OneClickListRow(
+                headline = stringResource(R.string.settings_info_terms),
+                onClick = onTerms,
+            )
+        }
     }
 }
 

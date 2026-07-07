@@ -45,6 +45,8 @@ androidxJunit = "1.2.1"
 espressoCore = "3.6.1"
 # Robolectric — 권한 SDK 분기(13+/이하) + WorkManager TestListenableWorkerBuilder JVM 검증(M3-07).
 robolectric = "4.14.1"
+# Roborazzi — Robolectric 네이티브 그래픽 위 Compose 스크린샷 캡처(프로토타입 대조 루프, 파일럿).
+roborazzi = "1.43.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -108,6 +110,9 @@ androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "a
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+# Roborazzi — 스크린샷 캡처(코어) + Compose 노드 captureRoboImage 확장.
+roborazzi = { group = "io.github.takahirom.roborazzi", name = "roborazzi", version.ref = "roborazzi" }
+roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi-compose", version.ref = "roborazzi" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

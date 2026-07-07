@@ -1,22 +1,33 @@
 package com.jjundev.oneclickeng.feature.onboarding.level
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.jjundev.oneclickeng.feature.onboarding.OnboardingViewModel
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
+import com.jjundev.oneclickeng.ui.foundation.OceIcon
+import com.jjundev.oneclickeng.ui.foundation.OceIconSize
+import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /**
@@ -37,6 +48,24 @@ fun LevelQuestionScreen(
 ) {
     LaunchedEffect(Unit) { viewModel.onOnboardingStarted(isReturning) }
 
+    LevelQuestionContent(
+        onLevelSelected = { value ->
+            viewModel.onLevelSelected(value)
+            onLevelSelected(value)
+        },
+        modifier = modifier,
+    )
+}
+
+/**
+ * 레벨 문항 콘텐츠(stateless) — VM/분석 없이 렌더하는 스크린샷 seam. `onOnboardingStarted` 계측은 상태
+ * 소유자([LevelQuestionScreen])에 남는다. [onLevelSelected] 는 저장 값(easy/normal/hard)을 싣는다.
+ */
+@Composable
+internal fun LevelQuestionContent(
+    onLevelSelected: (level: String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier =
             modifier
@@ -59,16 +88,16 @@ fun LevelQuestionScreen(
         LEVEL_OPTIONS.forEach { option ->
             LevelCard(
                 option = option,
-                onClick = {
-                    viewModel.onLevelSelected(option.value)
-                    onLevelSelected(option.value)
-                },
+                onClick = { onLevelSelected(option.value) },
             )
         }
     }
 }
 
-/** 레벨 선택카드 1장. 제목(난이도) + 안심 부제. 탭 전체가 클릭 타깃. */
+/**
+ * 레벨 선택카드 1장(프로토타입 온보딩·레벨 정합) — 좌측 표정 아이콘 + 제목/부제 + 우측 chevron. 추천 카드
+ * ([LevelOption.recommended])는 "처음이라면 추천" 배지 + 브랜드 테두리 하이라이트를 얹는다. 탭 전체가 클릭 타깃.
+ */
 @Composable
 private fun LevelCard(
     option: LevelOption,
@@ -78,38 +107,128 @@ private fun LevelCard(
         modifier =
             Modifier
                 .fillMaxWidth()
+                .then(
+                    if (option.recommended) {
+                        Modifier.border(
+                            width = 2.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = OceTheme.shapes.radius16,
+                        )
+                    } else {
+                        Modifier
+                    },
+                )
                 .clickable(onClick = onClick),
     ) {
-        Column(
-            modifier = Modifier.padding(OceTheme.spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(OceTheme.spacing.lg),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
         ) {
-            Text(
-                text = option.titleKo,
-                style = OceTheme.typography.sectionLabel,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = option.subtitleKo,
-                style = OceTheme.typography.helper,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Box(
+                modifier =
+                    Modifier
+                        .size(48.dp)
+                        .clip(OceTheme.shapes.radius12)
+                        .background(
+                            if (option.recommended) {
+                                MaterialTheme.colorScheme.primary.copy(alpha = ICON_BG_ALPHA)
+                            } else {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = NEUTRAL_ICON_BG_ALPHA)
+                            },
+                        ),
+                contentAlignment = Alignment.Center,
+            ) {
+                OneClickIcon(
+                    icon = option.icon,
+                    contentDescription = null,
+                    tint =
+                        if (option.recommended) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+                ) {
+                    Text(
+                        text = option.titleKo,
+                        style = OceTheme.typography.sectionLabel,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (option.recommended) RecommendedBadge()
+                }
+                Text(
+                    text = option.subtitleKo,
+                    style = OceTheme.typography.helper,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            OneClickIcon(
+                icon = OceIcon.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                size = OceIconSize.ListDisclosure,
             )
         }
     }
 }
+
+/** "처음이라면 추천" pill 배지 — 브랜드 배경 + 흰 텍스트. */
+@Composable
+private fun RecommendedBadge() {
+    Text(
+        text = "처음이라면 추천",
+        style = OceTheme.typography.helper,
+        color = MaterialTheme.colorScheme.onPrimary,
+        modifier =
+            Modifier
+                .clip(OceTheme.shapes.pill)
+                .background(MaterialTheme.colorScheme.primary)
+                .padding(horizontal = OceTheme.spacing.sm, vertical = OceTheme.spacing.xs),
+    )
+}
+
+private const val ICON_BG_ALPHA = 0.12f
+private const val NEUTRAL_ICON_BG_ALPHA = 0.06f
 
 /** 레벨 선택지. [value] = `profile.level` 저장 값(easy/normal/hard). */
 private data class LevelOption(
     val value: String,
     val titleKo: String,
     val subtitleKo: String,
+    val icon: OceIcon,
+    val recommended: Boolean = false,
 )
 
 private val LEVEL_OPTIONS =
     listOf(
-        LevelOption(value = "easy", titleKo = "쉬움", subtitleKo = "천천히, 쉬운 표현부터 시작해요"),
-        LevelOption(value = "normal", titleKo = "보통", subtitleKo = "일상 대화를 자연스럽게 이어가요"),
-        LevelOption(value = "hard", titleKo = "어려움", subtitleKo = "조금 더 길고 깊은 대화까지 해봐요"),
+        LevelOption(
+            value = "easy",
+            titleKo = "쉬움",
+            subtitleKo = "천천히, 쉬운 표현부터 시작해요",
+            icon = OceIcon.SentimentSatisfied,
+            recommended = true,
+        ),
+        LevelOption(
+            value = "normal",
+            titleKo = "보통",
+            subtitleKo = "일상 대화를 자연스럽게 이어가요",
+            icon = OceIcon.SentimentNeutral,
+        ),
+        LevelOption(
+            value = "hard",
+            titleKo = "어려움",
+            subtitleKo = "조금 더 길고 깊은 대화까지 해봐요",
+            icon = OceIcon.SentimentVeryDissatisfied,
+        ),
     )
 
 @Suppress("UnusedPrivateMember")

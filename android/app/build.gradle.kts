@@ -57,6 +57,19 @@ kotlin {
     jvmToolchain(17)
 }
 
+// Roborazzi 스크린샷 기록 스위치 — `-Proborazzi.record` 를 주면 captureRoboImage 가 PNG 를 기록한다.
+// 프로퍼티가 없으면 기본(비교) 동작이라 일반 단위테스트 실행에는 영향이 없다.
+tasks.withType<Test>().configureEach {
+    if (project.hasProperty("roborazzi.record")) {
+        systemProperty("roborazzi.test.record", "true")
+    }
+    // 스크린샷 테스트(createComposeRule)는 compose-ui-test-manifest 가 debug 매니페스트에만 병합돼
+    // release 단위테스트에서 ComponentActivity 를 못 찾는다 → release 변이에선 제외(디버그 전용 캡처).
+    if (name.contains("Release", ignoreCase = true)) {
+        exclude("**/*ScreenshotTest*")
+    }
+}
+
 detekt {
     buildUponDefaultConfig = true
     config.setFrom(rootProject.file("config/detekt/detekt.yml"))
@@ -158,6 +171,13 @@ dependencies {
     testImplementation(libs.androidx.work.testing)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.junit)
+    // Roborazzi Compose 스크린샷(파일럿) — 프로토타입 대조 루프. compose-ui-test 를 JVM(Robolectric)
+    // 테스트 소스셋에도 실어 createComposeRule() 을 단위테스트에서 구동한다.
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.androidx.compose.ui.test.manifest)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
     // SSE 프레이밍 통합 테스트(M1-01) — okhttp-sse EventSource 실 파싱.
     testImplementation(platform(libs.okhttp.bom))
     testImplementation(libs.okhttp.mockwebserver)
