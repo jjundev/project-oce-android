@@ -75,13 +75,18 @@ object OceIconSize {
 }
 
 /**
- * 26 시맨틱 glyph ↔ Material Symbols(Rounded) vector 매핑. drawable 과 1:1(총 29 상수).
+ * 시맨틱 glyph ↔ Material Symbols(Rounded) vector 매핑. drawable 과 1:1(총 45 상수).
  * nav 3종(forum·history·settings)과 bookmark 는 fill 상태별로 별도 상수를 가진다(01a #4·#5).
+ * 상황(Topic) 카탈로그 13종은 이모지→벡터 전환분(M0 정합)이다.
  */
 enum class OceIcon(
     @DrawableRes val res: Int,
 ) {
     ChevronRight(R.drawable.ic_chevron_right),
+    ExpandMore(R.drawable.ic_expand_more),
+    ArrowBack(R.drawable.ic_arrow_back),
+    Search(R.drawable.ic_search),
+    Close(R.drawable.ic_close),
     Error(R.drawable.ic_error),
     EditNote(R.drawable.ic_edit_note),
     Spellcheck(R.drawable.ic_spellcheck),
@@ -117,6 +122,20 @@ enum class OceIcon(
     WavingHand(R.drawable.ic_waving_hand),
     Event(R.drawable.ic_event),
     Hotel(R.drawable.ic_hotel),
+    // 상황(Topic) 카탈로그 아이콘(M0 정합) — 이모지 → Material 심볼 벡터 전환. TopicCatalog.icon 매핑 참조.
+    LocalCafe(R.drawable.ic_local_cafe),
+    Interests(R.drawable.ic_interests),
+    Restaurant(R.drawable.ic_restaurant),
+    ShoppingCart(R.drawable.ic_shopping_cart),
+    Flight(R.drawable.ic_flight),
+    LocalTaxi(R.drawable.ic_local_taxi),
+    Directions(R.drawable.ic_directions),
+    BusinessCenter(R.drawable.ic_business_center),
+    Work(R.drawable.ic_work),
+    LocalHospital(R.drawable.ic_local_hospital),
+    Medication(R.drawable.ic_medication),
+    AccountBalance(R.drawable.ic_account_balance),
+    Call(R.drawable.ic_call),
     NavForum(R.drawable.ic_forum_fill0),
     NavForumFilled(R.drawable.ic_forum_fill1),
     NavHistory(R.drawable.ic_history_fill0),

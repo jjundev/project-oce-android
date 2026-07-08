@@ -80,6 +80,21 @@ class HomeScreenScreenshotTest {
         )
     }
 
+    /** 이어하기 없음(신규 세션 준비) — 프로토타입 `session_settings`(홈 hero "바로 대화 시작하기") 대조. */
+    @Test
+    fun home_light_newsession() {
+        capture(
+            HomeUiState(
+                studyTimeLabel = "오늘 0분",
+                streak = 7,
+                isOnline = true,
+                hasResume = false,
+                situations = sampleSituations,
+            ),
+            "home_light_newsession",
+        )
+    }
+
     /** 하단 네비(OceBottomNav) 포함 — 앱 셸(Scaffold+NavHost)을 재현해 프로토타입 전체 화면과 대조. */
     @Test
     fun home_light_resume_nav() {

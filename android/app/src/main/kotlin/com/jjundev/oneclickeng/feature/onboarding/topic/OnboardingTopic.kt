@@ -1,6 +1,7 @@
 package com.jjundev.oneclickeng.feature.onboarding.topic
 
 import com.jjundev.oneclickeng.feature.home.topic.TopicCatalog
+import com.jjundev.oneclickeng.ui.foundation.OceIcon
 
 /**
  * 온보딩 첫 상황 선택 후보(M3-02, O2). `beginnerFriendly=true` 6개(16 중)를 노출한다.
@@ -16,10 +17,11 @@ data class OnboardingTopic(
     val id: String,
     val titleKo: String,
     val promptSeed: String,
+    val icon: OceIcon,
 )
 
 /** beginnerFriendly 6개, seed `order` 순. 첫 원소 = `카페에서 주문하기`(비강조). [TopicCatalog] 파생. */
 val ONBOARDING_TOPICS: List<OnboardingTopic> =
     TopicCatalog.beginnerFriendly.map {
-        OnboardingTopic(id = it.id, titleKo = it.titleKo, promptSeed = it.promptSeed)
+        OnboardingTopic(id = it.id, titleKo = it.titleKo, promptSeed = it.promptSeed, icon = it.icon)
     }
