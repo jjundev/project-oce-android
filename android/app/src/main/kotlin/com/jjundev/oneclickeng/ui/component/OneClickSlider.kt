@@ -1,17 +1,22 @@
 package com.jjundev.oneclickeng.ui.component
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -21,6 +26,9 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import kotlin.math.roundToInt
+
+/** 프로토 정합 원형 thumb 지름(M3 1.3 기본 막대형 thumb 대체). */
+private val SLIDER_THUMB_DIAMETER = 20.dp
 
 /**
  * C8 톤 슬라이더의 이산 단계 라벨. 정본: 02-shared-components.md:80 · turn-feedback-ia.md(5단계 EN+KO).
@@ -62,6 +70,7 @@ sealed interface SliderMode {
  *
  * @param value Continuous = 배속 실수, Discrete = stop 인덱스(0..labels.lastIndex, 정수 실수).
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OneClickSlider(
     value: Float,
@@ -69,6 +78,7 @@ fun OneClickSlider(
     mode: SliderMode,
     modifier: Modifier = Modifier,
     onValueChangeFinished: (() -> Unit)? = null,
+    showValueLabel: Boolean = true,
 ) {
     val valueRange =
         when (mode) {
@@ -92,6 +102,13 @@ fun OneClickSlider(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
     ) {
+        val interaction = remember { MutableInteractionSource() }
+        val sliderColors =
+            SliderDefaults.colors(
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant,
+            )
         Slider(
             value = value,
             onValueChange = onValueChange,
@@ -99,20 +116,35 @@ fun OneClickSlider(
             valueRange = valueRange,
             steps = steps,
             onValueChangeFinished = onValueChangeFinished,
-            colors =
-                SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                    inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant,
-                ),
+            interactionSource = interaction,
+            colors = sliderColors,
+            // 프로토 정합: 막대형 thumb·끝점 stop-indicator·트랙 갭 제거 → 원형 thumb + 매끈한 트랙.
+            thumb = {
+                SliderDefaults.Thumb(
+                    interactionSource = interaction,
+                    colors = sliderColors,
+                    thumbSize = DpSize(SLIDER_THUMB_DIAMETER, SLIDER_THUMB_DIAMETER),
+                )
+            },
+            track = { sliderState ->
+                SliderDefaults.Track(
+                    sliderState = sliderState,
+                    colors = sliderColors,
+                    thumbTrackGapSize = 0.dp,
+                    drawStopIndicator = null,
+                    trackInsideCornerSize = 0.dp,
+                )
+            },
         )
         when (mode) {
             is SliderMode.Continuous ->
-                Text(
-                    text = "${"%.1f".format(value)}x",
-                    style = OceTheme.typography.body,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+                if (showValueLabel) {
+                    Text(
+                        text = "${"%.1f".format(value)}x",
+                        style = OceTheme.typography.body,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
 
             is SliderMode.Discrete ->
                 mode.labels.getOrNull(value.roundToInt())?.let { label ->

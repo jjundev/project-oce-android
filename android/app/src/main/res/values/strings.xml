@@ -14,17 +14,29 @@
     <string name="settings_section_data">데이터 관리</string>
     <string name="settings_section_account">계정</string>
     <string name="settings_section_info">정보</string>
+    <string name="settings_dialog_cancel">취소</string>
+
+    <!-- 알림 (보조 문구: prototype/Prototype Flow 렌더에서 이식; 정본 sync=settings-data-account.md) -->
+    <string name="settings_reminder_desc">매일 지정 시각에 알려드려요.</string>
 
     <!-- 프로필 -->
     <string name="settings_nickname_label">닉네임</string>
     <string name="settings_nickname_placeholder">닉네임을 입력해 주세요</string>
+    <string name="settings_nickname_change">변경하기</string>
+    <string name="settings_nickname_edit_title">닉네임 변경</string>
+    <string name="settings_nickname_edit_save">저장</string>
 
-    <!-- 음성 -->
+    <!-- 음성 (보조 문구: prototype/Prototype Flow 렌더에서 이식; 정본 sync=settings-data-account.md) -->
     <string name="settings_voice_quality_label">음질</string>
     <string name="settings_voice_quality_server">자연스러운 발음</string>
     <string name="settings_voice_quality_device">빠른 발음</string>
+    <!-- 음질 보조 문구는 선택된 옵션을 설명(동적). device=이식, server=초안(비준 대기, settings-data-account.md §2.1) -->
+    <string name="settings_voice_quality_desc_device">단말 합성 · 즉시 재생돼요.</string>
+    <string name="settings_voice_quality_desc_server">서버 합성 · 더 자연스러워요.</string>
     <string name="settings_voice_speed_label">말하기 속도</string>
+    <string name="settings_voice_speed_desc">TTS 재생 속도예요.</string>
     <string name="settings_voice_mute_label">전체 음소거</string>
+    <string name="settings_voice_mute_desc">텍스트만 보고 자동으로 넘어가요.</string>
 
     <!-- 데이터 관리 -->
     <string name="settings_data_purge">저장 카드 정리</string>

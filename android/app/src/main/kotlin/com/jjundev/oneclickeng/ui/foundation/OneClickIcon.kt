@@ -103,6 +103,8 @@ enum class OceIcon(
     Check(R.drawable.ic_check),
     VolumeUp(R.drawable.ic_volume_up),
     GraphicEq(R.drawable.ic_graphic_eq),
+    Speed(R.drawable.ic_speed),
+    Notifications(R.drawable.ic_notifications),
     CloudOff(R.drawable.ic_cloud_off),
     AccountCircle(R.drawable.ic_account_circle),
     HourglassEmpty(R.drawable.ic_hourglass_empty),
