@@ -310,13 +310,20 @@ internal fun SettingsContent(
             val deviceLabel = stringResource(R.string.settings_voice_quality_device)
             var speed by remember(state.speechRate) { mutableStateOf(state.speechRate) }
             OneClickCard(modifier = Modifier.fillMaxWidth()) {
+                // 보조 문구는 선택된 음질을 설명(동적). 순서는 프로토 정합 [빠른 발음 | 자연스러운 발음].
+                val qualityDesc =
+                    if (state.ttsQuality == TtsQuality.DEVICE) {
+                        stringResource(R.string.settings_voice_quality_desc_device)
+                    } else {
+                        stringResource(R.string.settings_voice_quality_desc_server)
+                    }
                 SettingsRow(
                     icon = OceIcon.GraphicEq,
                     title = stringResource(R.string.settings_voice_quality_label),
-                    desc = stringResource(R.string.settings_voice_quality_desc),
+                    desc = qualityDesc,
                     below = {
                         OneClickSegmentedControl(
-                            options = listOf(TtsQuality.SERVER, TtsQuality.DEVICE),
+                            options = listOf(TtsQuality.DEVICE, TtsQuality.SERVER),
                             selected = state.ttsQuality,
                             onSelect = { if (enabled) onQualityChange(it) },
                             label = { quality -> if (quality == TtsQuality.SERVER) serverLabel else deviceLabel },

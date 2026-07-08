@@ -30,7 +30,9 @@
     <string name="settings_voice_quality_label">음질</string>
     <string name="settings_voice_quality_server">자연스러운 발음</string>
     <string name="settings_voice_quality_device">빠른 발음</string>
-    <string name="settings_voice_quality_desc">단말 합성 · 즉시 재생돼요.</string>
+    <!-- 음질 보조 문구는 선택된 옵션을 설명(동적). device=이식, server=초안(비준 대기, settings-data-account.md §2.1) -->
+    <string name="settings_voice_quality_desc_device">단말 합성 · 즉시 재생돼요.</string>
+    <string name="settings_voice_quality_desc_server">서버 합성 · 더 자연스러워요.</string>
     <string name="settings_voice_speed_label">말하기 속도</string>
     <string name="settings_voice_speed_desc">TTS 재생 속도예요.</string>
     <string name="settings_voice_mute_label">전체 음소거</string>
