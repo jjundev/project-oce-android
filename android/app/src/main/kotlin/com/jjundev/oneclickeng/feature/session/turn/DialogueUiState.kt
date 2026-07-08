@@ -7,11 +7,27 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import kotlinx.coroutines.delay
 
 /** 현재 발화 주체(dialogue-learning-flow.md §2 `TurnPhase`). M1-03 은 이 두 값만 쓴다. */
 enum class TurnPhase { OpponentTurn, LearnerTurn }
+
+/**
+ * 세션 앱바 상태(주제 아바타·제목·레벨·진행 점). 실 라우트가 주제/레벨/진행을 주입하기 전까지 seam.
+ * [DialogueHeader] 가 소비한다.
+ *
+ * @param topicEmoji 주제 아바타 이모지(프로토타입 ☕ 정합 — 헤더 아바타는 이모지 그대로 렌더).
+ * @param completedTurns 진행 점 채움 개수(0 = 첫 턴 진행 전, 전부 비움).
+ */
+data class DialogueHeaderState(
+    val topicEmoji: String,
+    val title: String,
+    val levelLabel: String,
+    val totalTurns: Int = 5,
+    val completedTurns: Int = 0,
+)
 
 /**
  * 세션 전체 진행(dialogue-learning-flow.md §2 `SessionPhase`)의 M1-03 부분집합.

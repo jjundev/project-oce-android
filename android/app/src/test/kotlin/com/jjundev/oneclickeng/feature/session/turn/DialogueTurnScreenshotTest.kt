@@ -8,7 +8,10 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.jjundev.oneclickeng.ui.audio.MicState
+import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -17,8 +20,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * 대화 턴 스크린샷 캡처(프로토타입 `session`·`session_wrong` 대조). [DialogueTurnContent] 를 위상별 고정 상태로 렌더한다.
- * opponent = 상대 발화 턴, learner = 사용자 발화(마이크 입력) 턴.
+ * 대화 턴 스크린샷 캡처(프로토타입 `session` 대조). [DialogueTurnContent] 를 위상별 고정 상태로 렌더한다.
+ * opponent = 상대 발화 턴, learner = 사용자 발화(마이크 입력) 턴. 학습자 턴은 실 [MicDock] 을 Ready 상태로
+ * 주입해 프로토타입 마이크-우선 입력 독과 대조한다(스텁 도크 아님).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -29,6 +33,15 @@ class DialogueTurnScreenshotTest {
 
     private val opponentMessages =
         listOf(DialogueMessage.Opponent("Hi! What can I get for you?"))
+
+    private val header =
+        DialogueHeaderState(
+            topicEmoji = "☕",
+            title = "카페에서 주문하기",
+            levelLabel = "easy(A2) · 5턴 균일",
+            totalTurns = 5,
+            completedTurns = 0,
+        )
 
     @Test
     fun session_opponent_light() {
@@ -43,6 +56,7 @@ class DialogueTurnScreenshotTest {
                         listState = rememberLazyListState(),
                         onSubmitStub = {},
                         onViewSummary = {},
+                        header = header,
                     )
                 }
             }
@@ -63,6 +77,24 @@ class DialogueTurnScreenshotTest {
                         listState = rememberLazyListState(),
                         onSubmitStub = {},
                         onViewSummary = {},
+                        header = header,
+                        dock = { task ->
+                            MicDock(
+                                task = task,
+                                micState = MicState.Ready,
+                                waveform = MutableStateFlow(FloatArray(0)),
+                                textMode = false,
+                                textValue = "",
+                                retryHint = null,
+                                permanentlyDenied = false,
+                                reduceMotion = true,
+                                onMicTap = {},
+                                onAdvance = {},
+                                onToggleTextMode = {},
+                                onTextChange = {},
+                                onSubmitText = {},
+                            )
+                        },
                     )
                 }
             }

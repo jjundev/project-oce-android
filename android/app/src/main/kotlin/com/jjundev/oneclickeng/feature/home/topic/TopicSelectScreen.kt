@@ -228,9 +228,10 @@ private fun CustomTopicRow(
                     .fillMaxWidth()
                     .clip(OceTheme.shapes.radius16)
                     .drawBehind {
+                        val dashEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f))
                         drawRoundRect(
                             color = dashColor,
-                            style = Stroke(width = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f))),
+                            style = Stroke(width = 1.dp.toPx(), pathEffect = dashEffect),
                             cornerRadius = CornerRadius(16.dp.toPx()),
                         )
                     }

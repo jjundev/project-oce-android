@@ -1,9 +1,18 @@
 package com.jjundev.oneclickeng.feature.session.feedback
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -11,14 +20,20 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.jjundev.oneclickeng.ui.foundation.OceIcon
+import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.component.InlineErrorMode
 import com.jjundev.oneclickeng.ui.component.OneClickDualExposureBlock
 import com.jjundev.oneclickeng.ui.component.OneClickInlineError
@@ -28,6 +43,9 @@ import com.jjundev.oneclickeng.ui.component.RichSegment
 import com.jjundev.oneclickeng.ui.component.SkeletonShape
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickBottomSheet
 import com.jjundev.oneclickeng.ui.theme.OceTheme
+
+/** 턴 피드백 시트 높이(화면 대비). 프로토타입 "70%만 올라오는" 시트 정합. */
+private const val SHEET_HEIGHT_FRACTION = 0.7f
 
 /**
  * 화면 04 — 턴 피드백 시트(M1-07 slim + M2-03 deep). 단일 [OneClickBottomSheet] 에 ⓪ 리캡 헤더(즉시)+
@@ -74,52 +92,94 @@ fun SlimFeedbackSheet(
 ) {
     if (state is SlimFeedbackState.Idle) return
 
-    OneClickBottomSheet(onDismissRequest = onDismiss, modifier = modifier) {
+    // 턴 피드백 시트는 화면의 70%까지만 올라온다(내부 스크롤). 프로토타입 정합.
+    OneClickBottomSheet(
+        onDismissRequest = onDismiss,
+        modifier = modifier.fillMaxHeight(SHEET_HEIGHT_FRACTION),
+    ) {
+        SlimFeedbackContent(
+            state = state,
+            onRetry = onRetry,
+            onSkip = onSkip,
+            onNext = onNext,
+            modifier = Modifier.fillMaxSize(),
+            deepState = deepState,
+            deepExpanded = deepExpanded,
+            onExpandDeep = onExpandDeep,
+            onCollapseDeep = onCollapseDeep,
+            onRetryDeep = onRetryDeep,
+            bookmarkedLevels = bookmarkedLevels,
+            onToggleBookmark = onToggleBookmark,
+        )
+    }
+}
+
+/**
+ * 시트 무관 콘텐츠(무상태 seam). [SlimFeedbackSheet] 는 모달 래핑만 하고 렌더는 여기 위임한다 — 프로토타입
+ * 대조 스크린샷이 ModalBottomSheet(별도 윈도) 캡처 제약 없이 시트 내용을 고정 상태로 렌더할 수 있게 한다.
+ */
+@Composable
+internal fun SlimFeedbackContent(
+    state: SlimFeedbackState,
+    onRetry: (SlimSection) -> Unit,
+    onSkip: (SlimSection) -> Unit,
+    onNext: () -> Unit,
+    modifier: Modifier = Modifier,
+    deepState: DeepFeedbackState = DeepFeedbackState.Idle,
+    deepExpanded: Boolean = false,
+    onExpandDeep: () -> Unit = {},
+    onCollapseDeep: () -> Unit = {},
+    onRetryDeep: () -> Unit = {},
+    bookmarkedLevels: Set<Int> = emptySet(),
+    onToggleBookmark: (Paraphrase) -> Unit = {},
+) {
+    // 스크롤 콘텐츠(위)를 weight 로 채우고 버튼 풋터는 시트 최하단에 고정한다(요청). 심화("더 보기")는 턴
+    // 피드백의 연장이라 같은 스크롤 영역에 슬림 섹션 아래로 이어 붙는다 — 버튼은 그대로 하단 고정.
+    Column(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier =
                 Modifier
-                    .fillMaxWidth()
+                    .weight(1f)
                     .verticalScroll(rememberScrollState())
-                    .padding(OceTheme.spacing.sheetPadding),
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 6.dp, bottom = OceTheme.spacing.sm),
             verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.lg),
         ) {
             when (state) {
                 is SlimFeedbackState.Active -> {
+                    Text(
+                        text = "턴 피드백",
+                        style = OceTheme.typography.summaryHeadline,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
                     RecapHeaderBlock(state.header)
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    SectionSlot(
-                        section = SlimSection.WritingScore,
-                        state = state.writingScore,
-                        onRetry = onRetry,
-                        onSkip = onSkip,
-                    ) { WritingScoreContent(it) }
-                    SectionSlot(
-                        section = SlimSection.Grammar,
-                        state = state.grammar,
-                        onRetry = onRetry,
-                        onSkip = onSkip,
-                    ) { GrammarContent(it) }
-                    SectionSlot(
-                        section = SlimSection.NaturalExpression,
-                        state = state.natural,
-                        onRetry = onRetry,
-                        onSkip = onSkip,
-                    ) { NaturalContent(it) }
-                    // 더 보기 게이트 = nextEnabled 재사용(모두 settled) — "다음"과 동일 술어(A4/A5).
-                    MoreToggleButton(
-                        expanded = deepExpanded,
-                        enabled = state.nextEnabled,
-                        onClick = { if (deepExpanded) onCollapseDeep() else onExpandDeep() },
-                    )
-                    if (deepExpanded && deepState !is DeepFeedbackState.Idle) {
-                        DeepFeedbackRegion(
-                            state = deepState,
-                            onRetry = onRetryDeep,
-                            bookmarkedLevels = bookmarkedLevels,
-                            onToggleBookmark = onToggleBookmark,
-                        )
+                    // 섹션 간 간격을 넓혀(sectionGap=24) 작문·문법·자연을 뚜렷이 구분한다.
+                    Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sectionGap)) {
+                        SlimSectionBlock(OceIcon.EditNote, "작문 점수", MaterialTheme.colorScheme.primary) {
+                            SectionSlot(SlimSection.WritingScore, state.writingScore, onRetry, onSkip) {
+                                WritingScoreContent(it)
+                            }
+                        }
+                        SlimSectionBlock(OceIcon.Spellcheck, "문법", MaterialTheme.colorScheme.onSurfaceVariant) {
+                            SectionSlot(SlimSection.Grammar, state.grammar, onRetry, onSkip) { GrammarContent(it) }
+                        }
+                        SlimSectionBlock(OceIcon.AutoAwesome, "자연스러운 표현", OceTheme.colors.feedbackNaturalAccent) {
+                            SectionSlot(SlimSection.NaturalExpression, state.natural, onRetry, onSkip) {
+                                NaturalContent(it)
+                            }
+                        }
+                        // 심화(더 보기)는 턴 피드백의 연장 — 같은 섹션 리스트에 이어 붙어 슬림과 동일한 섹션 간격(24)을
+                        // 공유한다(별도 구분선 없음). 딥 블록 내부 간격/헤더도 슬림 섹션과 같은 디자인 시스템을 쓴다.
+                        if (deepExpanded && deepState !is DeepFeedbackState.Idle) {
+                            DeepFeedbackRegion(
+                                state = deepState,
+                                onRetry = onRetryDeep,
+                                bookmarkedLevels = bookmarkedLevels,
+                                onToggleBookmark = onToggleBookmark,
+                            )
+                        }
                     }
-                    NextButton(enabled = state.nextEnabled, onNext = onNext)
                 }
                 is SlimFeedbackState.QuotaBlocked -> {
                     RecapHeaderBlock(state.header)
@@ -129,21 +189,72 @@ fun SlimFeedbackSheet(
                         style = OceTheme.typography.body,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    // 슬림 캡 거부 → Ready 섹션이 없으므로 "더 보기" 미노출, "다음"만.
-                    NextButton(enabled = true, onNext = onNext)
                 }
                 is SlimFeedbackState.Idle -> Unit // unreachable (early return)
             }
         }
+        // 하단 고정 버튼 풋터.
+        when (state) {
+            is SlimFeedbackState.Active ->
+                SlimFooter {
+                    // 더 보기 게이트 = nextEnabled 재사용(모두 settled) — "다음"과 동일 술어(A4/A5).
+                    MoreToggleButton(
+                        expanded = deepExpanded,
+                        enabled = state.nextEnabled,
+                        onClick = { if (deepExpanded) onCollapseDeep() else onExpandDeep() },
+                    )
+                    NextButton(enabled = state.nextEnabled, onNext = onNext)
+                }
+            is SlimFeedbackState.QuotaBlocked ->
+                SlimFooter { NextButton(enabled = true, onNext = onNext) } // 캡 거부 → "다음"만
+            is SlimFeedbackState.Idle -> Unit
+        }
     }
 }
 
-/** ⓪ 과제 리캡 헤더 — 과제(koreanPrompt) + 내 답변(userText), 무채색 plain, 즉시(§2.1). */
+/** 시트 최하단 고정 버튼 풋터. */
+@Composable
+private fun SlimFooter(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(top = 12.dp, bottom = 22.dp),
+        verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+        content = content,
+    )
+}
+
+/**
+ * 섹션 블록 = 아이콘+라벨 헤더(accent) + 콘텐츠. 헤더는 본문과 뚜렷이 구분되도록 ExtraBold 16(제목 타이포)로
+ * 키우고 아이콘도 20dp 로 키운다 — 섹션별 accent 색 + 서로 다른 글리프로 위계를 준다.
+ */
+@Composable
+private fun SlimSectionBlock(
+    icon: OceIcon,
+    label: String,
+    accent: Color,
+    content: @Composable () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+        ) {
+            OneClickIcon(icon = icon, contentDescription = null, tint = accent, size = 20.dp)
+            Text(text = label, style = OceTheme.typography.summarySectionTitle, color = accent)
+        }
+        content()
+    }
+}
+
+/** ⓪ 과제 리캡 헤더 — 라벨(좌) + 문장(우) 같은 줄(프로토타입 정합). 과제=강조, 내 답변=평문. */
 @Composable
 private fun RecapHeaderBlock(header: RecapHeader) {
-    Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs)) {
-        RecapLine(label = "과제", value = header.koreanPrompt)
-        RecapLine(label = "내 답변", value = header.userText)
+    Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
+        RecapLine(label = "과제", value = header.koreanPrompt, emphasizeValue = true)
+        RecapLine(label = "내 답변", value = header.userText, emphasizeValue = false)
     }
 }
 
@@ -151,17 +262,26 @@ private fun RecapHeaderBlock(header: RecapHeader) {
 private fun RecapLine(
     label: String,
     value: String,
+    emphasizeValue: Boolean,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    val valueColor =
+        if (emphasizeValue) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+    Row(horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md)) {
         Text(
             text = label,
-            style = OceTheme.typography.helper,
+            style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(48.dp).alignByBaseline(),
         )
         Text(
             text = value,
-            style = OceTheme.typography.body,
-            color = MaterialTheme.colorScheme.onSurface,
+            style =
+                OceTheme.typography.body.copy(
+                    fontWeight = if (emphasizeValue) FontWeight.SemiBold else FontWeight.Normal,
+                    fontSize = 14.sp,
+                ),
+            color = valueColor,
+            modifier = Modifier.weight(1f).alignByBaseline(),
         )
     }
 }
@@ -197,33 +317,55 @@ private fun <T> SectionSlot(
     }
 }
 
-/** ① 작문 점수 — 28sp turnScore 파생색 + 격려문. 음성 점수 없음(§3.1). */
+/** ① 작문 점수 — 32sp 파생색 점수 + "점 · 점수는 정보예요" 접미 + 격려문(프로토타입 정합). 음성 점수 없음(§3.1). */
 @Composable
 private fun WritingScoreContent(value: WritingScore) {
     Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs)) {
-        Text(
-            text = value.score.toString(),
-            style = OceTheme.typography.turnScore,
-            color = scoreColor(value.score),
-        )
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+        ) {
+            Text(
+                text = value.score.toString(),
+                style = OceTheme.typography.turnScore.copy(fontWeight = FontWeight.ExtraBold, fontSize = 32.sp),
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = "점 · 점수는 정보예요",
+                style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+        }
         Text(
             text = value.encouragement,
-            style = OceTheme.typography.body,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = OceTheme.typography.body.copy(fontWeight = FontWeight.Medium, fontSize = 14.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
 
-/** ② 문법 교정 — C15 세그먼트 + 설명. 정답(all-normal)이면 강조 없는 원문 + 축하 explanation(§3.2). */
+/** ② 문법 교정 — C15 세그먼트 + (초록 check + 설명). 정답(all-normal)이면 강조 없는 원문 + 축하 explanation(§3.2). */
 @Composable
 private fun GrammarContent(value: Grammar) {
     Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs)) {
         OneClickRichText(segments = value.segments)
-        Text(
-            text = value.explanation,
-            style = OceTheme.typography.helper,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Row(
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+        ) {
+            OneClickIcon(
+                icon = OceIcon.CheckCircle,
+                contentDescription = null,
+                tint = OceTheme.colors.feedbackNaturalAccent,
+                size = 17.dp,
+            )
+            Text(
+                text = value.explanation,
+                style = OceTheme.typography.helper.copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -235,12 +377,23 @@ private fun GrammarContent(value: Grammar) {
 private fun NaturalContent(value: NaturalExpression) {
     Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs)) {
         if (value.isAlreadyNatural) {
-            Text(
-                text = "이미 자연스러워요.",
-                style = OceTheme.typography.body,
-                color = OceTheme.colors.feedbackNaturalAccent,
-            )
-            OneClickRichText(segments = value.segments)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+            ) {
+                // 헤더(auto_awesome sparkle)와 겹치지 않도록 콘텐츠는 초록 check 로 확인 신호(문법 정답과 동일 관례).
+                OneClickIcon(
+                    icon = OceIcon.CheckCircle,
+                    contentDescription = null,
+                    tint = OceTheme.colors.feedbackNaturalAccent,
+                    size = 17.dp,
+                )
+                Text(
+                    text = "이미 자연스러워요.",
+                    style = OceTheme.typography.body.copy(fontWeight = FontWeight.SemiBold, fontSize = 15.sp),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
         } else {
             OneClickDualExposureBlock(english = value.segments)
             Text(
@@ -256,26 +409,50 @@ private fun NaturalContent(value: NaturalExpression) {
  * [더 보기/접기] 토글(M2-03). slim 3섹션이 모두 settled([enabled])이면 활성 — deep 를 개시/펼치거나 접는다.
  * 스킵된 슬림 섹션이 있으면(settled=true) 활성이 유지된다(nextEnabled 재사용, "다음"과 동일 게이트).
  */
+/**
+ * [더 보기/접기] — 프로토타입 정합: surface-background(회색) 채움 + 헤어라인 + radius12, 브랜드 텍스트(700/14) +
+ * expand_more 셰브런(펼침 시 180° 회전). M3 OutlinedButton(stadium·투명) 대신 커스텀으로 형태를 맞춘다.
+ */
 @Composable
 private fun MoreToggleButton(
     expanded: Boolean,
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    OutlinedButton(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier.fillMaxWidth(),
+    val content =
+        if (enabled) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+        }
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(OceTheme.shapes.radius12)
+                .background(MaterialTheme.colorScheme.background)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, OceTheme.shapes.radius12)
+                .clickable(enabled = enabled, onClick = onClick)
+                .padding(vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = if (expanded) "접기" else "더 보기",
             style = OceTheme.typography.sectionLabel,
-            textDecoration = TextDecoration.None,
+            color = content,
+        )
+        OneClickIcon(
+            icon = OceIcon.ExpandMore,
+            contentDescription = null,
+            tint = content,
+            size = 20.dp,
+            modifier = Modifier.rotate(if (expanded) 180f else 0f),
         )
     }
 }
 
-/** [다음(settled 시 활성, §7 — 점수 gate 없음)]. */
+/** [다음(settled 시 활성, §7 — 점수 gate 없음)]. 프로토타입: primary·full-width·52dp·radius14·텍스트 700/16. */
 @Composable
 private fun NextButton(
     enabled: Boolean,
@@ -284,14 +461,15 @@ private fun NextButton(
     Button(
         onClick = onNext,
         enabled = enabled,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().height(52.dp),
+        shape = OceTheme.shapes.radius14,
         colors =
             ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             ),
     ) {
-        Text(text = "다음", style = OceTheme.typography.sectionLabel)
+        Text(text = "다음", style = OceTheme.typography.sectionLabel.copy(fontSize = 16.sp))
     }
 }
 
