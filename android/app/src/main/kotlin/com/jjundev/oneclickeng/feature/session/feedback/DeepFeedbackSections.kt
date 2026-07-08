@@ -1,39 +1,45 @@
 package com.jjundev.oneclickeng.feature.session.feedback
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 import com.jjundev.oneclickeng.ui.component.InlineErrorMode
-import com.jjundev.oneclickeng.ui.component.OneClickDualExposureBlock
 import com.jjundev.oneclickeng.ui.component.OneClickInlineError
 import com.jjundev.oneclickeng.ui.component.OneClickSkeleton
-import com.jjundev.oneclickeng.ui.component.OneClickSlider
-import com.jjundev.oneclickeng.ui.component.RichSegment
 import com.jjundev.oneclickeng.ui.component.SkeletonShape
-import com.jjundev.oneclickeng.ui.component.SliderMode
-import com.jjundev.oneclickeng.ui.component.ToneLabel
-import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.component.venn.VennDiagramCanvas
 import com.jjundev.oneclickeng.ui.theme.OceTheme
-import kotlin.math.roundToInt
+import java.util.Locale
 
 /**
  * "더 보기" deep 영역(M2-03) — 단일 시트 하단에 conceptualBridge → toneStyle → paraphrasing 을 고정 순서로
@@ -106,7 +112,10 @@ fun DeepFeedbackRegion(
     }
 }
 
-/** 세 블록을 고정 순서로 렌더. null 블록은 스켈레톤(점진 렌더). */
+/**
+ * 세 블록을 고정 순서로 렌더. null 블록은 스켈레톤(점진 렌더). 심화는 턴 피드백의 연장이라 슬림 섹션과 **동일한
+ * 섹션 간격(sectionGap)**을 쓰고, 상단 구분선을 두지 않는다(슬림 자연 섹션에서 자연스럽게 이어짐).
+ */
 @Composable
 private fun DeepBlocks(
     modifier: Modifier,
@@ -118,9 +127,8 @@ private fun DeepBlocks(
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sectionGap),
     ) {
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         if (conceptualBridge != null) ConceptualBridgeBlock(conceptualBridge) else BlockSkeleton()
         if (toneStyle != null) ToneStyleBlock(toneStyle) else BlockSkeleton()
         if (paraphrasing != null) {
@@ -136,63 +144,130 @@ private fun BlockSkeleton() {
     OneClickSkeleton(shape = SkeletonShape.Section)
 }
 
-/** ④ 개념 브릿지 — 직역 + 간극 설명 + 벤. guide·공통 의미를 텍스트로 병기(A2 색 단독 금지). */
+/**
+ * 딥 섹션 헤더 = 아이콘 + 라벨(프로토타입 FeedbackSection 정합). 딥 3섹션은 accent=text-secondary 로 통일된다
+ * (측정: 아이콘·라벨 모두 rgb(103,107,115)=onSurfaceVariant, 아이콘 18px, 라벨 700/14).
+ */
 @Composable
-private fun ConceptualBridgeBlock(value: ConceptualBridge) {
-    Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
-        Text(
-            text = value.literalTranslation,
-            style = OceTheme.typography.body,
-            color = MaterialTheme.colorScheme.onSurface,
+private fun DeepSectionHeader(
+    icon: OceIcon,
+    label: String,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+    ) {
+        OneClickIcon(
+            icon = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            size = 20.dp,
         )
         Text(
-            text = value.explanation,
-            style = OceTheme.typography.helper,
+            text = label,
+            style = OceTheme.typography.summarySectionTitle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        if (value.venn.guide.isNotBlank()) {
+    }
+}
+
+/** 설명 텍스트에서 지정 단어(벤 좌·우 = order·get)를 굵게 강조한다(프로토타입 정합). */
+private fun emphasizeWords(
+    text: String,
+    words: List<String>,
+    color: androidx.compose.ui.graphics.Color,
+) = buildAnnotatedString {
+    append(text)
+    words.filter { it.isNotBlank() }.forEach { word ->
+        var start = text.indexOf(word)
+        while (start >= 0) {
+            addStyle(SpanStyle(fontWeight = FontWeight.Bold, color = color), start, start + word.length)
+            start = text.indexOf(word, start + word.length)
+        }
+    }
+}
+
+/** ④ 개념 브릿지 — 간극 설명(order·get 강조) + 벤 + 공통(프로토타입 1:1: 별도 직역·guide 줄 없음). */
+@Composable
+private fun ConceptualBridgeBlock(value: ConceptualBridge) {
+    val emphasis = MaterialTheme.colorScheme.onSurface
+    Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
+        DeepSectionHeader(icon = OceIcon.Hub, label = "개념 브리지")
+        Text(
+            text = emphasizeWords(value.explanation, listOf(value.venn.left.word, value.venn.right.word), emphasis),
+            style = OceTheme.typography.helper.copy(fontWeight = FontWeight.Medium),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        VennDiagramCanvas(venn = value.venn, modifier = Modifier.align(Alignment.CenterHorizontally))
+        if (value.venn.intersectionItems.isNotEmpty()) {
             Text(
-                text = value.venn.guide,
+                text =
+                    buildAnnotatedString {
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = emphasis)) { append("공통: ") }
+                        append(value.venn.intersectionItems.joinToString(", "))
+                    },
                 style = OceTheme.typography.helper,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        VennDiagramCanvas(venn = value.venn, modifier = Modifier.align(Alignment.CenterHorizontally))
-        Text(
-            text = "공통: ${value.venn.intersectionItems.joinToString(", ")}",
-            style = OceTheme.typography.helper,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 
-/** ⑤ 톤 스펙트럼 — C8 이산 슬라이더 5단계, 초기 선택 defaultLevel(로컬 rememberSaveable). */
+/** ⑤ 톤 스펙트럼 — 5단 pill 바(프로토타입 정합) + 선택 문장 EN/KO. 초기 선택 defaultLevel(로컬 rememberSaveable). */
 @Composable
 private fun ToneStyleBlock(value: ToneStyle) {
-    val labels =
-        remember(value) {
-            value.levels
-                .sortedBy { it.level }
-                .map { ToneLabel(level = it.level, en = it.sentence, ko = it.sentenceTranslation) }
-        }
-    var selected by rememberSaveable(value) {
-        mutableStateOf(value.defaultLevel.coerceIn(0, labels.lastIndex.coerceAtLeast(0)).toFloat())
+    val levels = remember(value) { value.levels.sortedBy { it.level } }
+    var selectedIdx by rememberSaveable(value) {
+        mutableIntStateOf(value.defaultLevel.coerceIn(0, (levels.size - 1).coerceAtLeast(0)))
     }
-    OneClickSlider(
-        value = selected,
-        onValueChange = { selected = it.roundToInt().toFloat() },
-        mode = SliderMode.Discrete(labels = labels),
-    )
+    Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md)) {
+        DeepSectionHeader(icon = OceIcon.FormatPaint, label = "톤 · 스타일")
+        Row(horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs)) {
+            levels.indices.forEach { i ->
+                val filled = i <= selectedIdx
+                Box(
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .height(8.dp)
+                            .clip(OceTheme.shapes.pill)
+                            .background(
+                                if (filled) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.outlineVariant
+                                },
+                            )
+                            .clickable { selectedIdx = i },
+                )
+            }
+        }
+        levels.getOrNull(selectedIdx)?.let { sel ->
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = sel.sentence,
+                    style = OceTheme.typography.sectionLabel.copy(fontSize = 15.sp),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = sel.sentenceTranslation,
+                    style = OceTheme.typography.helper.copy(fontWeight = FontWeight.Medium),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
 }
 
-/** ⑥ 패러프레이징 — 3카드(Beginner/Intermediate/Advanced), 각 EN+KO 이중노출 + 북마크 토글. */
+/** ⑥ 패러프레이징 — 3카드(레벨 라벨 + EN, 프로토타입 1:1) + 북마크 토글. */
 @Composable
 private fun ParaphrasingBlock(
     value: Paraphrasing,
     bookmarkedLevels: Set<Int>,
     onToggleBookmark: (Paraphrase) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
+    Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md)) {
+        DeepSectionHeader(icon = OceIcon.FormatQuote, label = "다르게 말해보기")
         value.items.forEach { item ->
             ParaphraseCard(
                 item = item,
@@ -209,39 +284,54 @@ private fun ParaphraseCard(
     bookmarked: Boolean,
     onToggle: () -> Unit,
 ) {
-    OneClickCard(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(OceTheme.spacing.md),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(OceTheme.shapes.radius12)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, OceTheme.shapes.radius12)
+                .padding(start = 14.dp, top = 12.dp, end = 8.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = item.label,
-                    style = OceTheme.typography.helper,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                OneClickDualExposureBlock(
-                    english = listOf(RichSegment.Normal(item.sentence)),
-                    korean = item.sentenceTranslation,
-                )
-            }
-            val bookmarkTint =
-                if (bookmarked) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                }
-            IconToggleButton(checked = bookmarked, onCheckedChange = { onToggle() }) {
-                OneClickIcon(
-                    icon = if (bookmarked) OceIcon.Bookmark else OceIcon.BookmarkBorder,
-                    contentDescription = if (bookmarked) "북마크 해제" else "북마크 저장",
-                    tint = bookmarkTint,
-                )
-            }
+            Text(
+                text = item.label.uppercase(Locale.ROOT),
+                style =
+                    OceTheme.typography.helper.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        letterSpacing = 0.04.em,
+                    ),
+                color = OceTheme.colors.textTertiary,
+            )
+            Text(
+                text = item.sentence,
+                style =
+                    OceTheme.typography.helper.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.5.sp,
+                        lineHeight = 1.45.em,
+                    ),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        val bookmarkTint =
+            if (bookmarked) MaterialTheme.colorScheme.primary else OceTheme.colors.textTertiary
+        IconToggleButton(
+            checked = bookmarked,
+            onCheckedChange = { onToggle() },
+            modifier = Modifier.size(40.dp),
+        ) {
+            OneClickIcon(
+                icon = if (bookmarked) OceIcon.Bookmark else OceIcon.BookmarkBorder,
+                contentDescription = if (bookmarked) "북마크 해제" else "북마크 저장",
+                tint = bookmarkTint,
+                size = 22.dp,
+            )
         }
     }
 }

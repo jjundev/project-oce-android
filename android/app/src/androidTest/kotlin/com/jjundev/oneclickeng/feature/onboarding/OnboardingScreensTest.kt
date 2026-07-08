@@ -73,7 +73,7 @@ class OnboardingScreensTest {
         var picked: OnboardingTopic? = null
         composeRule.setContent {
             OceTheme {
-                TopicQuestionScreen(onTopicSelected = { picked = it }, viewModel = fakeViewModel())
+                TopicQuestionScreen(onTopicSelected = { picked = it }, onBack = {}, viewModel = fakeViewModel())
             }
         }
 

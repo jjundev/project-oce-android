@@ -2,12 +2,18 @@ package com.jjundev.oneclickeng.feature.session.turn
 
 import android.content.res.Configuration
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,10 +23,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.jjundev.oneclickeng.ui.foundation.OceIcon
+import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /**
@@ -37,12 +47,18 @@ internal fun englishLocaleText(text: String): AnnotatedString =
         withStyle(SpanStyle(localeList = LocaleList("en"))) { append(text) }
     }
 
+/** 상대역 말풍선 꼬리(좌하단). radius18 + 좌하단만 radius4(프로토타입 정합). */
+private val OpponentBubbleShape =
+    RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 4.dp)
+
 /**
  * 대화 학습 화면 로컬 말풍선. 카탈로그(C1~C20) 컴포넌트가 아니므로 `OneClick` 프리픽스를 쓰지 않는다
  * (스크린 로컬 관례, 예: SpeakingResultView).
  *
  * 외형(04-screen-03-dialogue.md:11): 상대역 = `surface.card` 컨테이너·좌측정렬, 학습자 = `brand.primary`
  * 컨테이너·우측정렬. 코너는 채팅 말풍선 토큰 `radius18`(OceShapes 주석), 최대폭 화면의 ~80%.
+ *
+ * 상대역 발화의 아바타·화자명·TTS·해석 토글 크롬은 [OpponentTurn] 이 감싼다(이 컴포저블은 순수 말풍선).
  *
  * @param isLearner true 면 학습자(우측 primary), false 면 상대역(좌측 surface).
  */
@@ -73,6 +89,122 @@ fun ChatBubble(
     }
 }
 
+/**
+ * 상대역 발화 1턴(프로토타입 정합): 원형 아바타 + 화자명 + 말풍선(영문 + `해석 보기` 토글 + `다시 듣기` TTS).
+ * 아바타는 화자명 아래 말풍선 높이에 맞춰 얹힌다(프로토타입 `margin-top` 정합).
+ *
+ * TTS([onReplay], M1-05)·번역 토글([onToggleTranslation])은 현재 시각 셸 seam 으로 기본 no-op 이다.
+ */
+@Composable
+fun OpponentTurn(
+    text: String,
+    modifier: Modifier = Modifier,
+    speaker: String = "Emma",
+    translationLabel: String = "해석 보기",
+    onReplay: () -> Unit = {},
+    onToggleTranslation: () -> Unit = {},
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+    ) {
+        TurnAvatar(letter = "E", modifier = Modifier.padding(top = 20.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                text = speaker,
+                style = OceTheme.typography.sectionLabel.copy(fontSize = 12.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 2.dp),
+            )
+            OpponentBubble(
+                text = text,
+                translationLabel = translationLabel,
+                onReplay = onReplay,
+                onToggleTranslation = onToggleTranslation,
+            )
+        }
+    }
+}
+
+@Composable
+private fun OpponentBubble(
+    text: String,
+    translationLabel: String,
+    onReplay: () -> Unit,
+    onToggleTranslation: () -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .clip(OpponentBubbleShape)
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, OpponentBubbleShape)
+                .padding(horizontal = OceTheme.spacing.lg, vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Column(
+            modifier = Modifier.widthIn(max = 240.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            Text(
+                text = englishLocaleText(text),
+                style = OceTheme.typography.body,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = translationLabel,
+                style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable(onClick = onToggleTranslation),
+            )
+        }
+        ReplayButton(onReplay = onReplay)
+    }
+}
+
+/** 상대역 원형 아바타(30dp, brand). 화자 이니셜을 흰 글자로 담는다. */
+@Composable
+private fun TurnAvatar(
+    letter: String,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier =
+            modifier
+                .size(30.dp)
+                .clip(OceTheme.shapes.pill)
+                .background(MaterialTheme.colorScheme.primary),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = letter,
+            style = OceTheme.typography.sectionLabel.copy(fontSize = 13.sp),
+            color = MaterialTheme.colorScheme.onPrimary,
+        )
+    }
+}
+
+/** 말풍선 안 `다시 듣기` TTS 버튼(28dp, surface-background 원형). 아이콘은 장식 — 라벨은 버튼이 보유. */
+@Composable
+private fun ReplayButton(onReplay: () -> Unit) {
+    Box(
+        modifier =
+            Modifier
+                .size(28.dp)
+                .clip(OceTheme.shapes.pill)
+                .background(MaterialTheme.colorScheme.background)
+                .clickable(onClick = onReplay),
+        contentAlignment = Alignment.Center,
+    ) {
+        OneClickIcon(
+            icon = OceIcon.VolumeUp,
+            contentDescription = "다시 듣기",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            size = 16.dp,
+        )
+    }
+}
+
 @Composable
 private fun ChatBubblePreviewBody(darkTheme: Boolean) {
     OceTheme(darkTheme = darkTheme) {
@@ -80,7 +212,7 @@ private fun ChatBubblePreviewBody(darkTheme: Boolean) {
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            ChatBubble(text = "Hi! What can I get for you?", isLearner = false)
+            OpponentTurn(text = "Hi! What can I get for you?")
             ChatBubble(text = "Can I get a hot americano, please?", isLearner = true)
         }
     }

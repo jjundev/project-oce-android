@@ -47,8 +47,14 @@ private const val ARC_SWEEP_DEG = 90f
 private const val ARC_START_DEG = -90f // 12시
 private const val PRESS_SCALE = 0.96f
 private const val DISABLED_ALPHA = 0.38f
+// Analyzing(로딩 스피너)·Complete(완료 체크)는 탭 불가지만 의미 있는 활성 상태라 흐리지 않는다 — 프로토타입처럼
+// 코어/아크를 solid 로 보인다. DISABLED_ALPHA 는 진짜 비활성(탭 불가 + 무의미) 전용.
+private fun MicState.rendersOpaque(enabled: Boolean): Boolean =
+    enabled || this == MicState.Analyzing || this == MicState.Complete
+
 private const val ARC_ROTATION_MS = 900 // 0.9s linear
-private const val READY_INNER_RING_FRACTION = 0.42f
+private const val READY_RING_RADIUS_FRACTION = 0.86f // Ready hollow 링 반경(코어 반경 대비)
+private const val READY_RING_STROKE_FRACTION = 0.14f // Ready hollow 링 두께(코어 반경 대비)
 
 /**
  * 96dp 음성 4상태 마이크(I1) — scratch Compose Canvas. 정본: [docs/ui/03-signature-interactions.md] I1.
@@ -132,7 +138,7 @@ fun MicButton(
                 .graphicsLayer {
                     scaleX = pressScale
                     scaleY = pressScale
-                    alpha = if (enabled) 1f else DISABLED_ALPHA
+                    alpha = if (state.rendersOpaque(enabled)) 1f else DISABLED_ALPHA
                 }
                 .clickable(
                     enabled = enabled,
@@ -160,17 +166,19 @@ fun MicButton(
             else -> Unit
         }
 
-        // 코어원(모든 상태 공통).
-        drawCircle(color = coreColor, radius = coreRadius, center = center)
+        // 코어원 — Ready 는 속을 비운 슬레이트 링(프로토타입/스펙 I1 "동심 링" 정합), 나머지 상태는 채운 코어.
+        if (state != MicState.Ready) {
+            drawCircle(color = coreColor, radius = coreRadius, center = center)
+        }
 
         when (state) {
             MicState.Ready ->
-                // 얇은 동심 링(비색 형태 신호 — "대기").
+                // 슬레이트 링(속 비움, 비색 형태 신호 — "탭 대기"). 옅은 외륜 위에 얹혀 hollow 로 읽힌다.
                 drawCircle(
-                    color = glyphColor,
-                    radius = coreRadius * READY_INNER_RING_FRACTION,
+                    color = coreColor,
+                    radius = coreRadius * READY_RING_RADIUS_FRACTION,
                     center = center,
-                    style = Stroke(width = coreRadius * 0.10f),
+                    style = Stroke(width = coreRadius * READY_RING_STROKE_FRACTION),
                 )
             MicState.Analyzing ->
                 drawAnalysisArc(center, coreRadius, coreColor, trackColor, arcRotation)

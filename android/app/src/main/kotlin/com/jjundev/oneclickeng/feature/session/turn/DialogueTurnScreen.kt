@@ -1,6 +1,8 @@
 package com.jjundev.oneclickeng.feature.session.turn
 
 import android.content.res.Configuration
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -20,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -81,34 +85,47 @@ internal fun DialogueTurnContent(
     onSubmitStub: () -> Unit,
     onViewSummary: () -> Unit,
     modifier: Modifier = Modifier,
+    // 세션 정체성 헤더(주제·레벨·진행 점). 미주입이면 헤더 없이 렌더(M1-03 스텁·프리뷰 호환). 실 라우트 배선은 seam.
+    header: DialogueHeaderState? = null,
+    // 상대역 말풍선 TTS(M1-05)·해석 토글 콜백. 현재는 시각 셸 seam 으로 기본 no-op.
+    onReplay: () -> Unit = {},
+    onToggleTranslation: () -> Unit = {},
     // 입력 독 slot(M1-08). 미주입(스텁 라우트·프리뷰)이면 기존 [ScaffoldDock] 로 폴백해 M1-03 화면을 유지한다.
     dock: (@Composable (ScaffoldTask) -> Unit)? = null,
 ) {
     Scaffold(
         modifier = modifier,
-        // 진행률 헤더(`N of M`) 삽입 seam. 헤더 자체는 M1-03 범위 밖(수용기준 미포함)이라 자리만 예약한다.
-        // 라이브리전 politeness 는 후속 진행률/TTS 배선의 자동 진행 announce 를 위한 것으로, 지금은 빈 seam.
+        // 세션 앱바(뒤로가기·주제 아바타·제목/레벨·진행 점). 라이브리전 politeness 는 후속 진행률/TTS 배선의
+        // 자동 진행 announce 를 위한 것으로, 지금은 헤더 정적 렌더만 감싼다.
         topBar = {
             Column(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .semantics { liveRegion = LiveRegionMode.Polite },
-            ) {}
+            ) {
+                if (header != null) DialogueHeader(state = header)
+            }
         },
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxWidth().weight(1f),
-                contentPadding = PaddingValues(OceTheme.spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+                contentPadding = PaddingValues(horizontal = 18.dp, vertical = OceTheme.spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 items(messages) { message ->
-                    ChatBubble(
-                        text = message.english,
-                        isLearner = message is DialogueMessage.Learner,
-                    )
+                    when (message) {
+                        is DialogueMessage.Opponent ->
+                            OpponentTurn(
+                                text = message.english,
+                                onReplay = onReplay,
+                                onToggleTranslation = onToggleTranslation,
+                            )
+                        is DialogueMessage.Learner ->
+                            ChatBubble(text = message.english, isLearner = true)
+                    }
                 }
             }
 
@@ -117,13 +134,38 @@ internal fun DialogueTurnContent(
                     DialogueCompletion(onViewSummary = onViewSummary)
 
                 turnPhase == TurnPhase.LearnerTurn && currentTask != null ->
-                    if (dock != null) {
-                        dock(currentTask)
-                    } else {
-                        ScaffoldDock(task = currentTask, onSubmitStub = onSubmitStub)
+                    // 하단에서 올라오는 입력 독 패널(프로토타입 정합): surface-card 배경 + 상단 헤어라인 +
+                    // 상단만 radius18. 스레드(배경 회색) 위에 얹혀 "바"로 읽힌다. 슬라이드 진입 애니메이션은 seam.
+                    SessionInputPanel {
+                        if (dock != null) {
+                            dock(currentTask)
+                        } else {
+                            ScaffoldDock(task = currentTask, onSubmitStub = onSubmitStub)
+                        }
                     }
             }
         }
+    }
+}
+
+/** 하단 입력 독 패널 형태(상단만 radius18). 프로토타입 `sessionInputVisible` 바 정합. */
+private val SessionDockShape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)
+
+/**
+ * 하단에서 올라오는 입력 독 패널. `surface.card` 배경 + 상단 헤어라인 경계 + 상단만 라운드로, 스레드(배경)
+ * 위에 얹힌 "바"로 읽힌다(프로토타입 정합). 실제 슬라이드-업 진입 애니메이션(transform 0.34s)은 후속 seam.
+ */
+@Composable
+private fun SessionInputPanel(content: @Composable () -> Unit) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(SessionDockShape)
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, SessionDockShape),
+    ) {
+        content()
     }
 }
 

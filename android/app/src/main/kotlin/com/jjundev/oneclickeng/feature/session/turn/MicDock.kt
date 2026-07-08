@@ -7,12 +7,17 @@ import android.content.ContextWrapper
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,17 +29,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.jjundev.oneclickeng.ui.audio.MicButton
 import com.jjundev.oneclickeng.ui.audio.MicState
 import com.jjundev.oneclickeng.ui.audio.WaveformCanvas
 import com.jjundev.oneclickeng.ui.component.OneClickPermissionPrimingSheet
-import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickInput
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
+import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import kotlinx.coroutines.flow.StateFlow
 
@@ -181,19 +189,29 @@ private fun MicColumn(
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
     ) {
-        MicButton(
-            state = micState,
-            onTap = onMicTap,
-            enabled = micState == MicState.Ready || micState == MicState.Recording,
-            reduceMotion = reduceMotion,
-        )
-        if (micState == MicState.Recording) {
-            WaveformCanvas(waveform = waveform, modifier = Modifier.fillMaxWidth())
+        // 오답/실패 교정 배너([B] 택소노미). 마이크 위에 노출(프로토타입 정합).
+        retryHint?.let { MicFailBanner(message = it) }
+        // 파형(뒤) + 마이크(앞) 겹침 — 녹음 중엔 파형 위에 빨강 마이크가 얹힌다.
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            if (micState == MicState.Recording) {
+                WaveformCanvas(waveform = waveform, modifier = Modifier.fillMaxWidth())
+            }
+            MicButton(
+                state = micState,
+                onTap = onMicTap,
+                enabled = micState == MicState.Ready || micState == MicState.Recording,
+                reduceMotion = reduceMotion,
+            )
         }
-        retryHint?.let {
-            Text(text = it, style = OceTheme.typography.helper, color = MaterialTheme.colorScheme.error)
+        // 마이크 상태 문구(프로토타입 micStatus). 상태별 안내 — 오답은 위 배너가 담당한다.
+        micStatusText(micState)?.let {
+            Text(
+                text = it,
+                style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         if (permanentlyDenied) {
             Text(
@@ -210,10 +228,81 @@ private fun MicColumn(
                 Text(text = "다음", style = OceTheme.typography.sectionLabel)
             }
         } else {
-            TextButton(onClick = { onToggleTextMode(true) }) {
-                Text(text = "채팅으로 입력하기", style = OceTheme.typography.body)
-            }
+            ChatInputToggle(onClick = { onToggleTextMode(true) })
         }
+    }
+}
+
+/** 프로토타입 micStatus — 상태별 마이크 하단 안내 문구. Complete 는 "다음" 버튼이 대신한다. */
+private fun micStatusText(state: MicState): String? =
+    when (state) {
+        MicState.Ready -> "탭하고 편하게 말해보세요"
+        MicState.Recording -> "듣고 있어요…"
+        MicState.Analyzing -> "말한 내용을 다듬는 중이에요…"
+        MicState.Complete -> null
+    }
+
+/**
+ * 오답/마이크 실패 교정 배너([B] 에러 택소노미). 코랄 톤 카드 + [B] 배지 + error 아이콘 + 비난 없는 안내.
+ * 프로토타입 micFail 배너 정합(feedback-correct 코랄 계열 색 소유).
+ */
+@Composable
+private fun MicFailBanner(message: String) {
+    val accent = OceTheme.colors.feedbackCorrectAccent
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(OceTheme.shapes.radius12)
+                .background(OceTheme.colors.feedbackCorrectBg)
+                .border(1.dp, accent.copy(alpha = 0.4f), OceTheme.shapes.radius12)
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "B",
+            style = OceTheme.typography.helper.copy(fontWeight = FontWeight.ExtraBold, fontSize = 9.sp),
+            color = accent,
+            modifier =
+                Modifier
+                    .clip(OceTheme.shapes.radius4)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, accent.copy(alpha = 0.4f), OceTheme.shapes.radius4)
+                    .padding(horizontal = 5.dp, vertical = 2.dp),
+        )
+        OneClickIcon(icon = OceIcon.Error, contentDescription = null, tint = accent, size = 18.dp)
+        Text(
+            text = message,
+            style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+/** 마이크-우선 도크의 텍스트 입력 전환 어피던스(프로토타입 정합: `keyboard` 아이콘 + tertiary 회색). */
+@Composable
+private fun ChatInputToggle(onClick: () -> Unit) {
+    Row(
+        modifier =
+            Modifier
+                .heightIn(min = MinTouchTarget)
+                .clickable(onClick = onClick)
+                .padding(horizontal = OceTheme.spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OneClickIcon(
+            icon = OceIcon.Keyboard,
+            contentDescription = null,
+            tint = OceTheme.colors.textTertiary,
+            size = 18.dp,
+        )
+        Text(
+            text = "채팅으로 입력하기",
+            style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),
+            color = OceTheme.colors.textTertiary,
+        )
     }
 }
 
@@ -249,7 +338,7 @@ private fun TextInputDock(
 }
 
 /**
- * D1 발판 과제 카드 = "이 한국어를 영어로 말해보세요" + 한국어 목표. 스텁 도크([ScaffoldDock])와 마이크
+ * D1 발판 과제 카드 = "이렇게 말해보세요"(브랜드 라벨) + 한국어 목표. 스텁 도크([ScaffoldDock])와 마이크
  * 도크([MicDock])가 공유한다(과제 ≠ 대화 시각 분리를 위해 ChatBubble 아닌 [OneClickCard] 로 제시).
  */
 @Composable
@@ -257,20 +346,26 @@ internal fun ScaffoldPromptCard(
     task: ScaffoldTask,
     modifier: Modifier = Modifier,
 ) {
-    OneClickCard(modifier = modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(OceTheme.spacing.lg)) {
-            Text(
-                text = "이 한국어를 영어로 말해보세요",
-                style = OceTheme.typography.helper,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = task.koreanPrompt,
-                style = OceTheme.typography.body,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(top = OceTheme.spacing.xs),
-            )
-        }
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(OceTheme.shapes.radius16)
+                .background(MaterialTheme.colorScheme.background)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, OceTheme.shapes.radius16)
+                .padding(horizontal = OceTheme.spacing.lg, vertical = OceTheme.spacing.md),
+    ) {
+        Text(
+            text = "이렇게 말해보세요",
+            style = OceTheme.typography.helper.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp),
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Text(
+            text = task.koreanPrompt,
+            style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(top = 4.dp),
+        )
     }
 }
 

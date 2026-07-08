@@ -341,7 +341,7 @@ class GeneratedDialogueSessionViewModel
         private companion object {
             const val PROVIDER_KEY = "session_turn"
             const val BUNDLE_JSON = "json"
-            const val HINT_RETRY = "다시 말해볼까요"
+            const val HINT_RETRY = "다시 말해볼까요? 채팅으로 입력해도 돼요."
             const val HINT_ERROR = "문제가 생겼어요. 다시 시도해 주세요."
         }
     }

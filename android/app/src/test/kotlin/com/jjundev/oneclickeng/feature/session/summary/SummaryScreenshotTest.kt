@@ -57,61 +57,62 @@ class SummaryScreenshotTest {
         composeRule.onRoot().captureRoboImage(path)
     }
 
-    private fun richState(): SummaryState {
-        val richBundle =
-            SectionBundle.Sectioned(
-                expression =
-                    SummarySectionState.Ready(
-                        listOf(
-                            ExpressionCard(
-                                type = ExpressionType.Natural,
-                                koreanPrompt = "커피 주세요",
-                                before = "One coffee",
-                                after = "Could I grab a coffee?",
-                                explanation = "가볍게 주문할 때 자연스러워요.",
-                            ),
-                            ExpressionCard(
-                                type = ExpressionType.Accurate,
-                                koreanPrompt = "길을 잃었어요",
-                                before = "I lost",
-                                after = "I got lost",
-                                explanation = "get lost 가 '길을 잃다'예요.",
-                            ),
-                            ExpressionCard(
-                                type = ExpressionType.Natural,
-                                koreanPrompt = "가격 물어보기",
-                                before = "How much this one?",
-                                after = "How much is this one?",
-                                explanation = "be동사 is 를 잊지 마세요.",
-                            ),
-                            ExpressionCard(
-                                type = ExpressionType.Natural,
-                                koreanPrompt = "영수증 받기",
-                                before = "Give me receipt.",
-                                after = "Can I have the receipt?",
-                                explanation = "Can I have...가 훨씬 공손해요.",
-                            ),
+    private fun richBundle(): SectionBundle.Sectioned =
+        SectionBundle.Sectioned(
+            expression =
+                SummarySectionState.Ready(
+                    listOf(
+                        ExpressionCard(
+                            type = ExpressionType.Natural,
+                            koreanPrompt = "커피 주세요",
+                            before = "One coffee",
+                            after = "Could I grab a coffee?",
+                            explanation = "가볍게 주문할 때 자연스러워요.",
+                        ),
+                        ExpressionCard(
+                            type = ExpressionType.Accurate,
+                            koreanPrompt = "길을 잃었어요",
+                            before = "I lost",
+                            after = "I got lost",
+                            explanation = "get lost 가 '길을 잃다'예요.",
+                        ),
+                        ExpressionCard(
+                            type = ExpressionType.Natural,
+                            koreanPrompt = "가격 물어보기",
+                            before = "How much this one?",
+                            after = "How much is this one?",
+                            explanation = "be동사 is 를 잊지 마세요.",
+                        ),
+                        ExpressionCard(
+                            type = ExpressionType.Natural,
+                            koreanPrompt = "영수증 받기",
+                            before = "Give me receipt.",
+                            after = "Can I have the receipt?",
+                            explanation = "Can I have...가 훨씬 공손해요.",
                         ),
                     ),
-                word =
-                    SummarySectionState.Ready(
-                        listOf(
-                            WordCard(
-                                en = "grab",
-                                ko = "잽싸게 가져오다",
-                                partOfSpeech = "verb",
-                                level = "B1",
-                                exampleEn = "Let me grab a quick bite.",
-                                exampleKo = "간단히 먹을게요.",
-                            ),
+                ),
+            word =
+                SummarySectionState.Ready(
+                    listOf(
+                        WordCard(
+                            en = "grab",
+                            ko = "잽싸게 가져오다",
+                            partOfSpeech = "verb",
+                            level = "B1",
+                            exampleEn = "Let me grab a quick bite.",
+                            exampleKo = "간단히 먹을게요.",
                         ),
                     ),
-                coaching =
-                    SummarySectionState.Ready(
-                        Coaching(positive = "끝까지 대화를 이어간 게 좋았어요.", toImprove = "다음엔 과거형을 한 번 노려볼까요?"),
-                    ),
-            )
-        return SummaryState(
+                ),
+            coaching =
+                SummarySectionState.Ready(
+                    Coaching(positive = "끝까지 대화를 이어간 게 좋았어요.", toImprove = "다음엔 과거형을 한 번 노려볼까요?"),
+                ),
+        )
+
+    private fun richState(): SummaryState =
+        SummaryState(
             totalScore = 87,
             highlight =
                 HighlightTurn(
@@ -130,9 +131,8 @@ class SummaryScreenshotTest {
                     streakStatic = false,
                     animate = false,
                 ),
-            bundle = richBundle,
+            bundle = richBundle(),
             savedWordIndices = setOf(0),
             isFirstSession = true,
         )
-    }
 }

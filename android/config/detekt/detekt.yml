@@ -12,6 +12,10 @@ complexity:
   LongMethod:
     # @Composable 은 선언형 UI 트리라 한 함수에 레이아웃이 길게 이어지는 게 정상 → 기본 규칙에서 제외한다.
     ignoreAnnotated: ['Composable']
+  TooManyFunctions:
+    # 스크린 파일은 작은 행/시트/다이얼로그 컴포저블이 여럿이라 파일당 함수 수가 자연히 많다 →
+    # LongMethod/LongParameterList 와 동일 취지로 @Composable 은 파일 함수 수 카운트에서 제외한다.
+    ignoreAnnotatedFunctions: ['Composable']
 
 style:
   MagicNumber:
