@@ -22,7 +22,9 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.jjundev.oneclickeng.feature.onboarding.OnboardingStepBar
 import com.jjundev.oneclickeng.feature.onboarding.OnboardingViewModel
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
@@ -73,9 +75,11 @@ internal fun LevelQuestionContent(
                 .padding(OceTheme.spacing.sheetPadding),
         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.actionGap),
     ) {
+        OnboardingStepBar(step = 1, total = 2)
         Text(
             text = "먼저, 오늘 연습을 맞춰볼게요",
-            style = OceTheme.typography.screenTitle,
+            // 온보딩 H1 은 프로토 정합상 ExtraBold·24sp → homeTitle(800·25sp) 재사용(±1sp, 공용 screenTitle 과 구분).
+            style = OceTheme.typography.homeTitle,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.semantics { heading() },
         )
@@ -121,7 +125,10 @@ private fun LevelCard(
                 .clickable(onClick = onClick),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(OceTheme.spacing.lg),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = OceTheme.spacing.lg, vertical = OceTheme.spacing.xl),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
         ) {
@@ -160,7 +167,8 @@ private fun LevelCard(
                 ) {
                     Text(
                         text = option.titleKo,
-                        style = OceTheme.typography.sectionLabel,
+                        // 레벨 선택 카드 제목은 프로토 정합상 Bold·17sp(sectionLabel 14sp 대비 +3sp) — 볼드 유지, 크기 상향.
+                        style = OceTheme.typography.sectionLabel.copy(fontSize = 17.sp),
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     if (option.recommended) RecommendedBadge()
@@ -186,7 +194,8 @@ private fun LevelCard(
 private fun RecommendedBadge() {
     Text(
         text = "처음이라면 추천",
-        style = OceTheme.typography.helper,
+        // 배지 문구는 프로토 정합상 Bold·11sp(기존 helper 13sp 대비 축소 + 볼드) — "너무 크던" 배지 축소.
+        style = OceTheme.typography.sectionLabel.copy(fontSize = 11.sp),
         color = MaterialTheme.colorScheme.onPrimary,
         modifier =
             Modifier

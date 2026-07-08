@@ -12,3 +12,9 @@ firestore-tests/node_modules/
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+
+# prototype-to-compose 감사·비교 산출물(하니스 생성물 — 앱 소스 아님)
+/prototype/screens.json
+/prototype/screens-fix.json
+/prototype/screens-fix2.json
+/prototype/screenshot/

@@ -8,6 +8,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -19,7 +22,8 @@ import com.jjundev.oneclickeng.MainActivity
 import com.jjundev.oneclickeng.feature.home.HOME_SESSION_GRAPH_ROUTE
 import com.jjundev.oneclickeng.feature.home.homeSessionGraph
 import com.jjundev.oneclickeng.feature.home.homeSessionResumeRoute
-import com.jjundev.oneclickeng.feature.home.homeTopicRoute
+import com.jjundev.oneclickeng.feature.home.homeSessionSettingsRoute
+import com.jjundev.oneclickeng.feature.home.topic.TopicSelectSheet
 import com.jjundev.oneclickeng.feature.onboarding.ONBOARDING_ROUTE
 import com.jjundev.oneclickeng.feature.onboarding.onboardingGraph
 import com.jjundev.oneclickeng.ui.component.OneClickOfflineBanner
@@ -72,13 +76,24 @@ fun AppRoot(
     val outerNavController = rememberNavController()
     NavHost(navController = outerNavController, startDestination = resolvedStart) {
         composable(MAIN_TABS_ROUTE) {
+            // 주제 선택 시트(프로토 정합) — 홈 CTA 가 풀스크린 목적지 대신 홈 위 오버레이 시트를 띄운다.
+            var topicSheetVisible by remember { mutableStateOf(false) }
             MainTabsScaffold(
                 isOnline = isOnline,
-                onStartLearning = { outerNavController.navigate(homeTopicRoute()) },
+                onStartLearning = { topicSheetVisible = true },
                 onResume = { outerNavController.navigate(homeSessionResumeRoute()) },
                 pendingNav = pendingNav,
                 onNavConsumed = onNavConsumed,
             )
+            if (topicSheetVisible) {
+                TopicSelectSheet(
+                    onTopicChosen = { promptSeed, _ ->
+                        topicSheetVisible = false
+                        outerNavController.navigate(homeSessionSettingsRoute(promptSeed))
+                    },
+                    onDismiss = { topicSheetVisible = false },
+                )
+            }
         }
         // 온보딩 그래프(M3-02): 3탭 밖 풀스크린 형제.
         onboardingGraph(outerNavController)

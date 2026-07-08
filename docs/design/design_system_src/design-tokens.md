@@ -71,8 +71,12 @@
 | 토큰 | 크기/굵기 | 용도 |
 |---|---|---|
 | `type.screenTitle` | 28sp Bold | 화면 제목(기록·설정 등 탭 타이틀) |
-| `type.homeTitle` | 24sp ExtraBold (tracking -0.02em) | 홈 허브 맥락 H1·히어로 CTA 제목("이어서 말해볼까요?"·"이어서 대화하기") — 프로토타입(realization-SoT)이 이 제목들을 `screenTitle`보다 작고(24 vs 28) **더 굵게(800 ExtraBold vs 700)** 렌더해 홈 전용으로 분리(ADR-0006 시각 우선). 탭 타이틀(`screenTitle`)과 시맨틱 구분 |
+| `type.homeTitle` | 25sp ExtraBold (tracking -0.02em) | 홈 허브 맥락 H1·히어로 CTA 제목("이어서 말해볼까요?"·"이어서 대화하기") — 프로토타입(realization-SoT)이 이 제목들을 `screenTitle`보다 작고(25 vs 28) **더 굵게(800 ExtraBold vs 700)** 렌더해 홈 전용으로 분리(ADR-0006 시각 우선). 탭 타이틀(`screenTitle`)과 시맨틱 구분 |
+| `type.summaryHeadline` | 20sp ExtraBold (tracking -0.02em) | 세션 요약 격려 헤드라인(중앙 정렬, 종합 점수 위) — 프로토타입(realization-SoT)이 "격려 우선·점수 보조"(ux-writing) 위계를 점수 위 ExtraBold 20sp 중앙 헤드라인으로 실현. `homeTitle`(25)보다 작고 `dialogHeader`(22 Bold)보다 굵다(800) — 요약 전용 분리 |
 | `type.scoreDisplay` | 56sp Bold (`brand.primary`) | 요약 종합 점수 |
+| `type.accrualValue` | 22sp ExtraBold (tracking -0.02em) | 세션 요약 적립 카드 3열 지표 숫자(연속 학습·학습 시간·XP) — 프로토타입(realization-SoT)이 성취 숫자를 ExtraBold 22sp로 렌더 |
+| `type.accrualLabel` | 11sp Medium | 세션 요약 적립 카드 지표 라벨("연속 학습" 등) — 숫자 하위 보조 라벨 |
+| `type.summarySectionTitle` | 16sp ExtraBold | 세션 요약 섹션 제목(하이라이트·표현 개선·새로 만난 단어·코칭·북마크한 문장) — 프로토타입(realization-SoT)이 800/16 으로 렌더. `sectionLabel`(14 Bold)보다 크고 굵음 |
 | `type.turnScore` | 28sp Bold (tracking -0.02em) | 턴 피드백 writingScore 점수 (요약 hero 하위 · `screenTitle`과 값 동일하나 **시맨틱 분리**: 점수 ≠ 화면 제목, 향후 독립 조정) |
 | `type.dialogHeader` | 22sp Bold | 다이얼로그/시트 헤더 |
 | `type.body` | 16sp | 본문·말풍선 |

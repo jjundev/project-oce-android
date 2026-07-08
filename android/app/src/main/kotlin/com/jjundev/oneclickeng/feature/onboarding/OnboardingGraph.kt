@@ -82,6 +82,7 @@ private fun NavGraphBuilder.topicDestination(navController: NavHostController) {
                     onboardingGeneratingRoute(topic = topic.promptSeed, level = level, first = first),
                 )
             },
+            onBack = { navController.popBackStack() },
         )
     }
 }

@@ -65,7 +65,7 @@
 | 표면 | 후보 glyph |
 |---|---|
 | 채팅 입력·전송 | `keyboard` · `send` |
-| 카드 복사·삭제·펼침 | `content_copy` · `delete` · `expand_more`/`expand_less` |
+| 카드 복사·삭제·펼침 | `content_copy` · `delete` · `expand_more`(✅ 실현: 세션 요약 "더 보기" 원형 chevron, `OceIcon.ExpandMore`→`ic_expand_more`, ADR-0006)/`expand_less`(전개 시 180° 회전으로 대체) |
 | 알림 | `notifications` |
 | 계정·정책 | `login` · `logout` · `open_in_new` |
 | 공통 | `arrow_back` · `close` · `refresh` · `edit` · `warning` · `info` |

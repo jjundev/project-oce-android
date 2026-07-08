@@ -2,18 +2,24 @@
 
 package com.jjundev.oneclickeng.feature.session.summary
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -21,17 +27,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.jjundev.oneclickeng.ui.component.InlineErrorMode
 import com.jjundev.oneclickeng.ui.component.OneClickCountUp
 import com.jjundev.oneclickeng.ui.component.OneClickEmptyState
 import com.jjundev.oneclickeng.ui.component.OneClickInlineError
 import com.jjundev.oneclickeng.ui.component.OneClickSkeleton
-import com.jjundev.oneclickeng.ui.component.OneClickStreakChip
-import com.jjundev.oneclickeng.ui.component.OneClickXpChip
 import com.jjundev.oneclickeng.ui.component.SkeletonShape
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
@@ -47,9 +59,10 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
  * (표현/단어/코칭)은 **번들 단위 단일 스켈레톤**([SectionBundle.BundleLoading]) 하나로 로딩하다가 `done`
  * 이후 섹션별로 렌더/재시도한다(§9).
  *
- * **섹션 순서 note:** SSE 3섹션은 번들 로딩(단일 스켈레톤)을 공유하므로 표현·단어·코칭을 **연속** 배치하고
- * 로컬 북마크 섹션을 그 뒤에 둔다 — doc 인벤토리의 북마크↔코칭 순서를 SSE 그룹핑을 위해 조정한 의도적
- * 결정(단일 스켈레톤 모델과 정합, SoT 재결정 필요 시 조정 지점).
+ * **섹션 순서 note:** 표현·단어(SSE 상단부)는 번들 로딩(단일 스켈레톤)을 공유해 연속 배치하고, 로컬 북마크
+ * 섹션을 그 뒤에 둔다. **코칭은 화면 최하단**([CoachingArea], 북마크 뒤)에 별도 배치하며, 잘한 점/다음엔
+ * 이렇게를 **각각 별도 카드**로 분리한다(사용자 요청 정합). 로딩 단계엔 상단 단일 스켈레톤이 SSE 전체를
+ * 대표하고, 코칭 카드는 `done`(Sectioned) 이후에만 하단에 렌더된다.
  */
 @Composable
 fun SummaryScreen(
@@ -70,8 +83,10 @@ fun SummaryScreen(
                 .padding(OceTheme.spacing.sheetPadding),
         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sectionGap),
     ) {
+        SummaryTitleBar()
         ScoreHero(state.totalScore, state.isFirstSession)
-        AccrualStripBlock(state.accrual)
+        AccrualCard(state.accrual)
+        StreakCaption(state.accrual.streakDays)
         state.highlight?.let { HighlightSection(it) }
         SseBundle(
             bundle = state.bundle,
@@ -83,26 +98,62 @@ fun SummaryScreen(
             onToggleSaveExpression = onToggleSaveExpression,
         )
         BookmarkSection(state.bookmarks)
+        CoachingArea(bundle = state.bundle, onRetry = onRetry)
     }
 }
 
-/** ① 종합 점수 hero — 56sp `scoreDisplay` brand.primary + 격려 1차. 점수 없으면(전 턴 스킵) 중립 안내. */
+/** ⓪ 상단 타이틀바 — 프로토타입 realization-SoT: 중앙 정렬 "세션 요약"(축하형 헤더). */
+@Composable
+private fun SummaryTitleBar() {
+    Text(
+        text = "세션 요약",
+        // 프로토타입 700w 16sp 중앙 타이틀 = body(16sp) + Bold(700). 전용 토큰 없이 weight 변형으로 정확 일치.
+        style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold),
+        color = MaterialTheme.colorScheme.onSurface,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+/**
+ * ① 종합 점수 hero — 중앙 정렬 축하형(프로토타입 realization-SoT). 위계: 격려 헤드라인(`summaryHeadline`
+ * 20sp) 우선 → 점수 `scoreDisplay` 56sp brand.primary + "작문 점수" 라벨 보조(ux-writing "격려 우선·점수
+ * 보조"). 점수 없으면(전 턴 스킵) 중립 안내만 중앙 배치.
+ */
 @Composable
 private fun ScoreHero(
     totalScore: Int?,
     isFirstSession: Boolean,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs)) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+    ) {
         if (totalScore != null) {
+            Text(
+                text = encouragement(totalScore, isFirstSession),
+                style = OceTheme.typography.summaryHeadline,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+            )
+            // 가이드 부제(프로토타입 realization-SoT · 600w 13sp). 카피는 스펙/ux-writing 소유 — 실측 문구 그대로 복원.
+            Text(
+                text = "짧아도 진짜 영어로 말한 거예요. 아래에서 오늘의 수확을 확인해보세요.",
+                style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
             Text(
                 text = totalScore.toString(),
                 style = OceTheme.typography.scoreDisplay,
                 color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = OceTheme.spacing.md),
             )
             Text(
-                text = encouragement(totalScore, isFirstSession),
-                style = OceTheme.typography.body,
-                color = MaterialTheme.colorScheme.onSurface,
+                text = "작문 점수",
+                style = OceTheme.typography.sectionLabel,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
             Text(
@@ -114,6 +165,7 @@ private fun ScoreHero(
                     },
                 style = OceTheme.typography.body,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
             )
         }
     }
@@ -129,7 +181,8 @@ private fun encouragement(
 ): String =
     if (isFirstSession) {
         when {
-            score >= HIGH_SCORE -> "첫 대화부터 정말 잘했어요! 영어로 말하는 게 이렇게 되네요."
+            // 프로토타입 realization-SoT 헤드라인 문구와 동일(첫 세션 완주 축하). 스펙/ux-writing 확정 대상.
+            score >= HIGH_SCORE -> "영어로 첫 대화를 끝냈어요!"
             score >= MID_SCORE -> "첫 대화를 멋지게 해냈어요. 시작이 반이에요, 잘하고 있어요."
             else -> "첫 영어 대화를 끝까지 해냈어요. 이게 가장 큰 한 걸음이에요."
         }
@@ -142,85 +195,178 @@ private fun encouragement(
     }
 
 /**
- * ② 적립 스트립 — 종합 점수와 **별도 블록**(같은 행 금지, gamification §4.2). 순서 streak🔥 → 학습시간 →
- * XP(§4.3). [AccrualStrip.animate] 가 true(M3-05 실값 착지)면 세 지표를 슬롯머신 카운트업(I3, §4.4)으로
- * 굴린다: XP 0→델타, 학습시간 오늘 누계 before→after, streak 0→N(단 same-day 2번째 세션은 정적). 주입 초기/
- * EMPTY(animate=false)는 정적. reduce-motion 은 [OneClickCountUp] 내부에서 스냅(F4).
+ * ② 적립 카드 — 종합 점수와 **별도 블록**(같은 행 금지, gamification §4.2). 프로토타입 realization-SoT: 칩 나열이
+ * 아니라 **3열 성취 카드**(아이콘+숫자+라벨, 세로 구분선). 순서 streak🔥 → 학습시간 → XP(§4.3). [AccrualStrip.animate]
+ * 가 true(M3-05 실값 착지)면 세 지표를 슬롯머신 카운트업(I3, §4.4)으로 굴린다: XP 0→델타, 학습시간 오늘 누계
+ * before→after, streak 0→N(단 same-day 2번째 세션은 정적). animate=false(주입 초기/EMPTY)면 정적 스냅.
+ * reduce-motion 은 [OneClickCountUp] 내부에서 스냅(F4). 3열 그리드라 학습시간 열도 항상 노출한다(레이아웃 고정).
  */
 @Composable
-private fun AccrualStripBlock(accrual: AccrualStrip) {
+private fun AccrualCard(accrual: AccrualStrip) {
     val beforeMin = accrual.todayStudySecondsBefore?.div(SECONDS_PER_MINUTE)
     val afterMin = accrual.todayStudySecondsAfter / SECONDS_PER_MINUTE
     // before 불명(이관/롤오버=null) 또는 before·after 동일 분이면 학습시간 정적 스냅(§4.4 이관 예외·죽은 롤 방지).
     val studyStatic = beforeMin == null || beforeMin == afterMin || !accrual.animate
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
-    ) {
-        OneClickStreakChip(
-            days = accrual.streakDays,
-            static = accrual.streakStatic || !accrual.animate,
-        )
-        // 학습시간 슬롯은 실값 착지(animate) 후에만 노출한다(주입 초기 "오늘 0분" 잔상 방지).
-        if (accrual.animate) {
-            StudyTimeSlot(from = beforeMin ?: afterMin, target = afterMin, static = studyStatic)
+    OneClickCard {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = OceTheme.spacing.lg),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AccrualMetric(
+                icon = OceIcon.LocalFireDepartment,
+                tint = OceTheme.colors.gameStreak,
+                from = 0,
+                target = accrual.streakDays,
+                unit = "일",
+                static = accrual.streakStatic || !accrual.animate,
+                label = "연속 학습",
+                modifier = Modifier.weight(1f),
+            )
+            MetricDivider()
+            AccrualMetric(
+                icon = OceIcon.Schedule,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                from = beforeMin ?: afterMin,
+                target = afterMin,
+                unit = "분",
+                static = studyStatic,
+                label = "학습 시간",
+                modifier = Modifier.weight(1f),
+            )
+            MetricDivider()
+            AccrualMetric(
+                icon = OceIcon.Bolt,
+                tint = MaterialTheme.colorScheme.primary,
+                from = 0,
+                target = accrual.xp,
+                unit = " XP",
+                static = !accrual.animate,
+                label = "획득 경험치",
+                modifier = Modifier.weight(1f),
+            )
         }
-        OneClickXpChip(xp = accrual.xp, static = !accrual.animate)
     }
 }
 
-/** `오늘 N분` — "오늘 " 접두는 정적, 분(N)만 [OneClickCountUp] 으로 [from]→[target] 롤업(§4.4). */
+/** 적립 카드 1열 — 아이콘 → 숫자(카운트업) → 라벨 세로 스택. 숫자는 `homeTitle`(ExtraBold), 라벨은 `helper`. */
 @Composable
-private fun StudyTimeSlot(
+private fun AccrualMetric(
+    icon: OceIcon,
+    tint: Color,
     from: Int,
     target: Int,
+    unit: String,
     static: Boolean,
+    label: String,
+    modifier: Modifier = Modifier,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = "오늘 ",
-            style = OceTheme.typography.helper,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+    ) {
+        OneClickIcon(icon = icon, contentDescription = null, tint = tint, size = AccrualIconSize)
         OneClickCountUp(
             target = target,
             from = from,
-            unit = "분",
+            unit = unit,
             static = static,
-            style = OceTheme.typography.helper,
+            style = OceTheme.typography.accrualValue,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = label,
+            style = OceTheme.typography.accrualLabel,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
 
-/** ③ 하이라이트(가장 잘한 순간, ≤1) — 로컬 즉시. coaching 편승 보강은 M2-01 스키마 확정 후(#6). */
+/**
+ * 스트릭 캡션 — 적립 카드 아래 중앙(프로토타입 realization-SoT). 🔥 아이콘 + "N일째 — {격려}". 이모지 미사용(P16)
+ * 이라 [OceIcon.LocalFireDepartment] 벡터로 렌더. **카피 note:** "좋은 시작이에요!"는 프로토타입 데모(초기 스트릭)
+ * 문구 — 높은 스트릭/비-첫세션 변형은 ux-writing 스펙 소유(TODO). 우선 실측 문구를 복원한다.
+ */
+@Composable
+private fun StreakCaption(streakDays: Int) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OneClickIcon(
+            icon = OceIcon.LocalFireDepartment,
+            contentDescription = null,
+            tint = OceTheme.colors.gameStreak,
+            size = StreakCaptionIconSize,
+        )
+        Text(
+            text = " ${streakDays}일째 — 좋은 시작이에요!",
+            style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** 적립 카드 열 사이 세로 hairline 구분선. */
+@Composable
+private fun MetricDivider() {
+    Box(
+        modifier =
+            Modifier
+                .width(1.dp)
+                .height(AccrualDividerHeight)
+                .background(MaterialTheme.colorScheme.outlineVariant),
+    )
+}
+
+/**
+ * ③ 하이라이트(가장 잘한 순간, ≤1) — 로컬 즉시. 프로토타입 realization-SoT: 카드 안 "✨ 가장 잘한 순간" 배지 pill +
+ * 사용자 발화(인용부호·강조) + 한국어 프롬프트. coaching 편승 보강은 M2-01 스키마 확정 후(#6).
+ */
 @Composable
 private fun HighlightSection(highlight: HighlightTurn) {
-    SectionScaffold(title = "가장 잘한 순간") {
+    SectionScaffold(title = "하이라이트") {
         OneClickCard {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(OceTheme.spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+                verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
             ) {
+                HighlightBadge()
                 Text(
-                    text = highlight.koreanPrompt,
+                    text = "“${highlight.userText}”",
+                    style = OceTheme.typography.body.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                // 설명줄 = rationale("왜 잘했는지", 프로토타입 정본). 미배선(null)이면 koreanPrompt 폴백(#6).
+                Text(
+                    text = highlight.rationale ?: highlight.koreanPrompt,
                     style = OceTheme.typography.helper,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = highlight.userText,
-                    style = OceTheme.typography.body,
-                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }
     }
 }
 
+/** "✨ 가장 잘한 순간" 배지 pill — brand 틴트 배경(alpha) + primary 텍스트. ✨는 이모지(사용자 요청). */
+@Composable
+private fun HighlightBadge() {
+    Text(
+        text = "✨ 가장 잘한 순간",
+        style = OceTheme.typography.tabActive,
+        color = MaterialTheme.colorScheme.primary,
+        modifier =
+            Modifier
+                .clip(OceTheme.shapes.pill)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = HIGHLIGHT_BADGE_ALPHA))
+                .padding(horizontal = OceTheme.spacing.md, vertical = OceTheme.spacing.xs),
+    )
+}
+
 /**
- * SSE 번들 영역(표현/단어/코칭). BundleLoading → 단일 스켈레톤(A6 polite). Sectioned → 섹션별 렌더.
- * QuotaBlocked → 중립 문구(재시도 없음).
+ * SSE 번들 상단부(표현/단어). BundleLoading → 단일 스켈레톤(A6 polite). Sectioned → 섹션별 렌더.
+ * QuotaBlocked → 중립 문구(재시도 없음). 코칭은 [CoachingArea] 로 화면 최하단에 별도 배치한다.
  */
 @Composable
 private fun SseBundle(
@@ -261,8 +407,21 @@ private fun SseBundle(
             ) {
                 ExpressionSection(bundle.expression, expanded, onRetry, savedExprIndices, onToggleSaveExpression)
                 WordSection(bundle.word, expanded, onRetry, savedWordIndices, onToggleSaveWord)
-                CoachingSection(bundle.coaching, onRetry)
             }
+    }
+}
+
+/**
+ * 코칭 영역 — 화면 **최하단**(북마크 뒤) 배치. bundle 이 Sectioned 일 때만 코칭 섹션을 렌더한다(로딩/한도 단계는
+ * 상단 [SseBundle] 스켈레톤·문구가 대표하므로 여기선 미표시).
+ */
+@Composable
+private fun CoachingArea(
+    bundle: SectionBundle,
+    onRetry: (SummarySection) -> Unit,
+) {
+    if (bundle is SectionBundle.Sectioned) {
+        CoachingSection(bundle.coaching, onRetry)
     }
 }
 
@@ -278,7 +437,7 @@ private fun ExpressionSection(
     savedIndices: Set<Int>,
     onToggleSave: (Int) -> Unit,
 ) {
-    SectionScaffold(title = "표현 개선") {
+    SectionScaffold(title = "표현 개선", count = sectionCount(stateOf)) {
         SectionBody(
             section = SummarySection.Expression,
             stateOf = stateOf,
@@ -304,7 +463,7 @@ private fun WordSection(
     savedIndices: Set<Int>,
     onToggleSave: (Int) -> Unit,
 ) {
-    SectionScaffold(title = "새로 만난 단어") {
+    SectionScaffold(title = "새로 만난 단어", count = sectionCount(stateOf)) {
         SectionBody(
             section = SummarySection.Word,
             stateOf = stateOf,
@@ -334,18 +493,38 @@ private fun CoachingSection(
                 RetryRow(SummarySection.Coaching, stateOf.canRetry, onRetry)
             is SummarySectionState.Ready ->
                 if (!stateOf.value.hasPositive && !stateOf.value.hasToImprove) {
-                    Text(
-                        text = "이번 세션은 코칭할 거리가 많지 않았어요. 잘 마쳤어요!",
-                        style = OceTheme.typography.helper,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    CoachingCard(background = OceTheme.colors.feedbackNaturalBg) {
+                        CoachingBlock(
+                            emoji = "👏",
+                            label = "잘 마쳤어요",
+                            accent = OceTheme.colors.feedbackNaturalAccent,
+                            body = "이번 세션은 코칭할 거리가 많지 않았어요. 잘 마쳤어요!",
+                        )
+                    }
                 } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md)) {
+                    // 잘한 점 / 다음엔 이렇게를 **각각 별도 색상 카드**로 분리한다(사용자 요청: 이모지 + 색).
+                    Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
                         if (stateOf.value.hasPositive) {
-                            CoachingBlock(label = "잘한 점", body = stateOf.value.positive)
+                            CoachingCard(background = OceTheme.colors.feedbackNaturalBg) {
+                                CoachingBlock(
+                                    emoji = "👍",
+                                    label = "잘한 점",
+                                    accent = OceTheme.colors.feedbackNaturalAccent,
+                                    body = stateOf.value.positive,
+                                )
+                            }
                         }
                         if (stateOf.value.hasToImprove) {
-                            CoachingBlock(label = "다음엔 이렇게", body = stateOf.value.toImprove)
+                            CoachingCard(
+                                background = MaterialTheme.colorScheme.primary.copy(alpha = COACHING_TIP_ALPHA),
+                            ) {
+                                CoachingBlock(
+                                    emoji = "💡",
+                                    label = "다음엔 이렇게",
+                                    accent = MaterialTheme.colorScheme.primary,
+                                    body = stateOf.value.toImprove,
+                                )
+                            }
                         }
                     }
                 }
@@ -353,10 +532,29 @@ private fun CoachingSection(
     }
 }
 
+/** 코칭 블록 1개를 색상 카드(틴트 배경 + radius16)로 감싼다. */
+@Composable
+private fun CoachingCard(
+    background: Color,
+    content: @Composable () -> Unit,
+) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(OceTheme.shapes.radius16)
+                .background(background)
+                .padding(OceTheme.spacing.lg),
+    ) {
+        content()
+    }
+}
+
 /** ⑦ 북마크 문장(≤8, 최신순) — 로컬 즉시. 빈 리스트면 빈 상태(M2-04 착지 전 기본). 저장 토글 표시 전용. */
 @Composable
 private fun BookmarkSection(bookmarks: List<BookmarkCard>) {
-    SectionScaffold(title = "북마크한 문장") {
+    val count = bookmarks.size.takeIf { it > 0 }?.let { "${it}개 · 최신순" }
+    SectionScaffold(title = "북마크한 문장", count = count) {
         if (bookmarks.isEmpty()) {
             OneClickEmptyState(
                 icon = OceIcon.BookmarkBorder,
@@ -367,19 +565,31 @@ private fun BookmarkSection(bookmarks: List<BookmarkCard>) {
             Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
                 bookmarks.forEach { card ->
                     OneClickCard {
-                        Column(
+                        Row(
                             modifier = Modifier.fillMaxWidth().padding(OceTheme.spacing.lg),
-                            verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+                            verticalAlignment = Alignment.Top,
                         ) {
-                            Text(
-                                text = card.english,
-                                style = OceTheme.typography.body,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Text(
-                                text = card.korean,
-                                style = OceTheme.typography.helper,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+                            ) {
+                                SentenceBadge()
+                                Text(
+                                    text = card.english,
+                                    style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    text = card.korean,
+                                    style = OceTheme.typography.helper,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            // 저장됨 표식(표시 전용) — 프로토타입 정합 골드(gameSaveGold 토큰).
+                            OneClickIcon(
+                                icon = OceIcon.Bookmark,
+                                contentDescription = null,
+                                tint = OceTheme.colors.gameSaveGold,
                             )
                         }
                     }
@@ -391,21 +601,37 @@ private fun BookmarkSection(bookmarks: List<BookmarkCard>) {
 
 // ---- 섹션 공통 헬퍼 ----
 
-/** 섹션 제목 + 본문 슬롯. */
+/** 섹션 제목(+선택 개수) + 본문 슬롯. 제목은 `summarySectionTitle`(800/16), 개수는 baseline 정렬 보조 라벨. */
 @Composable
 private fun SectionScaffold(
     title: String,
+    count: String? = null,
     content: @Composable () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
-        Text(
-            text = title,
-            style = OceTheme.typography.sectionLabel,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs)) {
+            Text(
+                text = title,
+                style = OceTheme.typography.summarySectionTitle,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.alignByBaseline(),
+            )
+            if (count != null) {
+                Text(
+                    text = count,
+                    style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.alignByBaseline(),
+                )
+            }
+        }
         content()
     }
 }
+
+/** 섹션 제목 옆 개수 라벨 — Ready 이고 비어있지 않을 때만 "N개"(그 외 미표시). */
+private fun <T> sectionCount(stateOf: SummarySectionState<List<T>>): String? =
+    (stateOf as? SummarySectionState.Ready)?.value?.size?.takeIf { it > 0 }?.let { "${it}개" }
 
 /** SSE 카드 섹션 본문 분기: Loading→스켈레톤, Failed→재시도, Ready(비었으면 빈 상태 / 아니면 [ready]). */
 @Composable
@@ -475,13 +701,38 @@ private fun <T> ExpandableCards(
             OneClickCard { card(index, item) }
         }
         if (items.size > COLLAPSED_PREVIEW) {
-            TextButton(onClick = { expanded[section] = !isExpanded }) {
-                Text(
-                    text = if (isExpanded) "접기" else "더 보기 (${items.size - COLLAPSED_PREVIEW})",
-                    style = OceTheme.typography.sectionLabel,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
+            MoreChevron(expanded = isExpanded, onToggle = { expanded[section] = !isExpanded })
+        }
+    }
+}
+
+/**
+ * "더 보기/접기" 어포던스 — 프로토타입 정합: 카드 스택 아래 중앙의 **원형 chevron 버튼**(흰 서피스 + hairline).
+ * [OceIcon.ExpandMore](아래 chevron) 를 접힘=정방향, 전개=180° 뒤집어 위 chevron 으로 표시. 프로토는 카드 위로
+ * 살짝 겹치나(오버랩) 여기선 중앙 배치로 근사(위치 잔차 note).
+ */
+@Composable
+private fun MoreChevron(
+    expanded: Boolean,
+    onToggle: () -> Unit,
+) {
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Box(
+            modifier =
+                Modifier
+                    .size(MoreChevronSize)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                    .clickable(onClick = onToggle),
+            contentAlignment = Alignment.Center,
+        ) {
+            OneClickIcon(
+                icon = OceIcon.ExpandMore,
+                contentDescription = if (expanded) "접기" else "더 보기",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.rotate(if (expanded) 180f else 0f),
+            )
         }
     }
 }
@@ -501,8 +752,9 @@ private fun SavableCardRow(
         verticalAlignment = Alignment.Top,
     ) {
         Box(modifier = Modifier.weight(1f)) { body() }
+        // 저장=골드(프로토타입 정합, gameSaveGold), 미저장=중립 보조색.
         val tint =
-            if (saved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+            if (saved) OceTheme.colors.gameSaveGold else MaterialTheme.colorScheme.onSurfaceVariant
         IconToggleButton(checked = saved, onCheckedChange = { onToggle() }) {
             OneClickIcon(
                 icon = if (saved) OceIcon.Bookmark else OceIcon.BookmarkBorder,
@@ -513,69 +765,134 @@ private fun SavableCardRow(
     }
 }
 
+/**
+ * 표현 개선 카드 본문 — 프로토타입/기록 탭 정합: 유형 pill 배지 + before(취소선) + 초록 → + after(볼드) + 설명.
+ * 스타일은 기록 [com.jjundev.oneclickeng.feature.records] SavedCardRow 의 CategoryBadge/StrikeHelperText/AfterLine
+ * 와 동일 규칙을 미러(패키지 private 라 재구현).
+ */
 @Composable
 private fun ExpressionCardBody(card: ExpressionCard) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(OceTheme.spacing.lg),
         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
     ) {
+        ExpressionBadge(card.type)
+        if (card.before.isNotBlank()) {
+            Text(
+                text = card.before,
+                style = OceTheme.typography.helper.copy(textDecoration = TextDecoration.LineThrough),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        ImprovedLine(card.after)
+        if (card.explanation.isNotBlank()) {
+            Text(
+                text = card.explanation,
+                style = OceTheme.typography.helper,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** 표현 유형 pill 배지(자연/정확) — 피드백 색 토큰 tint(기록 카드 CategoryBadge 정합). */
+@Composable
+private fun ExpressionBadge(type: ExpressionType) {
+    val accurate = type == ExpressionType.Accurate
+    Text(
+        text = if (accurate) "정확한 표현" else "자연스러운 표현",
+        style = OceTheme.typography.helper,
+        color = if (accurate) OceTheme.colors.feedbackCorrectAccent else OceTheme.colors.feedbackNaturalAccent,
+        modifier =
+            Modifier
+                .clip(OceTheme.shapes.pill)
+                .background(if (accurate) OceTheme.colors.feedbackCorrectBg else OceTheme.colors.feedbackNaturalBg)
+                .padding(horizontal = OceTheme.spacing.sm, vertical = OceTheme.spacing.xs),
+    )
+}
+
+/** 개선 표현 라인 = 초록 → + 굵은 결과(기록 카드 AfterLine 정합). */
+@Composable
+private fun ImprovedLine(text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+    ) {
         Text(
-            text = if (card.type == ExpressionType.Accurate) "정확한 표현" else "자연스러운 표현",
-            style = OceTheme.typography.helper,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            text = "→",
+            style = OceTheme.typography.body,
+            color = OceTheme.colors.feedbackNaturalAccent,
         )
         Text(
-            text = card.before,
-            style = OceTheme.typography.body,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = card.after,
-            style = OceTheme.typography.body,
+            text = text,
+            style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = card.explanation,
-            style = OceTheme.typography.helper,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
 
+/** 북마크 문장 배지 — 프로토타입 초록 "문장" pill. 앱 초록 토큰(feedbackCorrect) 재사용. */
+@Composable
+private fun SentenceBadge() {
+    Text(
+        text = "문장",
+        style = OceTheme.typography.helper,
+        color = OceTheme.colors.feedbackCorrectAccent,
+        modifier =
+            Modifier
+                .clip(OceTheme.shapes.pill)
+                .background(OceTheme.colors.feedbackCorrectBg)
+                .padding(horizontal = OceTheme.spacing.sm, vertical = OceTheme.spacing.xs),
+    )
+}
+
+/**
+ * 새 단어 카드 본문 — 프로토타입 단어 카드 정합(단순화): 단어(볼드)+뜻(보조색) + 예문 1줄(이탤릭·인용부호).
+ * 품사·레벨·예문 한글 번역은 프로토가 노출하지 않아 생략(하단 전체 정합 결정, 스펙 확정 시 복원 seam).
+ */
 @Composable
 private fun WordCardBody(card: WordCard) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(OceTheme.spacing.lg),
         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
     ) {
-        Text(
-            text = "${card.en} · ${card.ko}",
-            style = OceTheme.typography.body,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = "${card.partOfSpeech} · ${card.level}",
-            style = OceTheme.typography.helper,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = "${card.exampleEn}\n${card.exampleKo}",
-            style = OceTheme.typography.helper,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs)) {
+            Text(
+                text = card.en,
+                style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.alignByBaseline(),
+            )
+            Text(
+                text = card.ko,
+                style = OceTheme.typography.helper,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.alignByBaseline(),
+            )
+        }
+        if (card.exampleEn.isNotBlank()) {
+            Text(
+                text = "“${card.exampleEn}”",
+                style = OceTheme.typography.helper.copy(fontStyle = FontStyle.Italic),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
+/** 코칭 블록 — 이모지+라벨(색상 accent) + 본문. 라벨색은 카드 틴트와 어울리는 accent. */
 @Composable
 private fun CoachingBlock(
+    emoji: String,
     label: String,
+    accent: Color,
     body: String,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs)) {
         Text(
-            text = label,
-            style = OceTheme.typography.helper,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            text = "$emoji $label",
+            style = OceTheme.typography.helper.copy(fontWeight = FontWeight.Bold),
+            color = accent,
         )
         Text(
             text = body,
@@ -589,6 +906,24 @@ private const val HIGH_SCORE = 80
 private const val MID_SCORE = 50
 private const val COLLAPSED_PREVIEW = 3
 private const val SECONDS_PER_MINUTE = 60
+
+/** 적립 카드 지표 아이콘 크기(프로토타입 ~22sp). */
+private val AccrualIconSize = 22.dp
+
+/** 적립 카드 열 구분선 높이. */
+private val AccrualDividerHeight = 44.dp
+
+/** 스트릭 캡션 🔥 아이콘 크기. */
+private val StreakCaptionIconSize = 16.dp
+
+/** 코칭 "다음엔 이렇게" 팁 카드 배경 브랜드색 알파(연한 톤). */
+private const val COACHING_TIP_ALPHA = 0.10f
+
+/** "더 보기" 원형 chevron 버튼 크기. */
+private val MoreChevronSize = 40.dp
+
+/** 하이라이트 배지 pill 배경 브랜드색 알파(연한 톤 — OceBottomNav 활성 pill 선례와 정합). */
+private const val HIGHLIGHT_BADGE_ALPHA = 0.12f
 
 // ---- Previews (프로토타입 summary/summaryRich 대조용) ----
 
@@ -643,18 +978,18 @@ private val previewRichBundle =
     )
 
 @Suppress("UnusedPrivateMember")
-@Preview(name = "accrualStrip", showBackground = true, widthDp = 360)
+@Preview(name = "accrualCard", showBackground = true, widthDp = 360)
 @Composable
-private fun AccrualStripPreview() {
+private fun AccrualCardPreview() {
     OceTheme {
         Column(
             modifier = Modifier.padding(OceTheme.spacing.lg),
             verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.lg),
         ) {
             // 첫 세션(롤업): streak 0→7, 학습시간 0→12분, XP 0→120.
-            AccrualStripBlock(previewAccrual)
+            AccrualCard(previewAccrual)
             // same-day 2번째(streak 정적, 학습시간·XP 롤): 12분→18분.
-            AccrualStripBlock(
+            AccrualCard(
                 AccrualStrip(
                     streakDays = 7,
                     xp = 120,
@@ -677,7 +1012,13 @@ private fun SummaryRichPreview() {
             state =
                 SummaryState(
                     totalScore = 85,
-                    highlight = HighlightTurn("커피 주세요", "Could I grab a coffee?", 92),
+                    highlight =
+                        HighlightTurn(
+                            koreanPrompt = "커피 주세요",
+                            userText = "Could I grab a coffee?",
+                            score = 92,
+                            rationale = "정중하게 부탁하는 표현을 스스로 골라 말했어요.",
+                        ),
                     bookmarks = listOf(BookmarkCard("I got lost on the way.", "오는 길에 길을 잃었어요.")),
                     accrual = previewAccrual,
                     bundle = previewRichBundle,
@@ -699,7 +1040,13 @@ private fun SummaryLoadingPreview() {
             state =
                 SummaryState(
                     totalScore = 85,
-                    highlight = HighlightTurn("커피 주세요", "Could I grab a coffee?", 92),
+                    highlight =
+                        HighlightTurn(
+                            koreanPrompt = "커피 주세요",
+                            userText = "Could I grab a coffee?",
+                            score = 92,
+                            rationale = "정중하게 부탁하는 표현을 스스로 골라 말했어요.",
+                        ),
                     bookmarks = emptyList(),
                     accrual = previewAccrual,
                     bundle = SectionBundle.BundleLoading,

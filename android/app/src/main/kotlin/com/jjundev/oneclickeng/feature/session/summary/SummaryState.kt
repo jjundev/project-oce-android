@@ -97,11 +97,17 @@ fun <T> SummarySectionState<T>.readyValueOrNull(): T? =
 
 // ---- 도메인 모델 ----
 
-/** 하이라이트(가장 잘한 순간) base — slim 최고점 턴 1개. */
+/**
+ * 하이라이트(가장 잘한 순간) base — slim 최고점 턴 1개.
+ *
+ * [rationale] = "왜 잘했는지" 한 줄 설명(프로토타입 realization-SoT: 카드 하단 설명줄). 요약 백엔드/스키마
+ * (M2-01)가 아직 미배선이라 nullable — 값이 있으면 표시, 없으면 [koreanPrompt]로 폴백한다(#6 coaching 편승).
+ */
 data class HighlightTurn(
     val koreanPrompt: String,
     val userText: String,
     val score: Int,
+    val rationale: String? = null,
 )
 
 /** 표현 개선 카드(≤8). [type] 로 "자연스러운/정확한 표현" 라벨을 고른다. 저장 토글 표시 전용(M2-04). */
