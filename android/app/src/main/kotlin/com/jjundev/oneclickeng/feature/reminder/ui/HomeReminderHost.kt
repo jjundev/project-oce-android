@@ -84,15 +84,24 @@ fun HomeReminderHost(viewModel: HomeReminderViewModel = hiltViewModel()) {
     }
 
     if (showPriming) {
+        // 프로토 권한 priming 시트 카피 정합(🔔 + 허용 안내 + 🔒 안심 박스 + 계속/다음에).
+        // "허용"은 볼드 강조(프로토 <b>허용</b>), 문장별 줄바꿈으로 정리.
         OneClickPermissionPrimingSheet(
-            icon = OceIcon.Schedule,
-            rationale = "정한 시각에 오늘 학습을 살짝 알려드려요. 언제든 설정에서 끌 수 있어요.",
+            icon = OceIcon.Notifications,
+            rationale =
+                "다음 화면에서 허용을 눌러주세요.\n" +
+                    "매일 정한 시각에 학습 리마인더만 보내드려요.\n" +
+                    "광고나 다른 알림은 없어요.",
+            emphasis = "허용",
             onRequest = {
                 showPriming = false
                 permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             },
             onLater = { showPriming = false },
-            title = "알림을 허용할까요?",
+            title = "알림을 보내도 될까요?",
+            requestLabel = "계속",
+            laterLabel = "다음에",
+            assurance = "거부해도 학습에는 아무 영향이 없어요.",
         )
     }
 

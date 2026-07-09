@@ -192,6 +192,7 @@ private fun ScaffoldDock(
         Button(
             onClick = onSubmitStub,
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            shape = OceTheme.shapes.radius12,
             colors =
                 ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,

@@ -29,9 +29,10 @@ object VennColorGuard {
     private const val MIN_SIDE_COLOR_DISTANCE = 50.0
     private const val MIN_INTERSECTION_COLOR_DISTANCE = 40.0
 
-    // 고정 팔레트(레거시 FALLBACK_* — 모델 색 부재 시 시작점). 불투명 ARGB.
-    private const val FALLBACK_LEFT = 0xFF439B79.toInt()
-    private const val FALLBACK_RIGHT = 0xFF448DEB.toInt()
+    // 고정 팔레트(모델 색 부재 시 시작점). 프로토 정합: 좌=브랜드 파랑(vennLeft: brand-primary),
+    // 우=자연스러움 초록(vennRight: feedback-natural-accent). 불투명 ARGB.
+    private const val FALLBACK_LEFT = 0xFF448DEB.toInt()
+    private const val FALLBACK_RIGHT = 0xFF439B79.toInt()
     private const val FALLBACK_INTERSECTION = 0xFFB869F7.toInt()
 
     /**

@@ -50,6 +50,8 @@ class SummaryScreenshotTest {
                         onRetry = {},
                         onToggleSaveWord = {},
                         onToggleSaveExpression = {},
+                        // 고정 "완료" 풋터가 항상 하단에 보이는지 캡처(프로토 flex:none 풋터 정합).
+                        onDone = {},
                     )
                 }
             }

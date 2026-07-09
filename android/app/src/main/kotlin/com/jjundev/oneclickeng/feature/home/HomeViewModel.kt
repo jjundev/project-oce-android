@@ -1,11 +1,16 @@
 package com.jjundev.oneclickeng.feature.home
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jjundev.oneclickeng.core.auth.AuthRepository
+import com.jjundev.oneclickeng.core.auth.ProfileRepository
 import com.jjundev.oneclickeng.core.connectivity.Connectivity
 import com.jjundev.oneclickeng.core.connectivity.ConnectivityObserver
 import com.jjundev.oneclickeng.feature.gamification.GamificationTime
 import com.jjundev.oneclickeng.feature.gamification.data.StudytimeStore
+import com.jjundev.oneclickeng.feature.home.topic.Topic
+import com.jjundev.oneclickeng.feature.home.topic.TopicCatalog
 import com.jjundev.oneclickeng.feature.session.resume.SessionLimitHolder
 import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,30 +24,64 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * 홈 탭 상태 소유자(M3-08). 학습 시작 허브의 낮은 비중 보조들을 조립한다:
+ * 홈 탭 상태 소유자(M3-08 → 프로토 홈 허브 정합). 학습 시작 허브의 상태를 조립한다:
  * - 게임화 스트립: [StudytimeStore.snapshot] (suspend) → 오늘 학습시간 라벨 + streak.
  * - 오프라인: [ConnectivityObserver] (M4-04 단일 연결성 소스) → Boolean 파생(CTA 비활성 + 글로벌 배너).
  * - 미완 복귀: [SessionSnapshotStore.recoverable] (durable, §2.5).
  * - at-limit: [SessionLimitHolder.freshRemaining] (fresh==0 일 때만 고지, unknown→억제).
- *
- * 접힌 세션 설정의 기본 레벨은 홈이 아니라 설정 화면([com.jjundev.oneclickeng.feature.home.settings.SessionSettingsViewModel])이
- * 직접 `profile.level` 을 해소한다(#6) — 홈 CTA 는 레벨을 실어 보내지 않아 미해소 중 누출이 없다.
+ * - 세션 설정(프로토 인라인 패널): 레벨은 `profile.level` 을 **홈 VM 이 직접** 해소한다(#6 이관 —
+ *   세션 설정 화면 폐기로 해소 주체가 홈으로 왔다. null 동안 시작 차단 → easy 누출 없음). 길이 기본 5턴.
+ * - 선택 상황(프로토 selectedTopic): 히어로에 실리는 상황. 기본=오늘 추천 1순위. 시트/추천 행이 갱신.
+ * - 추천 상황: [TopicCatalog.recommended] 결정적 순환(KST epochDay + 새로고침 카운트) 5개 중 선택 상황을
+ *   제외한 4개(프로토: 히어로=선택 상황, 리스트=나머지).
  *
  * [limitHolder] 를 주입하는 것만으로 그 Singleton 이 인스턴스화돼 코디네이터 상태 관측을 시작한다 — 홈은
  * 부트 시작 목적지라 어떤 생성 시도보다 먼저 살아있다.
  */
+@Suppress("LongParameterList") // DI: 허브 상태 소스 5종 + profile.level 해소(#6 이관, 세션 설정 화면 폐기) 조립.
 @HiltViewModel
 class HomeViewModel
     @Inject
     constructor(
         private val studytimeStore: StudytimeStore,
         connectivity: ConnectivityObserver,
-        snapshotStore: SessionSnapshotStore,
+        private val snapshotStore: SessionSnapshotStore,
         limitHolder: SessionLimitHolder,
+        private val authRepository: AuthRepository,
+        private val profileRepository: ProfileRepository,
         private val analytics: HomeAnalytics,
     ) : ViewModel() {
         /** 게임화 스냅샷(라벨+streak). null=미로딩. suspend 읽기라 flow 로 승격해 combine 에 넣는다. */
         private val gamification = MutableStateFlow<Gamification?>(null)
+
+        /** profile.level 해소값(#6). null=미해소(시작 차단), 사용자가 세그먼트로 바꾸면 override 가 우선. */
+        private val defaultLevel = MutableStateFlow<String?>(null)
+        private val levelOverride = MutableStateFlow<String?>(null)
+        private val length = MutableStateFlow(DEFAULT_LENGTH)
+
+        /** 오늘의 추천 회전 키(KST) — 같은 날 같은 창, 새로고침이 창을 전진시킨다(TopicCatalog.recommended). */
+        private val dayIndex: Long = GamificationTime.kstEpochDay(System.currentTimeMillis())
+        private val refreshCount = MutableStateFlow(0)
+
+        /** 선택 상황(프로토 selectedTopic). 기본=오늘 추천 1순위. */
+        private val selected =
+            MutableStateFlow(TopicCatalog.recommended(dayIndex, 0, RECOMMEND_POOL).first().toSelected())
+
+        private val sessionSetup =
+            combine(defaultLevel, levelOverride, length, refreshCount, selected) {
+                default, override, len, refresh, sel ->
+                SessionSetup(
+                    level = override ?: default,
+                    length = len,
+                    selected = sel,
+                    situations =
+                        TopicCatalog
+                            .recommended(dayIndex, refresh, RECOMMEND_POOL)
+                            .filter { it.id != sel.topicId }
+                            .take(RECOMMEND_VISIBLE)
+                            .map { HomeSituation(it.id, it.titleKo, it.icon, it.promptSeed) },
+                )
+            }
 
         val uiState: StateFlow<HomeUiState> =
             combine(
@@ -50,7 +89,8 @@ class HomeViewModel
                 snapshotStore.recoverable,
                 limitHolder.freshRemaining,
                 gamification,
-            ) { online, resume, remaining, gami ->
+                sessionSetup,
+            ) { online, resume, remaining, gami, setup ->
                 HomeUiState(
                     studyTimeLabel = gami?.studyTimeLabel,
                     streak = gami?.streak ?: 0,
@@ -58,6 +98,10 @@ class HomeViewModel
                     hasResume = resume,
                     // fresh remaining 이 관측됐고(non-null) 그 값이 0 일 때만 at-limit(H6, unknown→억제).
                     atLimit = remaining == 0,
+                    level = setup.level,
+                    length = setup.length,
+                    selectedSituation = setup.selected,
+                    situations = setup.situations,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), HomeUiState())
 
@@ -71,6 +115,13 @@ class HomeViewModel
                         streak = snapshot.streak,
                     )
             }
+            viewModelScope.launch {
+                val level =
+                    runCatching { authRepository.currentUid?.let { profileRepository.readLevel(it) } }
+                        .onFailure { Log.d(TAG, "readLevel failed — defaulting easy: ${it.message}") }
+                        .getOrNull()
+                defaultLevel.value = level ?: FALLBACK_LEVEL
+            }
         }
 
         /** CTA 탭 계측(내비는 소비처 람다가 소유). */
@@ -78,16 +129,64 @@ class HomeViewModel
 
         fun onResumeContinue() = analytics.resumeContinue()
 
-        fun onResumeStartNew() = analytics.resumeStartNew()
+        /** "+ 새 대화 시작"(프로토 discardSnapshot) — 스냅샷 폐기로 홈을 새 대화 모드로 되돌린다(내비 없음). */
+        fun onResumeStartNew() {
+            analytics.resumeStartNew()
+            viewModelScope.launch { snapshotStore.clear() }
+        }
 
         fun onOfflineBlocked() = analytics.offlineBlocked()
+
+        fun setLevel(level: String) {
+            levelOverride.value = level
+        }
+
+        fun setLength(turns: Int) {
+            length.value = turns
+        }
+
+        /** 시트/추천 행에서 카탈로그 상황 선택(프로토 pickTopic·startTopic 공용 선택 갱신). */
+        fun selectSituation(topic: Topic) {
+            selected.value = topic.toSelected()
+        }
+
+        /** 카탈로그 id 로 상황 선택 — 시트/추천 행 콜백용(미지 id 는 무시). */
+        fun selectSituationById(id: String) {
+            TopicCatalog.ALL.firstOrNull { it.id == id }?.let { selected.value = it.toSelected() }
+        }
+
+        /** 직접 입력 상황 선택(프로토 pickCustom) — 입력 원문이 라벨이자 promptSeed. */
+        fun selectCustomSituation(text: String) {
+            selected.value = SelectedSituation(topicId = null, labelKo = text, promptSeed = text)
+        }
+
+        /** 추천 새로고침(프로토 refreshRecs) — 결정적 창 전진. */
+        fun refreshSituations() {
+            refreshCount.value += 1
+        }
 
         private data class Gamification(
             val studyTimeLabel: String,
             val streak: Int,
         )
 
+        private data class SessionSetup(
+            val level: String?,
+            val length: Int,
+            val selected: SelectedSituation,
+            val situations: List<HomeSituation>,
+        )
+
         private companion object {
+            const val TAG = "HomeViewModel"
             const val STOP_TIMEOUT_MS = 5_000L
+            const val DEFAULT_LENGTH = 5
+            const val FALLBACK_LEVEL = "easy"
+
+            /** 추천 풀 5개 → 선택 상황 제외 후 4개 노출(프로토 홈 리스트 행 수). */
+            const val RECOMMEND_POOL = 5
+            const val RECOMMEND_VISIBLE = 4
+
+            fun Topic.toSelected() = SelectedSituation(topicId = id, labelKo = titleKo, promptSeed = promptSeed)
         }
     }

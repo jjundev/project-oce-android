@@ -69,7 +69,7 @@ class AppNavigationTest {
                 androidx.compose.foundation.layout.Column {
                     OceNavHost(
                         navController = navController,
-                        onStartLearning = {},
+                        onStartSession = { _, _, _ -> },
                         onResume = {},
                         reduceMotion = true,
                     )

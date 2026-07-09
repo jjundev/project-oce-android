@@ -105,6 +105,7 @@ internal fun BlockingGateScaffold(
                     Button(
                         onClick = action.onClick,
                         modifier = Modifier.fillMaxWidth(),
+                        shape = OceTheme.shapes.radius12,
                         colors =
                             ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,

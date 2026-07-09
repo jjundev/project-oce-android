@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jjundev.oneclickeng.feature.reminder.ReminderOrchestrator
 import com.jjundev.oneclickeng.feature.reminder.ReminderPromptDecision
+import com.jjundev.oneclickeng.ui.component.REMINDER_DEFAULT_HOUR
+import com.jjundev.oneclickeng.ui.component.REMINDER_DEFAULT_MINUTE
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,9 +14,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** [HomeReminderHost] 가 관측하는 opt-in 시트 노출 상태. */
+/**
+ * [HomeReminderHost]/홈이 관측하는 리마인더 UI 상태 — opt-in 시트 + 켜짐 확인 배너(프로토 reminderBanner).
+ * [hour]/[minute] 는 배너 시각 안내용 표시 상태(저장 정본은 [ReminderOrchestrator] 소유).
+ */
 data class HomeReminderUiState(
     val showOptInSheet: Boolean = false,
+    val showEnabledBanner: Boolean = false,
+    val hour: Int = REMINDER_DEFAULT_HOUR,
+    val minute: Int = REMINDER_DEFAULT_MINUTE,
 )
 
 /**
@@ -56,8 +64,9 @@ class HomeReminderViewModel
             }
         }
 
-        /** 권한 확보 후(또는 <33 즉시) 리마인더 켜기 + 예약 + 참여 계측. */
+        /** 권한 확보 후(또는 <33 즉시) 리마인더 켜기 + 예약 + 참여 계측 + 켜짐 확인 배너(프로토) 노출. */
         fun enableReminder() {
+            _uiState.update { it.copy(showEnabledBanner = true) }
             viewModelScope.launch {
                 reminderOrchestrator.enableReminder()
             }
@@ -67,10 +76,16 @@ class HomeReminderViewModel
             viewModelScope.launch { reminderOrchestrator.disableReminder() }
         }
 
+        /** 배너 X 닫기 — 표시 상태만 해제(리마인더는 켜진 채 유지). */
+        fun dismissEnabledBanner() {
+            _uiState.update { it.copy(showEnabledBanner = false) }
+        }
+
         fun setReminderTime(
             hour: Int,
             minute: Int,
         ) {
+            _uiState.update { it.copy(hour = hour, minute = minute) }
             viewModelScope.launch { reminderOrchestrator.setReminderTime(hour, minute) }
         }
 

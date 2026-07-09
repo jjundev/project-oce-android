@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
@@ -56,10 +57,10 @@ private val ReminderTrimmedLineHeight =
 
 /**
  * C19 리마인더 opt-in 시트 = [OneClickBottomSheet] 재사용. 정본: 02-shared-components.md:135 ·
- * notification-reminder.md §2.
+ * notification-reminder.md §2 · 프로토 스트릭 넛지 시트(카피·시각 정합).
  *
- * 2번째 세션 완주 후 홈에서 **1회** 노출(노출 정책은 소비처 소유). 아이콘 + 카피 + `알림 받기`(primary)/
- * `다음에`(ghost). opt-in 시 실제 권한 priming 은 C13 연계로 소비처가 잇는다.
+ * 2번째 세션 완주 후 홈에서 **1회** 노출(노출 정책은 소비처 소유). 스트릭 틴트 박스 안 🔥 벡터 + 카피 +
+ * `알림 받기`(primary)/`다음에`(ghost). opt-in 시 실제 권한 priming 은 C13 연계로 소비처가 잇는다.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,58 +71,96 @@ fun OneClickReminderOptInSheet(
 ) {
     val headerFocus = remember { FocusRequester() }
     OneClickBottomSheet(onDismissRequest = onLater, modifier = modifier) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(OceTheme.spacing.sheetPadding),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
-        ) {
-            OneClickIcon(
-                icon = OceIcon.Schedule,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                size = OceIconSize.EmptyState,
-            )
-            Text(
-                text = "매일 학습 알림을 받을까요?",
-                style = OceTheme.typography.dialogHeader,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier =
-                    Modifier
-                        .focusRequester(headerFocus)
-                        .focusable(),
-            )
-            Text(
-                text = "정한 시각에 살짝 알려드릴게요. 언제든 설정에서 끌 수 있어요.",
-                style = OceTheme.typography.body,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Button(
-                onClick = onOptIn,
-                modifier = Modifier.fillMaxWidth(),
-                colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
-            ) {
-                Text(text = "알림 받기", style = OceTheme.typography.sectionLabel)
-            }
-            TextButton(onClick = onLater) {
-                Text(
-                    text = "다음에",
-                    style = OceTheme.typography.sectionLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+        OneClickReminderOptInSheetContent(
+            onOptIn = onOptIn,
+            onLater = onLater,
+            headerFocus = headerFocus,
+        )
     }
 
     // A5: 진입 시 헤더로 포커스 이동(스크린리더가 시트 콘텐츠부터 announce). 닫힘 복귀는 M3 모달 스코프.
     LaunchedEffect(Unit) { headerFocus.requestFocus() }
 }
+
+/** 시트 콘텐츠(stateless) — ModalBottomSheet 래핑 없이 렌더하는 스크린샷·프리뷰 seam. */
+@Composable
+internal fun OneClickReminderOptInSheetContent(
+    onOptIn: () -> Unit,
+    onLater: () -> Unit,
+    modifier: Modifier = Modifier,
+    headerFocus: FocusRequester = remember { FocusRequester() },
+) {
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(OceTheme.spacing.sheetPadding),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
+    ) {
+        // 프로토: 스트릭 틴트(radius16) 박스 안 🔥. 이모지 미사용(P16) — 스트릭 벡터로 동일 인상.
+        Box(
+            modifier =
+                Modifier
+                    .size(OPTIN_ICON_BOX)
+                    .clip(OceTheme.shapes.radius16)
+                    .background(OceTheme.colors.gameStreak.copy(alpha = OPTIN_ICON_BG_ALPHA)),
+            contentAlignment = Alignment.Center,
+        ) {
+            OneClickIcon(
+                icon = OceIcon.LocalFireDepartment,
+                contentDescription = null,
+                tint = OceTheme.colors.gameStreak,
+                size = OPTIN_ICON_SIZE,
+            )
+        }
+        Text(
+            text = "내일도 이어가도록 살짝 알려드릴까요?",
+            style = OceTheme.typography.dialogHeader,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier =
+                Modifier
+                    .focusRequester(headerFocus)
+                    .focusable(),
+        )
+        Text(
+            text = "부담 없이, 하루 한 번만 살짝 알려드려요.",
+            style = OceTheme.typography.body,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Button(
+            onClick = onOptIn,
+            modifier = Modifier.fillMaxWidth().height(SheetPrimaryHeight),
+            shape = OceTheme.shapes.radius12,
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+        ) {
+            Text(text = "알림 받기", style = OceTheme.typography.sectionLabel)
+        }
+        TextButton(
+            onClick = onLater,
+            modifier = Modifier.fillMaxWidth().height(SheetGhostHeight),
+        ) {
+            Text(
+                text = "다음에",
+                style = OceTheme.typography.sectionLabel,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** opt-in 시트 🔥 틴트 박스 크기/아이콘/알파(프로토 60px 박스·30px 글리프·tint-streak). */
+private val OPTIN_ICON_BOX = 60.dp
+private val OPTIN_ICON_SIZE = 30.dp
+private const val OPTIN_ICON_BG_ALPHA = 0.12f
+
+/** 시트 버튼 높이(프로토 Button primary 52px / ghost 48px 통일). */
+internal val SheetPrimaryHeight = 52.dp
+internal val SheetGhostHeight = 48.dp
 
 /**
  * C19 리마인더 설정 행 = [OneClickSwitch] + 조건부 [OneClickTimePickerDialog](C10). 정본:

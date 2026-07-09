@@ -47,6 +47,7 @@ fun OneClickResumePrompt(
             ) {
                 Button(
                     onClick = onResume,
+                    shape = OceTheme.shapes.radius12,
                     colors =
                         ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,

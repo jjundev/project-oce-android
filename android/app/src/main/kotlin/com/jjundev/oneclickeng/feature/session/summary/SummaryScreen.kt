@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -17,6 +18,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -40,6 +43,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.jjundev.oneclickeng.ui.component.InlineErrorMode
+import com.jjundev.oneclickeng.ui.component.OneClickConfettiBurst
 import com.jjundev.oneclickeng.ui.component.OneClickCountUp
 import com.jjundev.oneclickeng.ui.component.OneClickEmptyState
 import com.jjundev.oneclickeng.ui.component.OneClickInlineError
@@ -71,34 +75,76 @@ fun SummaryScreen(
     onToggleSaveWord: (Int) -> Unit,
     onToggleSaveExpression: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    onDone: (() -> Unit)? = null,
+    doneLabel: String = "완료",
 ) {
     // "더 보기" 접힘 상태(#15): 섹션별 독립, 초기 접힘. 기본 표시 [COLLAPSED_PREVIEW]개.
     val expanded = remember { mutableStateMapOf<SummarySection, Boolean>() }
 
-    Column(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(OceTheme.spacing.sheetPadding),
-        verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sectionGap),
-    ) {
-        SummaryTitleBar()
-        ScoreHero(state.totalScore, state.isFirstSession)
-        AccrualCard(state.accrual)
-        StreakCaption(state.accrual.streakDays)
-        state.highlight?.let { HighlightSection(it) }
-        SseBundle(
-            bundle = state.bundle,
-            expanded = expanded,
-            onRetry = onRetry,
-            savedWordIndices = state.savedWordIndices,
-            savedExprIndices = state.savedExprIndices,
-            onToggleSaveWord = onToggleSaveWord,
-            onToggleSaveExpression = onToggleSaveExpression,
-        )
-        BookmarkSection(state.bookmarks)
-        CoachingArea(bundle = state.bundle, onRetry = onRetry)
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // 스크롤 콘텐츠(위) — weight 로 남은 높이를 채우고, 완료 풋터는 하단 고정(프로토 flex:none 풋터).
+            Column(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(OceTheme.spacing.sheetPadding),
+                verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sectionGap),
+            ) {
+                SummaryTitleBar()
+                ScoreHero(state.totalScore, state.isFirstSession)
+                AccrualCard(state.accrual)
+                StreakCaption(state.accrual.streakDays)
+                state.highlight?.let { HighlightSection(it) }
+                SseBundle(
+                    bundle = state.bundle,
+                    expanded = expanded,
+                    onRetry = onRetry,
+                    savedWordIndices = state.savedWordIndices,
+                    savedExprIndices = state.savedExprIndices,
+                    onToggleSaveWord = onToggleSaveWord,
+                    onToggleSaveExpression = onToggleSaveExpression,
+                )
+                BookmarkSection(state.bookmarks)
+                CoachingArea(bundle = state.bundle, onRetry = onRetry)
+            }
+            // 완료 풋터 — 항상 화면 하단에 고정(스크롤과 무관, 프로토 정합). [onDone] null(온보딩 첫 세션의
+            // GoogleSavePromptSheet 오버레이 케이스)이면 미표시.
+            if (onDone != null) {
+                SummaryDoneFooter(label = doneLabel, onDone = onDone)
+            }
+        }
+        // 진입 폭죽(프로토 fireConfetti) — 점수 있을 때만, 장식 오버레이(입력 미차단·reduce-motion 미발사).
+        if (state.totalScore != null) {
+            OneClickConfettiBurst(modifier = Modifier.matchParentSize())
+        }
+    }
+}
+
+/** 고정 완료 풋터(프로토 flex:none 하단 바) — 상단 hairline + 흰 배경 + primary 52dp 버튼. */
+@Composable
+private fun SummaryDoneFooter(
+    label: String,
+    onDone: () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Button(
+            onClick = onDone,
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = OceTheme.spacing.xl,
+                        vertical = OceTheme.spacing.lg,
+                    )
+                    .height(DoneButtonHeight),
+            shape = OceTheme.shapes.radius12,
+        ) {
+            Text(text = label, style = OceTheme.typography.sectionLabel)
+        }
     }
 }
 
@@ -132,20 +178,30 @@ private fun ScoreHero(
     ) {
         if (totalScore != null) {
             Text(
-                text = encouragement(totalScore, isFirstSession),
+                // 프로토 summaryTitle: 온보딩(첫 세션) / 일반 변형(점수 비의존).
+                text = if (isFirstSession) "영어로 첫 대화를 끝냈어요!" else "오늘도 해냈어요!",
                 style = OceTheme.typography.summaryHeadline,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
             )
-            // 가이드 부제(프로토타입 realization-SoT · 600w 13sp). 카피는 스펙/ux-writing 소유 — 실측 문구 그대로 복원.
+            // 가이드 부제(프로토 summarySub) — 첫 세션/일반 변형.
             Text(
-                text = "짧아도 진짜 영어로 말한 거예요. 아래에서 오늘의 수확을 확인해보세요.",
+                text =
+                    if (isFirstSession) {
+                        "짧아도 진짜 영어로 말한 거예요. 아래에서 오늘의 수확을 확인해보세요."
+                    } else {
+                        "탄탄한 문장이 많았어요. 아래에서 오늘의 수확을 확인해보세요."
+                    },
                 style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
-            Text(
-                text = totalScore.toString(),
+            // 프로토 scoreVal 카운트업(0→점수) — reduce-motion 스냅은 OneClickCountUp 내부(F4).
+            OneClickCountUp(
+                target = totalScore,
+                from = 0,
+                unit = "",
+                static = false,
                 style = OceTheme.typography.scoreDisplay,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = OceTheme.spacing.md),
@@ -170,29 +226,6 @@ private fun ScoreHero(
         }
     }
 }
-
-/**
- * 격려 1차 카피(위계: 격려 우선, 점수 보조 — ux-writing). 비난 없음, 해요체. 온보딩 첫 세션([isFirstSession])은
- * 일반 세션보다 더 따뜻한 변형을 쓴다(01-onboarding §8 "첫 세션 피드백은 일반 세션보다 더 따뜻하게").
- */
-private fun encouragement(
-    score: Int,
-    isFirstSession: Boolean,
-): String =
-    if (isFirstSession) {
-        when {
-            // 프로토타입 realization-SoT 헤드라인 문구와 동일(첫 세션 완주 축하). 스펙/ux-writing 확정 대상.
-            score >= HIGH_SCORE -> "영어로 첫 대화를 끝냈어요!"
-            score >= MID_SCORE -> "첫 대화를 멋지게 해냈어요. 시작이 반이에요, 잘하고 있어요."
-            else -> "첫 영어 대화를 끝까지 해냈어요. 이게 가장 큰 한 걸음이에요."
-        }
-    } else {
-        when {
-            score >= HIGH_SCORE -> "정말 잘했어요! 오늘 표현이 자연스러웠어요."
-            score >= MID_SCORE -> "좋아요, 꾸준히 늘고 있어요."
-            else -> "끝까지 해낸 게 가장 중요해요. 계속 가봐요."
-        }
-    }
 
 /**
  * ② 적립 카드 — 종합 점수와 **별도 블록**(같은 행 금지, gamification §4.2). 프로토타입 realization-SoT: 칩 나열이
@@ -283,12 +316,13 @@ private fun AccrualMetric(
 }
 
 /**
- * 스트릭 캡션 — 적립 카드 아래 중앙(프로토타입 realization-SoT). 🔥 아이콘 + "N일째 — {격려}". 이모지 미사용(P16)
- * 이라 [OceIcon.LocalFireDepartment] 벡터로 렌더. **카피 note:** "좋은 시작이에요!"는 프로토타입 데모(초기 스트릭)
- * 문구 — 높은 스트릭/비-첫세션 변형은 ux-writing 스펙 소유(TODO). 우선 실측 문구를 복원한다.
+ * 스트릭 캡션 — 적립 카드 아래 중앙(프로토 streakLine). 🔥 아이콘 + "N일째 — {격려}". 이모지 미사용(P16)
+ * 이라 [OceIcon.LocalFireDepartment] 벡터로 렌더. 격려 변형은 프로토 데모 2종(1일=좋은 시작 / 7일=일주일
+ * 완성)을 스트릭 구간으로 일반화한다(그 외 구간 카피는 ux-writing 스펙 확정 대상).
  */
 @Composable
 private fun StreakCaption(streakDays: Int) {
+    val cheer = if (streakDays >= WEEK_STREAK) "일주일 완성했어요!" else "좋은 시작이에요!"
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
@@ -301,7 +335,7 @@ private fun StreakCaption(streakDays: Int) {
             size = StreakCaptionIconSize,
         )
         Text(
-            text = " ${streakDays}일째 — 좋은 시작이에요!",
+            text = " ${streakDays}일째 — $cheer",
             style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -437,7 +471,7 @@ private fun ExpressionSection(
     savedIndices: Set<Int>,
     onToggleSave: (Int) -> Unit,
 ) {
-    SectionScaffold(title = "표현 개선", count = sectionCount(stateOf)) {
+    SectionScaffold(title = "자연스러운 표현", count = sectionCount(stateOf)) {
         SectionBody(
             section = SummarySection.Expression,
             stateOf = stateOf,
@@ -463,7 +497,7 @@ private fun WordSection(
     savedIndices: Set<Int>,
     onToggleSave: (Int) -> Unit,
 ) {
-    SectionScaffold(title = "새로 만난 단어", count = sectionCount(stateOf)) {
+    SectionScaffold(title = "새 단어", count = sectionCount(stateOf)) {
         SectionBody(
             section = SummarySection.Word,
             stateOf = stateOf,
@@ -480,7 +514,11 @@ private fun WordSection(
     }
 }
 
-/** ⑥ 코칭(잘한 점/개선점) — 빈 문자열 블록은 숨김(Rule 4). Failed 재시도. */
+/**
+ * ⑥ 코칭(잘한 점/다음에 다듬을 점) — 프로토 정합: **흰 카드 1장** 안에 두 블록(✨잘한 점 → hairline 구분선 →
+ * 다듬을 점)을 담는다. 각 블록은 아이콘+색상 라벨 + 본문 줄들(개행 분리). 빈 문자열 블록은 숨김(Rule 4).
+ * Failed 재시도.
+ */
 @Composable
 private fun CoachingSection(
     stateOf: SummarySectionState<Coaching>,
@@ -492,36 +530,41 @@ private fun CoachingSection(
             is SummarySectionState.Failed ->
                 RetryRow(SummarySection.Coaching, stateOf.canRetry, onRetry)
             is SummarySectionState.Ready ->
-                if (!stateOf.value.hasPositive && !stateOf.value.hasToImprove) {
-                    CoachingCard(background = OceTheme.colors.feedbackNaturalBg) {
-                        CoachingBlock(
-                            emoji = "👏",
-                            label = "잘 마쳤어요",
-                            accent = OceTheme.colors.feedbackNaturalAccent,
-                            body = "이번 세션은 코칭할 거리가 많지 않았어요. 잘 마쳤어요!",
-                        )
-                    }
-                } else {
-                    // 잘한 점 / 다음엔 이렇게를 **각각 별도 색상 카드**로 분리한다(사용자 요청: 이모지 + 색).
-                    Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
-                        if (stateOf.value.hasPositive) {
-                            CoachingCard(background = OceTheme.colors.feedbackNaturalBg) {
+                OneClickCard {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(OceTheme.spacing.lg),
+                        verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
+                    ) {
+                        if (!stateOf.value.hasPositive && !stateOf.value.hasToImprove) {
+                            CoachingBlock(
+                                icon = OceIcon.AutoAwesome,
+                                label = "잘 마쳤어요",
+                                accent = OceTheme.colors.feedbackNaturalAccent,
+                                body = "이번 세션은 코칭할 거리가 많지 않았어요. 잘 마쳤어요!",
+                            )
+                        } else {
+                            if (stateOf.value.hasPositive) {
                                 CoachingBlock(
-                                    emoji = "👍",
+                                    icon = OceIcon.AutoAwesome,
                                     label = "잘한 점",
                                     accent = OceTheme.colors.feedbackNaturalAccent,
                                     body = stateOf.value.positive,
                                 )
                             }
-                        }
-                        if (stateOf.value.hasToImprove) {
-                            CoachingCard(
-                                background = MaterialTheme.colorScheme.primary.copy(alpha = COACHING_TIP_ALPHA),
-                            ) {
+                            if (stateOf.value.hasPositive && stateOf.value.hasToImprove) {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(1.dp)
+                                            .background(MaterialTheme.colorScheme.outlineVariant),
+                                )
+                            }
+                            if (stateOf.value.hasToImprove) {
                                 CoachingBlock(
-                                    emoji = "💡",
-                                    label = "다음엔 이렇게",
-                                    accent = MaterialTheme.colorScheme.primary,
+                                    icon = OceIcon.Spellcheck,
+                                    label = "다음에 다듬을 점",
+                                    accent = OceTheme.colors.feedbackCorrectAccent,
                                     body = stateOf.value.toImprove,
                                 )
                             }
@@ -532,29 +575,11 @@ private fun CoachingSection(
     }
 }
 
-/** 코칭 블록 1개를 색상 카드(틴트 배경 + radius16)로 감싼다. */
-@Composable
-private fun CoachingCard(
-    background: Color,
-    content: @Composable () -> Unit,
-) {
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(OceTheme.shapes.radius16)
-                .background(background)
-                .padding(OceTheme.spacing.lg),
-    ) {
-        content()
-    }
-}
-
 /** ⑦ 북마크 문장(≤8, 최신순) — 로컬 즉시. 빈 리스트면 빈 상태(M2-04 착지 전 기본). 저장 토글 표시 전용. */
 @Composable
 private fun BookmarkSection(bookmarks: List<BookmarkCard>) {
     val count = bookmarks.size.takeIf { it > 0 }?.let { "${it}개 · 최신순" }
-    SectionScaffold(title = "북마크한 문장", count = count) {
+    SectionScaffold(title = "북마크 문장", count = count) {
         if (bookmarks.isEmpty()) {
             OneClickEmptyState(
                 icon = OceIcon.BookmarkBorder,
@@ -795,18 +820,21 @@ private fun ExpressionCardBody(card: ExpressionCard) {
     }
 }
 
-/** 표현 유형 pill 배지(자연/정확) — 피드백 색 토큰 tint(기록 카드 CategoryBadge 정합). */
+/**
+ * 표현 pill 배지 — 프로토 정합: 유형 무관 단일 "표현" 칩(correct 핑크 토큰). 유형(자연/정확)은 데이터로
+ * 유지되나 요약 카드 칩은 구분하지 않는다(기록 탭 CategoryBadge 는 유형 구분 유지).
+ */
+@Suppress("UnusedParameter")
 @Composable
 private fun ExpressionBadge(type: ExpressionType) {
-    val accurate = type == ExpressionType.Accurate
     Text(
-        text = if (accurate) "정확한 표현" else "자연스러운 표현",
+        text = "표현",
         style = OceTheme.typography.helper,
-        color = if (accurate) OceTheme.colors.feedbackCorrectAccent else OceTheme.colors.feedbackNaturalAccent,
+        color = OceTheme.colors.feedbackCorrectAccent,
         modifier =
             Modifier
                 .clip(OceTheme.shapes.pill)
-                .background(if (accurate) OceTheme.colors.feedbackCorrectBg else OceTheme.colors.feedbackNaturalBg)
+                .background(OceTheme.colors.feedbackCorrectBg)
                 .padding(horizontal = OceTheme.spacing.sm, vertical = OceTheme.spacing.xs),
     )
 }
@@ -831,17 +859,17 @@ private fun ImprovedLine(text: String) {
     }
 }
 
-/** 북마크 문장 배지 — 프로토타입 초록 "문장" pill. 앱 초록 토큰(feedbackCorrect) 재사용. */
+/** 북마크 문장 배지 — 프로토타입 초록 "문장" pill(natural 초록 토큰). */
 @Composable
 private fun SentenceBadge() {
     Text(
         text = "문장",
         style = OceTheme.typography.helper,
-        color = OceTheme.colors.feedbackCorrectAccent,
+        color = OceTheme.colors.feedbackNaturalAccent,
         modifier =
             Modifier
                 .clip(OceTheme.shapes.pill)
-                .background(OceTheme.colors.feedbackCorrectBg)
+                .background(OceTheme.colors.feedbackNaturalBg)
                 .padding(horizontal = OceTheme.spacing.sm, vertical = OceTheme.spacing.xs),
     )
 }
@@ -880,32 +908,59 @@ private fun WordCardBody(card: WordCard) {
     }
 }
 
-/** 코칭 블록 — 이모지+라벨(색상 accent) + 본문. 라벨색은 카드 틴트와 어울리는 accent. */
+/**
+ * 코칭 블록 — 벡터 아이콘+색상 라벨(프로토: ✨=AutoAwesome/잘한 점, spellcheck/다음에 다듬을 점) + 본문
+ * 줄들(개행 분리, 프로토는 항목당 한 줄). 이모지 미사용(P16) — 프로토도 ms 아이콘.
+ */
 @Composable
 private fun CoachingBlock(
-    emoji: String,
+    icon: OceIcon,
     label: String,
     accent: Color,
     body: String,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs)) {
-        Text(
-            text = "$emoji $label",
-            style = OceTheme.typography.helper.copy(fontWeight = FontWeight.Bold),
-            color = accent,
-        )
-        Text(
-            text = body,
-            style = OceTheme.typography.body,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+        ) {
+            OneClickIcon(
+                icon = icon,
+                contentDescription = null,
+                tint = accent,
+                size = CoachingIconSize,
+            )
+            Text(
+                text = label,
+                style = OceTheme.typography.helper.copy(fontWeight = FontWeight.Bold),
+                color = accent,
+            )
+        }
+        body.lines().filter { it.isNotBlank() }.forEach { line ->
+            Text(
+                text = line,
+                style = OceTheme.typography.body,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(start = CoachingBodyIndent),
+            )
+        }
     }
 }
 
-private const val HIGH_SCORE = 80
-private const val MID_SCORE = 50
 private const val COLLAPSED_PREVIEW = 3
 private const val SECONDS_PER_MINUTE = 60
+
+/** 스트릭 캡션 "일주일 완성" 격려로 승격되는 구간(프로토 streakLine 데모 정합). */
+private const val WEEK_STREAK = 7
+
+/** 완료 풋터 버튼 높이(프로토 Button primary 52px). */
+private val DoneButtonHeight = 52.dp
+
+/** 코칭 블록 라벨 아이콘 크기(프로토 17px). */
+private val CoachingIconSize = 17.dp
+
+/** 코칭 본문 들여쓰기(프로토 padding-left 23px — 아이콘 17 + gap 6). */
+private val CoachingBodyIndent = 23.dp
 
 /** 적립 카드 지표 아이콘 크기(프로토타입 ~22sp). */
 private val AccrualIconSize = 22.dp
@@ -915,9 +970,6 @@ private val AccrualDividerHeight = 44.dp
 
 /** 스트릭 캡션 🔥 아이콘 크기. */
 private val StreakCaptionIconSize = 16.dp
-
-/** 코칭 "다음엔 이렇게" 팁 카드 배경 브랜드색 알파(연한 톤). */
-private const val COACHING_TIP_ALPHA = 0.10f
 
 /** "더 보기" 원형 chevron 버튼 크기. */
 private val MoreChevronSize = 40.dp
