@@ -1,6 +1,7 @@
 package com.jjundev.oneclickeng.feature.session.turn
 
 import android.os.Bundle
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,8 +58,10 @@ fun GeneratedDialogueSessionRoute(
     modifier: Modifier = Modifier,
     reduceMotion: Boolean = rememberReduceMotion(),
     onViewSummary: (sessionId: String) -> Unit = {},
+    // 대화 나가기(세션 그래프 → 홈/탭). 시스템 뒤로가기·헤더 뒤로가기·시트 dismiss 가 모두 이 출구로 수렴한다.
+    onExit: () -> Unit = {},
     // 세션 정체성 헤더(주제 이모지·제목·레벨·진행 점) 재료. 시작 플로우(홈/온보딩)만 실값을 싣고,
-    // 이어하기·프로세스킬 복원 재진입은 빈 값이라 아래에서 header=null 로 폴백한다(스냅샷 스키마 불변, 회귀 0).
+    // 이어하기·프로세스킬 복원 재진입은 빈 값이라 VM 이 durable 스냅샷에서 복원한 정체성으로 폴백한다.
     topicEmoji: String = "",
     topicTitle: String = "",
     level: String = "",
@@ -74,19 +77,36 @@ fun GeneratedDialogueSessionRoute(
     val deepState by viewModel.deepState.collectAsStateWithLifecycle()
     val bookmarkedLevels by viewModel.bookmarkedLevels.collectAsStateWithLifecycle()
 
-    // 시작 플로우가 주제 제목을 실어왔을 때만 세션 헤더를 렌더한다. 이어하기/복원 재진입은 주제 메타가
-    // 없어(빈 문자열) header=null → 헤더 미표시(M1-03 기존 동작 유지). 진행 점은 학습자 말풍선 수로 채운다.
-    val header =
+    // 대화 중 시스템 뒤로가기는 시트를 닫거나 턴을 전진시키지 않고 대화 자체를 나간다(요구). 시트가 떠 있을 땐
+    // 모달 자체 back 이 onDismiss(→onExit)로, 아닐 땐 이 핸들러가 처리해 뒤로가기는 항상 "대화 나가기"로 수렴한다.
+    BackHandler { onExit() }
+
+    // 시작 플로우가 실어온 주제 정체성. 실값이면 VM 에 기억시켜 durable 스냅샷에 실린다(이어하기/복원 시 헤더 유지).
+    val navIdentity =
         if (topicTitle.isNotBlank()) {
-            DialogueHeaderState(
+            SessionHeaderIdentity(
                 topicEmoji = topicEmoji,
-                title = topicTitle,
-                levelLabel = dialogueLevelLabel(level, totalTurns),
+                topicTitle = topicTitle,
+                level = level,
                 totalTurns = totalTurns,
-                completedTurns = state.messages.count { it is DialogueMessage.Learner },
             )
         } else {
             null
+        }
+    LaunchedEffect(navIdentity) { navIdentity?.let(viewModel::rememberHeaderIdentity) }
+
+    // 헤더 재료: 시작 플로우 nav-arg 우선, 빈 재진입(이어하기/프로세스킬)은 VM 이 durable 스냅샷에서 복원한
+    // 정체성으로 폴백한다(둘 다 없으면 header=null → 미표시). 진행 점은 학습자 말풍선 수로 채운다.
+    val identity = navIdentity ?: viewModel.headerIdentity
+    val header =
+        identity?.let {
+            DialogueHeaderState(
+                topicEmoji = it.topicEmoji,
+                title = it.topicTitle,
+                levelLabel = dialogueLevelLabel(it.level, it.totalTurns),
+                totalTurns = it.totalTurns,
+                completedTurns = state.messages.count { m -> m is DialogueMessage.Learner },
+            )
         }
 
     // 코디네이터 라이브 상태를 턴머신에 흘려보낸다. 프로세스킬 복원 시 코디네이터는 Idle(비Ready)라 accept 는
@@ -104,11 +124,13 @@ fun GeneratedDialogueSessionRoute(
 
     GeneratedDialogueSessionContent(
         state = state,
-        // 완료 CTA 탭 시점의 sessionId 를 상위 요약 라우팅에 전달(M3-02 대화→요약 배선). 완주 후에만
-        // 도달하므로 sessionId 는 non-null 이나 방어적으로 orEmpty.
+        // 세션 완료(sessionPhase == Completed) 진입 시 콘텐츠가 자동 발화 — 완료 화면 없이 곧장 요약으로(M3-02
+        // 대화→요약 배선). 완주 후에만 도달하므로 sessionId 는 non-null 이나 방어적으로 orEmpty.
         onViewSummary = { onViewSummary(viewModel.sessionId().orEmpty()) },
         modifier = modifier,
         header = header,
+        // 헤더 뒤로가기 화살표도 "대화 나가기"로 수렴(시스템 back·시트 dismiss 와 동일 출구).
+        onBack = onExit,
         dock = { task ->
             MicSessionDock(
                 task = task,
@@ -118,16 +140,14 @@ fun GeneratedDialogueSessionRoute(
         },
     )
 
-    // 턴 피드백 시트는 모달 [ModalBottomSheet](별도 윈도)라 대화 콘텐츠의 형제로 오버레이한다. Idle 이면
-    // 스스로 아무것도 렌더하지 않아(early return) 턴 사이엔 숨는다. dismiss/다음 모두 onAdvance 로 단일 출구:
-    // 전진이 feedback.reset→Idle 을 유발해 시트가 내려간다(task/ref null 로 시트가 아예 안 뜬 경우엔 도크
-    // 초록체크 "다음"이 폴백으로 남는다).
+    // 턴 피드백 시트는 드래그 없는 고정 오버레이라 대화 콘텐츠의 형제로 얹는다. Idle 이면 스스로 아무것도
+    // 렌더하지 않아(early return) 턴 사이엔 숨는다. 시트는 스와이프/탭으로 줄이거나 닫을 수 없고(요구),
+    // "다음"(onNext)으로 전진하거나 시스템 뒤로가기(위 BackHandler → onExit "대화 나가기")로만 벗어난다.
     SlimFeedbackSheet(
         state = feedbackState,
         onRetry = viewModel::retryFeedback,
         onSkip = viewModel::skipFeedback,
         onNext = { viewModel.onAdvance() },
-        onDismiss = { viewModel.onAdvance() },
         deepState = deepState,
         deepExpanded = viewModel.deepExpanded,
         onExpandDeep = viewModel::expandDeep,
@@ -174,6 +194,12 @@ class GeneratedDialogueSessionViewModel
         // 턴 내 ephemeral 북마크 레벨(1/2/3). 코디네이터가 toggle/reset/retry 전반에서 유지하는 정본을 그대로
         // 노출한다 — 호스트 미러(2차 소스)로 두면 retry() 의 비움 등과 어긋날 수 있어 단일 소스로 둔다.
         val bookmarkedLevels = deep.bookmarkedLevels
+
+        // 세션 헤더 정체성(주제 이모지·제목·레벨·턴 수). 시작 플로우가 nav-arg 로 실어오면 Route 가
+        // [rememberHeaderIdentity] 로 심고, durable 스냅샷에도 실어 이어하기/프로세스킬 재진입(빈 nav-arg)에서
+        // 상단바를 되살린다(회귀: 재진입 시 헤더 소멸). Route 는 nav-arg 가 비면 이 값으로 폴백한다.
+        var headerIdentity by mutableStateOf<SessionHeaderIdentity?>(null)
+            private set
 
         /** "더 보기" 펼침 여부(호스트 소유 UI 상태). 코디네이터는 개시/캐시만 알고 펼침은 모른다(P3). */
         var deepExpanded by mutableStateOf(false)
@@ -245,6 +271,11 @@ class GeneratedDialogueSessionViewModel
                     val durable = snapshotStore.read()
                     if (durable != null && turnState.messages.isEmpty()) seedFrom(durable)
                 }
+            } else {
+                // 라이브 이어하기(같은 프로세스, 코디네이터가 이미 정본): messages 는 accept 가 복원하지만 헤더
+                // 정체성은 코디네이터에 없다 → durable 에서 헤더만 별도 복원한다(빈 nav-arg 재진입 시 상단바 유지,
+                // messages seed 경쟁 없음). 새 세션 시작은 durable 을 비워(§2.5) 이전 주제로 오염되지 않는다.
+                viewModelScope.launch { snapshotStore.read()?.let(::restoreHeaderIdentity) }
             }
             // onGenerationState 는 Route 의 collectAsStateWithLifecycle 가 구동한다(중복 collect 회피).
             viewModelScope.launch { speaking.state.collect(::onAnalysisState) }
@@ -263,6 +294,7 @@ class GeneratedDialogueSessionViewModel
             latestTurns = snapshot.turns.map { it.toDomain() }
             restoredSessionId = snapshot.sessionId
             restoredLevel = snapshot.level
+            restoreHeaderIdentity(snapshot)
             val settled = micStateFromName(snapshot.micState)
             // 진행 중 캡처/분석은 프로세스킬/이탈로 소멸 → Ready 강등 + 재시도 고지.
             if (settled == MicState.Recording || settled == MicState.Analyzing) {
@@ -275,6 +307,32 @@ class GeneratedDialogueSessionViewModel
 
         private fun currentSnapshot(): SessionTurnSnapshot =
             turnState.toSnapshot(micState, latestTurns, currentSessionId(), currentLevel())
+                .copy(
+                    // 헤더 정체성을 함께 실어 이어하기/복원 재진입에서 상단바를 되살린다(레벨은 위 currentLevel 재사용).
+                    topicEmoji = headerIdentity?.topicEmoji,
+                    topicTitle = headerIdentity?.topicTitle,
+                    totalTurns = headerIdentity?.totalTurns,
+                )
+
+        /** 시작 플로우가 실어온 세션 헤더 정체성을 기억한다(빈 제목이면 무시 — durable 복원값을 덮지 않게). */
+        fun rememberHeaderIdentity(identity: SessionHeaderIdentity) {
+            if (identity.topicTitle.isBlank()) return
+            headerIdentity = identity
+        }
+
+        /** durable/SavedState 스냅샷에서 헤더 정체성을 복원한다(이미 심겨 있으면 유지 — 시작 플로우 우선). */
+        private fun restoreHeaderIdentity(snapshot: SessionTurnSnapshot) {
+            val title = snapshot.topicTitle
+            if (headerIdentity == null && !title.isNullOrBlank()) {
+                headerIdentity =
+                    SessionHeaderIdentity(
+                        topicEmoji = snapshot.topicEmoji.orEmpty(),
+                        topicTitle = title,
+                        level = snapshot.level.orEmpty(),
+                        totalTurns = snapshot.totalTurns ?: DEFAULT_TOTAL_TURNS,
+                    )
+            }
+        }
 
         /**
          * durable 스냅샷 저장/폐기(§2.5). 완주(Completed)면 폐기(미완 아님 → 복귀 후보 아님), 아니면 현 상태를
@@ -505,8 +563,20 @@ class GeneratedDialogueSessionViewModel
             const val BUNDLE_JSON = "json"
             const val HINT_RETRY = "다시 말해볼까요? 채팅으로 입력해도 돼요."
             const val HINT_ERROR = "문제가 생겼어요. 다시 시도해 주세요."
+            const val DEFAULT_TOTAL_TURNS = 5
         }
     }
+
+/**
+ * 세션 헤더 정체성(주제 이모지·제목·레벨·턴 수). 시작 플로우 nav-arg 로 실려오거나 durable 스냅샷에서 복원돼
+ * [DialogueHeaderState] 로 렌더된다. 진행 점(completedTurns)은 라이브 말풍선 수라 여기 담지 않는다.
+ */
+data class SessionHeaderIdentity(
+    val topicEmoji: String,
+    val topicTitle: String,
+    val level: String,
+    val totalTurns: Int,
+)
 
 @Composable
 internal fun GeneratedDialogueSessionContent(
@@ -515,6 +585,8 @@ internal fun GeneratedDialogueSessionContent(
     modifier: Modifier = Modifier,
     // 세션 정체성 헤더. 미주입(스텁·테스트)이면 헤더 없이 렌더(기존 스크린샷 계약 유지).
     header: DialogueHeaderState? = null,
+    // 헤더 뒤로가기 화살표 콜백(대화 나가기). 미주입이면 no-op(프리뷰·테스트 호환).
+    onBack: () -> Unit = {},
     dock: (@Composable (ScaffoldTask) -> Unit)? = null,
 ) {
     val listState = rememberLazyListState()
@@ -533,6 +605,7 @@ internal fun GeneratedDialogueSessionContent(
         onViewSummary = onViewSummary,
         modifier = modifier,
         header = header,
+        onBack = onBack,
         dock = dock,
     )
 }

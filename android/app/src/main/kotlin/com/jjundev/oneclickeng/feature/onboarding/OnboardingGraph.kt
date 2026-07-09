@@ -175,6 +175,8 @@ private fun NavGraphBuilder.sessionDestination(navController: NavHostController)
                     popUpTo(ONBOARDING_SESSION_ROUTE) { inclusive = true }
                 }
             },
+            // 대화 나가기(뒤로가기·헤더 back·시트 dismiss) → 온보딩 그래프를 벗어나 홈(3탭)으로 수렴.
+            onExit = { navController.exitOnboardingToHome() },
         )
     }
 }

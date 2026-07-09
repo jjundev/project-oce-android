@@ -1,13 +1,23 @@
 package com.jjundev.oneclickeng.feature.session.feedback
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -16,13 +26,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
+import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.component.InlineErrorMode
 import com.jjundev.oneclickeng.ui.component.OneClickDualExposureBlock
 import com.jjundev.oneclickeng.ui.component.OneClickInlineError
@@ -47,14 +58,19 @@ import com.jjundev.oneclickeng.ui.component.OneClickRichText
 import com.jjundev.oneclickeng.ui.component.OneClickSkeleton
 import com.jjundev.oneclickeng.ui.component.RichSegment
 import com.jjundev.oneclickeng.ui.component.SkeletonShape
-import com.jjundev.oneclickeng.ui.component.primitive.OneClickBottomSheet
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /** 턴 피드백 시트 높이(화면 대비). 프로토타입 "70%만 올라오는" 시트 정합. */
 private const val SHEET_HEIGHT_FRACTION = 0.7f
 
+/** 시트 뒤 대화를 어둡게 하는 스크림 불투명도(M3 기본 scrim 정합). */
+private const val SCRIM_ALPHA = 0.32f
+
+/** 정적 드래그 핸들 바 불투명도(M3 DragHandle 정합 — 장식용, 시트는 드래그 불가). */
+private const val HANDLE_ALPHA = 0.4f
+
 /**
- * 화면 04 — 턴 피드백 시트(M1-07 slim + M2-03 deep). 단일 [OneClickBottomSheet] 에 ⓪ 리캡 헤더(즉시)+
+ * 화면 04 — 턴 피드백 시트(M1-07 slim + M2-03 deep). 드래그 없는 고정 하단 오버레이에 ⓪ 리캡 헤더(즉시)+
  * slim 3섹션(시머 점진 렌더)+ [더 보기/접기]·(deep 영역)·[다음] 을 싣는다. 정본: turn-feedback-ia.md
  * §2·§3·§4 · 04-screen-04-feedback-sheet.md.
  *
@@ -70,7 +86,6 @@ private const val SHEET_HEIGHT_FRACTION = 0.7f
  * @param onRetry 실패 섹션 재시도(코디네이터 [SlimFeedbackCoordinator.retry]).
  * @param onSkip 반복 실패 섹션 스킵([SlimFeedbackCoordinator.skip]).
  * @param onNext 다음 턴 진행(활성 조건은 시트가 게이팅).
- * @param onDismiss 시트 dismiss.
  * @param deepState deep 상태축([DeepFeedbackCoordinator.state]).
  * @param deepExpanded "더 보기" 펼침 여부(호스트 소유 UI 상태).
  * @param onExpandDeep "더 보기" 첫 탭 → deep 개시/펼침([DeepFeedbackCoordinator.start]).
@@ -79,14 +94,12 @@ private const val SHEET_HEIGHT_FRACTION = 0.7f
  * @param bookmarkedLevels 턴 내 ephemeral 북마크 레벨.
  * @param onToggleBookmark 패러프레이즈 저장 토글 seam(M2-04 영속).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SlimFeedbackSheet(
     state: SlimFeedbackState,
     onRetry: (SlimSection) -> Unit,
     onSkip: (SlimSection) -> Unit,
     onNext: () -> Unit,
-    onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     deepState: DeepFeedbackState = DeepFeedbackState.Idle,
     deepExpanded: Boolean = false,
@@ -98,30 +111,83 @@ fun SlimFeedbackSheet(
 ) {
     if (state is SlimFeedbackState.Idle) return
 
-    // 턴 피드백 시트는 화면의 70% 고정 높이로 **하단 정착**한다(프로토 정합, 내부 스크롤). 높이는 시트 콘텐츠에
-    // 고정으로 주고 skipPartiallyExpanded 로 그 높이에서 바로 연다. fillMaxHeight 를 ModalBottomSheet modifier 에
-    // 걸면 확장 앵커와 얽혀 시트가 **상단에 붙는 회귀**가 있어(콘텐츠 쪽 고정 높이로 회피). 도크 중복 노출은
-    // 도크를 시트 표시 중 숨겨 막는다(MicSessionDock).
+    // 턴 피드백 시트는 화면의 70% 고정 높이로 하단 정착한다(프로토 정합, 내부 스크롤). ModalBottomSheet 대신
+    // **드래그 없는 고정 오버레이**로 렌더한다 — 드래그가 되면 스크롤 중 시트가 실수로 줄어드는 불쾌한 경험이
+    // 생긴다(사용자 리포트). 시트는 스와이프/탭으로 줄이거나 닫을 수 없고, "다음"(onNext) 또는 시스템 뒤로가기
+    // (호스트가 Route BackHandler 로 "대화 나가기"에 연결)로만 벗어난다. 드래그는 불가지만 프로토 핸들 바는
+    // 장식으로 복원한다.
     val sheetHeight = (LocalConfiguration.current.screenHeightDp * SHEET_HEIGHT_FRACTION).dp
-    OneClickBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        modifier = modifier,
-    ) {
-        SlimFeedbackContent(
-            state = state,
-            onRetry = onRetry,
-            onSkip = onSkip,
-            onNext = onNext,
-            modifier = Modifier.fillMaxWidth().height(sheetHeight),
-            deepState = deepState,
-            deepExpanded = deepExpanded,
-            onExpandDeep = onExpandDeep,
-            onCollapseDeep = onCollapseDeep,
-            onRetryDeep = onRetryDeep,
-            bookmarkedLevels = bookmarkedLevels,
-            onToggleBookmark = onToggleBookmark,
-        )
+    val reduceMotion = rememberReduceMotion()
+    // 진입 시 1회 슬라이드-업 + 페이드-인(reduce-motion 이면 즉시). false→true 로 시작해 최초 컴포지션에서
+    // 애니메이트한다. 나가기(다음/나가기)는 컴포저블이 즉시 제거돼 exit 는 실질적으로 재생되지 않는다.
+    val visibleState = remember { MutableTransitionState(false) }.apply { targetState = true }
+    Box(modifier = modifier.fillMaxSize()) {
+        // 스크림(페이드-인): 뒤 대화를 어둡게. 탭은 소비만 하고(시트는 못 닫음) 뒤 콘텐츠로 새지 않게 막는다.
+        AnimatedVisibility(
+            visibleState = visibleState,
+            enter = if (reduceMotion) EnterTransition.None else fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = SCRIM_ALPHA))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {},
+                        ),
+            )
+        }
+        // 하단 정착 고정 패널(슬라이드-업). 상단만 radius24 · surface · 그림자.
+        AnimatedVisibility(
+            visibleState = visibleState,
+            enter = if (reduceMotion) EnterTransition.None else slideInVertically(initialOffsetY = { it }),
+            exit = slideOutVertically(targetOffsetY = { it }),
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().height(sheetHeight),
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 8.dp,
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // 정적 드래그 핸들 바(프로토 정합). 시트는 드래그 불가라 순전히 장식이다.
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .width(32.dp)
+                                    .height(4.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(
+                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = HANDLE_ALPHA),
+                                    ),
+                        )
+                    }
+                    SlimFeedbackContent(
+                        state = state,
+                        onRetry = onRetry,
+                        onSkip = onSkip,
+                        onNext = onNext,
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        deepState = deepState,
+                        deepExpanded = deepExpanded,
+                        onExpandDeep = onExpandDeep,
+                        onCollapseDeep = onCollapseDeep,
+                        onRetryDeep = onRetryDeep,
+                        bookmarkedLevels = bookmarkedLevels,
+                        onToggleBookmark = onToggleBookmark,
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -129,6 +195,9 @@ fun SlimFeedbackSheet(
  * 시트 무관 콘텐츠(무상태 seam). [SlimFeedbackSheet] 는 모달 래핑만 하고 렌더는 여기 위임한다 — 프로토타입
  * 대조 스크린샷이 ModalBottomSheet(별도 윈도) 캡처 제약 없이 시트 내용을 고정 상태로 렌더할 수 있게 한다.
  */
+// onCollapseDeep 은 "접기" 버튼 제거(펼친 뒤 토글 gone) 이후 UI 소비처가 없다 — API/프리뷰 호환을 위해
+// seam 파라미터로 남겨 두되 미사용을 명시 억제한다.
+@Suppress("UnusedParameter")
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun SlimFeedbackContent(
@@ -217,11 +286,14 @@ internal fun SlimFeedbackContent(
             is SlimFeedbackState.Active ->
                 SlimFooter {
                     // 더 보기 게이트 = nextEnabled 재사용(모두 settled) — "다음"과 동일 술어(A4/A5).
-                    MoreToggleButton(
-                        expanded = deepExpanded,
-                        enabled = state.nextEnabled,
-                        onClick = { if (deepExpanded) onCollapseDeep() else onExpandDeep() },
-                    )
+                    // 펼쳐진 뒤에는 토글을 아예 없앤다(접기 버튼 미노출) — "다음"만 남긴다.
+                    if (!deepExpanded) {
+                        MoreToggleButton(
+                            expanded = deepExpanded,
+                            enabled = state.nextEnabled,
+                            onClick = onExpandDeep,
+                        )
+                    }
                     NextButton(enabled = state.nextEnabled, onNext = onNext)
                 }
             is SlimFeedbackState.QuotaBlocked ->
