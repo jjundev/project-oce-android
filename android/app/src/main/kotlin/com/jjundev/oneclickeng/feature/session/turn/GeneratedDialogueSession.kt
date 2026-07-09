@@ -140,15 +140,14 @@ fun GeneratedDialogueSessionRoute(
         },
     )
 
-    // 턴 피드백 시트는 모달 [ModalBottomSheet](별도 윈도)라 대화 콘텐츠의 형제로 오버레이한다. Idle 이면
-    // 스스로 아무것도 렌더하지 않아(early return) 턴 사이엔 숨는다. "다음"(onNext)은 턴을 전진시키고, 시트는
-    // 숨길 수 없다(요구) — 스크림/시스템 dismiss 시도는 조용히 닫지 않고 "대화 나가기"(onExit)로 수렴한다.
+    // 턴 피드백 시트는 드래그 없는 고정 오버레이라 대화 콘텐츠의 형제로 얹는다. Idle 이면 스스로 아무것도
+    // 렌더하지 않아(early return) 턴 사이엔 숨는다. 시트는 스와이프/탭으로 줄이거나 닫을 수 없고(요구),
+    // "다음"(onNext)으로 전진하거나 시스템 뒤로가기(위 BackHandler → onExit "대화 나가기")로만 벗어난다.
     SlimFeedbackSheet(
         state = feedbackState,
         onRetry = viewModel::retryFeedback,
         onSkip = viewModel::skipFeedback,
         onNext = { viewModel.onAdvance() },
-        onDismiss = { onExit() },
         deepState = deepState,
         deepExpanded = viewModel.deepExpanded,
         onExpandDeep = viewModel::expandDeep,

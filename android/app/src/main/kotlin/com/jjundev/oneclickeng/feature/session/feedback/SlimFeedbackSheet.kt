@@ -4,10 +4,13 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -16,14 +19,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,14 +50,16 @@ import com.jjundev.oneclickeng.ui.component.OneClickRichText
 import com.jjundev.oneclickeng.ui.component.OneClickSkeleton
 import com.jjundev.oneclickeng.ui.component.RichSegment
 import com.jjundev.oneclickeng.ui.component.SkeletonShape
-import com.jjundev.oneclickeng.ui.component.primitive.OneClickBottomSheet
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /** 턴 피드백 시트 높이(화면 대비). 프로토타입 "70%만 올라오는" 시트 정합. */
 private const val SHEET_HEIGHT_FRACTION = 0.7f
 
+/** 시트 뒤 대화를 어둡게 하는 스크림 불투명도(M3 기본 scrim 정합). */
+private const val SCRIM_ALPHA = 0.32f
+
 /**
- * 화면 04 — 턴 피드백 시트(M1-07 slim + M2-03 deep). 단일 [OneClickBottomSheet] 에 ⓪ 리캡 헤더(즉시)+
+ * 화면 04 — 턴 피드백 시트(M1-07 slim + M2-03 deep). 드래그 없는 고정 하단 오버레이에 ⓪ 리캡 헤더(즉시)+
  * slim 3섹션(시머 점진 렌더)+ [더 보기/접기]·(deep 영역)·[다음] 을 싣는다. 정본: turn-feedback-ia.md
  * §2·§3·§4 · 04-screen-04-feedback-sheet.md.
  *
@@ -71,7 +75,6 @@ private const val SHEET_HEIGHT_FRACTION = 0.7f
  * @param onRetry 실패 섹션 재시도(코디네이터 [SlimFeedbackCoordinator.retry]).
  * @param onSkip 반복 실패 섹션 스킵([SlimFeedbackCoordinator.skip]).
  * @param onNext 다음 턴 진행(활성 조건은 시트가 게이팅).
- * @param onDismiss 시트 dismiss.
  * @param deepState deep 상태축([DeepFeedbackCoordinator.state]).
  * @param deepExpanded "더 보기" 펼침 여부(호스트 소유 UI 상태).
  * @param onExpandDeep "더 보기" 첫 탭 → deep 개시/펼침([DeepFeedbackCoordinator.start]).
@@ -80,14 +83,12 @@ private const val SHEET_HEIGHT_FRACTION = 0.7f
  * @param bookmarkedLevels 턴 내 ephemeral 북마크 레벨.
  * @param onToggleBookmark 패러프레이즈 저장 토글 seam(M2-04 영속).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SlimFeedbackSheet(
     state: SlimFeedbackState,
     onRetry: (SlimSection) -> Unit,
     onSkip: (SlimSection) -> Unit,
     onNext: () -> Unit,
-    onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     deepState: DeepFeedbackState = DeepFeedbackState.Idle,
     deepExpanded: Boolean = false,
@@ -99,35 +100,51 @@ fun SlimFeedbackSheet(
 ) {
     if (state is SlimFeedbackState.Idle) return
 
-    // 턴 피드백 시트는 화면의 70% 고정 높이로 **하단 정착**한다(프로토 정합, 내부 스크롤). 높이는 시트 콘텐츠에
-    // 고정으로 주고 skipPartiallyExpanded 로 그 높이에서 바로 연다. fillMaxHeight 를 ModalBottomSheet modifier 에
-    // 걸면 확장 앵커와 얽혀 시트가 **상단에 붙는 회귀**가 있어(콘텐츠 쪽 고정 높이로 회피). 도크 중복 노출은
-    // 도크를 시트 표시 중 숨겨 막는다(MicSessionDock).
+    // 턴 피드백 시트는 화면의 70% 고정 높이로 하단 정착한다(프로토 정합, 내부 스크롤). ModalBottomSheet 대신
+    // **드래그 없는 고정 오버레이**로 렌더한다 — 드래그가 되면 스크롤 중 시트가 실수로 줄어드는 불쾌한 경험이
+    // 생긴다(사용자 리포트). 시트는 스와이프/탭으로 줄이거나 닫을 수 없고, "다음"(onNext) 또는 시스템 뒤로가기
+    // (호스트가 Route BackHandler 로 "대화 나가기"에 연결)로만 벗어난다.
     val sheetHeight = (LocalConfiguration.current.screenHeightDp * SHEET_HEIGHT_FRACTION).dp
-    OneClickBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState =
-            rememberModalBottomSheetState(
-                skipPartiallyExpanded = true,
-                // 스와이프/드래그로 Hidden 도달을 막아 시트를 고정한다 — 통과는 "다음"(onNext) 또는 호스트만.
-                confirmValueChange = { it != SheetValue.Hidden },
-            ),
-        modifier = modifier,
-    ) {
-        SlimFeedbackContent(
-            state = state,
-            onRetry = onRetry,
-            onSkip = onSkip,
-            onNext = onNext,
-            modifier = Modifier.fillMaxWidth().height(sheetHeight),
-            deepState = deepState,
-            deepExpanded = deepExpanded,
-            onExpandDeep = onExpandDeep,
-            onCollapseDeep = onCollapseDeep,
-            onRetryDeep = onRetryDeep,
-            bookmarkedLevels = bookmarkedLevels,
-            onToggleBookmark = onToggleBookmark,
+    Box(modifier = modifier.fillMaxSize()) {
+        // 스크림: 뒤 대화를 어둡게. 탭은 소비만 하고(시트는 못 닫음) 뒤 콘텐츠로 새지 않게 막는다.
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = SCRIM_ALPHA))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {},
+                    ),
         )
+        // 하단 정착 고정 패널(상단만 radius24 · surface · 그림자). 드래그 핸들 없음 — 드래그가 불가라 핸들은
+        // 오해를 준다.
+        Surface(
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(sheetHeight),
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 8.dp,
+        ) {
+            SlimFeedbackContent(
+                state = state,
+                onRetry = onRetry,
+                onSkip = onSkip,
+                onNext = onNext,
+                modifier = Modifier.fillMaxSize(),
+                deepState = deepState,
+                deepExpanded = deepExpanded,
+                onExpandDeep = onExpandDeep,
+                onCollapseDeep = onCollapseDeep,
+                onRetryDeep = onRetryDeep,
+                bookmarkedLevels = bookmarkedLevels,
+                onToggleBookmark = onToggleBookmark,
+            )
+        }
     }
 }
 
