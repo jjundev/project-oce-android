@@ -25,9 +25,11 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-    // Trailing slash required by Retrofit. Placeholder dev origin until M0-02 wires the
-    // real Functions URL (asia-northeast3, backend-functions.md:25).
-    private const val BASE_URL = "https://asia-northeast3-oce-dev.cloudfunctions.net/"
+    // Trailing slash required by Retrofit. Deployed Functions origin for the `oce-v1`
+    // project (asia-northeast3, backend-functions.md:25). The earlier `oce-dev` value was a
+    // placeholder pointing at a non-existent project, so every `/llm` call failed (onboarding's
+    // first dialogue surfaced "불러오지 못했어요"). TODO(M0-02): source this from Firebase project config.
+    private const val BASE_URL = "https://asia-northeast3-oce-v1.cloudfunctions.net/"
 
     // OkHttp read timeout must exceed the client-side TTS watchdog (8s, tts.md §4) so the
     // watchdog — not the socket — is the authoritative bound on synthesis latency.
