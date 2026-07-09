@@ -1,10 +1,18 @@
 package com.jjundev.oneclickeng.feature.session.dialogue
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -16,7 +24,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jjundev.oneclickeng.ui.component.BlockingGateSurface
@@ -30,6 +41,9 @@ import com.jjundev.oneclickeng.ui.component.ProgressRingMode
 import com.jjundev.oneclickeng.ui.component.QuizItem
 import com.jjundev.oneclickeng.ui.component.previewWaitQuizItems
 import com.jjundev.oneclickeng.ui.component.selectLimitSurface
+import com.jjundev.oneclickeng.ui.foundation.OceIcon
+import com.jjundev.oneclickeng.ui.foundation.OceIconSize
+import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import kotlinx.coroutines.delay
 
@@ -107,20 +121,29 @@ fun DialogueGeneratingScreen(
         return
     }
 
-    Column(
-        modifier = modifier.fillMaxSize().padding(OceTheme.spacing.lg),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        GeneratingContent(
-            state = state,
-            quizItems = quizItems,
-            gatePassed = gatePassed,
-            quizEnabled = quizEnabled,
-            onStartConversation = onStartConversation,
-            onRetry = onRetry,
-            onQuizAnswered = onQuizAnswered,
-        )
+    // 준비 완료(게이트 통과) 시 하단 준비 시트를 오버레이하고, 나머지는 중앙 정렬 콘텐츠(퀴즈/로딩/실패).
+    val readyGated = state is DialogueGenState.Ready && gatePassed
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(horizontal = OceTheme.spacing.lg),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            GeneratingContent(
+                state = state,
+                quizItems = quizItems,
+                gatePassed = gatePassed,
+                quizEnabled = quizEnabled,
+                onRetry = onRetry,
+                onQuizAnswered = onQuizAnswered,
+            )
+        }
+        if (readyGated) {
+            ReadyBottomSheet(
+                onStartConversation = onStartConversation,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
     }
 }
 
@@ -130,12 +153,11 @@ fun DialogueGeneratingScreen(
  * 분리한다.
  */
 @Composable
-private fun GeneratingContent(
+private fun ColumnScope.GeneratingContent(
     state: DialogueGenState,
     quizItems: List<QuizItem>,
     gatePassed: Boolean,
     quizEnabled: Boolean,
-    onStartConversation: () -> Unit,
     onRetry: () -> Unit,
     onQuizAnswered: (item: QuizItem, selectedIndex: Int, correct: Boolean) -> Unit,
 ) {
@@ -149,9 +171,13 @@ private fun GeneratingContent(
             )
 
         is DialogueGenState.Ready ->
+            // 프로토 genReady: 퀴즈는 중앙에 유지(준비 배너·CTA는 화면 하단 [ReadyBottomSheet] 오버레이).
             if (gatePassed) {
-                if (quizEnabled) OneClickWaitQuiz(items = quizItems, onAnswered = onQuizAnswered) else SlimLoading()
-                StartConversationCta(onStartConversation)
+                if (quizEnabled) {
+                    OneClickWaitQuiz(items = quizItems, onAnswered = onQuizAnswered)
+                } else {
+                    SlimLoading()
+                }
             } else {
                 SlimLoading() // <1s 준비: 위 LaunchedEffect가 자동 전이 처리
             }
@@ -222,15 +248,91 @@ private fun SlimLoading() {
     )
 }
 
+/**
+ * 준비 완료 하단 시트(프로토 genReady 하단 컨테이너 정합, 사용자 요청) — 화면 하단 edge-to-edge, 상단 라운드
+ * (radius24) + 장식 핸들바(작동 X) + 흰 서피스 + 상단 hairline. 안에 [ReadyBanner] + "대화 시작하기" CTA(52dp).
+ */
 @Composable
-private fun StartConversationCta(onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth().padding(top = OceTheme.spacing.lg),
+private fun ReadyBottomSheet(
+    onStartConversation: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(topStart = SheetTopRadius, topEnd = SheetTopRadius))
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(horizontal = OceTheme.spacing.xl, vertical = OceTheme.spacing.md),
+        verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
     ) {
-        Text(text = "대화 시작하기", style = OceTheme.typography.sectionLabel)
+        // 장식 핸들바(작동 X — 디자인만).
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Box(
+                modifier =
+                    Modifier
+                        .size(width = SheetHandleWidth, height = SheetHandleHeight)
+                        .clip(OceTheme.shapes.pill)
+                        .background(MaterialTheme.colorScheme.outlineVariant),
+            )
+        }
+        ReadyBanner()
+        Button(
+            onClick = onStartConversation,
+            modifier = Modifier.fillMaxWidth().height(PrimaryCtaHeight),
+            shape = OceTheme.shapes.radius12,
+        ) {
+            Text(text = "대화 시작하기", style = OceTheme.typography.sectionLabel)
+        }
     }
 }
+
+/**
+ * 준비 완료 배너(프로토, 투톤) — 브랜드 틴트 배경 + 틴트 보더(oc-tint-brand/-bd) + 초록 체크 +
+ * "대화가 준비됐어요. 준비되면 시작해보세요."
+ */
+@Composable
+private fun ReadyBanner() {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(OceTheme.shapes.radius12)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = READY_BANNER_BG_ALPHA))
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = READY_BANNER_BORDER_ALPHA),
+                    shape = OceTheme.shapes.radius12,
+                )
+                .padding(horizontal = OceTheme.spacing.lg, vertical = OceTheme.spacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+    ) {
+        OneClickIcon(
+            icon = OceIcon.CheckCircle,
+            contentDescription = null,
+            tint = OceTheme.colors.feedbackNaturalAccent,
+            size = OceIconSize.ListDisclosure,
+        )
+        Text(
+            text = "대화가 준비됐어요. 준비되면 시작해보세요.",
+            style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+/** 준비 배너 브랜드 틴트(프로토 oc-tint-brand/-bd 근사 — 투톤). */
+private const val READY_BANNER_BG_ALPHA = 0.10f
+private const val READY_BANNER_BORDER_ALPHA = 0.25f
+
+/** primary CTA 높이(프로토 Button primary 52px). */
+private val PrimaryCtaHeight = 52.dp
+
+/** 준비 하단 시트 상단 라운드/장식 핸들바 치수(바텀시트 관용구 정합). */
+private val SheetTopRadius = 24.dp
+private val SheetHandleWidth = 32.dp
+private val SheetHandleHeight = 4.dp
 
 @Suppress("UnusedPrivateMember")
 @Preview(showBackground = true, widthDp = 360, heightDp = 640)

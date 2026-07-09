@@ -46,6 +46,8 @@ class HomeScreenScreenshotTest {
                 studyTimeLabel = "오늘 5분",
                 streak = 3,
                 isOnline = true,
+                level = "easy",
+                selectedSituation = sampleSelected,
             ),
             "home_light_default",
         )
@@ -80,15 +82,18 @@ class HomeScreenScreenshotTest {
         )
     }
 
-    /** 이어하기 없음(신규 세션 준비) — 프로토타입 `session_settings`(홈 hero "바로 대화 시작하기") 대조. */
+    /** 이어하기 없음(신규 세션 준비) — 프로토타입 홈(hero "바로 대화 시작하기" + 설정 변경 인라인) 대조. */
     @Test
     fun home_light_newsession() {
         capture(
             HomeUiState(
-                studyTimeLabel = "오늘 0분",
+                studyTimeLabel = "오늘 8분",
                 streak = 7,
                 isOnline = true,
                 hasResume = false,
+                level = "easy",
+                length = 5,
+                selectedSituation = sampleSelected,
                 situations = sampleSituations,
             ),
             "home_light_newsession",
@@ -135,14 +140,21 @@ class HomeScreenScreenshotTest {
         composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/home_light_resume_nav.png")
     }
 
+    private val sampleSelected =
+        SelectedSituation("weather", "날씨로 가볍게 대화하기", "making light small talk about the weather")
+
     private val sampleSituations =
         listOf(
-            HomeSituation("weather", "날씨로 가볍게 대화하기", OceIcon.PartlyCloudyDay),
+            HomeSituation("cafe", "카페에서 주문하기", OceIcon.LocalCafe),
             HomeSituation("intro", "처음 만나 자기소개하기", OceIcon.WavingHand),
             HomeSituation("appointment", "친구와 약속 잡기", OceIcon.Event),
             HomeSituation("hotel", "호텔 체크인하기", OceIcon.Hotel),
         )
 
+    /**
+     * 홈 캡처 — 프로덕션 셸(3탭 [OceBottomNav])을 포함해 프로토 전체 화면과 대조한다(하단 네비 바가 캡처에
+     * 나오도록, 사용자 요청). [HomeContent] 는 weight 로 남은 높이를 채우고 네비 바가 하단에 고정된다.
+     */
     private fun capture(
         state: HomeUiState,
         name: String,
@@ -150,14 +162,19 @@ class HomeScreenScreenshotTest {
         composeRule.setContent {
             OceTheme(darkTheme = false) {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    HomeContent(
-                        state = state,
-                        onStartLearning = {},
-                        onResumeContinue = {},
-                        onResumeStartNew = {},
-                        onViewRecords = {},
-                        onOfflineBlocked = {},
-                    )
+                    val nav = rememberNavController()
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        HomeContent(
+                            state = state,
+                            onStartLearning = {},
+                            onResumeContinue = {},
+                            onResumeStartNew = {},
+                            onViewRecords = {},
+                            onOfflineBlocked = {},
+                            modifier = Modifier.weight(1f),
+                        )
+                        OceBottomNav(nav)
+                    }
                 }
             }
         }

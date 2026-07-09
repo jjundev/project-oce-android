@@ -27,6 +27,9 @@ object GamificationTime {
     /** epoch millis → `yyyy-MM-dd` KST calendar day-key (matches the server's lastStudyDate format). */
     fun kstDayKey(nowMs: Long): String = LocalDate.ofInstant(Instant.ofEpochMilli(nowMs), KST).toString()
 
+    /** epoch millis → KST epochDay(Long) — 홈 추천 상황의 결정적 일일 회전 키(TopicCatalog.recommended). */
+    fun kstEpochDay(nowMs: Long): Long = LocalDate.ofInstant(Instant.ofEpochMilli(nowMs), KST).toEpochDay()
+
     /**
      * Wall-clock study seconds for a completed session, clamped to [0, cap]. A null start (session
      * never anchored a start time) yields 0 — no accrual rather than a bogus duration.

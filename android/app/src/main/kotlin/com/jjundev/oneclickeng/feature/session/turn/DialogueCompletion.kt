@@ -68,6 +68,7 @@ fun DialogueCompletion(
         Button(
             onClick = onViewSummary,
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            shape = OceTheme.shapes.radius12,
             colors =
                 ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,

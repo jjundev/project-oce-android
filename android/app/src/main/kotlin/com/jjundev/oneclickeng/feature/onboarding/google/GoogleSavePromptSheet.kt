@@ -124,6 +124,7 @@ fun GoogleSavePromptSheet(
                 onClick = { onPrimary() },
                 enabled = !linking,
                 modifier = Modifier.fillMaxWidth(),
+                shape = OceTheme.shapes.radius12,
             ) {
                 if (linking) {
                     CircularProgressIndicator(
@@ -140,6 +141,7 @@ fun GoogleSavePromptSheet(
                 onClick = onOneMore,
                 enabled = !linking,
                 modifier = Modifier.fillMaxWidth(),
+                shape = OceTheme.shapes.radius12,
             ) {
                 Text(text = "한 번 더 하기", style = OceTheme.typography.sectionLabel)
             }

@@ -71,6 +71,8 @@ fun SummaryRoute(
     accrual: AccrualStrip,
     modifier: Modifier = Modifier,
     isFirstSession: Boolean = false,
+    onDone: (() -> Unit)? = null,
+    doneLabel: String = "완료",
     viewModel: SummaryViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(sessionId) {
@@ -89,5 +91,7 @@ fun SummaryRoute(
         onToggleSaveWord = viewModel::toggleSaveWord,
         onToggleSaveExpression = viewModel::toggleSaveExpression,
         modifier = modifier,
+        onDone = onDone,
+        doneLabel = doneLabel,
     )
 }

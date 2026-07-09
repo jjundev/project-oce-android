@@ -19,11 +19,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.jjundev.oneclickeng.feature.session.feedback.ConceptualBridge
-import com.jjundev.oneclickeng.feature.session.feedback.DeepFeedbackRegion
 import com.jjundev.oneclickeng.feature.session.feedback.DeepFeedbackState
 import com.jjundev.oneclickeng.feature.session.feedback.Grammar
 import com.jjundev.oneclickeng.feature.session.feedback.NaturalExpression
@@ -54,7 +55,7 @@ import kotlin.math.sin
 
 /**
  * 대화 학습 "클릭 이후" 상태 스크린샷(프로토타입 flow_* 대조): 마이크 녹음/분석, 오답(재시도 힌트), 심화 피드백.
- * 슬림 피드백 시트는 ModalBottomSheet(별도 윈도)라 onRoot 캡처가 어려워 심화 영역([DeepFeedbackRegion],
+ * 슬림 피드백 시트는 ModalBottomSheet(별도 윈도)라 onRoot 캡처가 어려워 심화 영역(DeepFeedbackRegion,
  * 인라인)만 캡처한다 — 슬림 3섹션은 [com.jjundev.oneclickeng.feature.session.feedback] 프리뷰로 검증된다.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -209,22 +210,62 @@ class SessionFlowScreenshotTest {
                 ),
         )
 
+    /** "더 보기" 펼침 — 프로덕션과 동일하게 **흰 시트 안 인라인**으로 렌더(회색 배경 별도 화면 아님). */
     @Test
     fun flow_deep_light() {
         composeRule.setContent {
             OceTheme(darkTheme = false) {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    Column(modifier = androidx.compose.ui.Modifier.fillMaxWidth().padding(20.dp)) {
-                        DeepFeedbackRegion(
-                            state = deepReady(),
-                            onRetry = {},
-                            bookmarkedLevels = setOf(2),
-                            onToggleBookmark = {},
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        DialogueTurnContent(
+                            messages = feedbackBehind,
+                            turnPhase = TurnPhase.OpponentTurn,
+                            sessionPhase = SessionPhase.InTurn,
+                            currentTask = null,
+                            listState = rememberLazyListState(),
+                            onSubmitStub = {},
+                            onViewSummary = {},
+                            header = header,
                         )
+                        Box(modifier = Modifier.fillMaxSize().background(OceTheme.colors.scrim))
+                        Surface(
+                            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().fillMaxHeight(0.9f),
+                            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                        ) {
+                            Column {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .width(32.dp)
+                                                .height(4.dp)
+                                                .clip(OceTheme.shapes.pill)
+                                                .background(MaterialTheme.colorScheme.outlineVariant),
+                                    )
+                                }
+                                SlimFeedbackContent(
+                                    state = slimActive(),
+                                    onRetry = {},
+                                    onSkip = {},
+                                    onNext = {},
+                                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                                    deepState = deepReady(),
+                                    deepExpanded = true,
+                                    bookmarkedLevels = setOf(2),
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
+        // 심화 영역이 슬림 3섹션 아래에 이어지는 것을 보이도록 시트 내부를 아래로 스크롤한 뒤 캡처.
+        composeRule.onRoot().performTouchInput { swipeUp(startY = bottom * 0.85f, endY = top + 120f) }
+        composeRule.waitForIdle()
         composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/flow_deep_light.png")
     }
 

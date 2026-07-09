@@ -57,8 +57,6 @@ fun VennDiagramCanvas(
     val textMeasurer = rememberTextMeasurer()
     val labelStyle =
         OceTheme.typography.sectionLabel.copy(color = MaterialTheme.colorScheme.onSurface)
-    val itemStyle =
-        OceTheme.typography.helper.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
 
     val description = venn.toContentDescription()
 
@@ -84,14 +82,17 @@ fun VennDiagramCanvas(
                         drawCircle(color = rightColor, radius = r, center = rightCenter)
                         clipPath(lens) { drawRect(color = intersectionColor) }
                         drawVennText(
-                            textMeasurer, venn, leftCenter, rightCenter, r, cy, labelStyle, itemStyle,
+                            textMeasurer, venn, leftCenter, rightCenter, r, cy, labelStyle,
                         )
                     }
                 },
     )
 }
 
-/** Draw the two circle words (off-center) and the shared-meaning items in the lens. */
+/**
+ * Draw the two circle words (off-center). 교집합 안에는 텍스트를 그리지 않는다(프로토 정합 — 공통 의미는
+ * 벤 아래 "공통: …" 캡션이 노출, DeepFeedbackSections ④).
+ */
 @Suppress("LongParameterList")
 private fun DrawScope.drawVennText(
     measurer: TextMeasurer,
@@ -101,15 +102,9 @@ private fun DrawScope.drawVennText(
     r: Float,
     cy: Float,
     labelStyle: TextStyle,
-    itemStyle: TextStyle,
 ) {
     drawText(measurer, venn.left.word, topLeft = Offset(leftCenter.x - r * 0.7f, cy - r * 0.55f), style = labelStyle)
     drawText(measurer, venn.right.word, topLeft = Offset(rightCenter.x - r * 0.1f, cy - r * 0.55f), style = labelStyle)
-    val shared = venn.intersectionItems.joinToString("\n")
-    if (shared.isNotBlank()) {
-        val mid = (leftCenter.x + rightCenter.x) / 2f
-        drawText(measurer, shared, topLeft = Offset(mid - r * 0.35f, cy + r * 0.1f), style = itemStyle)
-    }
 }
 
 /** 색 단독 신호 금지(A2): "<left>와 <right>의 공통 의미: <intersection items>" 텍스트 대안. */

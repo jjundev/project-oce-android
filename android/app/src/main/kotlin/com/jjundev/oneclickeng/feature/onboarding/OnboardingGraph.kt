@@ -195,6 +195,9 @@ private fun OnboardingSummaryDestination(
             // 적립 값 소스는 M3-05(요약 코디네이터가 산출) — 여기선 정적 placeholder(animate=false, 스트립 0 렌더).
             accrual = AccrualStrip(streakDays = 0, xp = 0),
             isFirstSession = isFirstSession,
+            // 첫 세션은 GoogleSavePromptSheet 가 종료 어포던스를 소유하므로 요약 고정 풋터 미표시(onDone=null).
+            // 2차 세션은 요약 화면이 "완료" 고정 풋터를 소유한다(항상 노출, 프로토 정합).
+            onDone = if (isFirstSession) null else onExitToHome,
         )
         if (isFirstSession) {
             GoogleSavePromptSheet(
@@ -203,17 +206,6 @@ private fun OnboardingSummaryDestination(
                 onOneMore = onOneMore,
                 onSkip = onExitToHome,
             )
-        } else {
-            Button(
-                onClick = onExitToHome,
-                modifier =
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .padding(OceTheme.spacing.sheetPadding),
-            ) {
-                Text(text = "홈으로 가기", style = OceTheme.typography.sectionLabel)
-            }
         }
     }
 }

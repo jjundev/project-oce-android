@@ -8,9 +8,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -22,8 +19,7 @@ import com.jjundev.oneclickeng.MainActivity
 import com.jjundev.oneclickeng.feature.home.HOME_SESSION_GRAPH_ROUTE
 import com.jjundev.oneclickeng.feature.home.homeSessionGraph
 import com.jjundev.oneclickeng.feature.home.homeSessionResumeRoute
-import com.jjundev.oneclickeng.feature.home.homeSessionSettingsRoute
-import com.jjundev.oneclickeng.feature.home.topic.TopicSelectSheet
+import com.jjundev.oneclickeng.feature.home.homeSessionStartRoute
 import com.jjundev.oneclickeng.feature.onboarding.ONBOARDING_ROUTE
 import com.jjundev.oneclickeng.feature.onboarding.onboardingGraph
 import com.jjundev.oneclickeng.ui.component.OneClickOfflineBanner
@@ -76,24 +72,19 @@ fun AppRoot(
     val outerNavController = rememberNavController()
     NavHost(navController = outerNavController, startDestination = resolvedStart) {
         composable(MAIN_TABS_ROUTE) {
-            // 주제 선택 시트(프로토 정합) — 홈 CTA 가 풀스크린 목적지 대신 홈 위 오버레이 시트를 띄운다.
-            var topicSheetVisible by remember { mutableStateOf(false) }
+            // 프로토 완전 정합: 홈이 상황·레벨·길이를 확정하고(인라인 설정·상황 시트 소유) 히어로 탭 시
+            // 바로 생성 라우트로 진입한다(세션 설정 화면 폐기).
             MainTabsScaffold(
                 isOnline = isOnline,
-                onStartLearning = { topicSheetVisible = true },
+                onStartSession = { promptSeed, level, length ->
+                    outerNavController.navigate(
+                        homeSessionStartRoute(level = level, topic = promptSeed, length = length),
+                    )
+                },
                 onResume = { outerNavController.navigate(homeSessionResumeRoute()) },
                 pendingNav = pendingNav,
                 onNavConsumed = onNavConsumed,
             )
-            if (topicSheetVisible) {
-                TopicSelectSheet(
-                    onTopicChosen = { promptSeed, _ ->
-                        topicSheetVisible = false
-                        outerNavController.navigate(homeSessionSettingsRoute(promptSeed))
-                    },
-                    onDismiss = { topicSheetVisible = false },
-                )
-            }
         }
         // 온보딩 그래프(M3-02): 3탭 밖 풀스크린 형제.
         onboardingGraph(outerNavController)
@@ -117,15 +108,15 @@ private fun BootSplash() {
  * 3탭 셸(F8). 전역 [Scaffold] 골격이 하단 3탭([OceBottomNav])과 3탭 그래프([OceNavHost])를 소유한다.
  * 탭 선택 지속은 자체 [rememberNavController] 백스택이 담당한다(회전/복귀 시 상태 유지).
  *
- * [isOnline]=false 면 상단에 글로벌 오프라인 배너(C4)를 노출한다(M3-08 A4). [onStartLearning]/[onResume] 는
- * outer NavController 로 세션 그래프에 진입하는 람다다(홈 CTA·이어하기).
+ * [isOnline]=false 면 상단에 글로벌 오프라인 배너(C4)를 노출한다(M3-08 A4). [onStartSession]/[onResume] 는
+ * outer NavController 로 세션 그래프에 진입하는 람다다(홈 히어로·추천 행·이어하기).
  *
  * [pendingNav] 는 알림 탭에서 온 nav 명령(M3-07 §5). `home` 이면 홈 탭으로 옮기고 소비를 통지한다.
  */
 @Composable
 private fun MainTabsScaffold(
     isOnline: Boolean,
-    onStartLearning: () -> Unit,
+    onStartSession: (promptSeed: String, level: String, length: Int) -> Unit,
     onResume: () -> Unit,
     pendingNav: String?,
     onNavConsumed: () -> Unit,
@@ -148,7 +139,7 @@ private fun MainTabsScaffold(
             OneClickOfflineBanner(visible = !isOnline)
             OceNavHost(
                 navController = navController,
-                onStartLearning = onStartLearning,
+                onStartSession = onStartSession,
                 onResume = onResume,
             )
         }

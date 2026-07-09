@@ -205,30 +205,38 @@ private fun MicColumn(
                 reduceMotion = reduceMotion,
             )
         }
-        // 마이크 상태 문구(프로토타입 micStatus). 상태별 안내 — 오답은 위 배너가 담당한다.
-        micStatusText(micState)?.let {
-            Text(
-                text = it,
-                style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (permanentlyDenied) {
-            Text(
-                text = "마이크 권한이 꺼져 있어요. 설정에서 허용하거나 채팅으로 입력하세요.",
-                style = OceTheme.typography.helper,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (micState == MicState.Complete) {
-            Button(
-                onClick = onAdvance,
-                modifier = Modifier.fillMaxWidth().heightIn(min = MinTouchTarget),
-            ) {
-                Text(text = "다음", style = OceTheme.typography.sectionLabel)
+        // 상태 문구 + 채팅 전환은 프로토 정합상 밀착(수 dp) — 부모 md 간격에서 분리한 서브 컬럼.
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+        ) {
+            // 마이크 상태 문구(프로토타입 micStatus). 상태별 안내 — 오답은 위 배너가 담당한다.
+            micStatusText(micState)?.let {
+                Text(
+                    text = it,
+                    style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-        } else {
-            ChatInputToggle(onClick = { onToggleTextMode(true) })
+            if (permanentlyDenied) {
+                Text(
+                    text = "마이크 권한이 꺼져 있어요. 설정에서 허용하거나 채팅으로 입력하세요.",
+                    style = OceTheme.typography.helper,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (micState == MicState.Complete) {
+                Button(
+                    onClick = onAdvance,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = MinTouchTarget),
+                    shape = OceTheme.shapes.radius12,
+                ) {
+                    Text(text = "다음", style = OceTheme.typography.sectionLabel)
+                }
+            } else {
+                ChatInputToggle(onClick = { onToggleTextMode(true) })
+            }
         }
     }
 }
@@ -280,7 +288,11 @@ private fun MicFailBanner(message: String) {
     }
 }
 
-/** 마이크-우선 도크의 텍스트 입력 전환 어피던스(프로토타입 정합: `keyboard` 아이콘 + tertiary 회색). */
+/**
+ * 마이크-우선 도크의 텍스트 입력 전환 어피던스(프로토타입 정합: `keyboard` 아이콘 + tertiary 회색).
+ * 터치 타겟 48dp 는 유지하되 콘텐츠를 상단 정렬해 상태 문구와의 시각 간격을 프로토처럼 좁힌다(잉여
+ * 높이는 아래 도크 패딩 쪽으로 흡수).
+ */
 @Composable
 private fun ChatInputToggle(onClick: () -> Unit) {
     Row(
@@ -288,9 +300,9 @@ private fun ChatInputToggle(onClick: () -> Unit) {
             Modifier
                 .heightIn(min = MinTouchTarget)
                 .clickable(onClick = onClick)
-                .padding(horizontal = OceTheme.spacing.sm),
+                .padding(horizontal = OceTheme.spacing.sm, vertical = OceTheme.spacing.xs),
         horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
     ) {
         OneClickIcon(
             icon = OceIcon.Keyboard,
@@ -328,6 +340,7 @@ private fun TextInputDock(
             onClick = onSubmitText,
             enabled = textValue.isNotBlank(),
             modifier = Modifier.heightIn(min = MinTouchTarget),
+            shape = OceTheme.shapes.radius12,
         ) {
             Text(text = "제출", style = OceTheme.typography.sectionLabel)
         }

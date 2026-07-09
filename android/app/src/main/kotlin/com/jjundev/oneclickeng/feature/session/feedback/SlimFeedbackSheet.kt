@@ -452,7 +452,7 @@ private fun MoreToggleButton(
     }
 }
 
-/** [다음(settled 시 활성, §7 — 점수 gate 없음)]. 프로토타입: primary·full-width·52dp·radius14·텍스트 700/16. */
+/** [다음(settled 시 활성, §7 — 점수 gate 없음)]. 프로토타입: primary·full-width·52dp·radius12·텍스트 700/16. */
 @Composable
 private fun NextButton(
     enabled: Boolean,
@@ -462,7 +462,7 @@ private fun NextButton(
         onClick = onNext,
         enabled = enabled,
         modifier = Modifier.fillMaxWidth().height(52.dp),
-        shape = OceTheme.shapes.radius14,
+        shape = OceTheme.shapes.radius12,
         colors =
             ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,

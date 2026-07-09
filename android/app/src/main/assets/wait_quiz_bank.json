@@ -2,7 +2,7 @@
   {
     "id": "easy-1",
     "tier": "easy",
-    "prompt": "Which one sounds more natural?",
+    "prompt": "계획이 있다고 말할 때, 더 자연스러운 표현은?",
     "optionA": "I have a plan.",
     "optionB": "I have plan.",
     "correctIndex": 0,
@@ -12,7 +12,7 @@
   {
     "id": "easy-2",
     "tier": "easy",
-    "prompt": "How do you greet someone in the morning?",
+    "prompt": "아침에 만났을 때, 알맞은 인사는?",
     "optionA": "Good morning!",
     "optionB": "Good night!",
     "correctIndex": 0,
@@ -22,7 +22,7 @@
   {
     "id": "easy-3",
     "tier": "easy",
-    "prompt": "Order a coffee politely.",
+    "prompt": "커피를 주문할 때, 더 자연스러운 표현은?",
     "optionA": "Coffee.",
     "optionB": "Can I get a coffee, please?",
     "correctIndex": 1,
@@ -32,7 +32,7 @@
   {
     "id": "normal-1",
     "tier": "normal",
-    "prompt": "Pick the more polite request.",
+    "prompt": "정중하게 부탁할 때, 더 알맞은 표현은?",
     "optionA": "Give me the report.",
     "optionB": "Could you send me the report?",
     "correctIndex": 1,
@@ -42,7 +42,7 @@
   {
     "id": "normal-2",
     "tier": "normal",
-    "prompt": "Which is correct past tense?",
+    "prompt": "과거를 말할 때, 올바른 표현은?",
     "optionA": "I goed home.",
     "optionB": "I went home.",
     "correctIndex": 1,
@@ -52,7 +52,7 @@
   {
     "id": "normal-3",
     "tier": "normal",
-    "prompt": "Which sounds more natural at work?",
+    "prompt": "회사에서 쓸 때, 더 자연스러운 표현은?",
     "optionA": "Let's touch base tomorrow.",
     "optionB": "Let's touch a base tomorrow.",
     "correctIndex": 0,
@@ -62,7 +62,7 @@
   {
     "id": "hard-1",
     "tier": "hard",
-    "prompt": "Choose the more idiomatic phrasing.",
+    "prompt": "더 관용적인 표현은?",
     "optionA": "I'm looking forward to meeting you.",
     "optionB": "I'm looking forward to meet you.",
     "correctIndex": 0,
@@ -72,7 +72,7 @@
   {
     "id": "hard-2",
     "tier": "hard",
-    "prompt": "Which is the stronger closing line?",
+    "prompt": "메일을 맺을 때, 더 알맞은 문장은?",
     "optionA": "Please let me know if you have questions.",
     "optionB": "Tell me questions.",
     "correctIndex": 0,
@@ -82,7 +82,7 @@
   {
     "id": "hard-3",
     "tier": "hard",
-    "prompt": "Pick the more precise word.",
+    "prompt": "더 정확하게 표현한 문장은?",
     "optionA": "The results were good enough.",
     "optionB": "The results exceeded expectations.",
     "correctIndex": 1,

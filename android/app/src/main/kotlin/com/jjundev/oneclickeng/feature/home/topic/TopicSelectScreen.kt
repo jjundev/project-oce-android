@@ -12,12 +12,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -46,12 +46,13 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
  * 시트로 전환(홈 CTA 가 [homeSessionGraph] 시작 목적지로 내비하던 것을 홈에서 오버레이로 띄우도록 변경). 구성:
  *  - 헤더: `상황 고르기` + 우측 X 닫기.
  *  - 검색: `상황 검색` 필드(전체 카탈로그 titleKo 부분일치 필터, 비면 선택 그룹).
- *  - 4그룹 [OneClickSegmentedControl] 전환 → 그룹 주제 리스트(아이콘 + 제목 + chevron, 탭 즉시 선택).
+ *  - 4그룹 [OneClickSegmentedControl] 전환 → 그룹 주제 리스트(아이콘 + 제목 + chevron, 현재 선택은 체크).
  *  - 하단 `원하는 상황 직접 입력` 점선 카드(escape hatch).
  *
  * 추천 가로 칩은 프로토 시트에 없어 제거했다(기존 [TopicCatalog.recommended] rotation 은 시트에서 미노출).
- * [onTopicChosen] 은 선택 주제의 `promptSeed`(LLM 전달 유일 필드)와 분석용 `topicId`(직접 입력이면 null)를 실어
- * 접힌 세션 설정으로 넘긴다. 텍스트 원문은 이 화면 밖으로 계측되지 않는다.
+ * 프로토 pickTopic 정합: 탭은 **선택만** 갱신하고 시트가 닫힌다(시작은 홈 히어로 CTA 소유). [onTopicChosen]
+ * 은 선택 주제의 `promptSeed`(LLM 전달 유일 필드)와 분석용 `topicId`(직접 입력이면 null)를 호스트(홈)로
+ * 올린다. 텍스트 원문은 이 화면 밖으로 계측되지 않는다. [selectedTopicId] 는 현재 선택 상황 체크 표시용.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,6 +60,7 @@ fun TopicSelectSheet(
     onTopicChosen: (promptSeed: String, topicId: String?) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    selectedTopicId: String? = null,
 ) {
     // 프로토 정합: 전체 높이가 아니라 화면 ~70%만 올라오게 콘텐츠 높이를 제한한다(중간 detent 없이 곧장 노출).
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -67,6 +69,7 @@ fun TopicSelectSheet(
             onTopicChosen = onTopicChosen,
             onDismiss = onDismiss,
             modifier = Modifier.fillMaxHeight(SHEET_HEIGHT_FRACTION),
+            selectedTopicId = selectedTopicId,
         )
     }
 }
@@ -80,6 +83,7 @@ internal fun TopicSelectSheetContent(
     onTopicChosen: (promptSeed: String, topicId: String?) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    selectedTopicId: String? = null,
 ) {
     var query by remember { mutableStateOf("") }
     var selectedGroup by remember { mutableStateOf(TopicGroup.Daily) }
@@ -154,7 +158,11 @@ internal fun TopicSelectSheetContent(
             verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
         ) {
             visibleTopics.forEach { topic ->
-                TopicRow(topic = topic, onClick = { onTopicChosen(topic.promptSeed, topic.id) })
+                TopicRow(
+                    topic = topic,
+                    selected = topic.id == selectedTopicId,
+                    onClick = { onTopicChosen(topic.promptSeed, topic.id) },
+                )
             }
         }
 
@@ -172,10 +180,11 @@ internal fun TopicSelectSheetContent(
     }
 }
 
-/** 그룹 리스트 행 = 라운드 카드(프로토 시트 정합) 안에 상황 아이콘 + 제목 + chevron. 탭 즉시 선택 전이. */
+/** 그룹 리스트 행 = 라운드 카드(프로토 시트 정합) 안에 상황 아이콘 + 제목 + chevron(선택 시 체크). 탭=선택. */
 @Composable
 private fun TopicRow(
     topic: Topic,
+    selected: Boolean,
     onClick: () -> Unit,
 ) {
     OneClickCard(
@@ -201,9 +210,14 @@ private fun TopicRow(
                 modifier = Modifier.weight(1f),
             )
             OneClickIcon(
-                icon = OceIcon.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                icon = if (selected) OceIcon.CheckCircle else OceIcon.ChevronRight,
+                contentDescription = if (selected) "선택됨" else null,
+                tint =
+                    if (selected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
             )
         }
     }
@@ -259,15 +273,16 @@ private fun CustomTopicRow(
                 onValueChange = onTextChange,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                placeholder = { Text("연습하고 싶은 상황을 적어주세요") },
+                placeholder = { Text("예: 병원에서 증상 설명하기") },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
                 keyboardActions = KeyboardActions(onGo = { onSubmit() }),
                 shape = OceTheme.shapes.radius16,
             )
-            TextButton(
+            Button(
                 onClick = onSubmit,
                 enabled = text.isNotBlank(),
-                modifier = Modifier.align(Alignment.End),
+                modifier = Modifier.fillMaxWidth(),
+                shape = OceTheme.shapes.radius12,
             ) {
                 Text(text = "이 상황으로 시작", style = OceTheme.typography.sectionLabel)
             }
