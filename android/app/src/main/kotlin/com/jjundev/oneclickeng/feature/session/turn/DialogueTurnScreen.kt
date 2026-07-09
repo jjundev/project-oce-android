@@ -41,7 +41,7 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
  * bare [Scaffold] 를 쓴다. 이는 피처 스크린이 자체 Scaffold 를 소유하는 리포 첫 선례다(앱 루트 AppRoot.kt
  * 외). 시스템 백/상태바/실 라우트 진입 배선은 M1-01 로 이연한다(현 nav 는 3탭뿐, 세션 라우트 없음).
  *
- * @param onViewSummary 완료 화면 `요약 보기` CTA. 기본 no-op(요약 M2-02 미배선) — [DialogueCompletion] 주석 참조.
+ * @param onViewSummary 세션 완료 시 요약 이동 콜백. 완료 화면 없이 `sessionPhase == Completed` 진입 즉시 발화한다.
  */
 @Composable
 fun DialogueTurnScreen(
@@ -88,12 +88,20 @@ internal fun DialogueTurnContent(
     modifier: Modifier = Modifier,
     // 세션 정체성 헤더(주제·레벨·진행 점). 미주입이면 헤더 없이 렌더(M1-03 스텁·프리뷰 호환). 실 라우트 배선은 seam.
     header: DialogueHeaderState? = null,
+    // 헤더 뒤로가기 화살표 콜백(대화 나가기). 미주입이면 no-op(스텁·프리뷰·테스트 호환).
+    onBack: () -> Unit = {},
     // 상대역 말풍선 TTS(M1-05)·해석 토글 콜백. 현재는 시각 셸 seam 으로 기본 no-op.
     onReplay: () -> Unit = {},
     onToggleTranslation: () -> Unit = {},
     // 입력 독 slot(M1-08). 미주입(스텁 라우트·프리뷰)이면 기존 [ScaffoldDock] 로 폴백해 M1-03 화면을 유지한다.
     dock: (@Composable (ScaffoldTask) -> Unit)? = null,
 ) {
+    // 세션이 완료되면(마지막 턴 전진) 완료 화면 없이 곧장 요약으로 이동한다(완료 바텀시트 삭제 요구). 마지막 턴
+    // 피드백 "다음"이 recordTurn→advanceTurn 순서라 요약이 읽을 턴 버퍼는 Completed 시점에 이미 정착돼 있다.
+    // sessionPhase 전이는 단방향(Completed 도달 후 유지)이라 이 LaunchedEffect 는 정확히 한 번만 발화한다.
+    LaunchedEffect(sessionPhase) {
+        if (sessionPhase == SessionPhase.Completed) onViewSummary()
+    }
     Scaffold(
         modifier = modifier,
         // 세션 앱바(뒤로가기·주제 아바타·제목/레벨·진행 점). 라이브리전 politeness 는 후속 진행률/TTS 배선의
@@ -107,7 +115,9 @@ internal fun DialogueTurnContent(
             ) {
                 // 헤더는 상태바 아래로 인셋(엣지-투-엣지에서 상태바와 겹치지 않게). header=null 이면
                 // 빈 topBar 라 인셋을 얹지 않는다(콘텐츠 자체 인셋과 이중 패딩 방지, 기존 동작 유지).
-                if (header != null) DialogueHeader(state = header, modifier = Modifier.statusBarsPadding())
+                if (header != null) {
+                    DialogueHeader(state = header, modifier = Modifier.statusBarsPadding(), onBack = onBack)
+                }
             }
         },
     ) { innerPadding ->
@@ -132,20 +142,18 @@ internal fun DialogueTurnContent(
                 }
             }
 
-            when {
-                sessionPhase == SessionPhase.Completed ->
-                    DialogueCompletion(onViewSummary = onViewSummary)
-
-                turnPhase == TurnPhase.LearnerTurn && currentTask != null ->
-                    // 하단에서 올라오는 입력 독 패널(프로토타입 정합): surface-card 배경 + 상단 헤어라인 +
-                    // 상단만 radius18. 스레드(배경 회색) 위에 얹혀 "바"로 읽힌다. 슬라이드 진입 애니메이션은 seam.
-                    SessionInputPanel {
-                        if (dock != null) {
-                            dock(currentTask)
-                        } else {
-                            ScaffoldDock(task = currentTask, onSubmitStub = onSubmitStub)
-                        }
+            // 완료 시엔 아무 것도 렌더하지 않는다 — 완료 화면(DialogueCompletion) 없이 위 LaunchedEffect 가 곧장
+            // 요약으로 이동한다. 학습자 턴에서만 하단 입력 독을 올린다.
+            if (turnPhase == TurnPhase.LearnerTurn && currentTask != null) {
+                // 하단에서 올라오는 입력 독 패널(프로토타입 정합): surface-card 배경 + 상단 헤어라인 +
+                // 상단만 radius18. 스레드(배경 회색) 위에 얹혀 "바"로 읽힌다. 슬라이드 진입 애니메이션은 seam.
+                SessionInputPanel {
+                    if (dock != null) {
+                        dock(currentTask)
+                    } else {
+                        ScaffoldDock(task = currentTask, onSubmitStub = onSubmitStub)
                     }
+                }
             }
         }
     }

@@ -23,6 +23,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -105,7 +106,12 @@ fun SlimFeedbackSheet(
     val sheetHeight = (LocalConfiguration.current.screenHeightDp * SHEET_HEIGHT_FRACTION).dp
     OneClickBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetState =
+            rememberModalBottomSheetState(
+                skipPartiallyExpanded = true,
+                // 스와이프/드래그로 Hidden 도달을 막아 시트를 고정한다 — 통과는 "다음"(onNext) 또는 호스트만.
+                confirmValueChange = { it != SheetValue.Hidden },
+            ),
         modifier = modifier,
     ) {
         SlimFeedbackContent(
@@ -129,6 +135,9 @@ fun SlimFeedbackSheet(
  * 시트 무관 콘텐츠(무상태 seam). [SlimFeedbackSheet] 는 모달 래핑만 하고 렌더는 여기 위임한다 — 프로토타입
  * 대조 스크린샷이 ModalBottomSheet(별도 윈도) 캡처 제약 없이 시트 내용을 고정 상태로 렌더할 수 있게 한다.
  */
+// onCollapseDeep 은 "접기" 버튼 제거(펼친 뒤 토글 gone) 이후 UI 소비처가 없다 — API/프리뷰 호환을 위해
+// seam 파라미터로 남겨 두되 미사용을 명시 억제한다.
+@Suppress("UnusedParameter")
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun SlimFeedbackContent(
@@ -217,11 +226,14 @@ internal fun SlimFeedbackContent(
             is SlimFeedbackState.Active ->
                 SlimFooter {
                     // 더 보기 게이트 = nextEnabled 재사용(모두 settled) — "다음"과 동일 술어(A4/A5).
-                    MoreToggleButton(
-                        expanded = deepExpanded,
-                        enabled = state.nextEnabled,
-                        onClick = { if (deepExpanded) onCollapseDeep() else onExpandDeep() },
-                    )
+                    // 펼쳐진 뒤에는 토글을 아예 없앤다(접기 버튼 미노출) — "다음"만 남긴다.
+                    if (!deepExpanded) {
+                        MoreToggleButton(
+                            expanded = deepExpanded,
+                            enabled = state.nextEnabled,
+                            onClick = onExpandDeep,
+                        )
+                    }
                     NextButton(enabled = state.nextEnabled, onNext = onNext)
                 }
             is SlimFeedbackState.QuotaBlocked ->

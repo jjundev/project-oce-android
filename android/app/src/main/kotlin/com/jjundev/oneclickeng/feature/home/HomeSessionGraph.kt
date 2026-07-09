@@ -138,6 +138,8 @@ private fun NavGraphBuilder.sessionDestination(navController: NavHostController)
                     popUpTo(HOME_SESSION_ROUTE) { inclusive = true }
                 }
             },
+            // 대화 나가기(뒤로가기·헤더 back·시트 dismiss) → 기존 3탭 셸로 복귀(결정 #1, MAIN_TABS 보존).
+            onExit = { navController.exitToTabs() },
         )
     }
 }

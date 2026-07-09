@@ -31,6 +31,13 @@ data class SessionTurnSnapshot(
     // 라이브(같은 프로세스) 복원 경로는 코디네이터가 여전히 정본이라 이 값을 쓰지 않는다.
     val sessionId: String? = null,
     val level: String? = null,
+    // --- 세션 헤더 정체성(M1-03 상단바 복원) ---
+    // 주제 이모지·제목·턴 수는 nav-arg 로만 실려와, 이어하기(homeSessionResumeRoute 는 빈 topicLabel/emoji)·
+    // 프로세스킬 복원 재진입에서 헤더가 사라지던 회귀의 근원이다. 스냅샷에 함께 실어 nav-arg 가 빈 재진입에서도
+    // VM 이 헤더를 복원하게 한다(레벨은 위 [level] 재사용 — 표시/생성 레벨이 홈 세션에서 동일).
+    val topicEmoji: String? = null,
+    val topicTitle: String? = null,
+    val totalTurns: Int? = null,
     // --- L1: 파생 상태(replay 없이 직접 seed) ---
     val messages: List<MessageData>,
     val turnPhase: String,
@@ -51,8 +58,9 @@ data class SessionTurnSnapshot(
         /**
          * 스키마 버전. 역직렬화 실패(버전 변경 등)는 소비처가 빈 세션으로 안전 복원한다.
          * v2(M3-08): [sessionId]·[level] 추가(내구 스냅샷 크로스-프로세스 복원 시 피드백 재부착용).
+         * v3: [topicEmoji]·[topicTitle]·[totalTurns] 추가(이어하기/복원 재진입 시 세션 헤더 유지).
          */
-        const val SCHEMA_VERSION = 2
+        const val SCHEMA_VERSION = 3
     }
 }
 
