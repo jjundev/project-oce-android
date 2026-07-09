@@ -1,5 +1,12 @@
 package com.jjundev.oneclickeng.feature.session.feedback
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
+import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.component.InlineErrorMode
 import com.jjundev.oneclickeng.ui.component.OneClickDualExposureBlock
 import com.jjundev.oneclickeng.ui.component.OneClickInlineError
@@ -57,6 +65,9 @@ private const val SHEET_HEIGHT_FRACTION = 0.7f
 
 /** 시트 뒤 대화를 어둡게 하는 스크림 불투명도(M3 기본 scrim 정합). */
 private const val SCRIM_ALPHA = 0.32f
+
+/** 정적 드래그 핸들 바 불투명도(M3 DragHandle 정합 — 장식용, 시트는 드래그 불가). */
+private const val HANDLE_ALPHA = 0.4f
 
 /**
  * 화면 04 — 턴 피드백 시트(M1-07 slim + M2-03 deep). 드래그 없는 고정 하단 오버레이에 ⓪ 리캡 헤더(즉시)+
@@ -103,47 +114,79 @@ fun SlimFeedbackSheet(
     // 턴 피드백 시트는 화면의 70% 고정 높이로 하단 정착한다(프로토 정합, 내부 스크롤). ModalBottomSheet 대신
     // **드래그 없는 고정 오버레이**로 렌더한다 — 드래그가 되면 스크롤 중 시트가 실수로 줄어드는 불쾌한 경험이
     // 생긴다(사용자 리포트). 시트는 스와이프/탭으로 줄이거나 닫을 수 없고, "다음"(onNext) 또는 시스템 뒤로가기
-    // (호스트가 Route BackHandler 로 "대화 나가기"에 연결)로만 벗어난다.
+    // (호스트가 Route BackHandler 로 "대화 나가기"에 연결)로만 벗어난다. 드래그는 불가지만 프로토 핸들 바는
+    // 장식으로 복원한다.
     val sheetHeight = (LocalConfiguration.current.screenHeightDp * SHEET_HEIGHT_FRACTION).dp
+    val reduceMotion = rememberReduceMotion()
+    // 진입 시 1회 슬라이드-업 + 페이드-인(reduce-motion 이면 즉시). false→true 로 시작해 최초 컴포지션에서
+    // 애니메이트한다. 나가기(다음/나가기)는 컴포저블이 즉시 제거돼 exit 는 실질적으로 재생되지 않는다.
+    val visibleState = remember { MutableTransitionState(false) }.apply { targetState = true }
     Box(modifier = modifier.fillMaxSize()) {
-        // 스크림: 뒤 대화를 어둡게. 탭은 소비만 하고(시트는 못 닫음) 뒤 콘텐츠로 새지 않게 막는다.
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = SCRIM_ALPHA))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {},
-                    ),
-        )
-        // 하단 정착 고정 패널(상단만 radius24 · surface · 그림자). 드래그 핸들 없음 — 드래그가 불가라 핸들은
-        // 오해를 준다.
-        Surface(
-            modifier =
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(sheetHeight),
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 8.dp,
+        // 스크림(페이드-인): 뒤 대화를 어둡게. 탭은 소비만 하고(시트는 못 닫음) 뒤 콘텐츠로 새지 않게 막는다.
+        AnimatedVisibility(
+            visibleState = visibleState,
+            enter = if (reduceMotion) EnterTransition.None else fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.fillMaxSize(),
         ) {
-            SlimFeedbackContent(
-                state = state,
-                onRetry = onRetry,
-                onSkip = onSkip,
-                onNext = onNext,
-                modifier = Modifier.fillMaxSize(),
-                deepState = deepState,
-                deepExpanded = deepExpanded,
-                onExpandDeep = onExpandDeep,
-                onCollapseDeep = onCollapseDeep,
-                onRetryDeep = onRetryDeep,
-                bookmarkedLevels = bookmarkedLevels,
-                onToggleBookmark = onToggleBookmark,
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = SCRIM_ALPHA))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {},
+                        ),
             )
+        }
+        // 하단 정착 고정 패널(슬라이드-업). 상단만 radius24 · surface · 그림자.
+        AnimatedVisibility(
+            visibleState = visibleState,
+            enter = if (reduceMotion) EnterTransition.None else slideInVertically(initialOffsetY = { it }),
+            exit = slideOutVertically(targetOffsetY = { it }),
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().height(sheetHeight),
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 8.dp,
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // 정적 드래그 핸들 바(프로토 정합). 시트는 드래그 불가라 순전히 장식이다.
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .width(32.dp)
+                                    .height(4.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(
+                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = HANDLE_ALPHA),
+                                    ),
+                        )
+                    }
+                    SlimFeedbackContent(
+                        state = state,
+                        onRetry = onRetry,
+                        onSkip = onSkip,
+                        onNext = onNext,
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        deepState = deepState,
+                        deepExpanded = deepExpanded,
+                        onExpandDeep = onExpandDeep,
+                        onCollapseDeep = onCollapseDeep,
+                        onRetryDeep = onRetryDeep,
+                        bookmarkedLevels = bookmarkedLevels,
+                        onToggleBookmark = onToggleBookmark,
+                    )
+                }
+            }
         }
     }
 }
