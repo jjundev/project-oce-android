@@ -18,10 +18,18 @@ data class OnboardingTopic(
     val titleKo: String,
     val promptSeed: String,
     val icon: OceIcon,
+    /** 대화 세션 헤더 주제 아바타용 이모지([TopicCatalog] 파생). 온보딩 선택 화면은 미노출(P16), 세션 헤더만 소비. */
+    val emoji: String,
 )
 
 /** beginnerFriendly 6개, seed `order` 순. 첫 원소 = `카페에서 주문하기`(비강조). [TopicCatalog] 파생. */
 val ONBOARDING_TOPICS: List<OnboardingTopic> =
     TopicCatalog.beginnerFriendly.map {
-        OnboardingTopic(id = it.id, titleKo = it.titleKo, promptSeed = it.promptSeed, icon = it.icon)
+        OnboardingTopic(
+            id = it.id,
+            titleKo = it.titleKo,
+            promptSeed = it.promptSeed,
+            icon = it.icon,
+            emoji = it.emoji,
+        )
     }

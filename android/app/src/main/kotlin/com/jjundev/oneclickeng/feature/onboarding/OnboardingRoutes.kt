@@ -18,15 +18,20 @@ const val ONBOARDING_ROUTE = "onboarding"
 internal const val ARG_LEVEL = "level"
 internal const val ARG_FIRST = "first"
 internal const val ARG_TOPIC = "topic"
+internal const val ARG_TOPIC_LABEL = "topicLabel"
+internal const val ARG_TOPIC_EMOJI = "topicEmoji"
+internal const val ARG_LENGTH = "length"
 internal const val ARG_SESSION_ID = "sessionId"
 
 internal const val ONBOARDING_LEVEL_ROUTE = "onboarding/level"
 internal const val ONBOARDING_TOPIC_ROUTE =
     "onboarding/topic?$ARG_LEVEL={$ARG_LEVEL}&$ARG_FIRST={$ARG_FIRST}"
 internal const val ONBOARDING_GENERATING_ROUTE =
-    "onboarding/generating?$ARG_TOPIC={$ARG_TOPIC}&$ARG_LEVEL={$ARG_LEVEL}&$ARG_FIRST={$ARG_FIRST}"
+    "onboarding/generating?$ARG_TOPIC={$ARG_TOPIC}&$ARG_LEVEL={$ARG_LEVEL}&$ARG_FIRST={$ARG_FIRST}" +
+        "&$ARG_TOPIC_LABEL={$ARG_TOPIC_LABEL}&$ARG_TOPIC_EMOJI={$ARG_TOPIC_EMOJI}"
 internal const val ONBOARDING_SESSION_ROUTE =
-    "onboarding/session?$ARG_LEVEL={$ARG_LEVEL}&$ARG_FIRST={$ARG_FIRST}"
+    "onboarding/session?$ARG_LEVEL={$ARG_LEVEL}&$ARG_FIRST={$ARG_FIRST}" +
+        "&$ARG_LENGTH={$ARG_LENGTH}&$ARG_TOPIC_LABEL={$ARG_TOPIC_LABEL}&$ARG_TOPIC_EMOJI={$ARG_TOPIC_EMOJI}"
 internal const val ONBOARDING_SUMMARY_ROUTE =
     "onboarding/summary?$ARG_SESSION_ID={$ARG_SESSION_ID}&$ARG_LEVEL={$ARG_LEVEL}&$ARG_FIRST={$ARG_FIRST}"
 
@@ -36,19 +41,30 @@ internal fun onboardingTopicRoute(
     first: Boolean,
 ): String = "onboarding/topic?$ARG_LEVEL=$level&$ARG_FIRST=$first"
 
-/** 생성 화면 실경로. [topic] 은 공백 포함이라 URL 인코딩한다(하니스 선례). */
+/**
+ * 생성 화면 실경로. [topic] 은 공백 포함이라 URL 인코딩한다(하니스 선례). [topicLabel]/[topicEmoji] 는
+ * 세션 헤더 정체성(주제 제목·아바타)용으로 생성→세션까지 함께 흐른다(생성 화면은 미소비, 전달만).
+ */
 internal fun onboardingGeneratingRoute(
     topic: String,
     level: String,
     first: Boolean,
+    topicLabel: String = "",
+    topicEmoji: String = "",
 ): String =
-    "onboarding/generating?$ARG_TOPIC=${Uri.encode(topic)}&$ARG_LEVEL=$level&$ARG_FIRST=$first"
+    "onboarding/generating?$ARG_TOPIC=${Uri.encode(topic)}&$ARG_LEVEL=$level&$ARG_FIRST=$first" +
+        "&$ARG_TOPIC_LABEL=${Uri.encode(topicLabel)}&$ARG_TOPIC_EMOJI=${Uri.encode(topicEmoji)}"
 
-/** 세션 화면 실경로. */
+/** 세션 화면 실경로. [length]·[topicLabel]·[topicEmoji] 는 세션 헤더 재료(주제 제목·아바타·진행 점 총수). */
 internal fun onboardingSessionRoute(
     level: String,
     first: Boolean,
-): String = "onboarding/session?$ARG_LEVEL=$level&$ARG_FIRST=$first"
+    length: Int,
+    topicLabel: String = "",
+    topicEmoji: String = "",
+): String =
+    "onboarding/session?$ARG_LEVEL=$level&$ARG_FIRST=$first" +
+        "&$ARG_LENGTH=$length&$ARG_TOPIC_LABEL=${Uri.encode(topicLabel)}&$ARG_TOPIC_EMOJI=${Uri.encode(topicEmoji)}"
 
 /** 요약 화면 실경로. */
 internal fun onboardingSummaryRoute(

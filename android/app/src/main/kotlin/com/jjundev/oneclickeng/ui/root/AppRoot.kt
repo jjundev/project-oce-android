@@ -76,9 +76,15 @@ fun AppRoot(
             // 바로 생성 라우트로 진입한다(세션 설정 화면 폐기).
             MainTabsScaffold(
                 isOnline = isOnline,
-                onStartSession = { promptSeed, level, length ->
+                onStartSession = { promptSeed, topicLabel, topicEmoji, level, length ->
                     outerNavController.navigate(
-                        homeSessionStartRoute(level = level, topic = promptSeed, length = length),
+                        homeSessionStartRoute(
+                            level = level,
+                            topic = promptSeed,
+                            length = length,
+                            topicLabel = topicLabel,
+                            topicEmoji = topicEmoji,
+                        ),
                     )
                 },
                 onResume = { outerNavController.navigate(homeSessionResumeRoute()) },
@@ -116,7 +122,7 @@ private fun BootSplash() {
 @Composable
 private fun MainTabsScaffold(
     isOnline: Boolean,
-    onStartSession: (promptSeed: String, level: String, length: Int) -> Unit,
+    onStartSession: (promptSeed: String, topicLabel: String, topicEmoji: String, level: String, length: Int) -> Unit,
     onResume: () -> Unit,
     pendingNav: String?,
     onNavConsumed: () -> Unit,

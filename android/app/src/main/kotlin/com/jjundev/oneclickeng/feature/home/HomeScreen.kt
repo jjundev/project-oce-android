@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jjundev.oneclickeng.feature.home.topic.TopicCatalog
 import com.jjundev.oneclickeng.feature.home.topic.TopicSelectSheet
 import com.jjundev.oneclickeng.feature.reminder.ui.HomeReminderHost
 import com.jjundev.oneclickeng.feature.reminder.ui.HomeReminderViewModel
@@ -81,7 +82,7 @@ private fun levelLabel(level: String): String =
  */
 @Composable
 fun HomeScreen(
-    onStartSession: (promptSeed: String, level: String, length: Int) -> Unit,
+    onStartSession: (promptSeed: String, topicLabel: String, topicEmoji: String, level: String, length: Int) -> Unit,
     onResume: () -> Unit,
     onViewRecords: () -> Unit,
     modifier: Modifier = Modifier,
@@ -97,7 +98,10 @@ fun HomeScreen(
         val level = state.level ?: return // #6: profile.level 미해소 동안 시작 차단(easy 누출 방지).
         val target = situation ?: return
         viewModel.onCtaTap()
-        onStartSession(target.promptSeed, level, state.length)
+        // 세션 헤더 주제 아바타 이모지는 카탈로그에서 topicId 로 조회한다. 직접 입력(custom) 상황은
+        // topicId==null → 이모지 없음("")이고, 헤더는 labelKo 를 제목으로만 쓴다.
+        val emoji = target.topicId?.let { id -> TopicCatalog.ALL.firstOrNull { it.id == id }?.emoji }.orEmpty()
+        onStartSession(target.promptSeed, target.labelKo, emoji, level, state.length)
     }
 
     HomeContent(

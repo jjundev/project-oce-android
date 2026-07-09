@@ -46,12 +46,24 @@ fun NavGraphBuilder.homeSessionGraph(navController: NavHostController) {
     }
 }
 
-/** 홈 히어로/추천 행 진입: 홈이 확정한 상황·레벨·길이를 실어 바로 생성으로(프로토 startGeneration). */
+/**
+ * 홈 히어로/추천 행 진입: 홈이 확정한 상황·레벨·길이를 실어 바로 생성으로(프로토 startGeneration).
+ * [topicLabel]/[topicEmoji] 는 세션 헤더 정체성(주제 제목·아바타)용으로 생성→세션까지 함께 흐른다.
+ */
 fun homeSessionStartRoute(
     level: String,
     topic: String,
     length: Int,
-): String = homeGeneratingRoute(level = level, topic = topic, length = length)
+    topicLabel: String,
+    topicEmoji: String,
+): String =
+    homeGeneratingRoute(
+        level = level,
+        topic = topic,
+        length = length,
+        topicLabel = topicLabel,
+        topicEmoji = topicEmoji,
+    )
 
 /** 이어하기 진입: 세션 목적지로 직접(레벨은 스냅샷 복원값 — nav-arg 는 비움). */
 fun homeSessionResumeRoute(): String = "home/session?$H_ARG_LEVEL="
@@ -69,12 +81,17 @@ private fun NavGraphBuilder.generatingDestination(navController: NavHostControll
                 navArgument(H_ARG_LEVEL) { type = NavType.StringType; defaultValue = DEFAULT_LEVEL },
                 navArgument(H_ARG_TOPIC) { type = NavType.StringType; defaultValue = "" },
                 navArgument(H_ARG_LENGTH) { type = NavType.IntType; defaultValue = DEFAULT_LENGTH },
+                navArgument(H_ARG_TOPIC_LABEL) { type = NavType.StringType; defaultValue = "" },
+                navArgument(H_ARG_TOPIC_EMOJI) { type = NavType.StringType; defaultValue = "" },
             ),
     ) { entry ->
         val args = entry.arguments
         val level = args?.getString(H_ARG_LEVEL)?.ifBlank { DEFAULT_LEVEL } ?: DEFAULT_LEVEL
         val topic = Uri.decode(args?.getString(H_ARG_TOPIC).orEmpty())
         val length = args?.getInt(H_ARG_LENGTH) ?: DEFAULT_LENGTH
+        // 세션 헤더 정체성(주제 제목·이모지)은 생성 화면이 소비하지 않고 세션으로 그대로 전달만 한다.
+        val topicLabel = Uri.decode(args?.getString(H_ARG_TOPIC_LABEL).orEmpty())
+        val topicEmoji = Uri.decode(args?.getString(H_ARG_TOPIC_EMOJI).orEmpty())
         DialogueGeneratingRoute(
             level = level,
             topic = topic,
@@ -82,7 +99,9 @@ private fun NavGraphBuilder.generatingDestination(navController: NavHostControll
             firstSession = false,
             onStartConversation = {
                 // 생성 화면을 백스택에서 제거(<1s 준비 자동전이 시 대화턴 뒤로가기 데드엔드 방지, 하니스·온보딩 선례).
-                navController.navigate(homeSessionRoute(level)) {
+                navController.navigate(
+                    homeSessionRoute(level, length, topicLabel, topicEmoji),
+                ) {
                     popUpTo(HOME_GENERATING_ROUTE) { inclusive = true }
                 }
             },
@@ -94,11 +113,26 @@ private fun NavGraphBuilder.generatingDestination(navController: NavHostControll
 private fun NavGraphBuilder.sessionDestination(navController: NavHostController) {
     composable(
         route = HOME_SESSION_ROUTE,
-        arguments = listOf(navArgument(H_ARG_LEVEL) { type = NavType.StringType; defaultValue = "" }),
+        arguments =
+            listOf(
+                navArgument(H_ARG_LEVEL) { type = NavType.StringType; defaultValue = "" },
+                navArgument(H_ARG_LENGTH) { type = NavType.IntType; defaultValue = DEFAULT_LENGTH },
+                navArgument(H_ARG_TOPIC_LABEL) { type = NavType.StringType; defaultValue = "" },
+                navArgument(H_ARG_TOPIC_EMOJI) { type = NavType.StringType; defaultValue = "" },
+            ),
     ) { entry ->
+        val args = entry.arguments
         // 정상 흐름은 level 을 실어오고, 이어하기 재진입은 비운다(요약 difficulty 는 표시용 → 비면 normal).
-        val level = entry.arguments?.getString(H_ARG_LEVEL)?.ifBlank { null } ?: DISPLAY_DIFFICULTY_DEFAULT
+        val level = args?.getString(H_ARG_LEVEL)?.ifBlank { null } ?: DISPLAY_DIFFICULTY_DEFAULT
+        // 세션 헤더 재료: 시작 플로우만 실어오고, 이어하기 재진입은 비어(빈 제목) 헤더 미표시로 폴백한다.
+        val length = args?.getInt(H_ARG_LENGTH) ?: DEFAULT_LENGTH
+        val topicLabel = Uri.decode(args?.getString(H_ARG_TOPIC_LABEL).orEmpty())
+        val topicEmoji = Uri.decode(args?.getString(H_ARG_TOPIC_EMOJI).orEmpty())
         GeneratedDialogueSessionRoute(
+            topicEmoji = topicEmoji,
+            topicTitle = topicLabel,
+            level = level,
+            totalTurns = length,
             onViewSummary = { sessionId ->
                 navController.navigate(homeSummaryRoute(sessionId = sessionId, level = level)) {
                     popUpTo(HOME_SESSION_ROUTE) { inclusive = true }
@@ -137,9 +171,20 @@ private fun homeGeneratingRoute(
     level: String,
     topic: String,
     length: Int,
-): String = "home/generating?$H_ARG_LEVEL=$level&$H_ARG_TOPIC=${Uri.encode(topic)}&$H_ARG_LENGTH=$length"
+    topicLabel: String,
+    topicEmoji: String,
+): String =
+    "home/generating?$H_ARG_LEVEL=$level&$H_ARG_TOPIC=${Uri.encode(topic)}&$H_ARG_LENGTH=$length" +
+        "&$H_ARG_TOPIC_LABEL=${Uri.encode(topicLabel)}&$H_ARG_TOPIC_EMOJI=${Uri.encode(topicEmoji)}"
 
-private fun homeSessionRoute(level: String): String = "home/session?$H_ARG_LEVEL=$level"
+private fun homeSessionRoute(
+    level: String,
+    length: Int,
+    topicLabel: String,
+    topicEmoji: String,
+): String =
+    "home/session?$H_ARG_LEVEL=$level&$H_ARG_LENGTH=$length" +
+        "&$H_ARG_TOPIC_LABEL=${Uri.encode(topicLabel)}&$H_ARG_TOPIC_EMOJI=${Uri.encode(topicEmoji)}"
 
 private fun homeSummaryRoute(
     sessionId: String,
@@ -149,13 +194,17 @@ private fun homeSummaryRoute(
 /** outer NavHost 에 등록되는 그래프 route. */
 const val HOME_SESSION_GRAPH_ROUTE = "home_session"
 
-private const val HOME_SESSION_ROUTE = "home/session?level={level}"
-private const val HOME_GENERATING_ROUTE = "home/generating?level={level}&topic={topic}&length={length}"
+private const val HOME_SESSION_ROUTE =
+    "home/session?level={level}&length={length}&topicLabel={topicLabel}&topicEmoji={topicEmoji}"
+private const val HOME_GENERATING_ROUTE =
+    "home/generating?level={level}&topic={topic}&length={length}&topicLabel={topicLabel}&topicEmoji={topicEmoji}"
 private const val HOME_SUMMARY_ROUTE = "home/summary?sessionId={sessionId}&level={level}"
 
 private const val H_ARG_LEVEL = "level"
 private const val H_ARG_TOPIC = "topic"
 private const val H_ARG_LENGTH = "length"
+private const val H_ARG_TOPIC_LABEL = "topicLabel"
+private const val H_ARG_TOPIC_EMOJI = "topicEmoji"
 private const val H_ARG_SESSION_ID = "sessionId"
 
 private const val DEFAULT_LEVEL = "easy"

@@ -27,7 +27,7 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
 @Composable
 fun OceNavHost(
     navController: NavHostController,
-    onStartSession: (promptSeed: String, level: String, length: Int) -> Unit,
+    onStartSession: (promptSeed: String, topicLabel: String, topicEmoji: String, level: String, length: Int) -> Unit,
     onResume: () -> Unit,
     modifier: Modifier = Modifier,
     reduceMotion: Boolean = rememberReduceMotion(),

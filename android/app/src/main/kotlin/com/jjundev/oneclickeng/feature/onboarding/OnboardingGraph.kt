@@ -79,7 +79,13 @@ private fun NavGraphBuilder.topicDestination(navController: NavHostController) {
         TopicQuestionScreen(
             onTopicSelected = { topic ->
                 navController.navigate(
-                    onboardingGeneratingRoute(topic = topic.promptSeed, level = level, first = first),
+                    onboardingGeneratingRoute(
+                        topic = topic.promptSeed,
+                        level = level,
+                        first = first,
+                        topicLabel = topic.titleKo,
+                        topicEmoji = topic.emoji,
+                    ),
                 )
             },
             onBack = { navController.popBackStack() },
@@ -95,12 +101,17 @@ private fun NavGraphBuilder.generatingDestination(navController: NavHostControll
                 navArgument(ARG_TOPIC) { type = NavType.StringType; defaultValue = "" },
                 navArgument(ARG_LEVEL) { type = NavType.StringType; defaultValue = FIRST_SESSION_LEVEL },
                 navArgument(ARG_FIRST) { type = NavType.BoolType; defaultValue = true },
+                navArgument(ARG_TOPIC_LABEL) { type = NavType.StringType; defaultValue = "" },
+                navArgument(ARG_TOPIC_EMOJI) { type = NavType.StringType; defaultValue = "" },
             ),
     ) { entry ->
         val args = entry.arguments
         val topic = Uri.decode(args?.getString(ARG_TOPIC).orEmpty())
         val level = args?.getString(ARG_LEVEL) ?: FIRST_SESSION_LEVEL
         val first = args?.getBoolean(ARG_FIRST) ?: true
+        // 세션 헤더 정체성(주제 제목·이모지)은 생성 화면이 미소비, 세션으로 전달만 한다.
+        val topicLabel = Uri.decode(args?.getString(ARG_TOPIC_LABEL).orEmpty())
+        val topicEmoji = Uri.decode(args?.getString(ARG_TOPIC_EMOJI).orEmpty())
         // 첫 세션은 easy·5턴 강제(서버도 방어). 2차("한 번 더")는 저장 레벨·10턴 — 순수 헬퍼로 결정.
         val gen = onboardingGenParams(firstSession = first, userLevel = level)
         DialogueGeneratingRoute(
@@ -112,7 +123,15 @@ private fun NavGraphBuilder.generatingDestination(navController: NavHostControll
             onStartConversation = {
                 // 생성 화면을 백스택에서 제거해 <1s 준비 시 자동전이가 세션에서 뒤로가기로 재튀는
                 // 데드엔드를 막는다(하니스 선례).
-                navController.navigate(onboardingSessionRoute(level = level, first = first)) {
+                navController.navigate(
+                    onboardingSessionRoute(
+                        level = level,
+                        first = first,
+                        length = gen.length,
+                        topicLabel = topicLabel,
+                        topicEmoji = topicEmoji,
+                    ),
+                ) {
                     popUpTo(ONBOARDING_GENERATING_ROUTE) { inclusive = true }
                 }
             },
@@ -130,12 +149,25 @@ private fun NavGraphBuilder.sessionDestination(navController: NavHostController)
             listOf(
                 navArgument(ARG_LEVEL) { type = NavType.StringType; defaultValue = FIRST_SESSION_LEVEL },
                 navArgument(ARG_FIRST) { type = NavType.BoolType; defaultValue = true },
+                navArgument(ARG_LENGTH) { type = NavType.IntType; defaultValue = FIRST_SESSION_LENGTH },
+                navArgument(ARG_TOPIC_LABEL) { type = NavType.StringType; defaultValue = "" },
+                navArgument(ARG_TOPIC_EMOJI) { type = NavType.StringType; defaultValue = "" },
             ),
     ) { entry ->
         val args = entry.arguments
         val level = args?.getString(ARG_LEVEL) ?: FIRST_SESSION_LEVEL
         val first = args?.getBoolean(ARG_FIRST) ?: true
+        // 세션 헤더 재료. 온보딩은 항상 상황을 실어오므로 헤더가 렌더된다(빈 제목이면 미표시로 폴백).
+        // 헤더 레벨은 실제 생성 난이도와 요약 표시(difficulty)와 동일하게 첫 세션은 easy 로 고정한다.
+        val length = args?.getInt(ARG_LENGTH) ?: FIRST_SESSION_LENGTH
+        val headerLevel = if (first) FIRST_SESSION_LEVEL else level
+        val topicLabel = Uri.decode(args?.getString(ARG_TOPIC_LABEL).orEmpty())
+        val topicEmoji = Uri.decode(args?.getString(ARG_TOPIC_EMOJI).orEmpty())
         GeneratedDialogueSessionRoute(
+            topicEmoji = topicEmoji,
+            topicTitle = topicLabel,
+            level = headerLevel,
+            totalTurns = length,
             onViewSummary = { sessionId ->
                 navController.navigate(
                     onboardingSummaryRoute(sessionId = sessionId, level = level, first = first),

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -104,7 +105,9 @@ internal fun DialogueTurnContent(
                         .fillMaxWidth()
                         .semantics { liveRegion = LiveRegionMode.Polite },
             ) {
-                if (header != null) DialogueHeader(state = header)
+                // 헤더는 상태바 아래로 인셋(엣지-투-엣지에서 상태바와 겹치지 않게). header=null 이면
+                // 빈 topBar 라 인셋을 얹지 않는다(콘텐츠 자체 인셋과 이중 패딩 방지, 기존 동작 유지).
+                if (header != null) DialogueHeader(state = header, modifier = Modifier.statusBarsPadding())
             }
         },
     ) { innerPadding ->
