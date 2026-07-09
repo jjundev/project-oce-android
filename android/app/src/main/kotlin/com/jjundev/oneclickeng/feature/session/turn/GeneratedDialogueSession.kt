@@ -24,10 +24,13 @@ import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenState
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenerationCoordinator
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueStreamStatus
+import com.jjundev.oneclickeng.feature.session.feedback.SectionState
 import com.jjundev.oneclickeng.feature.session.feedback.SlimFeedbackCoordinator
+import com.jjundev.oneclickeng.feature.session.feedback.SlimFeedbackState
 import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
 import com.jjundev.oneclickeng.feature.session.speaking.SpeakingAnalysisCoordinator
 import com.jjundev.oneclickeng.feature.session.speaking.SpeakingAnalysisState
+import com.jjundev.oneclickeng.feature.session.summary.SessionTurnBufferStore
 import com.jjundev.oneclickeng.ui.audio.MicState
 import com.jjundev.oneclickeng.ui.audio.MicTransientReason
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
@@ -104,6 +107,7 @@ class GeneratedDialogueSessionViewModel
         private val recording: RecordingController,
         private val speaking: SpeakingAnalysisCoordinator,
         private val feedback: SlimFeedbackCoordinator,
+        private val turnBuffer: SessionTurnBufferStore,
         private val appScope: CoroutineScope,
         private val snapshotStore: SessionSnapshotStore,
         savedStateHandle: SavedStateHandle,
@@ -147,6 +151,10 @@ class GeneratedDialogueSessionViewModel
         // L2 원본 버퍼-of-record. 정상 운영 시 코디네이터 Ready.turns 에서 갱신, 복원 시 스냅샷에서 seed.
         private var latestTurns: List<NetworkDialogueTurn> = emptyList()
 
+        // 아직 요약 버퍼에 기록되지 않은 현재 턴의 과제·답변 echo. 피드백 정착([onFeedbackState]) 또는
+        // "다음"([onAdvance]) 중 먼저 오는 쪽이 기록하고 null 로 비워 턴당 1회 기록을 보장한다.
+        private var pendingTurn: PendingTurn? = null
+
         private val json = Json { ignoreUnknownKeys = true }
 
         init {
@@ -171,6 +179,10 @@ class GeneratedDialogueSessionViewModel
             }
             // onGenerationState 는 Route 의 collectAsStateWithLifecycle 가 구동한다(중복 collect 회피).
             viewModelScope.launch { speaking.state.collect(::onAnalysisState) }
+            // 슬림 피드백이 정착(3섹션 모두 Loading 종료)하면 그 턴을 요약 버퍼에 기록한다(M2-02 handoff).
+            // 시트(M1-07)가 아직 라이브에 없어 사용자는 정착 전에 "다음"을 누를 수 있으므로, 백그라운드
+            // 정착 기록 + [onAdvance] best-effort 폴백의 이중 경로로 턴당 1회 기록을 보장한다(pendingTurn 가드).
+            viewModelScope.launch { feedback.state.collect(::onFeedbackState) }
             savedStateHandle.setSavedStateProvider(PROVIDER_KEY) {
                 bundleOf(BUNDLE_JSON to json.encodeToString(currentSnapshot()))
             }
@@ -292,6 +304,9 @@ class GeneratedDialogueSessionViewModel
         /** Complete 에서 다음 턴으로 전진(피드백 settled 게이트는 M1-07 시트 소관, 여기선 도크 "다음"). */
         fun onAdvance() {
             if (micState != MicState.Complete) return
+            // 정착 전에 "다음"을 누른 경우 최선 스냅샷으로 이 턴을 기록한 뒤 전진한다(feedback.reset 이
+            // 진행 중 SSE 를 취소하므로 리셋 전에 기록해야 점수 유실을 막는다). 이미 정착 기록됐으면 no-op.
+            pendingTurn?.let { recordTurn(it) }
             turnState.advanceTurn()
             micState = MicState.Ready
             retryHint = null
@@ -328,8 +343,36 @@ class GeneratedDialogueSessionViewModel
             val task = turnState.currentTask?.koreanPrompt
             val ref = turnState.currentReferenceEnglish()
             if (task != null && ref != null) {
+                // 세션 버퍼 시작(멱등, 첫 턴에만 실효) — 요약 점수·하이라이트·studytime 의 단일 소스.
+                turnBuffer.startSession(sid)
+                pendingTurn = PendingTurn(koreanPrompt = task, userText = userEnglish)
                 feedback.start(sid, task, userEnglish, ref, level)
             }
+        }
+
+        /**
+         * 피드백 상태 정착 시 현재 턴을 요약 버퍼에 기록한다. 정착 = 3섹션 모두 Loading 종료(Ready/Failed/
+         * Skipped) 또는 캡 거부([QuotaBlocked]). 실패 섹션은 스냅샷에서 해당 키가 null 로 빠져 요약이 낮은
+         * 신뢰도로 처리한다(§9.1). pendingTurn 가드로 턴당 1회만 기록한다.
+         */
+        private fun onFeedbackState(state: SlimFeedbackState) {
+            val pending = pendingTurn ?: return
+            val resolved =
+                when (state) {
+                    is SlimFeedbackState.Active ->
+                        state.writingScore !is SectionState.Loading &&
+                            state.grammar !is SectionState.Loading &&
+                            state.natural !is SectionState.Loading
+                    is SlimFeedbackState.QuotaBlocked -> true
+                    SlimFeedbackState.Idle -> false
+                }
+            if (resolved) recordTurn(pending)
+        }
+
+        /** 요약 버퍼에 한 턴을 기록하고 pending 을 비운다(정착·"다음" 공용 진입). */
+        private fun recordTurn(pending: PendingTurn) {
+            turnBuffer.record(pending.koreanPrompt, pending.userText, feedback.bufferSnapshot())
+            pendingTurn = null
         }
 
         override fun onCleared() {
@@ -337,6 +380,9 @@ class GeneratedDialogueSessionViewModel
             appScope.launch { runCatching { recording.stop() } }
             speaking.reset()
         }
+
+        /** 요약 버퍼 기록 대기 중인 턴의 과제·답변 echo(피드백 스냅샷과 함께 record 로 밀어넣는다). */
+        private data class PendingTurn(val koreanPrompt: String, val userText: String)
 
         private companion object {
             const val PROVIDER_KEY = "session_turn"
