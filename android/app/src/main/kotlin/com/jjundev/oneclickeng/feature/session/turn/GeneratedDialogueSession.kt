@@ -53,10 +53,31 @@ fun GeneratedDialogueSessionRoute(
     modifier: Modifier = Modifier,
     reduceMotion: Boolean = rememberReduceMotion(),
     onViewSummary: (sessionId: String) -> Unit = {},
+    // 세션 정체성 헤더(주제 이모지·제목·레벨·진행 점) 재료. 시작 플로우(홈/온보딩)만 실값을 싣고,
+    // 이어하기·프로세스킬 복원 재진입은 빈 값이라 아래에서 header=null 로 폴백한다(스냅샷 스키마 불변, 회귀 0).
+    topicEmoji: String = "",
+    topicTitle: String = "",
+    level: String = "",
+    totalTurns: Int = 5,
     viewModel: GeneratedDialogueSessionViewModel = hiltViewModel(),
 ) {
     val generationState by viewModel.generationState.collectAsStateWithLifecycle()
     val state = viewModel.turnState
+
+    // 시작 플로우가 주제 제목을 실어왔을 때만 세션 헤더를 렌더한다. 이어하기/복원 재진입은 주제 메타가
+    // 없어(빈 문자열) header=null → 헤더 미표시(M1-03 기존 동작 유지). 진행 점은 학습자 말풍선 수로 채운다.
+    val header =
+        if (topicTitle.isNotBlank()) {
+            DialogueHeaderState(
+                topicEmoji = topicEmoji,
+                title = topicTitle,
+                levelLabel = dialogueLevelLabel(level, totalTurns),
+                totalTurns = totalTurns,
+                completedTurns = state.messages.count { it is DialogueMessage.Learner },
+            )
+        } else {
+            null
+        }
 
     // 코디네이터 라이브 상태를 턴머신에 흘려보낸다. 프로세스킬 복원 시 코디네이터는 Idle(비Ready)라 accept 는
     // no-op 이고, 시드된 스냅샷이 정본으로 남는다(결정 #4).
@@ -77,6 +98,7 @@ fun GeneratedDialogueSessionRoute(
         // 도달하므로 sessionId 는 non-null 이나 방어적으로 orEmpty.
         onViewSummary = { onViewSummary(viewModel.sessionId().orEmpty()) },
         modifier = modifier,
+        header = header,
         dock = { task ->
             MicSessionDock(
                 task = task,
@@ -397,6 +419,8 @@ internal fun GeneratedDialogueSessionContent(
     state: GeneratedDialogueState,
     onViewSummary: () -> Unit,
     modifier: Modifier = Modifier,
+    // 세션 정체성 헤더. 미주입(스텁·테스트)이면 헤더 없이 렌더(기존 스크린샷 계약 유지).
+    header: DialogueHeaderState? = null,
     dock: (@Composable (ScaffoldTask) -> Unit)? = null,
 ) {
     val listState = rememberLazyListState()
@@ -414,8 +438,27 @@ internal fun GeneratedDialogueSessionContent(
         onSubmitStub = state::submitLearnerStub,
         onViewSummary = onViewSummary,
         modifier = modifier,
+        header = header,
         dock = dock,
     )
+}
+
+/**
+ * 세션 헤더 레벨 라벨(홈 히어로 문구 정합) — `<레벨 한글> · <N>턴`. 레벨 문자열은 홈 설정과 동일 매핑
+ * (easy=쉬움/normal=보통/hard=어려움), 미해소/빈 값이면 턴 수만 남긴다.
+ */
+private fun dialogueLevelLabel(
+    level: String,
+    totalTurns: Int,
+): String {
+    val levelKo =
+        when (level) {
+            "easy" -> "쉬움"
+            "normal" -> "보통"
+            "hard" -> "어려움"
+            else -> null
+        }
+    return listOfNotNull(levelKo, "${totalTurns}턴").joinToString(" · ")
 }
 
 // 턴머신 전이 헬퍼 + M1-08 SavedState export/seed 로 메서드가 많다(상태 머신 클래스, 의도적).
