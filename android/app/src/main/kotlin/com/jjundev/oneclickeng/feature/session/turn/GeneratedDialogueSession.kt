@@ -24,9 +24,13 @@ import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenState
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenerationCoordinator
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueStreamStatus
+import com.jjundev.oneclickeng.feature.session.feedback.DeepFeedbackCoordinator
+import com.jjundev.oneclickeng.feature.session.feedback.Paraphrase
 import com.jjundev.oneclickeng.feature.session.feedback.SectionState
 import com.jjundev.oneclickeng.feature.session.feedback.SlimFeedbackCoordinator
+import com.jjundev.oneclickeng.feature.session.feedback.SlimFeedbackSheet
 import com.jjundev.oneclickeng.feature.session.feedback.SlimFeedbackState
+import com.jjundev.oneclickeng.feature.session.feedback.SlimSection
 import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
 import com.jjundev.oneclickeng.feature.session.speaking.SpeakingAnalysisCoordinator
 import com.jjundev.oneclickeng.feature.session.speaking.SpeakingAnalysisState
@@ -63,6 +67,12 @@ fun GeneratedDialogueSessionRoute(
 ) {
     val generationState by viewModel.generationState.collectAsStateWithLifecycle()
     val state = viewModel.turnState
+
+    // 라이브 턴 피드백 시트(M1-07 slim + M2-03 deep) 상태축. 답변 정착 후 코디네이터가 Active 로 밀면
+    // 아래 [SlimFeedbackSheet] 가 모달로 올라오고, "다음"으로 전진하면 reset→Idle 이 되어 스스로 내려간다.
+    val feedbackState by viewModel.feedbackState.collectAsStateWithLifecycle()
+    val deepState by viewModel.deepState.collectAsStateWithLifecycle()
+    val bookmarkedLevels by viewModel.bookmarkedLevels.collectAsStateWithLifecycle()
 
     // 시작 플로우가 주제 제목을 실어왔을 때만 세션 헤더를 렌더한다. 이어하기/복원 재진입은 주제 메타가
     // 없어(빈 문자열) header=null → 헤더 미표시(M1-03 기존 동작 유지). 진행 점은 학습자 말풍선 수로 채운다.
@@ -107,6 +117,25 @@ fun GeneratedDialogueSessionRoute(
             )
         },
     )
+
+    // 턴 피드백 시트는 모달 [ModalBottomSheet](별도 윈도)라 대화 콘텐츠의 형제로 오버레이한다. Idle 이면
+    // 스스로 아무것도 렌더하지 않아(early return) 턴 사이엔 숨는다. dismiss/다음 모두 onAdvance 로 단일 출구:
+    // 전진이 feedback.reset→Idle 을 유발해 시트가 내려간다(task/ref null 로 시트가 아예 안 뜬 경우엔 도크
+    // 초록체크 "다음"이 폴백으로 남는다).
+    SlimFeedbackSheet(
+        state = feedbackState,
+        onRetry = viewModel::retryFeedback,
+        onSkip = viewModel::skipFeedback,
+        onNext = { viewModel.onAdvance() },
+        onDismiss = { viewModel.onAdvance() },
+        deepState = deepState,
+        deepExpanded = viewModel.deepExpanded,
+        onExpandDeep = viewModel::expandDeep,
+        onCollapseDeep = viewModel::collapseDeep,
+        onRetryDeep = viewModel::retryDeep,
+        bookmarkedLevels = bookmarkedLevels,
+        onToggleBookmark = viewModel::toggleBookmark,
+    )
 }
 
 /**
@@ -129,12 +158,26 @@ class GeneratedDialogueSessionViewModel
         private val recording: RecordingController,
         private val speaking: SpeakingAnalysisCoordinator,
         private val feedback: SlimFeedbackCoordinator,
+        private val deep: DeepFeedbackCoordinator,
         private val turnBuffer: SessionTurnBufferStore,
         private val appScope: CoroutineScope,
         private val snapshotStore: SessionSnapshotStore,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         val generationState = generation.state
+
+        // 라이브 턴 피드백 시트(M1-07 slim + M2-03 deep) 배선용 상태축. Route 가 라이프사이클 인지 collect 해
+        // [SlimFeedbackSheet] 에 흘려보낸다. slim/deep 는 코디네이터가 정본, 펼침 여부만 호스트 UI 상태다.
+        val feedbackState = feedback.state
+        val deepState = deep.state
+
+        // 턴 내 ephemeral 북마크 레벨(1/2/3). 코디네이터가 toggle/reset/retry 전반에서 유지하는 정본을 그대로
+        // 노출한다 — 호스트 미러(2차 소스)로 두면 retry() 의 비움 등과 어긋날 수 있어 단일 소스로 둔다.
+        val bookmarkedLevels = deep.bookmarkedLevels
+
+        /** "더 보기" 펼침 여부(호스트 소유 UI 상태). 코디네이터는 개시/캐시만 알고 펼침은 모른다(P3). */
+        var deepExpanded by mutableStateOf(false)
+            private set
 
         /** 서버 발급 sessionId(요약 라우팅용, M3-02). 대본 미도착이면 null → 요약 진입은 완주 후에만 일어나 non-null. */
         fun sessionId(): String? = generation.sessionId()
@@ -176,6 +219,10 @@ class GeneratedDialogueSessionViewModel
         // 아직 요약 버퍼에 기록되지 않은 현재 턴의 과제·답변 echo. 피드백 정착([onFeedbackState]) 또는
         // "다음"([onAdvance]) 중 먼저 오는 쪽이 기록하고 null 로 비워 턴당 1회 기록을 보장한다.
         private var pendingTurn: PendingTurn? = null
+
+        // deep("더 보기")는 사용자가 시트에서 확장할 때 개시되므로, 현재 턴의 start 파라미터를 stash 해 두었다가
+        // [expandDeep] 에서 [DeepFeedbackCoordinator.start] 로 넘긴다(턴 전환 시 [onAdvance] 가 비운다).
+        private var deepParams: DeepParams? = null
 
         private val json = Json { ignoreUnknownKeys = true }
 
@@ -334,6 +381,10 @@ class GeneratedDialogueSessionViewModel
             retryHint = null
             speaking.reset()
             feedback.reset()
+            // deep 도 새 턴을 위해 Idle 로 되돌린다(캐시·ephemeral 북마크 파기). 펼침/stash 도 함께 비운다.
+            deep.reset()
+            deepExpanded = false
+            deepParams = null
             persistResume()
         }
 
@@ -368,6 +419,10 @@ class GeneratedDialogueSessionViewModel
                 // 세션 버퍼 시작(멱등, 첫 턴에만 실효) — 요약 점수·하이라이트·studytime 의 단일 소스.
                 turnBuffer.startSession(sid)
                 pendingTurn = PendingTurn(koreanPrompt = task, userText = userEnglish)
+                // deep cardId 파생용 0-based 학습자 턴 인덱스. triggerFeedback 은 appendLearnerAnswer 직후라
+                // 학습자 말풍선 수는 현재 턴을 이미 포함한다 → -1 로 0-based 로 만든다.
+                val turnIndex = turnState.messages.count { it is DialogueMessage.Learner } - 1
+                deepParams = DeepParams(sid, turnIndex, task, userEnglish, ref, level)
                 feedback.start(sid, task, userEnglish, ref, level)
             }
         }
@@ -397,6 +452,35 @@ class GeneratedDialogueSessionViewModel
             pendingTurn = null
         }
 
+        // --- 턴 피드백 시트 상호작용(M1-07 slim + M2-03 deep) — Route 가 [SlimFeedbackSheet] 콜백에 연결 ---
+
+        /** 실패 슬림 섹션 재시도(코디네이터가 canRetry 게이트). */
+        fun retryFeedback(section: SlimSection) = feedback.retry(section)
+
+        /** 반복 실패 슬림 섹션 스킵(settled 로 간주돼 "다음"/"더 보기" 게이트 통과). */
+        fun skipFeedback(section: SlimSection) = feedback.skip(section)
+
+        /** "더 보기" 첫 확장 → stash 한 현재 턴 파라미터로 deep 개시(코디네이터가 턴당 1회 캐시). */
+        fun expandDeep() {
+            deepParams?.let { p ->
+                deep.start(p.sessionId, p.turnIndex, p.koreanPrompt, p.userText, p.referenceEnglish, p.level)
+            }
+            deepExpanded = true
+        }
+
+        /** "접기" → 펼침만 내린다(재호출 없음, 캐시 유지 — P3). */
+        fun collapseDeep() {
+            deepExpanded = false
+        }
+
+        /** deep 영역 재시도(Error 에서만 실효, 코디네이터 게이트). */
+        fun retryDeep() = deep.retry()
+
+        /** 패러프레이즈 북마크 토글 → 코디네이터가 ephemeral 레벨·영속(M2-04)을 함께 갱신. */
+        fun toggleBookmark(paraphrase: Paraphrase) {
+            deep.toggleBookmark(paraphrase)
+        }
+
         override fun onCleared() {
             // 진행 중 캡처/분석을 화면 이탈 시 취소(결정 #13b). appScope 는 VM scope 소멸과 무관.
             appScope.launch { runCatching { recording.stop() } }
@@ -405,6 +489,16 @@ class GeneratedDialogueSessionViewModel
 
         /** 요약 버퍼 기록 대기 중인 턴의 과제·답변 echo(피드백 스냅샷과 함께 record 로 밀어넣는다). */
         private data class PendingTurn(val koreanPrompt: String, val userText: String)
+
+        /** deep 개시 지연을 위해 stash 하는 현재 턴의 [DeepFeedbackCoordinator.start] 파라미터. */
+        private data class DeepParams(
+            val sessionId: String,
+            val turnIndex: Int,
+            val koreanPrompt: String,
+            val userText: String,
+            val referenceEnglish: String,
+            val level: String,
+        )
 
         private companion object {
             const val PROVIDER_KEY = "session_turn"
