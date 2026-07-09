@@ -1,5 +1,6 @@
 package com.jjundev.oneclickeng.feature.session.feedback
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -7,12 +8,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -20,13 +22,17 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -92,17 +98,22 @@ fun SlimFeedbackSheet(
 ) {
     if (state is SlimFeedbackState.Idle) return
 
-    // 턴 피드백 시트는 화면의 70%까지만 올라온다(내부 스크롤). 프로토타입 정합.
+    // 턴 피드백 시트는 화면의 70% 고정 높이로 **하단 정착**한다(프로토 정합, 내부 스크롤). 높이는 시트 콘텐츠에
+    // 고정으로 주고 skipPartiallyExpanded 로 그 높이에서 바로 연다. fillMaxHeight 를 ModalBottomSheet modifier 에
+    // 걸면 확장 앵커와 얽혀 시트가 **상단에 붙는 회귀**가 있어(콘텐츠 쪽 고정 높이로 회피). 도크 중복 노출은
+    // 도크를 시트 표시 중 숨겨 막는다(MicSessionDock).
+    val sheetHeight = (LocalConfiguration.current.screenHeightDp * SHEET_HEIGHT_FRACTION).dp
     OneClickBottomSheet(
         onDismissRequest = onDismiss,
-        modifier = modifier.fillMaxHeight(SHEET_HEIGHT_FRACTION),
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        modifier = modifier,
     ) {
         SlimFeedbackContent(
             state = state,
             onRetry = onRetry,
             onSkip = onSkip,
             onNext = onNext,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxWidth().height(sheetHeight),
             deepState = deepState,
             deepExpanded = deepExpanded,
             onExpandDeep = onExpandDeep,
@@ -118,6 +129,7 @@ fun SlimFeedbackSheet(
  * 시트 무관 콘텐츠(무상태 seam). [SlimFeedbackSheet] 는 모달 래핑만 하고 렌더는 여기 위임한다 — 프로토타입
  * 대조 스크린샷이 ModalBottomSheet(별도 윈도) 캡처 제약 없이 시트 내용을 고정 상태로 렌더할 수 있게 한다.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun SlimFeedbackContent(
     state: SlimFeedbackState,
@@ -133,6 +145,12 @@ internal fun SlimFeedbackContent(
     bookmarkedLevels: Set<Int> = emptySet(),
     onToggleBookmark: (Paraphrase) -> Unit = {},
 ) {
+    // "더 보기" 로 심화 영역이 붙으면 스크롤을 그 위치로 옮겨 실제로 드러낸다. 안 그러면 접힘 아래로 이어붙어
+    // 화면 밖에 있어 버튼 라벨만 바뀌고 아무 변화 없어 보인다(사용자 리포트). verticalScroll 부모가 대상이다.
+    val deepReveal = remember { BringIntoViewRequester() }
+    LaunchedEffect(deepExpanded, deepState) {
+        if (deepExpanded && deepState !is DeepFeedbackState.Idle) deepReveal.bringIntoView()
+    }
     // 스크롤 콘텐츠(위)를 weight 로 채우고 버튼 풋터는 시트 최하단에 고정한다(요청). 심화("더 보기")는 턴
     // 피드백의 연장이라 같은 스크롤 영역에 슬림 섹션 아래로 이어 붙는다 — 버튼은 그대로 하단 고정.
     Column(modifier = modifier.fillMaxWidth()) {
@@ -177,6 +195,7 @@ internal fun SlimFeedbackContent(
                                 onRetry = onRetryDeep,
                                 bookmarkedLevels = bookmarkedLevels,
                                 onToggleBookmark = onToggleBookmark,
+                                modifier = Modifier.bringIntoViewRequester(deepReveal),
                             )
                         }
                     }
@@ -219,6 +238,8 @@ private fun SlimFooter(content: @Composable ColumnScope.() -> Unit) {
         modifier =
             Modifier
                 .fillMaxWidth()
+                // 시스템 내비게이션 바 인셋만큼 하단을 비워 "다음" 버튼이 제스처 바/버튼 바에 잘리지 않게 한다.
+                .navigationBarsPadding()
                 .padding(horizontal = 20.dp)
                 .padding(top = 12.dp, bottom = 22.dp),
         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),

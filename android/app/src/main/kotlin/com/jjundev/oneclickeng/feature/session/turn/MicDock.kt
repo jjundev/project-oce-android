@@ -36,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jjundev.oneclickeng.feature.session.feedback.SlimFeedbackState
 import com.jjundev.oneclickeng.ui.audio.MicButton
 import com.jjundev.oneclickeng.ui.audio.MicState
 import com.jjundev.oneclickeng.ui.audio.WaveformCanvas
@@ -63,6 +65,12 @@ internal fun MicSessionDock(
     reduceMotion: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    // 답변 정착 후 턴 피드백 시트(M1-07)가 뜨면 그 시트가 터미널 턴 UI("다음")를 소유한다. 도크의 Complete
+    // 상태(체크+"다음")를 그대로 두면 70% 모달 시트 뒤/아래로 중복 노출된다 → 시트가 있는 동안 도크를 숨긴다.
+    // 피드백이 아예 안 뜬 경우(task/ref null)만 Idle 이라 도크가 "다음" 폴백을 계속 보인다.
+    val feedbackState by viewModel.feedbackState.collectAsStateWithLifecycle()
+    if (feedbackState !is SlimFeedbackState.Idle) return
+
     val context = LocalContext.current
     var showPriming by remember { mutableStateOf(false) }
     var permanentlyDenied by remember { mutableStateOf(false) }
