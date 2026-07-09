@@ -60,7 +60,11 @@ export class DialogueGenerateError extends Error {
   }
 }
 
-const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
+// Vertex AI in express mode: API-key auth (x-goog-api-key) against the global
+// aiplatform endpoint. `/publishers/google/models/{model}:generateContent` mirrors the
+// Developer-API path shape, so only the base host + `role` on every content entry differ
+// (Vertex REQUIRES role; the Developer API treated it as optional).
+const GEMINI_BASE_URL = "https://aiplatform.googleapis.com/v1/publishers/google";
 /** default PCM rate when the response mimeType omits `rate=` (Gemini TTS is 24kHz). */
 const DEFAULT_SAMPLE_RATE_HZ = 24000;
 const MIME_RATE_RE = /rate=(\d+)/;
@@ -372,7 +376,7 @@ export function buildSynthesisBody(
     "Do not add commentary or extra words. " +
     `Text: ${text}`;
   return {
-    contents: [{ parts: [{ text: prompt }] }],
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
     generationConfig: {
       responseModalities: ["AUDIO"],
       speechConfig: {
@@ -412,6 +416,7 @@ export function buildAnalysisBody(audioBase64: string): Record<string, unknown> 
   return {
     contents: [
       {
+        role: "user",
         parts: [
           { inlineData: { mimeType: "audio/wav", data: audioBase64 } },
           { text: SPEAKING_SYSTEM_PROMPT },
