@@ -58,10 +58,15 @@ fun VennDiagramCanvas(
     val textMeasurer = rememberTextMeasurer()
     val labelStyle =
         OceTheme.typography.sectionLabel.copy(color = MaterialTheme.colorScheme.onSurface)
-    // 아이템(뜻 목록)은 보조 텍스트급. 색은 가드가 검증하는 sub 참조색(onSurfaceVariant)과 일치시켜
+    // 측면(좌/우) 고유 뜻은 보조 텍스트급. 색은 가드가 검증하는 sub 참조색(onSurfaceVariant)과 일치시켜
     // 측면 원 위 대비 ≥3.0 불변식(VennColorGuard.MIN_SUB_CONTRAST_SIDE)을 그대로 만족한다.
     val itemStyle =
         OceTheme.typography.helper.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+    // 교집합 뜻은 primary 색(레거시 VennDiagramView.intersectionItemPaint 정합). 가드가 검증하는 primary
+    // 참조색(onSurface)과 일치시켜 렌즈 위 대비 ≥3.0 불변식(VennColorGuard.MIN_PRIMARY_CONTRAST_INTERSECTION)을
+    // 그대로 만족한다 — sub 색은 이 가드의 보증 범위 밖이라 렌즈 위에서 대비가 부족할 수 있다.
+    val intersectionItemStyle =
+        OceTheme.typography.helper.copy(color = MaterialTheme.colorScheme.onSurface)
     // 원 경계 stroke(정보 강화 시 뜻 목록과 원 배경 경계를 명료화 — 레거시 strokePaint 정합). 불투명 side 색.
     val leftStroke = Color(colors.left)
     val rightStroke = Color(colors.right)
@@ -92,7 +97,8 @@ fun VennDiagramCanvas(
                         drawCircle(color = leftStroke, radius = r, center = leftCenter, style = Stroke(1.dp.toPx()))
                         drawCircle(color = rightStroke, radius = r, center = rightCenter, style = Stroke(1.dp.toPx()))
                         drawVennLabelsAndItems(
-                            textMeasurer, venn, leftCenter, rightCenter, r, cy, labelStyle, itemStyle,
+                            textMeasurer, venn, leftCenter, rightCenter, r, cy,
+                            labelStyle, itemStyle, intersectionItemStyle,
                         )
                     }
                 },
@@ -114,21 +120,28 @@ private fun DrawScope.drawVennLabelsAndItems(
     cy: Float,
     labelStyle: TextStyle,
     itemStyle: TextStyle,
+    intersectionItemStyle: TextStyle,
 ) {
     // 헤드워드: 원 상단(cy - r·0.5), 좌우 대칭으로 lobe 바깥쪽에 센터 앵커(레거시 labelOffset·0.3 정합).
     drawCenteredText(measurer, venn.left.word, Offset(leftCenter.x - r * 0.30f, cy - r * 0.50f), labelStyle)
     drawCenteredText(measurer, venn.right.word, Offset(rightCenter.x + r * 0.30f, cy - r * 0.50f), labelStyle)
-    // 좌/우 고유 뜻: 각 lobe 비겹침 영역에 세로 누적(• 접두).
+    // 좌/우 고유 뜻: 각 lobe 비겹침 영역에 세로 누적(• 접두), sub 색.
     drawItemColumn(
         measurer, venn.left.items, Offset(leftCenter.x - r * 0.40f, cy - r * 0.20f), itemStyle, bullet = true,
     )
     drawItemColumn(
         measurer, venn.right.items, Offset(rightCenter.x + r * 0.40f, cy - r * 0.20f), itemStyle, bullet = true,
     )
-    // 교집합 뜻: 렌즈 중앙(두 중심의 중점), 접두 없음.
+    // 교집합 뜻: 렌즈 중앙(두 중심의 중점), 접두 없음, primary 색.
     val mid = (leftCenter.x + rightCenter.x) / 2f
-    drawItemColumn(measurer, venn.intersectionItems, Offset(mid, cy + r * 0.10f), itemStyle, bullet = false)
+    drawItemColumn(
+        measurer, venn.intersectionItems, Offset(mid, cy + r * 0.10f), intersectionItemStyle, bullet = false,
+    )
 }
+
+/** [desiredLeft]를 캔버스 폭 안으로 clamp 한다(긴 단어가 좌/우로 삐져나가 잘리는 것 방어, 결정 #15). */
+private fun DrawScope.clampedLeft(desiredLeft: Float, textWidth: Float): Float =
+    desiredLeft.coerceIn(0f, (size.width - textWidth).coerceAtLeast(0f))
 
 /** [center]를 텍스트의 시각 중앙으로 두고 그린다(측정 폭·높이 절반 보정, x 는 캔버스 폭 clamp). */
 private fun DrawScope.drawCenteredText(
@@ -139,7 +152,7 @@ private fun DrawScope.drawCenteredText(
 ) {
     if (text.isEmpty()) return
     val layout = measurer.measure(text, style)
-    val x = (center.x - layout.size.width / 2f).coerceIn(0f, (size.width - layout.size.width).coerceAtLeast(0f))
+    val x = clampedLeft(center.x - layout.size.width / 2f, layout.size.width.toFloat())
     drawText(layout, topLeft = Offset(x, center.y - layout.size.height / 2f))
 }
 
@@ -156,7 +169,7 @@ private fun DrawScope.drawItemColumn(
     items.forEach { item ->
         val label = if (bullet) "• $item" else item
         val layout = measurer.measure(label, style)
-        val x = (top.x - layout.size.width / 2f).coerceIn(0f, (size.width - layout.size.width).coerceAtLeast(0f))
+        val x = clampedLeft(top.x - layout.size.width / 2f, layout.size.width.toFloat())
         drawText(layout, topLeft = Offset(x, y))
         y += layout.size.height + gap
     }
