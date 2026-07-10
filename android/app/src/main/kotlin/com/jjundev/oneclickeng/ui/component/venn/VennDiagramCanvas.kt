@@ -125,7 +125,8 @@ private fun DrawScope.drawCenteredText(
 
 /**
  * 색 단독 신호 금지(A2)의 텍스트 대안. 정보 강화(결정 #18)로 각 단어의 고유 뜻(items)까지 노출해
- * 다이어그램 내부 시각(좌/우 • items + 교집합)의 완전한 텍스트 대안이 되게 한다. items 가 비면 괄호를 생략한다.
+ * 다이어그램(헤드워드)과 그 아래 뜻 레전드(좌/우 items + 교집합)를 아우르는 완전한 텍스트 대안이 되게
+ * 한다. items 가 비면 괄호를 생략한다.
  */
 internal fun VennData.toVennContentDescription(): String {
     fun withItems(circle: VennCircle) =

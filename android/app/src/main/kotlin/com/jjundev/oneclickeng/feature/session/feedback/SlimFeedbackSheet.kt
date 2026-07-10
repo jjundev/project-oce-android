@@ -81,9 +81,10 @@ private const val HANDLE_ALPHA = 0.4f
  * (점수 gate 없음, §7).
  *
  * **deep "더 보기"(M2-03):** slim 3섹션이 모두 settled([SlimFeedbackState.Active.nextEnabled] 재사용 —
- * "다음"과 동일 게이트)면 활성화된다. 탭 시 [onExpandDeep]/[onCollapseDeep] 로 접기↔펴기하고, 펼침 상태에서
- * slim 섹션 아래·"다음" 위에 [DeepFeedbackRegion] 을 인라인 렌더한다. deep 상태([deepState])·재시도·북마크
- * 토글은 호스트가 [DeepFeedbackCoordinator] 로 구동한다(라이브 배선은 통합 소관 — M1-08).
+ * "다음"과 동일 게이트)면 활성화된다. 탭 시 [onExpandDeep] 으로 deep 을 개시/펼치고, 토글 자체는 사라진다
+ * (`!deepExpanded` 에서만 렌더 — 접는 동작 없음). 펼친 뒤로는 slim 섹션 아래·"다음" 위에
+ * [DeepFeedbackRegion] 이 인라인으로 계속 남는다. deep 상태([deepState])·재시도·북마크 토글은 호스트가
+ * [DeepFeedbackCoordinator] 로 구동한다(라이브 배선은 통합 소관 — M1-08).
  *
  * @param onRetry 실패 섹션 재시도(코디네이터 [SlimFeedbackCoordinator.retry]).
  * @param onSkip 반복 실패 섹션 스킵([SlimFeedbackCoordinator.skip]).
@@ -91,7 +92,7 @@ private const val HANDLE_ALPHA = 0.4f
  * @param deepState deep 상태축([DeepFeedbackCoordinator.state]).
  * @param deepExpanded "더 보기" 펼침 여부(호스트 소유 UI 상태).
  * @param onExpandDeep "더 보기" 첫 탭 → deep 개시/펼침([DeepFeedbackCoordinator.start]).
- * @param onCollapseDeep "접기" 탭 → 접기(재호출 없음, 캐시 유지, P3).
+ * @param onCollapseDeep 접기 seam(현재 UI 에 접기 버튼 없음 — 재도입 대비 보존, P3).
  * @param onRetryDeep deep 영역 재시도([DeepFeedbackCoordinator.retry]).
  * @param bookmarkedLevels 턴 내 ephemeral 북마크 레벨.
  * @param onToggleBookmark 패러프레이즈 저장 토글 seam(M2-04 영속).
@@ -220,8 +221,9 @@ internal fun SlimFeedbackContent(
     bookmarkedLevels: Set<Int> = emptySet(),
     onToggleBookmark: (Paraphrase) -> Unit = {},
 ) {
-    // "더 보기" 로 심화 영역이 붙으면 스크롤을 그 위치로 옮겨 실제로 드러낸다. 안 그러면 접힘 아래로 이어붙어
-    // 화면 밖에 있어 버튼 라벨만 바뀌고 아무 변화 없어 보인다(사용자 리포트). verticalScroll 부모가 대상이다.
+    // "더 보기" 탭 시 토글은 사라지고 심화 영역이 그 자리에 인라인으로 붙는다. 스크롤을 그 위치로 옮기지
+    // 않으면 새로 붙은 영역이 화면 밖에 남아 아무 반응도 없는 것처럼 보인다(사용자 리포트). verticalScroll
+    // 부모가 대상이다.
     val deepReveal = remember { BringIntoViewRequester() }
     LaunchedEffect(deepExpanded, deepState) {
         if (deepExpanded && deepState !is DeepFeedbackState.Idle) deepReveal.bringIntoView()
