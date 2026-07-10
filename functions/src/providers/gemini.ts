@@ -898,7 +898,7 @@ export const FEEDBACK_RESPONSE_SCHEMA: Record<string, unknown> = {
 };
 
 /** Bump when FEEDBACK_DEEP_SYSTEM_PROMPT or FEEDBACK_DEEP_RESPONSE_SCHEMA changes (cache key). */
-export const FEEDBACK_DEEP_PROMPT_VERSION = "2026-07-04";
+export const FEEDBACK_DEEP_PROMPT_VERSION = "2026-07-10";
 
 /**
  * feedback.deep system prompt — M2-03. The on-demand "더 보기" deep analysis (a SEPARATE call from
@@ -920,9 +920,11 @@ export const FEEDBACK_DEEP_SYSTEM_PROMPT =
   "conceptualBridge — `literalTranslation`: back-translate the learner's English literally into " +
   "Korean (what it actually conveys). `explanation`: the gap between intent and actual meaning, in " +
   "easy Korean. `venn`: compare the single most instructive vocabulary pair — `leftCircle.word` " +
-  "(a word from the learner's sentence) vs `rightCircle.word` (the recommended word); `items` are " +
-  "short Korean meaning notes; `intersection.items` are shared meanings; `guide` is a one-line " +
-  "Korean hint. NO colors anywhere — words and items only.\n" +
+  "(a word from the learner's sentence) vs `rightCircle.word` (the recommended word). `items` are " +
+  "1-3 VERY SHORT Korean meaning notes: each MUST be a single word or a phrase of at most 4 words, " +
+  "NEVER a full sentence or descriptive clause (good: \"주문하다\", \"격식 있는 표현\"; " +
+  "bad: \"물건을 사고 받은 증명서를 건네줄 때 쓰는 표현\"). `intersection.items` are shared meanings under " +
+  "the same length limit. `guide` is a one-line Korean hint. NO colors anywhere — words and items only.\n" +
   "\n" +
   "toneStyle — EXACTLY 5 levels (0 Very Formal → 4 Very Casual/Slang), `defaultLevel` = 2 (Neutral). " +
   "Every level has an English `sentence` and a non-empty Korean `sentenceTranslation`.\n" +
