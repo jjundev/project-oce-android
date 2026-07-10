@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -57,8 +58,20 @@ fun VennDiagramCanvas(
     val textMeasurer = rememberTextMeasurer()
     val labelStyle =
         OceTheme.typography.sectionLabel.copy(color = MaterialTheme.colorScheme.onSurface)
+    // 측면(좌/우) 고유 뜻은 보조 텍스트급. 색은 가드가 검증하는 sub 참조색(onSurfaceVariant)과 일치시켜
+    // 측면 원 위 대비 ≥3.0 불변식(VennColorGuard.MIN_SUB_CONTRAST_SIDE)을 그대로 만족한다.
+    val itemStyle =
+        OceTheme.typography.helper.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+    // 교집합 뜻은 primary 색(레거시 VennDiagramView.intersectionItemPaint 정합). 가드가 검증하는 primary
+    // 참조색(onSurface)과 일치시켜 렌즈 위 대비 ≥3.0 불변식(VennColorGuard.MIN_PRIMARY_CONTRAST_INTERSECTION)을
+    // 그대로 만족한다 — sub 색은 이 가드의 보증 범위 밖이라 렌즈 위에서 대비가 부족할 수 있다.
+    val intersectionItemStyle =
+        OceTheme.typography.helper.copy(color = MaterialTheme.colorScheme.onSurface)
+    // 원 경계 stroke(정보 강화 시 뜻 목록과 원 배경 경계를 명료화 — 레거시 strokePaint 정합). 불투명 side 색.
+    val leftStroke = Color(colors.left)
+    val rightStroke = Color(colors.right)
 
-    val description = venn.toContentDescription()
+    val description = venn.toVennContentDescription()
 
     // drawWithCache: 크기 종속 기하·교집합 lens Path 를 크기 변경 시에만 재계산(리컴포지션 캐시, SoT §I4).
     Spacer(
@@ -81,8 +94,11 @@ fun VennDiagramCanvas(
                         drawCircle(color = leftColor, radius = r, center = leftCenter)
                         drawCircle(color = rightColor, radius = r, center = rightCenter)
                         clipPath(lens) { drawRect(color = intersectionColor) }
-                        drawVennText(
-                            textMeasurer, venn, leftCenter, rightCenter, r, cy, labelStyle,
+                        drawCircle(color = leftStroke, radius = r, center = leftCenter, style = Stroke(1.dp.toPx()))
+                        drawCircle(color = rightStroke, radius = r, center = rightCenter, style = Stroke(1.dp.toPx()))
+                        drawVennLabelsAndItems(
+                            textMeasurer, venn, leftCenter, rightCenter, r, cy,
+                            labelStyle, itemStyle, intersectionItemStyle,
                         )
                     }
                 },
@@ -90,11 +106,12 @@ fun VennDiagramCanvas(
 }
 
 /**
- * Draw the two circle words (off-center). 교집합 안에는 텍스트를 그리지 않는다(프로토 정합 — 공통 의미는
- * 벤 아래 "공통: …" 캡션이 노출, DeepFeedbackSections ④).
+ * 헤드워드(원 상단, 중앙 정렬) + 좌/우 고유 뜻(• items, 비겹침 lobe) + 교집합 뜻(렌즈 중앙)을 그린다.
+ * 레거시 [VennDiagramView.drawLabelsAndItems] 좌표를 Compose 로 이식(정보 강화, 결정 #18). 모든 텍스트는
+ * 측정 후 x 중앙 정렬하고 캔버스 폭 안으로 clamp 해 긴 단어 클리핑을 방어한다(결정 #15).
  */
 @Suppress("LongParameterList")
-private fun DrawScope.drawVennText(
+private fun DrawScope.drawVennLabelsAndItems(
     measurer: TextMeasurer,
     venn: VennData,
     leftCenter: Offset,
@@ -102,15 +119,71 @@ private fun DrawScope.drawVennText(
     r: Float,
     cy: Float,
     labelStyle: TextStyle,
+    itemStyle: TextStyle,
+    intersectionItemStyle: TextStyle,
 ) {
-    drawText(measurer, venn.left.word, topLeft = Offset(leftCenter.x - r * 0.7f, cy - r * 0.55f), style = labelStyle)
-    drawText(measurer, venn.right.word, topLeft = Offset(rightCenter.x - r * 0.1f, cy - r * 0.55f), style = labelStyle)
+    // 헤드워드: 원 상단(cy - r·0.5), 좌우 대칭으로 lobe 바깥쪽에 센터 앵커(레거시 labelOffset·0.3 정합).
+    drawCenteredText(measurer, venn.left.word, Offset(leftCenter.x - r * 0.30f, cy - r * 0.50f), labelStyle)
+    drawCenteredText(measurer, venn.right.word, Offset(rightCenter.x + r * 0.30f, cy - r * 0.50f), labelStyle)
+    // 좌/우 고유 뜻: 각 lobe 비겹침 영역에 세로 누적(• 접두), sub 색.
+    drawItemColumn(
+        measurer, venn.left.items, Offset(leftCenter.x - r * 0.40f, cy - r * 0.20f), itemStyle, bullet = true,
+    )
+    drawItemColumn(
+        measurer, venn.right.items, Offset(rightCenter.x + r * 0.40f, cy - r * 0.20f), itemStyle, bullet = true,
+    )
+    // 교집합 뜻: 렌즈 중앙(두 중심의 중점), 접두 없음, primary 색.
+    val mid = (leftCenter.x + rightCenter.x) / 2f
+    drawItemColumn(
+        measurer, venn.intersectionItems, Offset(mid, cy + r * 0.10f), intersectionItemStyle, bullet = false,
+    )
 }
 
-/** 색 단독 신호 금지(A2): "<left>와 <right>의 공통 의미: <intersection items>" 텍스트 대안. */
-private fun VennData.toContentDescription(): String {
+/** [desiredLeft]를 캔버스 폭 안으로 clamp 한다(긴 단어가 좌/우로 삐져나가 잘리는 것 방어, 결정 #15). */
+private fun DrawScope.clampedLeft(desiredLeft: Float, textWidth: Float): Float =
+    desiredLeft.coerceIn(0f, (size.width - textWidth).coerceAtLeast(0f))
+
+/** [center]를 텍스트의 시각 중앙으로 두고 그린다(측정 폭·높이 절반 보정, x 는 캔버스 폭 clamp). */
+private fun DrawScope.drawCenteredText(
+    measurer: TextMeasurer,
+    text: String,
+    center: Offset,
+    style: TextStyle,
+) {
+    if (text.isEmpty()) return
+    val layout = measurer.measure(text, style)
+    val x = clampedLeft(center.x - layout.size.width / 2f, layout.size.width.toFloat())
+    drawText(layout, topLeft = Offset(x, center.y - layout.size.height / 2f))
+}
+
+/** [top].x 를 중앙으로 아이템을 세로 누적한다(각 줄 측정 높이 + 2dp gap). */
+private fun DrawScope.drawItemColumn(
+    measurer: TextMeasurer,
+    items: List<String>,
+    top: Offset,
+    style: TextStyle,
+    bullet: Boolean,
+) {
+    var y = top.y
+    val gap = 2.dp.toPx()
+    items.forEach { item ->
+        val label = if (bullet) "• $item" else item
+        val layout = measurer.measure(label, style)
+        val x = clampedLeft(top.x - layout.size.width / 2f, layout.size.width.toFloat())
+        drawText(layout, topLeft = Offset(x, y))
+        y += layout.size.height + gap
+    }
+}
+
+/**
+ * 색 단독 신호 금지(A2)의 텍스트 대안. 정보 강화(결정 #18)로 각 단어의 고유 뜻(items)까지 노출해
+ * 다이어그램 내부 시각(좌/우 • items + 교집합)의 완전한 텍스트 대안이 되게 한다. items 가 비면 괄호를 생략한다.
+ */
+internal fun VennData.toVennContentDescription(): String {
+    fun withItems(circle: VennCircle) =
+        if (circle.items.isEmpty()) circle.word else "${circle.word}(${circle.items.joinToString(", ")})"
     val shared = intersectionItems.joinToString(", ")
-    return "${left.word}와 ${right.word}의 공통 의미: $shared"
+    return "${withItems(left)}와 ${withItems(right)}의 공통 의미: $shared"
 }
 
 @Suppress("UnusedPrivateMember")

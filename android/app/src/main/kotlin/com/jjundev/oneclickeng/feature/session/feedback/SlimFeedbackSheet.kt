@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -43,6 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -60,7 +62,7 @@ import com.jjundev.oneclickeng.ui.component.RichSegment
 import com.jjundev.oneclickeng.ui.component.SkeletonShape
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
-/** 턴 피드백 시트 높이(화면 대비). 프로토타입 "70%만 올라오는" 시트 정합. */
+/** 턴 피드백 시트 높이 상한(화면 대비). 시트는 콘텐츠에 맞춰 커지되 이 비율을 넘지 않는다(넘으면 내부 스크롤). */
 private const val SHEET_HEIGHT_FRACTION = 0.7f
 
 /** 시트 뒤 대화를 어둡게 하는 스크림 불투명도(M3 기본 scrim 정합). */
@@ -111,11 +113,11 @@ fun SlimFeedbackSheet(
 ) {
     if (state is SlimFeedbackState.Idle) return
 
-    // 턴 피드백 시트는 화면의 70% 고정 높이로 하단 정착한다(프로토 정합, 내부 스크롤). ModalBottomSheet 대신
-    // **드래그 없는 고정 오버레이**로 렌더한다 — 드래그가 되면 스크롤 중 시트가 실수로 줄어드는 불쾌한 경험이
-    // 생긴다(사용자 리포트). 시트는 스와이프/탭으로 줄이거나 닫을 수 없고, "다음"(onNext) 또는 시스템 뒤로가기
-    // (호스트가 Route BackHandler 로 "대화 나가기"에 연결)로만 벗어난다. 드래그는 불가지만 프로토 핸들 바는
-    // 장식으로 복원한다.
+    // 턴 피드백 시트는 콘텐츠에 맞춰 하단 정착하되 화면의 SHEET_HEIGHT_FRACTION 을 상한으로 둔다(짧은
+    // 피드백은 그만큼만, 길면 상한에서 내부 스크롤). ModalBottomSheet 대신 **드래그 없는 고정 오버레이**로
+    // 렌더한다 — 드래그가 되면 스크롤 중 시트가 실수로 줄어드는 불쾌한 경험이 생긴다(사용자 리포트). 시트는
+    // 스와이프/탭으로 줄이거나 닫을 수 없고, "다음"(onNext) 또는 시스템 뒤로가기(호스트가 Route BackHandler 로
+    // "대화 나가기"에 연결)로만 벗어난다. 드래그는 불가지만 프로토 핸들 바는 장식으로 복원한다.
     val sheetHeight = (LocalConfiguration.current.screenHeightDp * SHEET_HEIGHT_FRACTION).dp
     val reduceMotion = rememberReduceMotion()
     // 진입 시 1회 슬라이드-업 + 페이드-인(reduce-motion 이면 즉시). false→true 로 시작해 최초 컴포지션에서
@@ -149,12 +151,15 @@ fun SlimFeedbackSheet(
             modifier = Modifier.align(Alignment.BottomCenter),
         ) {
             Surface(
-                modifier = Modifier.fillMaxWidth().height(sheetHeight),
+                // 내용에 맞춰 높이를 잡되 화면의 SHEET_HEIGHT_FRACTION 을 상한으로 둔다 — 짧은 피드백
+                // (예: "이미 자연스러워요")에서 콘텐츠와 버튼 사이 과도한 빈 여백을 없애고, 길면 상한에서
+                // 내부 스크롤한다(고정 70% → 적응형 상한).
+                modifier = Modifier.fillMaxWidth().heightIn(max = sheetHeight),
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                 color = MaterialTheme.colorScheme.surface,
                 shadowElevation = 8.dp,
             ) {
-                Column(modifier = Modifier.fillMaxSize()) {
+                Column(modifier = Modifier.fillMaxWidth()) {
                     // 정적 드래그 핸들 바(프로토 정합). 시트는 드래그 불가라 순전히 장식이다.
                     Box(
                         modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp),
@@ -176,7 +181,8 @@ fun SlimFeedbackSheet(
                         onRetry = onRetry,
                         onSkip = onSkip,
                         onNext = onNext,
-                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        // fill = false: 콘텐츠가 짧으면 감싸고(빈 여백 없음), 상한에 닿으면 그 안에서 스크롤한다.
+                        modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
                         deepState = deepState,
                         deepExpanded = deepExpanded,
                         onExpandDeep = onExpandDeep,
@@ -220,13 +226,14 @@ internal fun SlimFeedbackContent(
     LaunchedEffect(deepExpanded, deepState) {
         if (deepExpanded && deepState !is DeepFeedbackState.Idle) deepReveal.bringIntoView()
     }
-    // 스크롤 콘텐츠(위)를 weight 로 채우고 버튼 풋터는 시트 최하단에 고정한다(요청). 심화("더 보기")는 턴
-    // 피드백의 연장이라 같은 스크롤 영역에 슬림 섹션 아래로 이어 붙는다 — 버튼은 그대로 하단 고정.
+    // 스크롤 콘텐츠(위)는 weight(fill=false)로 콘텐츠만큼만 차지하고(짧으면 빈 여백 없이 감싼다) 상한에
+    // 닿으면 그 안에서 스크롤한다. 버튼 풋터는 그 아래 고정된다. 심화("더 보기")는 턴 피드백의 연장이라
+    // 같은 스크롤 영역에 슬림 섹션 아래로 이어 붙는다.
     Column(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier =
                 Modifier
-                    .weight(1f)
+                    .weight(1f, fill = false)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp)
                     .padding(top = 6.dp, bottom = OceTheme.spacing.sm),
@@ -281,15 +288,14 @@ internal fun SlimFeedbackContent(
                 is SlimFeedbackState.Idle -> Unit // unreachable (early return)
             }
         }
-        // 하단 고정 버튼 풋터.
+        // 하단 고정 버튼 풋터 — "더 보기"(펼치기 전)와 "다음"을 함께 고정 노출한다. "더 보기"는 딥이 슬림
+        // 정착 시 이거-프리페치돼 있어 탭 시 즉시 펼쳐지고, 펼친 뒤에는 토글을 감춰 "다음"만 남긴다.
         when (state) {
             is SlimFeedbackState.Active ->
                 SlimFooter {
-                    // 더 보기 게이트 = nextEnabled 재사용(모두 settled) — "다음"과 동일 술어(A4/A5).
-                    // 펼쳐진 뒤에는 토글을 아예 없앤다(접기 버튼 미노출) — "다음"만 남긴다.
                     if (!deepExpanded) {
                         MoreToggleButton(
-                            expanded = deepExpanded,
+                            expanded = false,
                             enabled = state.nextEnabled,
                             onClick = onExpandDeep,
                         )
@@ -310,6 +316,7 @@ private fun SlimFooter(content: @Composable ColumnScope.() -> Unit) {
         modifier =
             Modifier
                 .fillMaxWidth()
+                .testTag("slim_footer")
                 // 시스템 내비게이션 바 인셋만큼 하단을 비워 "다음" 버튼이 제스처 바/버튼 바에 잘리지 않게 한다.
                 .navigationBarsPadding()
                 .padding(horizontal = 20.dp)

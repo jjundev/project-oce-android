@@ -251,8 +251,8 @@ class GeneratedDialogueSessionViewModel
         // "다음"([onAdvance]) 중 먼저 오는 쪽이 기록하고 null 로 비워 턴당 1회 기록을 보장한다.
         private var pendingTurn: PendingTurn? = null
 
-        // deep("더 보기")는 사용자가 시트에서 확장할 때 개시되므로, 현재 턴의 start 파라미터를 stash 해 두었다가
-        // [expandDeep] 에서 [DeepFeedbackCoordinator.start] 로 넘긴다(턴 전환 시 [onAdvance] 가 비운다).
+        // deep("더 보기") start 파라미터 stash. 이제 슬림 정착 시 [onFeedbackState] 가 이거-프리페치로 개시하고,
+        // [expandDeep] 는 fallback 재호출(no-op)로 공존한다. 턴 전환 시 [onAdvance] 가 비운다.
         private var deepParams: DeepParams? = null
 
         private val json = Json { ignoreUnknownKeys = true }
@@ -506,7 +506,19 @@ class GeneratedDialogueSessionViewModel
                     is SlimFeedbackState.QuotaBlocked -> true
                     SlimFeedbackState.Idle -> false
                 }
-            if (resolved) recordTurn(pending)
+            if (resolved) {
+                recordTurn(pending)
+                // 딥 이거-프리페치: 슬림 3섹션이 종결되는 즉시 딥을 백그라운드로 개시해, 사용자가 바닥까지
+                // 스크롤해 "더 보기"를 누를 때 대기 없이 즉시 펼쳐지게 한다(온디맨드→이거, 결정 #17/#19).
+                // recordTurn 이 pendingTurn 을 비우므로 이 블록은 정착 emission 1회에만 실행된다.
+                // 캡 거부(QuotaBlocked)면 딥도 동일 세션 캡에 걸리므로 개시하지 않는다(불필요 왕복 회피, 결정 #20).
+                // start()는 Idle 이 아니면 no-op 이라 이후 [expandDeep]의 재호출과 안전하게 공존한다(P3).
+                if (state is SlimFeedbackState.Active) {
+                    deepParams?.let { p ->
+                        deep.start(p.sessionId, p.turnIndex, p.koreanPrompt, p.userText, p.referenceEnglish, p.level)
+                    }
+                }
+            }
         }
 
         /** 요약 버퍼에 한 턴을 기록하고 pending 을 비운다(정착·"다음" 공용 진입). */
