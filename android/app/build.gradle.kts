@@ -63,10 +63,11 @@ tasks.withType<Test>().configureEach {
     if (project.hasProperty("roborazzi.record")) {
         systemProperty("roborazzi.test.record", "true")
     }
-    // 스크린샷 테스트(createComposeRule)는 compose-ui-test-manifest 가 debug 매니페스트에만 병합돼
-    // release 단위테스트에서 ComponentActivity 를 못 찾는다 → release 변이에선 제외(디버그 전용 캡처).
+    // createComposeRule 을 쓰는 단위테스트(스크린샷 캡처 포함)는 compose-ui-test-manifest 가
+    // debug 매니페스트에만 병합돼 release 단위테스트에서 ComponentActivity 를 못 찾는다
+    // → release 변이에선 전부 제외(디버그 전용). 새 createComposeRule 테스트를 추가하면 여기에도 등록할 것.
     if (name.contains("Release", ignoreCase = true)) {
-        exclude("**/*ScreenshotTest*")
+        exclude("**/*ScreenshotTest*", "**/SlimFeedbackSheetTest*")
     }
 }
 
