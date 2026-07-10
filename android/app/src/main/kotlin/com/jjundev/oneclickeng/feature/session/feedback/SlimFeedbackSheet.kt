@@ -43,6 +43,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -268,6 +269,16 @@ internal fun SlimFeedbackContent(
                             )
                         }
                     }
+                    // "더 보기"를 고정 풋터가 아니라 스크롤 콘텐츠 끝(자연 섹션 아래)에 둔다 — 1차 노출은
+                    // 자연스러운 표현까지고, 바닥까지 스크롤해야 드러난다(결정 #2). 펼쳐지면 토글은 사라지고
+                    // 딥이 위 섹션 리스트에 인라인으로 이어진다(결정 #6). 게이트는 nextEnabled 재사용("다음"과 동일).
+                    if (!deepExpanded) {
+                        MoreToggleButton(
+                            expanded = false,
+                            enabled = state.nextEnabled,
+                            onClick = onExpandDeep,
+                        )
+                    }
                 }
                 is SlimFeedbackState.QuotaBlocked -> {
                     RecapHeaderBlock(state.header)
@@ -281,21 +292,10 @@ internal fun SlimFeedbackContent(
                 is SlimFeedbackState.Idle -> Unit // unreachable (early return)
             }
         }
-        // 하단 고정 버튼 풋터.
+        // 하단 고정 버튼 풋터 — "다음"만(항상 도달 가능한 진행/탈출). "더 보기"는 스크롤 콘텐츠로 이동(결정 #3).
         when (state) {
             is SlimFeedbackState.Active ->
-                SlimFooter {
-                    // 더 보기 게이트 = nextEnabled 재사용(모두 settled) — "다음"과 동일 술어(A4/A5).
-                    // 펼쳐진 뒤에는 토글을 아예 없앤다(접기 버튼 미노출) — "다음"만 남긴다.
-                    if (!deepExpanded) {
-                        MoreToggleButton(
-                            expanded = deepExpanded,
-                            enabled = state.nextEnabled,
-                            onClick = onExpandDeep,
-                        )
-                    }
-                    NextButton(enabled = state.nextEnabled, onNext = onNext)
-                }
+                SlimFooter { NextButton(enabled = state.nextEnabled, onNext = onNext) }
             is SlimFeedbackState.QuotaBlocked ->
                 SlimFooter { NextButton(enabled = true, onNext = onNext) } // 캡 거부 → "다음"만
             is SlimFeedbackState.Idle -> Unit
@@ -310,6 +310,7 @@ private fun SlimFooter(content: @Composable ColumnScope.() -> Unit) {
         modifier =
             Modifier
                 .fillMaxWidth()
+                .testTag("slim_footer")
                 // 시스템 내비게이션 바 인셋만큼 하단을 비워 "다음" 버튼이 제스처 바/버튼 바에 잘리지 않게 한다.
                 .navigationBarsPadding()
                 .padding(horizontal = 20.dp)
