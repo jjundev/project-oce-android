@@ -58,7 +58,12 @@ internal fun availWidthLensPx(
     return 2f * (sqrt(inner) - geom.dPx / 2f)
 }
 
-/** 한 레인이 세로 스택으로 전부 들어가는지. 각 아이템은 하단 edge(cy에서 가장 먼 지점 → 가장 좁음)로 판정. */
+/**
+ * 한 레인이 세로 스택으로 전부 들어가는지. 각 아이템은 자신의 세로 span(상단~하단) 중 cy 에서 더 먼
+ * 지점(=가용 폭이 가장 좁은 지점)으로 판정한다. 측면 레인은 startY=cy−0.2r 라 첫 행이 cy 를 가로지를 수
+ * 있어 상단 edge 가 하단 edge 보다 |dy| 가 클 수 있다(하단만 보면 가용 폭 과대평가). 아래쪽 행들은 상단이
+ * 곧 이전 행의 하단이라 |dy| 가 단조 증가하므로 하단 edge 가 자연히 최댓값이 된다.
+ */
 @Suppress("ReturnCount")
 private fun laneFits(
     items: List<ItemBox>,
@@ -71,7 +76,7 @@ private fun laneFits(
     var runningY = startYPx
     for (item in items) {
         val bottom = runningY + item.heightPx
-        val dyAbs = abs(bottom - geom.cyPx)
+        val dyAbs = maxOf(abs(runningY - geom.cyPx), abs(bottom - geom.cyPx))
         val avail = availWidthAt(dyAbs) - geom.marginPx
         if (item.widthPx > avail) return false
         if (bottom > startYPx + verticalRoomPx) return false

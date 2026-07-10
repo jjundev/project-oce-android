@@ -88,4 +88,33 @@ class VennLayoutClassifierTest {
             classifyVennLayout(emptyList(), emptyList(), emptyList(), geom()),
         )
     }
+
+    @Test
+    fun `side item exactly at width boundary fits, one px over does not`() {
+        // 측면 첫 행은 sideStartY=74.4 에서 시작해 cy=88.8 을 가로지른다: bottom=74.4+18=92.4.
+        // dyAbs = max(|74.4−88.8|, |92.4−88.8|) = max(14.4, 3.6) = 14.4 (상단이 더 멀다 → 상단으로 판정).
+        // avail_side(dy=14.4) = 2·(√(72²−14.4²) − 28.8) = 2·(√4976.64 − 28.8) ≈ 2·(70.545 − 28.8) ≈ 83.49.
+        // margin 8 을 빼면 avail ≈ 75.49. 이 폭과 같으면(strict > 이므로 동등은 fits) INSIDE, +0.1 이면 LEGEND.
+        val g = geom()
+        val dyAbs = maxOf(kotlin.math.abs(g.sideStartYPx - g.cyPx), kotlin.math.abs(g.sideStartYPx + 18f - g.cyPx))
+        val boundaryWidth = availWidthSidePx(g, dyAbs) - g.marginPx
+
+        val fitsMode =
+            classifyVennLayout(
+                left = listOf(ItemBox(boundaryWidth, 18f)),
+                right = emptyList(),
+                intersection = emptyList(),
+                geom = g,
+            )
+        assertEquals(VennLayoutMode.INSIDE, fitsMode)
+
+        val overflowMode =
+            classifyVennLayout(
+                left = listOf(ItemBox(boundaryWidth + 0.1f, 18f)),
+                right = emptyList(),
+                intersection = emptyList(),
+                geom = g,
+            )
+        assertEquals(VennLayoutMode.LEGEND, overflowMode)
+    }
 }
