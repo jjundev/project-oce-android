@@ -44,6 +44,10 @@ internal const val VIEWPORT_HEIGHT_RATIO = 0.75f
  * **접근성(A2):** 색 단독 신호 금지 — 시각은 장식이며, 두 단어와 공통 의미를 [Modifier.semantics] 의
  * `contentDescription` 으로 텍스트 대안 노출한다(03-signature-interactions.md §I4 "텍스트 대안(필수)";
  * 웹 스펙의 figcaption/aria-label 을 Compose semantics 로 번역). 상위 블록이 guide·직역·설명을 별도 텍스트로 노출한다.
+ *
+ * @param mode [VennLayoutMode.INSIDE] 면 좌/우 뜻·교집합 items 를 원 안에 함께 그린다. [VennLayoutMode.LEGEND]
+ * 면 헤드워드만 그리고, 뜻은 호출부가 별도 레전드(예: `VennMeaningLegend`)로 노출해야 한다. 호출부는
+ * [rememberVennLayoutMode] 로 아이템이 원 안에서 겹치는지 측정해 이 값을 산출한다.
  */
 @Composable
 fun VennDiagramCanvas(
@@ -115,8 +119,10 @@ fun VennDiagramCanvas(
 }
 
 /**
- * 헤드워드만 원 상단에 중앙 정렬로 그린다(웹 프로토 VennDiagram.jsx 정합 — 원 안엔 단어만). 뜻(items·교집합)은
- * 임의 길이의 서술 문구라 원 안에 넣으면 겹치므로, 상위 [ConceptualBridgeBlock]의 텍스트 레전드가 노출한다.
+ * 두 헤드워드만 원 상단에 중앙 정렬로 그린다(웹 프로토 VennDiagram.jsx 정합 — 원 안엔 단어만, [VennLayoutMode]
+ * 와 무관하게 항상 호출). 뜻(items·교집합)은 이 함수가 그리지 않는다 — [VennLayoutMode.INSIDE] 면
+ * [VennDiagramCanvas] 가 이어서 [drawItemColumn] 으로 원 안에 그리고, [VennLayoutMode.LEGEND] 면(아이템이
+ * 원 안에서 겹칠 만큼 길 때 [rememberVennLayoutMode] 가 선택) 상위 호출부의 텍스트 레전드로 옮겨 노출한다.
  */
 @Suppress("LongParameterList")
 private fun DrawScope.drawVennHeadwords(
