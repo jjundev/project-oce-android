@@ -392,7 +392,7 @@ private fun TextInputDock(
 }
 
 /**
- * 프로토 입력 필드 로컬 래핑 — radius8 · borderStrong 1px · min-height 44dp · 15sp. 공유 [OneClickInput]
+ * 프로토 입력 필드 로컬 래핑 — radius8 · borderStrong 1px · min-height 54dp · 15sp. 공유 [OneClickInput]
  * (radius12·M3 56dp)과 외형이 달라 여기서만 쓰는 최소 [BasicTextField] 로 구현(공유 컴포넌트 미변경).
  */
 @Composable

@@ -214,4 +214,15 @@ class GeneratedDialogueStateTest {
         assertTrue(state.messages.isEmpty())
         assertEquals("unexpected_role:0:user", state.diagnostic)
     }
+
+    @Test
+    fun `stream failure after ready clears the typing skeleton`() {
+        val state = GeneratedDialogueState()
+        assertTrue(state.opponentTyping) // 첫 상대역 대사 생성 대기 중
+
+        // 대사가 오기 전에 스트림이 실패로 종료 → 무한 스켈레톤 방지(typing 해제).
+        state.accept(ready(emptyList(), DialogueStreamStatus.FailedAfterReady))
+
+        assertFalse(state.opponentTyping)
+    }
 }

@@ -656,7 +656,9 @@ internal class GeneratedDialogueState {
     /**
      * 상대역 발화가 화면에 나타나기 **직전**의 "타이핑 중" 국면(프로토타입 oppSkeleton). 다음 상대역 대사를
      * 기다리는 동안(첫 턴 생성 대기·턴 전환 후 SSE 대기) true, [displayOpponent] 로 대사가 붙으면 false.
-     * 파생 상태라 [recomputeTyping] 이 각 전이 끝에서 재계산한다(스냅샷 필드 불필요 — 복원 후 재계산으로 정착).
+     * Ready 이후 스트림이 실패([DialogueStreamStatus.FailedAfterReady])하면 더 이상 대사가 오지 않으므로 즉시
+     * false 로 내려가 무한 스켈레톤을 막는다. 파생 상태라 [recomputeTyping] 이 각 전이 끝에서 재계산한다
+     * (스냅샷 필드 불필요 — 복원 후 재계산으로 정착).
      */
     var opponentTyping by mutableStateOf(false)
         private set
@@ -671,13 +673,16 @@ internal class GeneratedDialogueState {
     }
 
     /**
-     * 파생 typing 국면 재계산: `OpponentTurn` + 미완(`!Completed`) + 아직 이번 턴 대사 미표시
-     * (`pending.opponentEnglish == null`)일 때만 스켈레톤을 노출한다. 각 상태 전이 말미에서 호출한다.
+     * 파생 typing 국면 재계산: `OpponentTurn` + 미완(`!Completed`) + 스트림이 Ready 이후 실패하지 않았고
+     * (`streamStatus != FailedAfterReady`) + 아직 이번 턴 대사 미표시(`pending.opponentEnglish == null`)일
+     * 때만 스켈레톤을 노출한다. 각 상태 전이 말미에서 호출한다. Ready 후 스트림이 실패해 상대역 대사가 더 이상
+     * 오지 않는 경우 이 게이트가 없으면 스켈레톤이 영원히 남는다(회귀: 무한 "타이핑…").
      */
     private fun recomputeTyping() {
         opponentTyping =
             turnPhase == TurnPhase.OpponentTurn &&
             sessionPhase != SessionPhase.Completed &&
+            streamStatus != DialogueStreamStatus.FailedAfterReady &&
             pending.opponentEnglish == null
     }
 
