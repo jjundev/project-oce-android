@@ -4,6 +4,7 @@ import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenState
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueStreamStatus
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -41,6 +42,45 @@ class GeneratedDialogueStateTest {
         assertEquals(TurnPhase.OpponentTurn, state.turnPhase)
         assertEquals(SessionPhase.InTurn, state.sessionPhase)
         assertNull(state.currentTask)
+    }
+
+    @Test
+    fun `each opponent line shows a typing skeleton until it is revealed`() {
+        val state = GeneratedDialogueState()
+        // 세션 시작 — 첫 상대역 대사 대기 중이라 스켈레톤 노출.
+        assertTrue(state.opponentTyping)
+
+        // 현실: 백엔드가 전체 대본을 빠르게 스트리밍 → 턴들이 미리 버퍼링된다.
+        state.accept(
+            ready(
+                listOf(
+                    model("Hello"),
+                    user("A coffee, please.", "커피 주세요."),
+                    model("Sure, anything else?"),
+                ),
+            ),
+        )
+        // 첫 대사도 즉시 표시되지 않고 스켈레톤 창을 가진다(표시 대기 = messages 미append).
+        assertTrue(state.opponentTyping)
+        assertTrue(state.messages.isEmpty())
+
+        // 스켈레톤 지연 경과(Route) → commitReveal 로 실제 표시.
+        state.commitReveal()
+        assertFalse(state.opponentTyping)
+        assertEquals(DialogueMessage.Opponent("Hello"), state.messages.last())
+
+        state.completeOpponentTurn()
+        assertEquals(TurnPhase.LearnerTurn, state.turnPhase)
+        assertFalse(state.opponentTyping)
+
+        // 핵심(버그 수정): 다음 상대 대사가 이미 버퍼돼 있어도 즉시 표시되지 않고 스켈레톤 창을 가진다.
+        state.submitLearnerStub()
+        assertTrue(state.opponentTyping)
+        assertEquals(DialogueMessage.Learner("A coffee, please."), state.messages.last())
+
+        state.commitReveal()
+        assertFalse(state.opponentTyping)
+        assertEquals(DialogueMessage.Opponent("Sure, anything else?"), state.messages.last())
     }
 
     @Test
@@ -100,6 +140,7 @@ class GeneratedDialogueStateTest {
         state.accept(snapshot)
         state.accept(snapshot)
 
+        state.commitReveal()
         assertEquals(listOf(DialogueMessage.Opponent("Hello")), state.messages)
     }
 
@@ -118,6 +159,7 @@ class GeneratedDialogueStateTest {
         )
         state.accept(ready(listOf(model("New hello"))))
 
+        state.commitReveal()
         assertEquals(listOf(DialogueMessage.Opponent("New hello")), state.messages)
         assertEquals(TurnPhase.OpponentTurn, state.turnPhase)
         assertEquals(SessionPhase.InTurn, state.sessionPhase)
@@ -137,6 +179,7 @@ class GeneratedDialogueStateTest {
 
         state.accept(ready(turns))
 
+        state.commitReveal()
         assertEquals(listOf(DialogueMessage.Opponent("Hello")), state.messages)
 
         state.completeOpponentTurn()
@@ -145,6 +188,8 @@ class GeneratedDialogueStateTest {
         assertEquals(ScaffoldTask("커피 주세요."), state.currentTask)
 
         state.submitLearnerStub()
+        // 전진 시 버퍼된 다음 대사는 표시 대기 → 스켈레톤 지연 경과(commitReveal) 후 표시된다.
+        state.commitReveal()
 
         assertEquals(
             listOf(
@@ -188,5 +233,16 @@ class GeneratedDialogueStateTest {
 
         assertTrue(state.messages.isEmpty())
         assertEquals("unexpected_role:0:user", state.diagnostic)
+    }
+
+    @Test
+    fun `stream failure after ready clears the typing skeleton`() {
+        val state = GeneratedDialogueState()
+        assertTrue(state.opponentTyping) // 첫 상대역 대사 생성 대기 중
+
+        // 대사가 오기 전에 스트림이 실패로 종료 → 무한 스켈레톤 방지(typing 해제).
+        state.accept(ready(emptyList(), DialogueStreamStatus.FailedAfterReady))
+
+        assertFalse(state.opponentTyping)
     }
 }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- send (Rounded · opsz24 · FILL 1) · source: material-design-icons send_fill1_24px · Apache-2.0, see ICONS-LICENSE.txt -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <group android:translateY="960">
+        <path
+            android:fillColor="#000000"
+            android:pathData="M160-160q-17 0-28.5-11.5T120-200v-180q0-10 4.5-18.5T137-411l273-69-273-69q-8-3-12.5-11.5T120-580v-180q0-17 11.5-28.5T160-800q3 0 6 .5t6 1.5l618 262q15 7 22.5 20t7.5 28q0 15-7.5 28T788-420L172-158q-3 1-6 1.5t-6 .5Z" />
+    </group>
+</vector>

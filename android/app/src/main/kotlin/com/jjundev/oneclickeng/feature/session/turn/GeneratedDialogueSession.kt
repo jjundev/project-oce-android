@@ -113,11 +113,16 @@ fun GeneratedDialogueSessionRoute(
     // no-op 이고, 시드된 스냅샷이 정본으로 남는다(결정 #4).
     LaunchedEffect(generationState) { viewModel.onGenerationState(generationState) }
 
-    // 상대역 자동 진행 지연(M1-03 유지). reduce-motion 이면 즉시.
-    val effectiveDelay = if (reduceMotion) 0L else DEFAULT_OPPONENT_ADVANCE_DELAY_MS.toLong()
+    // 턴 진행 시퀀스(스텁 rememberDialogueState 정합): 스켈레톤 지연 → 대사 표시([GeneratedDialogueState.commitReveal])
+    // → 자동 진행 지연 → 턴 마감. 실기기는 대본이 미리 버퍼링돼 대사가 즉시 표시되던 것을, 이 스켈레톤 지연으로
+    // "타이핑 중" 창을 되살린다. reduce-motion 이면 두 지연 모두 0(스켈레톤 없이 즉시).
+    val effectiveSkeleton = if (reduceMotion) 0L else DEFAULT_OPPONENT_SKELETON_DELAY_MS.toLong()
+    val effectiveAdvance = if (reduceMotion) 0L else DEFAULT_OPPONENT_ADVANCE_DELAY_MS.toLong()
     LaunchedEffect(state.opponentTurnSerial) {
         if (state.turnPhase == TurnPhase.OpponentTurn && state.sessionPhase == SessionPhase.InTurn) {
-            delay(effectiveDelay)
+            delay(effectiveSkeleton)
+            state.commitReveal()
+            delay(effectiveAdvance)
             state.completeOpponentTurn()
         }
     }
@@ -590,9 +595,11 @@ internal fun GeneratedDialogueSessionContent(
     dock: (@Composable (ScaffoldTask) -> Unit)? = null,
 ) {
     val listState = rememberLazyListState()
-    LaunchedEffect(state.messages.size) {
-        if (state.messages.isNotEmpty()) {
-            listState.animateScrollToItem(state.messages.lastIndex)
+    // 메시지 추가·타이핑 스켈레톤 등장 시 최신 아이템으로 자동 스크롤(스켈레톤은 메시지 뒤 마지막 아이템).
+    LaunchedEffect(state.messages.size, state.opponentTyping) {
+        val lastIndex = if (state.opponentTyping) state.messages.size else state.messages.lastIndex
+        if (lastIndex >= 0) {
+            listState.animateScrollToItem(lastIndex)
         }
     }
     DialogueTurnContent(
@@ -607,6 +614,7 @@ internal fun GeneratedDialogueSessionContent(
         header = header,
         onBack = onBack,
         dock = dock,
+        opponentTyping = state.opponentTyping,
     )
 }
 
@@ -650,10 +658,43 @@ internal class GeneratedDialogueState {
     var opponentTurnSerial by mutableIntStateOf(0)
         private set
 
+    /**
+     * 상대역 발화가 화면에 나타나기 **직전**의 "타이핑 중" 국면(프로토타입 oppSkeleton). 다음 상대역 대사를
+     * 기다리는 동안(첫 턴 생성 대기·턴 전환 후 SSE 대기) true, [displayOpponent] 로 대사가 붙으면 false.
+     * Ready 이후 스트림이 실패([DialogueStreamStatus.FailedAfterReady])하면 더 이상 대사가 오지 않으므로 즉시
+     * false 로 내려가 무한 스켈레톤을 막는다. 파생 상태라 [recomputeTyping] 이 각 전이 끝에서 재계산한다
+     * (스냅샷 필드 불필요 — 복원 후 재계산으로 정착).
+     */
+    var opponentTyping by mutableStateOf(false)
+        private set
+
     private var consumedTurnCount = 0
     private var streamStatus = DialogueStreamStatus.Streaming
     private var pending = PendingOpponent()
     private val bufferedPending = ArrayDeque<PendingOpponent>()
+
+    // 표시 대기 창: [displayOpponent] 가 상대역 대사를 [pending] 에 실었지만 아직 [messages] 에 append 하지
+    // 않은 구간. 이 창에서 [opponentTyping]=true(스켈레톤)로, Route 가 스켈레톤 지연 경과 후 [commitReveal] 로
+    // 실제 표시한다. 실기기는 대본이 미리 버퍼링돼 즉시 표시되던 것을(스켈레톤 창 0) 이 지연으로 되살린다.
+    private var awaitingReveal = false
+
+    init {
+        recomputeTyping()
+    }
+
+    /**
+     * 파생 typing 국면 재계산: `OpponentTurn` + 미완(`!Completed`) + 스트림이 Ready 이후 실패하지 않았고
+     * (`streamStatus != FailedAfterReady`) + 아직 이번 턴 대사 미표시(`pending.opponentEnglish == null`)일
+     * 때만 스켈레톤을 노출한다. 각 상태 전이 말미에서 호출한다. Ready 후 스트림이 실패해 상대역 대사가 더 이상
+     * 오지 않는 경우 이 게이트가 없으면 스켈레톤이 영원히 남는다(회귀: 무한 "타이핑…").
+     */
+    private fun recomputeTyping() {
+        opponentTyping =
+            turnPhase == TurnPhase.OpponentTurn &&
+            sessionPhase != SessionPhase.Completed &&
+            streamStatus != DialogueStreamStatus.FailedAfterReady &&
+            (pending.opponentEnglish == null || awaitingReveal)
+    }
 
     fun accept(state: DialogueGenState) {
         if (state !is DialogueGenState.Ready) return
@@ -671,12 +712,14 @@ internal class GeneratedDialogueState {
         if (turnPhase != TurnPhase.OpponentTurn || sessionPhase != SessionPhase.InTurn) return
         val current = pending
         if (current.opponentEnglish == null) return
+        commitReveal() // 표시 지연 중이면 먼저 확정(대사 유실 없이 진행).
         current.opponentComplete = true
         when {
             current.task != null -> enterLearnerTurn(current)
             streamStatus == DialogueStreamStatus.Done -> sessionPhase = SessionPhase.Completed
             else -> Unit
         }
+        recomputeTyping()
     }
 
     /** 학습자 턴 전진 스텁(임시, M1-03 스텁 라우트 전용). 목표 문장을 재생해 다음 턴으로. */
@@ -711,6 +754,7 @@ internal class GeneratedDialogueState {
             } else {
                 SessionPhase.AwaitingStreamDone
             }
+        recomputeTyping()
     }
 
     private fun consume(
@@ -734,14 +778,32 @@ internal class GeneratedDialogueState {
         }
     }
 
+    // 상대역 대사를 **표시 대기**로 올린다(프로토타입 oppSkeleton 정합). 대사는 [pending] 에만 싣고 [messages]
+    // 에는 아직 붙이지 않는다 — Route 가 스켈레톤 지연 경과 후 [commitReveal] 로 실제 표시한다. 직전 대사가 아직
+    // 표시 대기였다면 먼저 확정해(유실 방지) 순서를 지킨다.
     private fun displayOpponent(next: PendingOpponent) {
-        val english = next.opponentEnglish ?: return
+        next.opponentEnglish ?: return
+        commitReveal()
         pending = next
-        messages = messages + DialogueMessage.Opponent(english)
         currentTask = null
         turnPhase = TurnPhase.OpponentTurn
         sessionPhase = SessionPhase.InTurn
+        awaitingReveal = true
         opponentTurnSerial += 1
+        recomputeTyping()
+    }
+
+    /**
+     * 스켈레톤 지연 경과 후 Route(또는 전이 초크포인트)가 호출. [displayOpponent] 로 대기 중이던 상대역 대사를
+     * [messages] 에 append 하고 타이핑 창을 닫는다. 대기 중이 아니면 no-op(멱등) — completeOpponentTurn·
+     * enterLearnerTurn 진입에서 방어적으로 불러 어떤 경로로도 대사 없이 학습자 턴으로 넘어가 유실되지 않게 한다.
+     */
+    fun commitReveal() {
+        if (!awaitingReveal) return
+        val english = pending.opponentEnglish
+        awaitingReveal = false
+        if (english != null) messages = messages + DialogueMessage.Opponent(english)
+        recomputeTyping()
     }
 
     private fun attachUserTarget(
@@ -767,9 +829,11 @@ internal class GeneratedDialogueState {
     }
 
     private fun enterLearnerTurn(current: PendingOpponent) {
+        commitReveal() // 학습자 턴 진입 전 상대역 대사가 반드시 표시되게(어떤 경로로도 유실 방지).
         currentTask = current.task
         turnPhase = TurnPhase.LearnerTurn
         sessionPhase = SessionPhase.InTurn
+        recomputeTyping()
     }
 
     private fun settleTerminalStatus() {
@@ -785,6 +849,7 @@ internal class GeneratedDialogueState {
                 streamStatus == DialogueStreamStatus.Done ->
                 sessionPhase = SessionPhase.Completed
         }
+        recomputeTyping()
     }
 
     private fun reset() {
@@ -798,9 +863,21 @@ internal class GeneratedDialogueState {
         streamStatus = DialogueStreamStatus.Streaming
         pending = PendingOpponent()
         bufferedPending.clear()
+        awaitingReveal = false
+        recomputeTyping()
     }
 
     // --- M1-08 SavedState (L1 파생 상태 export/seed, replay 없음) ---
+
+    /** 직렬화용 유효 메시지: 표시 대기([awaitingReveal]) 중인 상대역 대사를 커밋한 것으로 간주해 무손실 저장. */
+    private fun effectiveMessages(): List<DialogueMessage> {
+        val pendingEnglish = pending.opponentEnglish
+        return if (awaitingReveal && pendingEnglish != null) {
+            messages + DialogueMessage.Opponent(pendingEnglish)
+        } else {
+            messages
+        }
+    }
 
     /** 현 상태 + 앰비언트 micState/turns + 세션 식별(sessionId/level)을 [SessionTurnSnapshot] 으로 직렬화. */
     fun toSnapshot(
@@ -812,7 +889,9 @@ internal class GeneratedDialogueState {
         SessionTurnSnapshot(
             sessionId = sessionId,
             level = level,
-            messages = messages.map { MessageData(it is DialogueMessage.Learner, it.english) },
+            // 표시 대기 중인 상대역 대사를 커밋한 것으로 간주해 저장(무손실·스냅샷 스키마 무변경). 복원 시엔
+            // 이미 messages 에 있으므로 스켈레톤을 재생하지 않고 곧장 대사가 보인다.
+            messages = effectiveMessages().map { MessageData(it is DialogueMessage.Learner, it.english) },
             turnPhase = turnPhase.name,
             sessionPhase = sessionPhase.name,
             currentTaskKo = currentTask?.koreanPrompt,
@@ -844,6 +923,9 @@ internal class GeneratedDialogueState {
             runCatching { DialogueStreamStatus.valueOf(snapshot.streamStatus) }
                 .getOrDefault(DialogueStreamStatus.Streaming)
         diagnostic = snapshot.diagnostic
+        // 스냅샷은 대기 대사를 커밋해 저장하므로([toSnapshot]) 복원 시 표시 대기는 없다(대사는 이미 messages 에).
+        awaitingReveal = false
+        recomputeTyping()
     }
 
     private fun PendingOpponent.toData(): PendingData =

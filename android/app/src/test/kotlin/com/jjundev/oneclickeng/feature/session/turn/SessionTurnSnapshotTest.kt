@@ -64,6 +64,7 @@ class SessionTurnSnapshotTest {
         state.appendLearnerAnswer("Coffee, my own words.")
 
         state.advanceTurn()
+        state.commitReveal() // 버퍼된 다음 대사는 스켈레톤 지연 후 표시된다(표시 대기 계약).
 
         assertTrue(state.messages.any { it == DialogueMessage.Opponent("Anything else?") })
         assertEquals(TurnPhase.OpponentTurn, state.turnPhase)
@@ -91,6 +92,7 @@ class SessionTurnSnapshotTest {
 
         // bufferedPending 생존: 전진→상대역 진행 시 버퍼된 "Anything else?" 가 살아나야 한다(D2 결함 방지).
         restored.advanceTurn()
+        restored.commitReveal() // 버퍼된 다음 대사는 스켈레톤 지연 후 표시된다(표시 대기 계약).
         assertTrue(restored.messages.any { it == DialogueMessage.Opponent("Anything else?") })
         restored.completeOpponentTurn()
         assertEquals(TurnPhase.LearnerTurn, restored.turnPhase)

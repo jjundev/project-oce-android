@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
@@ -50,6 +52,16 @@ internal fun englishLocaleText(text: String): AnnotatedString =
 /** 상대역 말풍선 꼬리(좌하단). radius18 + 좌하단만 radius4(프로토타입 정합). */
 private val OpponentBubbleShape =
     RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 4.dp)
+
+/**
+ * 영문 본문 첫 줄 높이(= body 16sp × line-height 1.45 ≈ 23dp). 볼륨 버튼을 이 높이의 래퍼에 center 배치해
+ * 아이콘 center 를 텍스트 첫 줄 center 에 고정한다(프로토: 아이콘 center Y ≈ 첫 줄 center Y, 오차 2px).
+ * dp 고정(A7) — 텍스트가 여러 줄로 래핑되거나 `해석 보기` 토글이 아래에 있어도 아이콘이 최상/최하로 밀리지 않는다.
+ */
+private val OpponentFirstLineHeight = 23.dp
+
+/** 상대역 말풍선 최대폭 비율(프로토: `max-width:78%`, 고정폭 아님). 아바타(30dp)+행 간격 오프셋과 함께 화면에 안착. */
+private const val OPPONENT_BUBBLE_WIDTH_FRACTION = 0.78f
 
 /**
  * 대화 학습 화면 로컬 말풍선. 카탈로그(C1~C20) 컴포넌트가 아니므로 `OneClick` 프리픽스를 쓰지 않는다
@@ -104,24 +116,29 @@ fun OpponentTurn(
     onReplay: () -> Unit = {},
     onToggleTranslation: () -> Unit = {},
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
-    ) {
-        TurnAvatar(letter = "E", modifier = Modifier.padding(top = 20.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(
-                text = speaker,
-                style = OceTheme.typography.sectionLabel.copy(fontSize = 12.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 2.dp),
-            )
-            OpponentBubble(
-                text = text,
-                translationLabel = translationLabel,
-                onReplay = onReplay,
-                onToggleTranslation = onToggleTranslation,
-            )
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        // 말풍선 최대폭 = 스레드 폭의 78%(상대값). 아바타/간격 오프셋과 함께 화면에 안착한다.
+        val maxBubbleWidth = maxWidth * OPPONENT_BUBBLE_WIDTH_FRACTION
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+        ) {
+            TurnAvatar(letter = "E", modifier = Modifier.padding(top = 20.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(
+                    text = speaker,
+                    style = OceTheme.typography.sectionLabel.copy(fontSize = 12.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 2.dp),
+                )
+                OpponentBubble(
+                    text = text,
+                    maxBubbleWidth = maxBubbleWidth,
+                    translationLabel = translationLabel,
+                    onReplay = onReplay,
+                    onToggleTranslation = onToggleTranslation,
+                )
+            }
         }
     }
 }
@@ -129,21 +146,25 @@ fun OpponentTurn(
 @Composable
 private fun OpponentBubble(
     text: String,
+    maxBubbleWidth: Dp,
     translationLabel: String,
     onReplay: () -> Unit,
     onToggleTranslation: () -> Unit,
 ) {
+    // Row 는 Top 정렬(기본). 볼륨 버튼은 첫 줄 높이 래퍼에 center 배치돼 텍스트가 여러 줄이어도 첫 줄 중앙에 고정된다.
+    // 폭은 고정이 아닌 상대값(78%) — 텍스트 칼럼은 아이콘/간격/패딩을 제외한 나머지에서 자연스럽게 래핑된다.
     Row(
         modifier =
             Modifier
+                .widthIn(max = maxBubbleWidth)
                 .clip(OpponentBubbleShape)
                 .background(MaterialTheme.colorScheme.surface)
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, OpponentBubbleShape)
-                .padding(horizontal = OceTheme.spacing.lg, vertical = 14.dp),
+                .padding(horizontal = 14.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Column(
-            modifier = Modifier.widthIn(max = 240.dp),
+            modifier = Modifier.weight(1f, fill = false),
             verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Text(
@@ -158,7 +179,13 @@ private fun OpponentBubble(
                 modifier = Modifier.clickable(onClick = onToggleTranslation),
             )
         }
-        ReplayButton(onReplay = onReplay)
+        // 첫 줄 높이(23dp) 래퍼에 center — 아이콘(28dp) center 를 텍스트 첫 줄 center 에 고정한다.
+        Box(
+            modifier = Modifier.height(OpponentFirstLineHeight),
+            contentAlignment = Alignment.Center,
+        ) {
+            ReplayButton(onReplay = onReplay)
+        }
     }
 }
 
@@ -213,6 +240,10 @@ private fun ChatBubblePreviewBody(darkTheme: Boolean) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             OpponentTurn(text = "Hi! What can I get for you?")
+            // 여러 줄 래핑 케이스 — 볼륨 아이콘이 첫 줄 중앙에 고정되는지(밀리지 않는지) 확인용.
+            OpponentTurn(
+                text = "Sure! Would you like it iced or hot, and what size would you prefer today?",
+            )
             ChatBubble(text = "Can I get a hot americano, please?", isLearner = true)
         }
     }

@@ -107,6 +107,7 @@ enum class OceIcon(
     Keyboard(R.drawable.ic_keyboard),
     Autorenew(R.drawable.ic_autorenew),
     Refresh(R.drawable.ic_refresh),
+    Send(R.drawable.ic_send),
     Tune(R.drawable.ic_tune),
     Lock(R.drawable.ic_lock),
     Check(R.drawable.ic_check),

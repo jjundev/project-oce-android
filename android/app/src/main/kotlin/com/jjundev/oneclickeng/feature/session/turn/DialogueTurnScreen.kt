@@ -1,20 +1,39 @@
 package com.jjundev.oneclickeng.feature.session.turn
 
 import android.content.res.Configuration
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -23,12 +42,22 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.theme.OceTheme
@@ -53,10 +82,12 @@ fun DialogueTurnScreen(
     val state = rememberDialogueState(script = script, reduceMotion = reduceMotion)
     val listState = rememberLazyListState()
 
-    // 신규 구현(리포 선례 없음): 메시지 추가 시 최신 말풍선으로 자동 스크롤.
-    LaunchedEffect(state.messages.size) {
-        if (state.messages.isNotEmpty()) {
-            listState.animateScrollToItem(state.messages.lastIndex)
+    // 신규 구현(리포 선례 없음): 메시지 추가·타이핑 스켈레톤 등장 시 최신 아이템으로 자동 스크롤.
+    // 스켈레톤은 메시지 뒤 마지막 아이템이라 typing 중엔 인덱스 = messages.size, 아니면 messages.lastIndex.
+    LaunchedEffect(state.messages.size, state.opponentTyping) {
+        val lastIndex = if (state.opponentTyping) state.messages.size else state.messages.lastIndex
+        if (lastIndex >= 0) {
+            listState.animateScrollToItem(lastIndex)
         }
     }
 
@@ -69,6 +100,7 @@ fun DialogueTurnScreen(
         onSubmitStub = state::submitLearnerStub,
         onViewSummary = onViewSummary,
         modifier = modifier,
+        opponentTyping = state.opponentTyping,
     )
 }
 
@@ -95,7 +127,13 @@ internal fun DialogueTurnContent(
     onToggleTranslation: () -> Unit = {},
     // 입력 독 slot(M1-08). 미주입(스텁 라우트·프리뷰)이면 기존 [ScaffoldDock] 로 폴백해 M1-03 화면을 유지한다.
     dock: (@Composable (ScaffoldTask) -> Unit)? = null,
+    // 상대역 발화 append 직전 타이핑 스켈레톤 국면(프로토타입 정합). 기본 false 라 프리뷰·스크린샷 테스트·
+    // 무상태 렌더는 스켈레톤을 그리지 않는다(결정성 유지). 상태 홀더만 실제 국면을 주입한다.
+    opponentTyping: Boolean = false,
 ) {
+    // reduceMotion 게이트(스켈레톤 진입 페이드·입력 독 슬라이드업). 무상태 렌더도 시스템 설정을 읽지만,
+    // 슬라이드업은 초기 visible=true 시 애니메이션이 없고 스켈레톤은 opponentTyping=false 라 프리뷰/테스트는 정적.
+    val reduceMotion = rememberReduceMotion()
     // 세션이 완료되면(마지막 턴 전진) 완료 화면 없이 곧장 요약으로 이동한다(완료 바텀시트 삭제 요구). 마지막 턴
     // 피드백 "다음"이 recordTurn→advanceTurn 순서라 요약이 읽을 턴 버퍼는 Completed 시점에 이미 정착돼 있다.
     // sessionPhase 전이는 단방향(Completed 도달 후 유지)이라 이 LaunchedEffect 는 정확히 한 번만 발화한다.
@@ -140,18 +178,44 @@ internal fun DialogueTurnContent(
                             ChatBubble(text = message.english, isLearner = true)
                     }
                 }
+                // 상대역 발화 직전 타이핑 스켈레톤 = 메시지 뒤 마지막 아이템(프로토타입 oppSkeleton).
+                if (opponentTyping) {
+                    item(key = "opponentTypingSkeleton") {
+                        OpponentTypingSkeleton(reduceMotion = reduceMotion)
+                    }
+                }
             }
 
             // 완료 시엔 아무 것도 렌더하지 않는다 — 완료 화면(DialogueCompletion) 없이 위 LaunchedEffect 가 곧장
             // 요약으로 이동한다. 학습자 턴에서만 하단 입력 독을 올린다.
-            if (turnPhase == TurnPhase.LearnerTurn && currentTask != null) {
-                // 하단에서 올라오는 입력 독 패널(프로토타입 정합): surface-card 배경 + 상단 헤어라인 +
-                // 상단만 radius18. 스레드(배경 회색) 위에 얹혀 "바"로 읽힌다. 슬라이드 진입 애니메이션은 seam.
-                SessionInputPanel {
-                    if (dock != null) {
-                        dock(currentTask)
+            //
+            // 슬라이드업(프로토타입 정합): 학습자 턴 진입 시 패널이 화면 하단에서 위로 올라온다
+            // (transform translateY(100%)→0, 0.34s ease-out). 초기 렌더가 이미 visible=true 인 경우(프리뷰·
+            // 스크린샷 테스트: turnPhase=LearnerTurn 고정)엔 AnimatedVisibility 가 애니메이션 없이 즉시 표시하므로
+            // 결정적으로 렌더된다. reduceMotion 이면 진입 트랜지션을 제거해 즉시 표시한다.
+            val activeTask = currentTask
+            val dockSlot = dock
+            AnimatedVisibility(
+                visible = turnPhase == TurnPhase.LearnerTurn && activeTask != null,
+                enter =
+                    if (reduceMotion) {
+                        EnterTransition.None
                     } else {
-                        ScaffoldDock(task = currentTask, onSubmitStub = onSubmitStub)
+                        slideInVertically(
+                            animationSpec = tween(340, easing = OceTheme.motion.easingOut),
+                        ) { fullHeight -> fullHeight } + fadeIn(tween(340))
+                    },
+                exit = ExitTransition.None,
+            ) {
+                if (activeTask != null) {
+                    // 하단에서 올라오는 입력 독 패널: surface-card 배경 + 상단 헤어라인 + 상단만 radius18.
+                    // 스레드(배경 회색) 위에 얹혀 "바"로 읽힌다.
+                    SessionInputPanel {
+                        if (dockSlot != null) {
+                            dockSlot(activeTask)
+                        } else {
+                            ScaffoldDock(task = activeTask, onSubmitStub = onSubmitStub)
+                        }
                     }
                 }
             }
@@ -178,6 +242,181 @@ private fun SessionInputPanel(content: @Composable () -> Unit) {
     ) {
         content()
     }
+}
+
+/** 타이핑 스켈레톤 말풍선 형태 = 상대역 말풍선과 동일(좌하단 4dp 꼬리). 프로토타입 oppSkeleton 정합. */
+private val OpponentSkeletonShape =
+    RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 4.dp)
+
+/** 스켈레톤 말풍선 폭 = 스레드의 62%(프로토타입). 아바타(30dp)+간격(sm)만큼 우측으로 밀려 놓인다. */
+private const val OPPONENT_SKELETON_WIDTH_FRACTION = 0.62f
+
+/** 스켈레톤 아바타 지름(실제 [TurnAvatar] 30dp 정합). */
+private val SkeletonAvatarSize = 30.dp
+
+/** 스켈레톤 아바타 상단 오프셋(실제 아바타 top=20dp 정합 — 이름 아래 말풍선 높이에 맞춤). */
+private val SkeletonAvatarTopPadding = 20.dp
+
+/** 스켈레톤 화자명 바 크기("Emma" 자리표시자). */
+private val SkeletonNameWidth = 48.dp
+private val SkeletonNameHeight = 10.dp
+
+/** 시머 바 높이(프로토타입 11px). 말풍선 안 상대너비 100%·70% 두 줄. */
+private val SkeletonBarHeight = 11.dp
+
+// 시머 스윕 상수(OneClickSkeleton.kt 로직 재사용 — 폭을 몰라도 도는 상수 트래블/밴드폭 근사).
+private const val SKELETON_SHIMMER_TRAVEL_PX = 1400f
+private const val SKELETON_SHIMMER_BAND_PX = 400f
+
+/**
+ * 공유 시머 위상 오프셋. 아바타·이름·말풍선 바가 **한 위상**으로 동시에 쓸린다(따로 그려도 스윕은 코히런트).
+ * reduceMotion 이면 0(정적) — 각 [skeletonBrush] 가 SolidColor 로 대체한다.
+ */
+@Composable
+private fun rememberSkeletonShimmerOffset(reduceMotion: Boolean): Float {
+    if (reduceMotion) return 0f
+    val transition = rememberInfiniteTransition(label = "oppSkeleton")
+    val offset by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = SKELETON_SHIMMER_TRAVEL_PX,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(OceTheme.motion.shimmerLoopMs, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+        label = "oppShimmer",
+    )
+    return offset
+}
+
+/**
+ * 시머 브러시. [base] 는 자리표시자가 놓인 바탕 위에서 보이는 기본색, [highlight] 는 쓸고 지나가는 밝은 띠.
+ * reduceMotion 이면 [base] 단색. 바탕이 다르면(흰 말풍선 vs 회색 스레드) [base] 를 달리 준다.
+ */
+private fun skeletonBrush(
+    base: Color,
+    highlight: Color,
+    offset: Float,
+    reduceMotion: Boolean,
+): Brush =
+    if (reduceMotion) {
+        SolidColor(base)
+    } else {
+        Brush.linearGradient(
+            colors = listOf(base, highlight, base),
+            start = Offset(offset - SKELETON_SHIMMER_BAND_PX, 0f),
+            end = Offset(offset, 0f),
+        )
+    }
+
+/**
+ * 상대역 "타이핑 중" 스켈레톤(프로토타입 oppSkeleton). 실제 [OpponentTurn] 과 같은 3분할 —
+ * **프로필(원형 아바타) · 화자명 · 말풍선** 각각을 별도 시머 자리표시자로 그린다. 실제 발화 append 직전 잠깐 노출.
+ *
+ * 바탕별로 base 색을 달리한다:
+ * - 아바타·이름은 **회색 스레드([androidx.compose.material3.ColorScheme.background]) 위**라, 스레드보다 진한
+ *   [com.jjundev.oneclickeng.ui.theme.OceColors.borderStrong] 를 base 로 써 보이게 한다.
+ * - 말풍선 바는 **흰 말풍선(surface) 위**라, 스레드 회색(background)을 base 로 써 흰 바탕에서 보이게 한다.
+ * shimmer 하이라이트는 공통 hairline(outlineVariant). 진입은 `oc-fade-up`(opacity·translateY 8dp, 300ms).
+ */
+@Composable
+private fun OpponentTypingSkeleton(
+    reduceMotion: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val bubbleBg = MaterialTheme.colorScheme.surface // 말풍선 배경(흰색, surface-card)
+    val highlight = MaterialTheme.colorScheme.outlineVariant // shimmer 하이라이트 = hairline
+    val onThreadBase = OceTheme.colors.borderStrong // 아바타·이름 base(회색 스레드 위에서 보이는 진한 회색)
+    val onBubbleBase = MaterialTheme.colorScheme.background // 말풍선 바 base(흰 말풍선 위에서 보이는 스레드 회색)
+
+    val offset = rememberSkeletonShimmerOffset(reduceMotion)
+    val chromeBrush = skeletonBrush(onThreadBase, highlight, offset, reduceMotion) // 아바타·이름(스레드 위)
+    val barBrush = skeletonBrush(onBubbleBase, highlight, offset, reduceMotion) // 말풍선 바(흰 말풍선 위)
+
+    // 진입 페이드-업(oc-fade-up). 첫 컴포지션 후 appeared=true 로 1회 전이. reduceMotion 이면 즉시 정착.
+    var appeared by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { appeared = true }
+    val progress by animateFloatAsState(
+        targetValue = if (appeared) 1f else 0f,
+        animationSpec = tween(300, easing = OceTheme.motion.easingOut),
+        label = "oppFadeUp",
+    )
+    val enter = if (reduceMotion) 1f else progress
+
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val bubbleWidth = maxWidth * OPPONENT_SKELETON_WIDTH_FRACTION
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .graphicsLayer {
+                        alpha = enter
+                        translationY = (1f - enter) * 8.dp.toPx()
+                    },
+            horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+        ) {
+            // ① 프로필(원형 아바타) — 실제 아바타처럼 top 20dp 로 이름 아래 말풍선 높이에 맞춘다.
+            SkeletonCircle(
+                size = SkeletonAvatarSize,
+                brush = chromeBrush,
+                modifier = Modifier.padding(top = SkeletonAvatarTopPadding),
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                // ② 화자명 바("Emma" 자리표시자).
+                SkeletonBar(
+                    brush = chromeBrush,
+                    height = SkeletonNameHeight,
+                    modifier = Modifier.padding(start = 2.dp).width(SkeletonNameWidth),
+                )
+                // ③ 말풍선 — 흰 말풍선 위 시머 바 2개(100%·70%).
+                Column(
+                    modifier =
+                        Modifier
+                            .width(bubbleWidth)
+                            .clip(OpponentSkeletonShape)
+                            .background(bubbleBg)
+                            .border(1.dp, highlight, OpponentSkeletonShape)
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(7.dp),
+                ) {
+                    SkeletonBar(brush = barBrush, modifier = Modifier.fillMaxWidth())
+                    SkeletonBar(brush = barBrush, modifier = Modifier.fillMaxWidth(0.7f))
+                }
+            }
+        }
+    }
+}
+
+/** 시머 원형 자리표시자(프로필 아바타). */
+@Composable
+private fun SkeletonCircle(
+    size: Dp,
+    brush: Brush,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier =
+            modifier
+                .size(size)
+                .clip(CircleShape)
+                .background(brush),
+    )
+}
+
+/** 시머 바 1줄(기본 높이 [SkeletonBarHeight], radius4). 폭은 호출부가 [modifier] 로 지정(fillMaxWidth·width). */
+@Composable
+private fun SkeletonBar(
+    brush: Brush,
+    modifier: Modifier = Modifier,
+    height: Dp = SkeletonBarHeight,
+) {
+    Box(
+        modifier =
+            modifier
+                .height(height)
+                .clip(OceTheme.shapes.radius4)
+                .background(brush),
+    )
 }
 
 /**

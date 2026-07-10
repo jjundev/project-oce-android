@@ -56,12 +56,20 @@ sealed interface DialogueMessage {
 const val DEFAULT_OPPONENT_ADVANCE_DELAY_MS: Int = 1200
 
 /**
+ * 상대역 발화가 나타나기 직전 "타이핑 스켈레톤"을 노출하는 잠정 지연(ms). 프로토타입 `oc-fade-up` 진입 감을
+ * 재현하는 값으로 출처 없는 placeholder 다. reduceMotion·테스트/프리뷰는 [rememberDialogueState] 의 seam 으로
+ * 0 을 주입해 스켈레톤 국면을 건너뛴다(자동 진행 결정성 유지).
+ */
+const val DEFAULT_OPPONENT_SKELETON_DELAY_MS: Int = 700
+
+/**
  * M1-03 대화 턴 화면의 상태 홀더. **신규 도입** 화면 스코프 홀더로, 리포에 `remember*State` 홀더 선례는
  * 없다(루트 `AppViewModel` 만 존재). "ViewModel 은 콘텐츠 이슈에서 도입"(HomeScreen.kt:12) 규약을 따라
  * 실 데이터(SSE) 배선 전까지는 ViewModel 없이 이 홀더가 스텁 대본을 구동한다.
  *
  * **상태 전이(dialogue-learning-flow.md §5·§9):**
- * - 상대역 턴 진입 → 말풍선 즉시 append + [TurnPhase.OpponentTurn].
+ * - 상대역 턴 진입 → 타이핑 스켈레톤 국면([opponentTyping]) + [TurnPhase.OpponentTurn]. 스켈레톤 지연 경과 후
+ *   말풍선 append([revealOpponentTurn]).
  * - 상대역 자동 진행 지연 경과 → 학습자 과제 있으면 [TurnPhase.LearnerTurn], 없으면(마감 턴) [SessionPhase.Completed].
  * - 학습자 턴 이탈은 **[submitLearnerStub] 스텁 버튼 전용**(마이크·텍스트 입력은 M1-04/M1-06 범위 밖).
  *   목표 문장을 학습자 말풍선으로 append 후 다음 상대역 턴으로. 마지막 턴이면 [SessionPhase.Completed].
@@ -82,6 +90,14 @@ class DialogueState internal constructor(
         private set
 
     var currentTask by mutableStateOf<ScaffoldTask?>(null)
+        private set
+
+    /**
+     * 상대역 발화 append 직전의 "타이핑 중" 국면(프로토타입 스켈레톤 말풍선). [enterOpponentTurn] 이 true 로
+     * 세우고, 스켈레톤 지연 경과 후 [revealOpponentTurn] 이 실제 말풍선을 append 하며 false 로 내린다. 무상태
+     * `DialogueTurnContent`/프리뷰/스크린샷 테스트는 이 국면을 렌더하지 않는다(기본 false 고정 렌더).
+     */
+    var opponentTyping by mutableStateOf(false)
         private set
 
     /** 현재 대본 턴 인덱스. 자동 진행 `LaunchedEffect` 의 재시작 키로도 쓰인다. */
@@ -121,9 +137,21 @@ class DialogueState internal constructor(
         }
     }
 
+    /**
+     * 상대역 턴 진입. 프로토타입 정합상 말풍선을 **즉시 append 하지 않고** 타이핑 스켈레톤 국면으로 들어간다.
+     * 실제 말풍선은 스켈레톤 지연 경과 후 [revealOpponentTurn] 이 append 한다([rememberDialogueState] 의
+     * `LaunchedEffect` 가 지연을 구동). reduceMotion·테스트는 skeleton delay=0 으로 스켈레톤을 사실상 건너뛴다.
+     */
     private fun enterOpponentTurn() {
         turnPhase = TurnPhase.OpponentTurn
+        opponentTyping = true
+    }
+
+    /** 스켈레톤 지연 경과 후 호출. 상대역 말풍선을 append 하고 타이핑 국면을 내린다. */
+    internal fun revealOpponentTurn() {
+        if (!opponentTyping || turnPhase != TurnPhase.OpponentTurn || sessionPhase != SessionPhase.InTurn) return
         messages = messages + DialogueMessage.Opponent(script[turnIndex].opponentEnglish)
+        opponentTyping = false
     }
 }
 
@@ -135,18 +163,26 @@ class DialogueState internal constructor(
  *   이 seam 을 직접 주입해 반증가능하게 검증한다.
  * @param advanceDelayMs 상대역 말풍선 렌더 후 자동 진행까지 잠정 지연. 출처 없는 placeholder 로, M1-05 에서
  *   TTS 완료 게이팅(dialogue-learning-flow.md §5)으로 교체된다.
+ * @param skeletonDelayMs 상대역 말풍선 append **직전** 타이핑 스켈레톤을 노출하는 잠정 지연. reduceMotion 이면
+ *   0(스켈레톤 국면 즉시 통과). 테스트/프리뷰는 이 seam 을 0 으로 주입해 결정적으로 렌더한다.
  */
 @Composable
 fun rememberDialogueState(
     script: List<DialogueTurn>,
     reduceMotion: Boolean = rememberReduceMotion(),
     advanceDelayMs: Int = DEFAULT_OPPONENT_ADVANCE_DELAY_MS,
+    skeletonDelayMs: Int = DEFAULT_OPPONENT_SKELETON_DELAY_MS,
 ): DialogueState {
     val state = remember(script) { DialogueState(script) }
-    val effectiveDelay = if (reduceMotion) 0L else advanceDelayMs.toLong()
+    val effectiveAdvance = if (reduceMotion) 0L else advanceDelayMs.toLong()
+    val effectiveSkeleton = if (reduceMotion) 0L else skeletonDelayMs.toLong()
+    // turnIndex 키로 재시작하는 단일 결정적 시퀀스: 스켈레톤 지연 → 말풍선 reveal → 자동 진행 지연 → 턴 마감.
+    // (skeleton delay=0 이면 append 는 즉시 일어나 기존 동작과 동치 — 스켈레톤 국면만 사실상 사라진다.)
     LaunchedEffect(state.turnIndex) {
         if (state.turnPhase == TurnPhase.OpponentTurn && state.sessionPhase == SessionPhase.InTurn) {
-            delay(effectiveDelay)
+            delay(effectiveSkeleton)
+            state.revealOpponentTurn()
+            delay(effectiveAdvance)
             state.completeOpponentTurn()
         }
     }
