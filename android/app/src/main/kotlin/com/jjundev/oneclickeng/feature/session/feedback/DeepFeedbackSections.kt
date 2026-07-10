@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,9 +24,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -38,6 +42,8 @@ import com.jjundev.oneclickeng.ui.component.SkeletonShape
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.component.venn.VennDiagramCanvas
+import com.jjundev.oneclickeng.ui.component.venn.VennLayoutMode
+import com.jjundev.oneclickeng.ui.component.venn.rememberVennLayoutMode
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import java.util.Locale
 
@@ -175,7 +181,7 @@ private fun DeepSectionHeader(
 private fun emphasizeWords(
     text: String,
     words: List<String>,
-    color: androidx.compose.ui.graphics.Color,
+    color: Color,
 ) = buildAnnotatedString {
     append(text)
     words.filter { it.isNotBlank() }.forEach { word ->
@@ -187,10 +193,13 @@ private fun emphasizeWords(
     }
 }
 
-/** ④ 개념 브릿지 — 간극 설명(order·get 강조) + 벤 + 공통(프로토타입 1:1: 별도 직역·guide 줄 없음). */
+/** ④ 개념 브릿지 — 간극 설명 + 벤. 짧은 뜻이면 원 안(INSIDE)에, 넘치면 헤드워드만 + 아래 레전드(LEGEND). */
 @Composable
 private fun ConceptualBridgeBlock(value: ConceptualBridge) {
     val emphasis = MaterialTheme.colorScheme.onSurface
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val mode = rememberVennLayoutMode(value.venn, measurer, density)
     Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
         DeepSectionHeader(icon = OceIcon.Hub, label = "개념 브리지")
         Text(
@@ -198,18 +207,74 @@ private fun ConceptualBridgeBlock(value: ConceptualBridge) {
             style = OceTheme.typography.helper.copy(fontWeight = FontWeight.Medium),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        VennDiagramCanvas(venn = value.venn, modifier = Modifier.align(Alignment.CenterHorizontally))
-        if (value.venn.intersectionItems.isNotEmpty()) {
+        VennDiagramCanvas(
+            venn = value.venn,
+            mode = mode,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        )
+        // INSIDE 면 뜻이 원 안에 있으므로 레전드 생략. LEGEND 면 원 밖 레전드로 노출(겹침 방지).
+        if (mode == VennLayoutMode.LEGEND) {
+            VennMeaningLegend(value.venn)
+        }
+    }
+}
+
+/**
+ * 벤 아래 뜻 레전드. 원 안에는 헤드워드만 그리고(긴 서술 문구가 원을 넘쳐 겹치던 문제 회피), 좌/우 고유 뜻과
+ * 교집합 뜻은 여기 흐르는 Compose 텍스트로 노출한다 — 임의 길이에도 줄바꿈되어 겹치지 않는다. 좌=브랜드 블루,
+ * 우=natural 그린 점으로 원과 시각적으로 대응시킨다(팔레트 폴백색 = VennColorGuard 시작색). 공통은 강조 라벨.
+ */
+@Composable
+private fun VennMeaningLegend(venn: VennData) {
+    val leftDot = MaterialTheme.colorScheme.primary
+    val rightDot = OceTheme.colors.feedbackNaturalAccent
+    Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs)) {
+        VennLegendLine(leftDot, venn.left.word, venn.left.items)
+        VennLegendLine(rightDot, venn.right.word, venn.right.items)
+        if (venn.intersectionItems.isNotEmpty()) {
             Text(
                 text =
                     buildAnnotatedString {
-                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = emphasis)) { append("공통: ") }
-                        append(value.venn.intersectionItems.joinToString(", "))
+                        withStyle(
+                            SpanStyle(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface),
+                        ) { append("공통: ") }
+                        append(venn.intersectionItems.joinToString(", "))
                     },
                 style = OceTheme.typography.helper,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+/** 레전드 한 줄 = 색 점 + 굵은 단어(점 색) + 뜻 목록(보조색). 뜻이 비면 단어만 표시. */
+@Composable
+private fun VennLegendLine(
+    dotColor: Color,
+    word: String,
+    meanings: List<String>,
+) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .padding(top = 5.dp)
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(dotColor),
+        )
+        Text(
+            text =
+                buildAnnotatedString {
+                    withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = dotColor)) { append(word) }
+                    if (meanings.isNotEmpty()) append("  ${meanings.joinToString(", ")}")
+                },
+            style = OceTheme.typography.helper,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
