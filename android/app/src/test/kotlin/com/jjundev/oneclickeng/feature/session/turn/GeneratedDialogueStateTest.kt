@@ -45,27 +45,42 @@ class GeneratedDialogueStateTest {
     }
 
     @Test
-    fun `opponent typing skeleton shows while awaiting each opponent line`() {
+    fun `each opponent line shows a typing skeleton until it is revealed`() {
         val state = GeneratedDialogueState()
-        // 세션 시작 — 첫 상대역 대사 생성 대기 중이라 스켈레톤 노출.
+        // 세션 시작 — 첫 상대역 대사 대기 중이라 스켈레톤 노출.
         assertTrue(state.opponentTyping)
 
-        // 첫 상대역 대사 도착 → 스켈레톤 내려가고 말풍선 등장.
-        state.accept(ready(listOf(model("Hello"), user("A coffee, please.", "커피 주세요."))))
+        // 현실: 백엔드가 전체 대본을 빠르게 스트리밍 → 턴들이 미리 버퍼링된다.
+        state.accept(
+            ready(
+                listOf(
+                    model("Hello"),
+                    user("A coffee, please.", "커피 주세요."),
+                    model("Sure, anything else?"),
+                ),
+            ),
+        )
+        // 첫 대사도 즉시 표시되지 않고 스켈레톤 창을 가진다(표시 대기 = messages 미append).
+        assertTrue(state.opponentTyping)
+        assertTrue(state.messages.isEmpty())
+
+        // 스켈레톤 지연 경과(Route) → commitReveal 로 실제 표시.
+        state.commitReveal()
         assertFalse(state.opponentTyping)
+        assertEquals(DialogueMessage.Opponent("Hello"), state.messages.last())
+
         state.completeOpponentTurn()
         assertEquals(TurnPhase.LearnerTurn, state.turnPhase)
         assertFalse(state.opponentTyping)
 
-        // 학습자 답변 후 다음 상대역 대사 대기(버퍼 없음·미완) → 다시 스켈레톤.
+        // 핵심(버그 수정): 다음 상대 대사가 이미 버퍼돼 있어도 즉시 표시되지 않고 스켈레톤 창을 가진다.
         state.submitLearnerStub()
-        assertEquals(SessionPhase.AwaitingStreamDone, state.sessionPhase)
         assertTrue(state.opponentTyping)
+        assertEquals(DialogueMessage.Learner("A coffee, please."), state.messages.last())
 
-        // 다음 상대역 대사 도착 → 스켈레톤 내려감.
-        state.accept(ready(listOf(model("Hello"), user("A coffee, please.", "커피 주세요."), model("Sure!"))))
-        assertEquals(DialogueMessage.Opponent("Sure!"), state.messages.last())
+        state.commitReveal()
         assertFalse(state.opponentTyping)
+        assertEquals(DialogueMessage.Opponent("Sure, anything else?"), state.messages.last())
     }
 
     @Test
@@ -125,6 +140,7 @@ class GeneratedDialogueStateTest {
         state.accept(snapshot)
         state.accept(snapshot)
 
+        state.commitReveal()
         assertEquals(listOf(DialogueMessage.Opponent("Hello")), state.messages)
     }
 
@@ -143,6 +159,7 @@ class GeneratedDialogueStateTest {
         )
         state.accept(ready(listOf(model("New hello"))))
 
+        state.commitReveal()
         assertEquals(listOf(DialogueMessage.Opponent("New hello")), state.messages)
         assertEquals(TurnPhase.OpponentTurn, state.turnPhase)
         assertEquals(SessionPhase.InTurn, state.sessionPhase)
@@ -162,6 +179,7 @@ class GeneratedDialogueStateTest {
 
         state.accept(ready(turns))
 
+        state.commitReveal()
         assertEquals(listOf(DialogueMessage.Opponent("Hello")), state.messages)
 
         state.completeOpponentTurn()
@@ -170,6 +188,8 @@ class GeneratedDialogueStateTest {
         assertEquals(ScaffoldTask("커피 주세요."), state.currentTask)
 
         state.submitLearnerStub()
+        // 전진 시 버퍼된 다음 대사는 표시 대기 → 스켈레톤 지연 경과(commitReveal) 후 표시된다.
+        state.commitReveal()
 
         assertEquals(
             listOf(
