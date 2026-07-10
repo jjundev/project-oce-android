@@ -269,16 +269,6 @@ internal fun SlimFeedbackContent(
                             )
                         }
                     }
-                    // "더 보기"를 고정 풋터가 아니라 스크롤 콘텐츠 끝(자연 섹션 아래)에 둔다 — 1차 노출은
-                    // 자연스러운 표현까지고, 바닥까지 스크롤해야 드러난다(결정 #2). 펼쳐지면 토글은 사라지고
-                    // 딥이 위 섹션 리스트에 인라인으로 이어진다(결정 #6). 게이트는 nextEnabled 재사용("다음"과 동일).
-                    if (!deepExpanded) {
-                        MoreToggleButton(
-                            expanded = false,
-                            enabled = state.nextEnabled,
-                            onClick = onExpandDeep,
-                        )
-                    }
                 }
                 is SlimFeedbackState.QuotaBlocked -> {
                     RecapHeaderBlock(state.header)
@@ -292,10 +282,20 @@ internal fun SlimFeedbackContent(
                 is SlimFeedbackState.Idle -> Unit // unreachable (early return)
             }
         }
-        // 하단 고정 버튼 풋터 — "다음"만(항상 도달 가능한 진행/탈출). "더 보기"는 스크롤 콘텐츠로 이동(결정 #3).
+        // 하단 고정 버튼 풋터 — "더 보기"(펼치기 전)와 "다음"을 함께 고정 노출한다. "더 보기"는 딥이 슬림
+        // 정착 시 이거-프리페치돼 있어 탭 시 즉시 펼쳐지고, 펼친 뒤에는 토글을 감춰 "다음"만 남긴다.
         when (state) {
             is SlimFeedbackState.Active ->
-                SlimFooter { NextButton(enabled = state.nextEnabled, onNext = onNext) }
+                SlimFooter {
+                    if (!deepExpanded) {
+                        MoreToggleButton(
+                            expanded = false,
+                            enabled = state.nextEnabled,
+                            onClick = onExpandDeep,
+                        )
+                    }
+                    NextButton(enabled = state.nextEnabled, onNext = onNext)
+                }
             is SlimFeedbackState.QuotaBlocked ->
                 SlimFooter { NextButton(enabled = true, onNext = onNext) } // 캡 거부 → "다음"만
             is SlimFeedbackState.Idle -> Unit
