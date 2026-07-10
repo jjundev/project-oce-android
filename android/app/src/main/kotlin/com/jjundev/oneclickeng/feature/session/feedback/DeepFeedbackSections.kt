@@ -25,9 +25,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -40,6 +42,8 @@ import com.jjundev.oneclickeng.ui.component.SkeletonShape
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.component.venn.VennDiagramCanvas
+import com.jjundev.oneclickeng.ui.component.venn.VennLayoutMode
+import com.jjundev.oneclickeng.ui.component.venn.rememberVennLayoutMode
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import java.util.Locale
 
@@ -189,10 +193,13 @@ private fun emphasizeWords(
     }
 }
 
-/** ④ 개념 브릿지 — 간극 설명(order·get 강조) + 벤(헤드워드만) + 뜻 레전드(좌/우 고유 뜻·공통). */
+/** ④ 개념 브릿지 — 간극 설명 + 벤. 짧은 뜻이면 원 안(INSIDE)에, 넘치면 헤드워드만 + 아래 레전드(LEGEND). */
 @Composable
 private fun ConceptualBridgeBlock(value: ConceptualBridge) {
     val emphasis = MaterialTheme.colorScheme.onSurface
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val mode = rememberVennLayoutMode(value.venn, measurer, density)
     Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
         DeepSectionHeader(icon = OceIcon.Hub, label = "개념 브리지")
         Text(
@@ -200,8 +207,15 @@ private fun ConceptualBridgeBlock(value: ConceptualBridge) {
             style = OceTheme.typography.helper.copy(fontWeight = FontWeight.Medium),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        VennDiagramCanvas(venn = value.venn, modifier = Modifier.align(Alignment.CenterHorizontally))
-        VennMeaningLegend(value.venn)
+        VennDiagramCanvas(
+            venn = value.venn,
+            mode = mode,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        )
+        // INSIDE 면 뜻이 원 안에 있으므로 레전드 생략. LEGEND 면 원 밖 레전드로 노출(겹침 방지).
+        if (mode == VennLayoutMode.LEGEND) {
+            VennMeaningLegend(value.venn)
+        }
     }
 }
 
