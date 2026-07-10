@@ -20,17 +20,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -47,12 +50,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.theme.OceTheme
@@ -243,11 +248,20 @@ private fun SessionInputPanel(content: @Composable () -> Unit) {
 private val OpponentSkeletonShape =
     RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 4.dp)
 
-/** 스켈레톤 말풍선 폭 = 스레드의 62%(프로토타입). 좌측 마진 38dp = 아바타 30 + 간격 8. */
+/** 스켈레톤 말풍선 폭 = 스레드의 62%(프로토타입). 아바타(30dp)+간격(sm)만큼 우측으로 밀려 놓인다. */
 private const val OPPONENT_SKELETON_WIDTH_FRACTION = 0.62f
-private val OpponentSkeletonMarginStart = 38.dp
 
-/** 시머 바 높이(프로토타입 11px). 상대너비 100%·70% 두 줄. */
+/** 스켈레톤 아바타 지름(실제 [TurnAvatar] 30dp 정합). */
+private val SkeletonAvatarSize = 30.dp
+
+/** 스켈레톤 아바타 상단 오프셋(실제 아바타 top=20dp 정합 — 이름 아래 말풍선 높이에 맞춤). */
+private val SkeletonAvatarTopPadding = 20.dp
+
+/** 스켈레톤 화자명 바 크기("Emma" 자리표시자). */
+private val SkeletonNameWidth = 48.dp
+private val SkeletonNameHeight = 10.dp
+
+/** 시머 바 높이(프로토타입 11px). 말풍선 안 상대너비 100%·70% 두 줄. */
 private val SkeletonBarHeight = 11.dp
 
 // 시머 스윕 상수(OneClickSkeleton.kt 로직 재사용 — 폭을 몰라도 도는 상수 트래블/밴드폭 근사).
@@ -255,15 +269,55 @@ private const val SKELETON_SHIMMER_TRAVEL_PX = 1400f
 private const val SKELETON_SHIMMER_BAND_PX = 400f
 
 /**
- * 상대역 "타이핑 중" 스켈레톤 말풍선(프로토타입 oppSkeleton). 실제 발화 append 직전 잠깐 노출된다.
- * 형태는 상대역 말풍선과 동일(좌하단 4dp 꼬리·헤어라인·surface), 좌측 38dp 마진 + 스레드 62% 폭.
- * 진입은 `oc-fade-up`(opacity 0→1, translateY 8dp→0, ~300ms) 근사. 내부는 11dp 시머 바 2개(100%·70%).
+ * 공유 시머 위상 오프셋. 아바타·이름·말풍선 바가 **한 위상**으로 동시에 쓸린다(따로 그려도 스윕은 코히런트).
+ * reduceMotion 이면 0(정적) — 각 [skeletonBrush] 가 SolidColor 로 대체한다.
+ */
+@Composable
+private fun rememberSkeletonShimmerOffset(reduceMotion: Boolean): Float {
+    if (reduceMotion) return 0f
+    val transition = rememberInfiniteTransition(label = "oppSkeleton")
+    val offset by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = SKELETON_SHIMMER_TRAVEL_PX,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(OceTheme.motion.shimmerLoopMs, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+        label = "oppShimmer",
+    )
+    return offset
+}
+
+/**
+ * 시머 브러시. [base] 는 자리표시자가 놓인 바탕 위에서 보이는 기본색, [highlight] 는 쓸고 지나가는 밝은 띠.
+ * reduceMotion 이면 [base] 단색. 바탕이 다르면(흰 말풍선 vs 회색 스레드) [base] 를 달리 준다.
+ */
+private fun skeletonBrush(
+    base: Color,
+    highlight: Color,
+    offset: Float,
+    reduceMotion: Boolean,
+): Brush =
+    if (reduceMotion) {
+        SolidColor(base)
+    } else {
+        Brush.linearGradient(
+            colors = listOf(base, highlight, base),
+            start = Offset(offset - SKELETON_SHIMMER_BAND_PX, 0f),
+            end = Offset(offset, 0f),
+        )
+    }
+
+/**
+ * 상대역 "타이핑 중" 스켈레톤(프로토타입 oppSkeleton). 실제 [OpponentTurn] 과 같은 3분할 —
+ * **프로필(원형 아바타) · 화자명 · 말풍선** 각각을 별도 시머 자리표시자로 그린다. 실제 발화 append 직전 잠깐 노출.
  *
- * 시머 로직은 [com.jjundev.oneclickeng.ui.component.OneClickSkeleton] 을 그대로 참고했다(base=surface,
- * highlight=outlineVariant, `motion.shimmerLoopMs`=1200, LinearEasing 무한). 단, 바가 **surface(흰색) 말풍선
- * 위에** 얹히므로 바 base 는 말풍선 배경(surface)이 아니라 프로토타입 `surface-background`(=스레드 회색,
- * [androidx.compose.material3.ColorScheme.background])를 써야 흰 말풍선 위에서 보인다. shimmer 하이라이트는
- * hairline(outlineVariant). reduceMotion 정적 대체도 같은 회색([barBase])으로 자리표시자를 노출한다.
+ * 바탕별로 base 색을 달리한다:
+ * - 아바타·이름은 **회색 스레드([androidx.compose.material3.ColorScheme.background]) 위**라, 스레드보다 진한
+ *   [com.jjundev.oneclickeng.ui.theme.OceColors.borderStrong] 를 base 로 써 보이게 한다.
+ * - 말풍선 바는 **흰 말풍선(surface) 위**라, 스레드 회색(background)을 base 로 써 흰 바탕에서 보이게 한다.
+ * shimmer 하이라이트는 공통 hairline(outlineVariant). 진입은 `oc-fade-up`(opacity·translateY 8dp, 300ms).
  */
 @Composable
 private fun OpponentTypingSkeleton(
@@ -271,30 +325,13 @@ private fun OpponentTypingSkeleton(
     modifier: Modifier = Modifier,
 ) {
     val bubbleBg = MaterialTheme.colorScheme.surface // 말풍선 배경(흰색, surface-card)
-    val barBase = MaterialTheme.colorScheme.background // 바 기본색(스레드 회색 = 프로토 surface-background)
     val highlight = MaterialTheme.colorScheme.outlineVariant // shimmer 하이라이트 = hairline
+    val onThreadBase = OceTheme.colors.borderStrong // 아바타·이름 base(회색 스레드 위에서 보이는 진한 회색)
+    val onBubbleBase = MaterialTheme.colorScheme.background // 말풍선 바 base(흰 말풍선 위에서 보이는 스레드 회색)
 
-    val barBrush: Brush =
-        if (reduceMotion) {
-            SolidColor(barBase)
-        } else {
-            val transition = rememberInfiniteTransition(label = "oppSkeleton")
-            val offset by transition.animateFloat(
-                initialValue = 0f,
-                targetValue = SKELETON_SHIMMER_TRAVEL_PX,
-                animationSpec =
-                    infiniteRepeatable(
-                        animation = tween(OceTheme.motion.shimmerLoopMs, easing = LinearEasing),
-                        repeatMode = RepeatMode.Restart,
-                    ),
-                label = "oppShimmer",
-            )
-            Brush.linearGradient(
-                colors = listOf(barBase, highlight, barBase),
-                start = Offset(offset - SKELETON_SHIMMER_BAND_PX, 0f),
-                end = Offset(offset, 0f),
-            )
-        }
+    val offset = rememberSkeletonShimmerOffset(reduceMotion)
+    val chromeBrush = skeletonBrush(onThreadBase, highlight, offset, reduceMotion) // 아바타·이름(스레드 위)
+    val barBrush = skeletonBrush(onBubbleBase, highlight, offset, reduceMotion) // 말풍선 바(흰 말풍선 위)
 
     // 진입 페이드-업(oc-fade-up). 첫 컴포지션 후 appeared=true 로 1회 전이. reduceMotion 이면 즉시 정착.
     var appeared by remember { mutableStateOf(false) }
@@ -308,38 +345,75 @@ private fun OpponentTypingSkeleton(
 
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val bubbleWidth = maxWidth * OPPONENT_SKELETON_WIDTH_FRACTION
-        Column(
+        Row(
             modifier =
                 Modifier
-                    .padding(start = OpponentSkeletonMarginStart)
-                    .width(bubbleWidth)
+                    .fillMaxWidth()
                     .graphicsLayer {
                         alpha = enter
                         translationY = (1f - enter) * 8.dp.toPx()
-                    }
-                    .clip(OpponentSkeletonShape)
-                    .background(bubbleBg)
-                    .border(1.dp, highlight, OpponentSkeletonShape)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(7.dp),
+                    },
+            horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
         ) {
-            SkeletonBar(fraction = 1f, brush = barBrush)
-            SkeletonBar(fraction = 0.7f, brush = barBrush)
+            // ① 프로필(원형 아바타) — 실제 아바타처럼 top 20dp 로 이름 아래 말풍선 높이에 맞춘다.
+            SkeletonCircle(
+                size = SkeletonAvatarSize,
+                brush = chromeBrush,
+                modifier = Modifier.padding(top = SkeletonAvatarTopPadding),
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                // ② 화자명 바("Emma" 자리표시자).
+                SkeletonBar(
+                    brush = chromeBrush,
+                    height = SkeletonNameHeight,
+                    modifier = Modifier.padding(start = 2.dp).width(SkeletonNameWidth),
+                )
+                // ③ 말풍선 — 흰 말풍선 위 시머 바 2개(100%·70%).
+                Column(
+                    modifier =
+                        Modifier
+                            .width(bubbleWidth)
+                            .clip(OpponentSkeletonShape)
+                            .background(bubbleBg)
+                            .border(1.dp, highlight, OpponentSkeletonShape)
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(7.dp),
+                ) {
+                    SkeletonBar(brush = barBrush, modifier = Modifier.fillMaxWidth())
+                    SkeletonBar(brush = barBrush, modifier = Modifier.fillMaxWidth(0.7f))
+                }
+            }
         }
     }
 }
 
-/** 시머 바 1줄(높이 11dp, 상대너비 [fraction], radius4). */
+/** 시머 원형 자리표시자(프로필 아바타). */
 @Composable
-private fun SkeletonBar(
-    fraction: Float,
+private fun SkeletonCircle(
+    size: Dp,
     brush: Brush,
+    modifier: Modifier = Modifier,
 ) {
     Box(
         modifier =
-            Modifier
-                .fillMaxWidth(fraction)
-                .height(SkeletonBarHeight)
+            modifier
+                .size(size)
+                .clip(CircleShape)
+                .background(brush),
+    )
+}
+
+/** 시머 바 1줄(기본 높이 [SkeletonBarHeight], radius4). 폭은 호출부가 [modifier] 로 지정(fillMaxWidth·width). */
+@Composable
+private fun SkeletonBar(
+    brush: Brush,
+    modifier: Modifier = Modifier,
+    height: Dp = SkeletonBarHeight,
+) {
+    Box(
+        modifier =
+            modifier
+                .height(height)
                 .clip(OceTheme.shapes.radius4)
                 .background(brush),
     )
