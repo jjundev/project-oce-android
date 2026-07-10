@@ -590,9 +590,11 @@ internal fun GeneratedDialogueSessionContent(
     dock: (@Composable (ScaffoldTask) -> Unit)? = null,
 ) {
     val listState = rememberLazyListState()
-    LaunchedEffect(state.messages.size) {
-        if (state.messages.isNotEmpty()) {
-            listState.animateScrollToItem(state.messages.lastIndex)
+    // 메시지 추가·타이핑 스켈레톤 등장 시 최신 아이템으로 자동 스크롤(스켈레톤은 메시지 뒤 마지막 아이템).
+    LaunchedEffect(state.messages.size, state.opponentTyping) {
+        val lastIndex = if (state.opponentTyping) state.messages.size else state.messages.lastIndex
+        if (lastIndex >= 0) {
+            listState.animateScrollToItem(lastIndex)
         }
     }
     DialogueTurnContent(
@@ -607,6 +609,7 @@ internal fun GeneratedDialogueSessionContent(
         header = header,
         onBack = onBack,
         dock = dock,
+        opponentTyping = state.opponentTyping,
     )
 }
 
@@ -650,10 +653,33 @@ internal class GeneratedDialogueState {
     var opponentTurnSerial by mutableIntStateOf(0)
         private set
 
+    /**
+     * 상대역 발화가 화면에 나타나기 **직전**의 "타이핑 중" 국면(프로토타입 oppSkeleton). 다음 상대역 대사를
+     * 기다리는 동안(첫 턴 생성 대기·턴 전환 후 SSE 대기) true, [displayOpponent] 로 대사가 붙으면 false.
+     * 파생 상태라 [recomputeTyping] 이 각 전이 끝에서 재계산한다(스냅샷 필드 불필요 — 복원 후 재계산으로 정착).
+     */
+    var opponentTyping by mutableStateOf(false)
+        private set
+
     private var consumedTurnCount = 0
     private var streamStatus = DialogueStreamStatus.Streaming
     private var pending = PendingOpponent()
     private val bufferedPending = ArrayDeque<PendingOpponent>()
+
+    init {
+        recomputeTyping()
+    }
+
+    /**
+     * 파생 typing 국면 재계산: `OpponentTurn` + 미완(`!Completed`) + 아직 이번 턴 대사 미표시
+     * (`pending.opponentEnglish == null`)일 때만 스켈레톤을 노출한다. 각 상태 전이 말미에서 호출한다.
+     */
+    private fun recomputeTyping() {
+        opponentTyping =
+            turnPhase == TurnPhase.OpponentTurn &&
+            sessionPhase != SessionPhase.Completed &&
+            pending.opponentEnglish == null
+    }
 
     fun accept(state: DialogueGenState) {
         if (state !is DialogueGenState.Ready) return
@@ -677,6 +703,7 @@ internal class GeneratedDialogueState {
             streamStatus == DialogueStreamStatus.Done -> sessionPhase = SessionPhase.Completed
             else -> Unit
         }
+        recomputeTyping()
     }
 
     /** 학습자 턴 전진 스텁(임시, M1-03 스텁 라우트 전용). 목표 문장을 재생해 다음 턴으로. */
@@ -711,6 +738,7 @@ internal class GeneratedDialogueState {
             } else {
                 SessionPhase.AwaitingStreamDone
             }
+        recomputeTyping()
     }
 
     private fun consume(
@@ -742,6 +770,7 @@ internal class GeneratedDialogueState {
         turnPhase = TurnPhase.OpponentTurn
         sessionPhase = SessionPhase.InTurn
         opponentTurnSerial += 1
+        recomputeTyping()
     }
 
     private fun attachUserTarget(
@@ -770,6 +799,7 @@ internal class GeneratedDialogueState {
         currentTask = current.task
         turnPhase = TurnPhase.LearnerTurn
         sessionPhase = SessionPhase.InTurn
+        recomputeTyping()
     }
 
     private fun settleTerminalStatus() {
@@ -785,6 +815,7 @@ internal class GeneratedDialogueState {
                 streamStatus == DialogueStreamStatus.Done ->
                 sessionPhase = SessionPhase.Completed
         }
+        recomputeTyping()
     }
 
     private fun reset() {
@@ -798,6 +829,7 @@ internal class GeneratedDialogueState {
         streamStatus = DialogueStreamStatus.Streaming
         pending = PendingOpponent()
         bufferedPending.clear()
+        recomputeTyping()
     }
 
     // --- M1-08 SavedState (L1 파생 상태 export/seed, replay 없음) ---
@@ -844,6 +876,7 @@ internal class GeneratedDialogueState {
             runCatching { DialogueStreamStatus.valueOf(snapshot.streamStatus) }
                 .getOrDefault(DialogueStreamStatus.Streaming)
         diagnostic = snapshot.diagnostic
+        recomputeTyping()
     }
 
     private fun PendingOpponent.toData(): PendingData =

@@ -18,10 +18,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,8 +30,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
@@ -42,7 +44,6 @@ import com.jjundev.oneclickeng.ui.audio.MicButton
 import com.jjundev.oneclickeng.ui.audio.MicState
 import com.jjundev.oneclickeng.ui.audio.WaveformCanvas
 import com.jjundev.oneclickeng.ui.component.OneClickPermissionPrimingSheet
-import com.jjundev.oneclickeng.ui.component.primitive.OneClickInput
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
@@ -306,6 +307,7 @@ private fun ChatInputToggle(onClick: () -> Unit) {
     Row(
         modifier =
             Modifier
+                .padding(top = OceTheme.spacing.md)
                 .heightIn(min = MinTouchTarget)
                 .clickable(onClick = onClick)
                 .padding(horizontal = OceTheme.spacing.sm, vertical = OceTheme.spacing.xs),
@@ -326,6 +328,11 @@ private fun ChatInputToggle(onClick: () -> Unit) {
     }
 }
 
+/**
+ * 채팅 입력 시트(프로토타입 정합). 도움말 캡션 → [입력 필드 + 전송 아이콘 버튼] 한 행 → "마이크로 말하기"
+ * 어피던스 순서. 공유 [OneClickInput](radius12·56dp M3 필드)은 프로토 외형(radius8·borderStrong·44dp)과
+ * 달라 재사용하지 않고, 다른 화면에 영향이 없도록 여기 로컬 필드([ChatInputField])로 감싼다.
+ */
 @Composable
 private fun TextInputDock(
     textValue: String,
@@ -333,28 +340,117 @@ private fun TextInputDock(
     onSubmitText: () -> Unit,
     onToggleTextMode: (Boolean) -> Unit,
 ) {
-    OneClickInput(
-        value = textValue,
-        onValueChange = onTextChange,
-        placeholder = "영어로 입력해 보세요",
+    Column(
         modifier = Modifier.fillMaxWidth(),
-    )
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Button(
-            onClick = onSubmitText,
-            enabled = textValue.isNotBlank(),
-            modifier = Modifier.heightIn(min = MinTouchTarget),
-            shape = OceTheme.shapes.radius12,
+        // 도움말 캡션 — 입력 필드 위. 사용자 요청으로 입력란 위쪽 여백을 넓힘(2dp→12dp).
+        Text(
+            text = "마이크 없이도 채팅으로 말할 수 있어요.",
+            style = OceTheme.typography.helper.copy(fontWeight = FontWeight.Medium, fontSize = 12.sp),
+            color = OceTheme.colors.textTertiary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(bottom = 12.dp),
+        )
+        // 입력 필드 + 전송(48dp 정사각) 한 행.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(text = "제출", style = OceTheme.typography.sectionLabel)
+            ChatInputField(
+                value = textValue,
+                onValueChange = onTextChange,
+                modifier = Modifier.weight(1f),
+            )
+            SendButton(enabled = textValue.isNotBlank(), onClick = onSubmitText)
         }
-        TextButton(onClick = { onToggleTextMode(false) }) {
-            Text(text = "마이크로", style = OceTheme.typography.body)
+        // 마이크 복귀 어피던스 — 센터, transparent(프로토 mic 18px + 13sp 600 tertiary).
+        Row(
+            modifier =
+                Modifier
+                    .padding(top = OceTheme.spacing.md)
+                    .clip(OceTheme.shapes.radius8)
+                    .clickable { onToggleTextMode(false) }
+                    .padding(horizontal = OceTheme.spacing.sm, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OneClickIcon(
+                icon = OceIcon.Mic,
+                contentDescription = null,
+                tint = OceTheme.colors.textTertiary,
+                size = 18.dp,
+            )
+            Text(
+                text = "마이크로 말하기",
+                style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),
+                color = OceTheme.colors.textTertiary,
+            )
         }
+    }
+}
+
+/**
+ * 프로토 입력 필드 로컬 래핑 — radius8 · borderStrong 1px · min-height 44dp · 15sp. 공유 [OneClickInput]
+ * (radius12·M3 56dp)과 외형이 달라 여기서만 쓰는 최소 [BasicTextField] 로 구현(공유 컴포넌트 미변경).
+ */
+@Composable
+private fun ChatInputField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val fieldStyle =
+        OceTheme.typography.body.copy(fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier =
+            modifier
+                .heightIn(min = 54.dp)
+                .clip(OceTheme.shapes.radius8)
+                .border(1.dp, OceTheme.colors.borderStrong, OceTheme.shapes.radius8)
+                .padding(horizontal = 14.dp, vertical = 15.dp),
+        textStyle = fieldStyle,
+        singleLine = true,
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        decorationBox = { inner ->
+            Box(contentAlignment = Alignment.CenterStart) {
+                if (value.isEmpty()) {
+                    Text(
+                        text = "영어로 입력해보세요",
+                        style = fieldStyle,
+                        color = OceTheme.colors.textTertiary,
+                    )
+                }
+                inner()
+            }
+        },
+    )
+}
+
+/** 전송 아이콘 버튼 — 48dp 정사각 · radius12 · primary 배경, 입력이 비면 비활성. */
+@Composable
+private fun SendButton(
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier =
+            Modifier
+                .size(MinTouchTarget)
+                .clip(OceTheme.shapes.radius12)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = if (enabled) 1f else 0.4f))
+                .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        OneClickIcon(
+            icon = OceIcon.Send,
+            contentDescription = "전송",
+            tint = MaterialTheme.colorScheme.onPrimary,
+            size = 22.dp,
+        )
     }
 }
 

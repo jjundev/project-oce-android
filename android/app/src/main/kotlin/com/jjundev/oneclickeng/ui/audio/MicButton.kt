@@ -53,8 +53,13 @@ private fun MicState.rendersOpaque(enabled: Boolean): Boolean =
     enabled || this == MicState.Analyzing || this == MicState.Complete
 
 private const val ARC_ROTATION_MS = 900 // 0.9s linear
-private const val READY_RING_RADIUS_FRACTION = 0.86f // Ready hollow 링 반경(코어 반경 대비)
-private const val READY_RING_STROKE_FRACTION = 0.14f // Ready hollow 링 두께(코어 반경 대비)
+// 아래 링/리플 상수는 **전체 반경**(radius = D/2 = 48dp) 대비 분수다(코어 반경 대비 아님).
+// 프로토 측정(96dp 기준)을 전체 반경 분수로 환산: 지름 fraction은 ÷2, stroke dp는 ÷48.
+private const val READY_RING_RADIUS_FRACTION = 0.6875f // Ready hollow 링 지름 0.6875×D(반경 33dp) = 전체 반경×0.6875
+private const val READY_RING_STROKE_FRACTION = 0.0625f // Ready 링 stroke 3dp (=3/48)
+private const val RIPPLE_STROKE_FRACTION = 0.0417f // Recording 리플 stroke 2dp (=2/48)
+private const val ANALYSIS_RING_RADIUS_FRACTION = 0.875f // Analyzing 스피너 링 지름 0.875×D(반경 42dp) = 전체 반경×0.875
+private const val ANALYSIS_RING_STROKE_FRACTION = 0.0625f // Analyzing 링 stroke 3dp (=3/48)
 
 /**
  * 96dp 음성 4상태 마이크(I1) — scratch Compose Canvas. 정본: [docs/ui/03-signature-interactions.md] I1.
@@ -162,7 +167,7 @@ fun MicButton(
 
         when (state) {
             MicState.Recording ->
-                drawRipples(center, coreRadius, coreColor, rippleT, reduceMotion)
+                drawRipples(center, radius, coreColor, rippleT, reduceMotion)
             else -> Unit
         }
 
@@ -173,15 +178,15 @@ fun MicButton(
 
         when (state) {
             MicState.Ready ->
-                // 슬레이트 링(속 비움, 비색 형태 신호 — "탭 대기"). 옅은 외륜 위에 얹혀 hollow 로 읽힌다.
+                // 슬레이트 링(속 비움, 비색 형태 신호 — "탭 대기"). 지름 0.6875×D(66dp)·stroke 3dp, 옅은 외륜 위 hollow.
                 drawCircle(
                     color = coreColor,
-                    radius = coreRadius * READY_RING_RADIUS_FRACTION,
+                    radius = radius * READY_RING_RADIUS_FRACTION,
                     center = center,
-                    style = Stroke(width = coreRadius * READY_RING_STROKE_FRACTION),
+                    style = Stroke(width = radius * READY_RING_STROKE_FRACTION),
                 )
             MicState.Analyzing ->
-                drawAnalysisArc(center, coreRadius, coreColor, trackColor, arcRotation)
+                drawAnalysisArc(center, radius, coreColor, trackColor, arcRotation)
             MicState.Complete ->
                 drawCheck(center, coreRadius, glyphColor)
             MicState.Recording -> Unit
@@ -189,19 +194,24 @@ fun MicButton(
     }
 }
 
-/** Recording 리플 3겹(loop 600ms, 각 겹 1/3 위상 stagger). reduce-motion 이면 정적 1겹. */
+/**
+ * Recording 리플 3겹(loop 600ms, 각 겹 1/3 위상 stagger). reduce-motion 이면 정적 1겹.
+ * 프로토 정합: 채운 원이 아니라 **stroked 2dp 링**, 기준 반경 = 전체 반경(48dp)에서 scale.
+ */
 private fun DrawScope.drawRipples(
     center: Offset,
-    coreRadius: Float,
+    radius: Float,
     color: Color,
     t: Float,
     reduceMotion: Boolean,
 ) {
+    val stroke = radius * RIPPLE_STROKE_FRACTION // 2dp 테두리
     if (reduceMotion) {
         drawCircle(
             color = color.copy(alpha = REDUCED_RIPPLE_ALPHA),
-            radius = coreRadius * REDUCED_RIPPLE_SCALE,
+            radius = radius * REDUCED_RIPPLE_SCALE,
             center = center,
+            style = Stroke(width = stroke),
         )
         return
     }
@@ -209,20 +219,25 @@ private fun DrawScope.drawRipples(
         val phase = (t + i.toFloat() / RIPPLE_COUNT) % 1f
         val scale = lerpF(RIPPLE_START_SCALE, RIPPLE_END_SCALE, phase)
         val alpha = lerpF(RIPPLE_START_ALPHA, 0f, phase)
-        drawCircle(color = color.copy(alpha = alpha), radius = coreRadius * scale, center = center)
+        drawCircle(
+            color = color.copy(alpha = alpha),
+            radius = radius * scale,
+            center = center,
+            style = Stroke(width = stroke),
+        )
     }
 }
 
 /** Analyzing 고정 ~90° 아크(track 위, -90°=12시 시작, 0.9s linear 회전). */
 private fun DrawScope.drawAnalysisArc(
     center: Offset,
-    coreRadius: Float,
+    radius: Float,
     arcColor: Color,
     trackColor: Color,
     rotation: Float,
 ) {
-    val arcRadius = coreRadius * 1.18f
-    val stroke = coreRadius * 0.14f
+    val arcRadius = radius * ANALYSIS_RING_RADIUS_FRACTION // 지름 0.875×D(반경 42dp)
+    val stroke = radius * ANALYSIS_RING_STROKE_FRACTION // 3dp
     val topLeft = Offset(center.x - arcRadius, center.y - arcRadius)
     val arcSize = androidx.compose.ui.geometry.Size(arcRadius * 2f, arcRadius * 2f)
     drawCircle(color = trackColor, radius = arcRadius, center = center, style = Stroke(width = stroke))
