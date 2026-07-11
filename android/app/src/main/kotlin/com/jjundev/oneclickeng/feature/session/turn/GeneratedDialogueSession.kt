@@ -902,16 +902,6 @@ internal class GeneratedDialogueState {
 
     // --- M1-08 SavedState (L1 파생 상태 export/seed, replay 없음) ---
 
-    /** 직렬화용 유효 메시지: 표시 대기([awaitingReveal]) 중인 상대역 대사를 커밋한 것으로 간주해 무손실 저장. */
-    private fun effectiveMessages(): List<DialogueMessage> {
-        val pendingEnglish = pending.opponentEnglish
-        return if (awaitingReveal && pendingEnglish != null) {
-            messages + DialogueMessage.Opponent(pendingEnglish)
-        } else {
-            messages
-        }
-    }
-
     /** 현 상태 + 앰비언트 micState/turns + 세션 식별(sessionId/level)을 [SessionTurnSnapshot] 으로 직렬화. */
     fun toSnapshot(
         micState: MicState,
@@ -922,9 +912,9 @@ internal class GeneratedDialogueState {
         SessionTurnSnapshot(
             sessionId = sessionId,
             level = level,
-            // 표시 대기 중인 상대역 대사를 커밋한 것으로 간주해 저장(무손실·스냅샷 스키마 무변경). 복원 시엔
-            // 이미 messages 에 있으므로 스켈레톤을 재생하지 않고 곧장 대사가 보인다.
-            messages = effectiveMessages().map { MessageData(it is DialogueMessage.Learner, it.english) },
+            // messages는 실제로 렌더된 말풍선만 보존한다. 표시 대기 상대역 대사는 pending에 남겨 복원 시
+            // 스켈레톤을 다시 거친다. 따라서 홈의 resumeInfo가 messages를 렌더 사실로 사용할 수 있다.
+            messages = messages.map { MessageData(it is DialogueMessage.Learner, it.english) },
             turnPhase = turnPhase.name,
             sessionPhase = sessionPhase.name,
             currentTaskKo = currentTask?.koreanPrompt,
@@ -956,8 +946,14 @@ internal class GeneratedDialogueState {
             runCatching { DialogueStreamStatus.valueOf(snapshot.streamStatus) }
                 .getOrDefault(DialogueStreamStatus.Streaming)
         diagnostic = snapshot.diagnostic
-        // 스냅샷은 대기 대사를 커밋해 저장하므로([toSnapshot]) 복원 시 표시 대기는 없다(대사는 이미 messages 에).
-        awaitingReveal = false
+        // v3에는 awaitingReveal 전용 필드가 없다. 상대역 차례에서 현재 pending 대사가 마지막 말풍선이면
+        // 이미 표시된 상태이고, 아니면 pending에만 보존된 스켈레톤 상태다. 직전 턴은 학습자 말풍선으로 끝나므로
+        // 이 마지막-메시지 비교는 현재 pending 대사의 표시 여부를 결정한다.
+        val pendingOpponent = pending.opponentEnglish
+        awaitingReveal =
+            turnPhase == TurnPhase.OpponentTurn &&
+                pendingOpponent != null &&
+                messages.lastOrNull() != DialogueMessage.Opponent(pendingOpponent)
         recomputeTyping()
     }
 
