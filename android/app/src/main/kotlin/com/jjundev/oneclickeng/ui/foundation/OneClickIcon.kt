@@ -124,6 +124,7 @@ enum class OceIcon(
     SentimentVeryDissatisfied(R.drawable.ic_sentiment_very_dissatisfied),
     PlayArrow(R.drawable.ic_play_arrow),
     GridView(R.drawable.ic_grid_view),
+    ViewAgenda(R.drawable.ic_view_agenda),
     PartlyCloudyDay(R.drawable.ic_partly_cloudy_day),
     WavingHand(R.drawable.ic_waving_hand),
     Event(R.drawable.ic_event),

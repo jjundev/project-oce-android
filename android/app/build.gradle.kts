@@ -72,6 +72,7 @@ tasks.withType<Test>().configureEach {
             "**/SlimFeedbackSheetTest*",
             "**/ConceptualBridgeLegendTest*",
             "**/ConceptualBridgeInsideModeTest*",
+            "**/HomeHeroRevealTest*",
         )
     }
 }

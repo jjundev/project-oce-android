@@ -27,7 +27,7 @@ import javax.inject.Inject
  * 홈 탭 상태 소유자(M3-08 → 프로토 홈 허브 정합). 학습 시작 허브의 상태를 조립한다:
  * - 게임화 스트립: [StudytimeStore.snapshot] (suspend) → 오늘 학습시간 라벨 + streak.
  * - 오프라인: [ConnectivityObserver] (M4-04 단일 연결성 소스) → Boolean 파생(CTA 비활성 + 글로벌 배너).
- * - 미완 복귀: [SessionSnapshotStore.recoverable] (durable, §2.5).
+ * - 미완 복귀: [SessionSnapshotStore.resumeInfo] (durable, §2.5).
  * - at-limit: [SessionLimitHolder.freshRemaining] (fresh==0 일 때만 고지, unknown→억제).
  * - 세션 설정(프로토 인라인 패널): 레벨은 `profile.level` 을 **홈 VM 이 직접** 해소한다(#6 이관 —
  *   세션 설정 화면 폐기로 해소 주체가 홈으로 왔다. null 동안 시작 차단 → easy 누출 없음). 길이 기본 5턴.
@@ -86,7 +86,7 @@ class HomeViewModel
         val uiState: StateFlow<HomeUiState> =
             combine(
                 connectivity.state.map { it == Connectivity.Online },
-                snapshotStore.recoverable,
+                snapshotStore.resumeInfo,
                 limitHolder.freshRemaining,
                 gamification,
                 sessionSetup,
@@ -95,7 +95,10 @@ class HomeViewModel
                     studyTimeLabel = gami?.studyTimeLabel,
                     streak = gami?.streak ?: 0,
                     isOnline = online,
-                    hasResume = resume,
+                    hasResume = resume != null,
+                    resumeTopic = resume?.topicTitle,
+                    resumeTurn = resume?.doneTurns ?: 0,
+                    resumeTotalTurns = resume?.totalTurns ?: 0,
                     // fresh remaining 이 관측됐고(non-null) 그 값이 0 일 때만 at-limit(H6, unknown→억제).
                     atLimit = remaining == 0,
                     level = setup.level,

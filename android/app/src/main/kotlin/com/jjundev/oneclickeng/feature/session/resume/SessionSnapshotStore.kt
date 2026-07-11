@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.jjundev.oneclickeng.feature.session.turn.SessionPhase
 import com.jjundev.oneclickeng.feature.session.turn.SessionTurnSnapshot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -20,7 +21,7 @@ import javax.inject.Singleton
  * §2.5 mandates a **local recoverable snapshot** with "시간 만료 없음 · 새 세션 시작 시에만 폐기" — a
  * process-scoped in-memory holder would lose it on app kill, which the 계약 forbids. So the same
  * [SessionTurnSnapshot] the session VM already serializes for `SavedStateHandle` (rotation / same-screen
- * process-kill) is mirrored here to DataStore, surviving app termination. Home reads [recoverable] to
+ * process-kill) is mirrored here to DataStore, surviving app termination. Home reads [resumeInfo] to
  * decide whether to show the 이어하기 prompt; the session route restores from [read] when its
  * `SavedStateHandle` has no in-screen snapshot (i.e. a fresh entry reached from home).
  *
@@ -36,8 +37,30 @@ class SessionSnapshotStore
     ) {
         private val json = Json { ignoreUnknownKeys = true }
 
-        /** `true` while a persisted, schema-current snapshot exists. Home observes this reactively. */
-        val recoverable: Flow<Boolean> = dataStore.data.map { it[KEY_SNAPSHOT] != null }
+        /**
+         * 이어하기 프롬프트용 검증·해석 스냅샷. `recoverable`(key 존재만 검사)의 팬텀을 근절한다:
+         * 디코드 성공 + 스키마 일치 + 미완(sessionPhase != Completed) + 실제 진행(학습자 턴 ≥ 1) +
+         * 표시 가능한 제목이 모두 성립할 때만 [ResumeInfo]. 진행 단위(doneTurns)는 완료한 학습자 턴 수로,
+         * 세션 헤더 `completedTurns`(GeneratedDialogueSession) 및 `totalTurns` 와 같은 축이다.
+         */
+        val resumeInfo: Flow<ResumeInfo?> =
+            dataStore.data.map { prefs ->
+                val snap =
+                    prefs[KEY_SNAPSHOT]
+                        ?.let { runCatching { json.decodeFromString<SessionTurnSnapshot>(it) }.getOrNull() }
+                        ?.takeIf { it.schemaVersion == SessionTurnSnapshot.SCHEMA_VERSION }
+                        ?: return@map null
+                val title = snap.topicTitle
+                val done = snap.messages.count { it.isLearner }
+                if (title.isNullOrBlank() || done == 0 || snap.sessionPhase == SessionPhase.Completed.name) {
+                    return@map null
+                }
+                ResumeInfo(
+                    topicTitle = title,
+                    doneTurns = done,
+                    totalTurns = snap.totalTurns ?: DEFAULT_TOTAL_TURNS,
+                )
+            }
 
         /** Persist (overwrite) the current snapshot. Called on session progress. */
         suspend fun write(snapshot: SessionTurnSnapshot) {
@@ -57,5 +80,18 @@ class SessionSnapshotStore
 
         private companion object {
             val KEY_SNAPSHOT = stringPreferencesKey("session_snapshot_json")
+
+            /** totalTurns 미기재 스냅샷의 폴백(세션 기본 길이, GeneratedDialogueSession.DEFAULT_TOTAL_TURNS 정합). */
+            const val DEFAULT_TOTAL_TURNS = 5
         }
     }
+
+/**
+ * 홈 이어하기 프롬프트가 필요로 하는 스냅샷 요약 — 표시 제목과 진행(완료 학습자 턴 / 전체 턴).
+ * 이 타입이 존재한다는 것 자체가 "이어갈 미완 세션이 실재한다"는 계약이다(null = 없음).
+ */
+data class ResumeInfo(
+    val topicTitle: String,
+    val doneTurns: Int,
+    val totalTurns: Int,
+)
