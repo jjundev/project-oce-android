@@ -10,6 +10,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
@@ -26,8 +28,12 @@ import com.jjundev.oneclickeng.ui.component.OneClickOfflineBanner
 import com.jjundev.oneclickeng.ui.component.OneClickProgressRing
 import com.jjundev.oneclickeng.ui.component.ProgressRingMode
 import com.jjundev.oneclickeng.ui.foundation.OceBottomNav
+import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.navigation.OceNavHost
 import com.jjundev.oneclickeng.ui.navigation.OceTab
+import com.jjundev.oneclickeng.ui.navigation.oceScreenEnter
+import com.jjundev.oneclickeng.ui.navigation.oceScreenExit
+import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /** 3탭 셸(하단 내비 + [OceNavHost])을 담는 바깥 그래프 목적지 경로. */
 const val MAIN_TABS_ROUTE = "main_tabs"
@@ -70,7 +76,17 @@ fun AppRoot(
     }
 
     val outerNavController = rememberNavController()
-    NavHost(navController = outerNavController, startDestination = resolvedStart) {
+    val reduceMotion = rememberReduceMotion()
+    val motion = OceTheme.motion
+    val offsetY8Px = with(LocalDensity.current) { 8.dp.roundToPx() }
+    NavHost(
+        navController = outerNavController,
+        startDestination = resolvedStart,
+        enterTransition = { oceScreenEnter(motion, offsetY8Px, reduceMotion) },
+        exitTransition = { oceScreenExit },
+        popEnterTransition = { oceScreenEnter(motion, offsetY8Px, reduceMotion) },
+        popExitTransition = { oceScreenExit },
+    ) {
         composable(MAIN_TABS_ROUTE) {
             // 프로토 완전 정합: 홈이 상황·레벨·길이를 확정하고(인라인 설정·상황 시트 소유) 히어로 탭 시
             // 바로 생성 라우트로 진입한다(세션 설정 화면 폐기).
