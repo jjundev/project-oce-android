@@ -22,6 +22,9 @@ data class OceSpacing(
     val sectionGap: Dp = 24.dp,
     val actionGap: Dp = 12.dp,
     val loadingPadding: Dp = 40.dp,
+    // 시트 세로 리듬(공용 OneClickBottomSheet 소유) — grill 확정값.
+    val sheetHandleGap: Dp = 12.dp,
+    val sheetContentBottom: Dp = 24.dp,
 )
 
 internal val OceSpacingTokens = OceSpacing()
