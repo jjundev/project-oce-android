@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- view_agenda (Rounded · opsz24 · FILL 1) · source: https://raw.githubusercontent.com/google/material-design-icons/master/symbols/web/view_agenda/materialsymbolsrounded/view_agenda_fill1_24px.svg · Apache-2.0, see ICONS-LICENSE.txt -->
+<!-- view_agenda (목록/행 토글) · 두 개의 가로 라운드 바(간격 4dp) · 22dp 렌더에서도 두 행이 구분되도록 자체 작성 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="960"
-    android:viewportHeight="960">
-    <group android:translateY="960">
-        <path
-            android:fillColor="#000000"
-            android:pathData="M200-160q-33 0-56.5-23.5T120-240v-160q0-33 23.5-56.5T200-480h560q33 0 56.5 23.5T840-400v160q0 33-23.5 56.5T760-160H200Zm0-320q-33 0-56.5-23.5T120-560v-160q0-33 23.5-56.5T200-800h560q33 0 56.5 23.5T840-720v160q0 33-23.5 56.5T760-480H200Z" />
-    </group>
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#000000"
+        android:pathData="M4.5,4 h15 a1.5,1.5 0 0 1 1.5,1.5 v3 a1.5,1.5 0 0 1 -1.5,1.5 h-15 a1.5,1.5 0 0 1 -1.5,-1.5 v-3 a1.5,1.5 0 0 1 1.5,-1.5 z M4.5,14 h15 a1.5,1.5 0 0 1 1.5,1.5 v3 a1.5,1.5 0 0 1 -1.5,1.5 h-15 a1.5,1.5 0 0 1 -1.5,-1.5 v-3 a1.5,1.5 0 0 1 1.5,-1.5 z" />
 </vector>
