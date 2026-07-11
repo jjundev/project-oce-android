@@ -753,6 +753,10 @@ internal class GeneratedDialogueState {
     /** 현재 학습자 턴의 목표 영어(피드백 referenceEnglish 재사용). */
     fun currentReferenceEnglish(): String? = pending.referenceEnglish
 
+    /** 방금 reveal 된(=messages 마지막) 상대역 영어. 발화 대상(Route TTS)으로 읽는다. 마지막이 학습자
+     *  말풍선이거나 아직 아무 것도 append 안 됐으면 null. */
+    fun lastOpponentEnglish(): String? = (messages.lastOrNull() as? DialogueMessage.Opponent)?.english
+
     /** 학습자 턴을 마감하고 다음 상대역 턴/완료로 전진한다(스텁·실답변 공용 tail). */
     fun advanceTurn() {
         if (turnPhase != TurnPhase.LearnerTurn) return

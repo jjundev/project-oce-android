@@ -245,4 +245,21 @@ class GeneratedDialogueStateTest {
 
         assertFalse(state.opponentTyping)
     }
+
+    @Test
+    fun `lastOpponentEnglish returns revealed opponent line and null after learner reply`() {
+        val state = GeneratedDialogueState()
+        state.accept(ready(listOf(model("Hello"), user("A coffee, please.", "커피 주세요."))))
+
+        // reveal 전에는 아직 messages 에 없음.
+        assertNull(state.lastOpponentEnglish())
+
+        state.commitReveal()
+        assertEquals("Hello", state.lastOpponentEnglish())
+
+        // 학습자 답변이 마지막이면 상대역 라인이 아니므로 null.
+        state.completeOpponentTurn()
+        state.appendLearnerAnswer("A coffee, please.")
+        assertNull(state.lastOpponentEnglish())
+    }
 }
