@@ -68,6 +68,9 @@ import kotlin.math.sqrt
  * SoT 가 "신규 정의"로 남긴 잔여 open 항목**(02-shared-components.md:139-140)으로, 여기서는 기본 Crossfade 로
  * 두고 M3-06 튜닝(또는 소비 이슈)에서 확정한다. EN 콘텐츠(prompt/옵션)에는 `LocaleList("en")`(A4).
  *
+ * @param loading 생성 in-flight면 테두리 링이 회전한다(무한 전이 구독). 준비/실패 등 정지 상태는 `false`.
+ *   `true` + 비-reduceMotion은 무한 전이를 구독하므로, 이 컴포넌트를 렌더하는 스크린샷 테스트는
+ *   `reduceMotion=true`를 주입하거나 `loading=false`로 캡처하고 `waitForIdle()`을 피해야 한다(행 방지).
  * @param onAnswered (문항, 선택 인덱스, 정답여부) — 채점 아닌 텔레메트리 훅.
  */
 @Composable
