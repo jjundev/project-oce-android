@@ -1,16 +1,23 @@
 package com.jjundev.oneclickeng.feature.session.resume
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import com.jjundev.oneclickeng.core.network.DialogueTurn
+import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenState
+import com.jjundev.oneclickeng.feature.session.dialogue.DialogueStreamStatus
+import com.jjundev.oneclickeng.feature.session.turn.GeneratedDialogueState
 import com.jjundev.oneclickeng.feature.session.turn.MessageData
 import com.jjundev.oneclickeng.feature.session.turn.PendingData
 import com.jjundev.oneclickeng.feature.session.turn.SessionPhase
+import com.jjundev.oneclickeng.feature.session.turn.SessionTurnProgress
 import com.jjundev.oneclickeng.feature.session.turn.SessionTurnSnapshot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -75,6 +82,56 @@ class SessionSnapshotStoreTest {
             assertEquals(2, info?.doneTurns)
             assertEquals(5, info?.totalTurns)
 
+            scope.cancel()
+        }
+
+    @Test
+    fun `persist removes an earlier incomplete snapshot when the session completes`() =
+        runTest {
+            val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
+            val store = newStore(scope)
+            val incomplete = snapshot(messages = listOf(learner("Hi")))
+
+            store.persist(incomplete)
+            assertEquals("카페에서 주문하기", store.resumeInfo.first()?.topicTitle)
+
+            store.persist(incomplete.copy(sessionPhase = SessionPhase.Completed.name))
+
+            assertNull(store.read())
+            assertNull(store.resumeInfo.first())
+            scope.cancel()
+        }
+
+    @Test
+    fun `automatic final opponent completion removes the durable resume snapshot`() =
+        runTest {
+            val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
+            val store = newStore(scope)
+            var durable = snapshot(messages = listOf(learner("Hi")))
+            store.persist(durable)
+            val state = GeneratedDialogueState()
+            state.accept(
+                DialogueGenState.Ready(
+                    sessionId = "s1",
+                    remaining = 1,
+                    meta = null,
+                    turns = listOf(DialogueTurn(ko = "상대역", en = "See you.", role = "model")),
+                    streamStatus = DialogueStreamStatus.Done,
+                ),
+            )
+            val progress =
+                SessionTurnProgress(state) {
+                    durable = durable.copy(sessionPhase = state.sessionPhase.name)
+                    scope.launch { store.persist(durable) }
+                }
+
+            progress.revealOpponentTurn()
+            progress.completeOpponentTurn()
+            runCurrent()
+
+            assertEquals(SessionPhase.Completed, state.sessionPhase)
+            assertNull(store.read())
+            assertNull(store.resumeInfo.first())
             scope.cancel()
         }
 

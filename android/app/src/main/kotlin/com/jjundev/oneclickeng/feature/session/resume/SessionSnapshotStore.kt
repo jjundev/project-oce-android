@@ -62,6 +62,18 @@ class SessionSnapshotStore
                 )
             }
 
+        /**
+         * Store exactly one recoverable session state. A completed session is terminal, so this removes
+         * any older in-progress JSON rather than leaving a stale resume candidate behind.
+         */
+        suspend fun persist(snapshot: SessionTurnSnapshot) {
+            if (snapshot.sessionPhase == SessionPhase.Completed.name) {
+                clear()
+            } else {
+                write(snapshot)
+            }
+        }
+
         /** Persist (overwrite) the current snapshot. Called on session progress. */
         suspend fun write(snapshot: SessionTurnSnapshot) {
             dataStore.edit { it[KEY_SNAPSHOT] = json.encodeToString(snapshot) }
