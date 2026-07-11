@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +47,9 @@ import com.jjundev.oneclickeng.ui.component.venn.VennLayoutMode
 import com.jjundev.oneclickeng.ui.component.venn.rememberVennLayoutMode
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import java.util.Locale
+
+/** Compose test tag on every deep-block shimmer skeleton — lets tests assert skeleton count. */
+internal const val DeepBlockSkeletonTag = "deep_block_skeleton"
 
 /**
  * "더 보기" deep 영역(M2-03) — 단일 시트 하단에 conceptualBridge → toneStyle → paraphrasing 을 고정 순서로
@@ -147,7 +151,10 @@ private fun DeepBlocks(
 
 @Composable
 private fun BlockSkeleton() {
-    OneClickSkeleton(shape = SkeletonShape.Section)
+    OneClickSkeleton(
+        shape = SkeletonShape.Section,
+        modifier = Modifier.testTag(DeepBlockSkeletonTag),
+    )
 }
 
 /**
