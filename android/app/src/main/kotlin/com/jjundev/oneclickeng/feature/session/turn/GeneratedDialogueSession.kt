@@ -258,6 +258,11 @@ class GeneratedDialogueSessionViewModel
 
         private val json = Json { ignoreUnknownKeys = true }
 
+        // 첫 NavBackStackEntry 복원 전에는 생성 코디네이터의 Ready emission을 잠시 보류한다. 같은 프로세스의
+        // 이어하기는 Singleton 코디네이터가 전체 대본을 들고 있어도 durable 스냅샷의 진행 위치가 정본이다.
+        private var initialRestoreComplete = false
+        private var deferredGenerationState: DialogueGenState? = null
+
         init {
             val restored =
                 savedStateHandle.get<Bundle>(PROVIDER_KEY)
@@ -266,23 +271,28 @@ class GeneratedDialogueSessionViewModel
                     ?.takeIf { it.schemaVersion == SessionTurnSnapshot.SCHEMA_VERSION }
             if (restored != null) {
                 seedFrom(restored)
-            } else if (generation.state.value !is DialogueGenState.Ready) {
+            } else {
                 // SavedStateHandle 에 화면-체류 스냅샷이 없다 = 새 NavBackStackEntry(홈-복귀 재진입 등).
-                // durable 스냅샷(§2.5)은 라이브 코디네이터가 세션을 들고 있지 **않을 때**(크로스-프로세스,
-                // 코디네이터 non-Ready)만 정본이다. 같은 프로세스에서 코디네이터가 이미 Ready 면 Route 의
-                // onGenerationState→accept() 가 정본이므로 durable read 를 아예 시작하지 않는다 — 이 동기
-                // 분기로 async read 와 accept() 사이 순서 경쟁을 제거한다(둘 중 무엇이 정본인지 결정적).
-                // messages.isEmpty() 는 그래도 남겨 belt-and-suspenders 로 이중 seed 를 막는다.
+                // durable read 가 끝날 때까지 Route 의 Ready emission 을 보류해, 같은 프로세스 이어하기에서
+                // 코디네이터의 처음부터인 turns 가 durable 진행 위치를 덮어쓰지 않게 한다.
                 viewModelScope.launch {
                     val durable = snapshotStore.read()
-                    if (durable != null && turnState.messages.isEmpty()) seedFrom(durable)
+                    val liveState = generation.state.value
+                    if (
+                        durable != null &&
+                            shouldRestoreDurableSnapshot(durable, liveState) &&
+                            turnState.messages.isEmpty()
+                    ) {
+                        seedFrom(durable)
+                    }
+                    initialRestoreComplete = true
+                    deferredGenerationState?.let {
+                        deferredGenerationState = null
+                        acceptGenerationState(it)
+                    }
                 }
-            } else {
-                // 라이브 이어하기(같은 프로세스, 코디네이터가 이미 정본): messages 는 accept 가 복원하지만 헤더
-                // 정체성은 코디네이터에 없다 → durable 에서 헤더만 별도 복원한다(빈 nav-arg 재진입 시 상단바 유지,
-                // messages seed 경쟁 없음). 새 세션 시작은 durable 을 비워(§2.5) 이전 주제로 오염되지 않는다.
-                viewModelScope.launch { snapshotStore.read()?.let(::restoreHeaderIdentity) }
             }
+            if (restored != null) initialRestoreComplete = true
             // onGenerationState 는 Route 의 collectAsStateWithLifecycle 가 구동한다(중복 collect 회피).
             viewModelScope.launch { speaking.state.collect(::onAnalysisState) }
             // 슬림 피드백이 정착(3섹션 모두 Loading 종료)하면 그 턴을 요약 버퍼에 기록한다(M2-02 handoff).
@@ -355,6 +365,14 @@ class GeneratedDialogueSessionViewModel
 
         /** 코디네이터 상태를 턴머신에 반영(Route 가 라이프사이클 인지 collect 로 호출). */
         fun onGenerationState(state: DialogueGenState) {
+            if (!initialRestoreComplete) {
+                deferredGenerationState = state
+                return
+            }
+            acceptGenerationState(state)
+        }
+
+        private fun acceptGenerationState(state: DialogueGenState) {
             if (state is DialogueGenState.Ready) latestTurns = state.turns
             turnState.accept(state)
             persistResume()
@@ -585,6 +603,21 @@ class GeneratedDialogueSessionViewModel
             const val DEFAULT_TOTAL_TURNS = 5
         }
     }
+
+/**
+ * Selects the durable snapshot when a new session ViewModel sees a live generation state.
+ * A Ready state with the same server session id is the same conversation at a later in-app
+ * re-entry, so its durable cursor wins over the coordinator's full turn list. A different Ready
+ * id is a genuinely new generation and must not be polluted by an older resume candidate; a
+ * non-Ready state has no live conversation to prefer (the process-death restore path).
+ */
+internal fun shouldRestoreDurableSnapshot(
+    snapshot: SessionTurnSnapshot,
+    liveState: DialogueGenState,
+): Boolean {
+    val ready = liveState as? DialogueGenState.Ready ?: return true
+    return snapshot.sessionId != null && snapshot.sessionId == ready.sessionId
+}
 
 /**
  * 세션 헤더 정체성(주제 이모지·제목·레벨·턴 수). 시작 플로우 nav-arg 로 실려오거나 durable 스냅샷에서 복원돼
