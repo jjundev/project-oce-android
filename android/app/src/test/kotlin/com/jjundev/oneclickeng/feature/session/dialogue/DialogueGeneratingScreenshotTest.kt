@@ -88,6 +88,6 @@ class DialogueGeneratingScreenshotTest {
     }
 
     private companion object {
-        const val GATE_ADVANCE_MS = 1_200L
+        const val GATE_ADVANCE_MS = 1_500L
     }
 }

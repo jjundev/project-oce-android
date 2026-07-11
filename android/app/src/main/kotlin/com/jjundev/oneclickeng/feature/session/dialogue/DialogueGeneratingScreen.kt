@@ -1,5 +1,11 @@
 package com.jjundev.oneclickeng.feature.session.dialogue
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +50,7 @@ import com.jjundev.oneclickeng.ui.component.selectLimitSurface
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
+import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import kotlinx.coroutines.delay
 
@@ -82,6 +89,7 @@ fun DialogueGeneratingScreen(
     onExit: () -> Unit = {},
 ) {
     var gatePassed by remember { mutableStateOf(false) }
+    val reduceMotion = rememberReduceMotion()
     LaunchedEffect(Unit) {
         delay(QUIZ_DELAY_GATE_MS)
         gatePassed = true
@@ -138,11 +146,24 @@ fun DialogueGeneratingScreen(
                 onQuizAnswered = onQuizAnswered,
             )
         }
-        if (readyGated) {
-            ReadyBottomSheet(
-                onStartConversation = onStartConversation,
-                modifier = Modifier.align(Alignment.BottomCenter),
-            )
+        // 준비 시트 첫 등장: 아래에서 위로 슬라이드-업(reduceMotion이면 즉시). AnimatedVisibility가 항상
+        // 합성돼 있고, readyGated 가 false→true로 바뀔 때 enter 전이가 재생된다.
+        AnimatedVisibility(
+            visible = readyGated,
+            enter =
+                if (reduceMotion) {
+                    EnterTransition.None
+                } else {
+                    slideInVertically(
+                        animationSpec = tween(OceTheme.motion.durationBaseMs, easing = OceTheme.motion.easingOut),
+                        initialOffsetY = { it },
+                    ) +
+                        fadeIn(tween(OceTheme.motion.durationBaseMs, easing = OceTheme.motion.easingOut))
+                },
+            exit = ExitTransition.None,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            ReadyBottomSheet(onStartConversation = onStartConversation)
         }
     }
 }
