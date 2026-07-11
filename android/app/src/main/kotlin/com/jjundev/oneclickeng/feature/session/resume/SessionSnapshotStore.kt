@@ -21,7 +21,7 @@ import javax.inject.Singleton
  * §2.5 mandates a **local recoverable snapshot** with "시간 만료 없음 · 새 세션 시작 시에만 폐기" — a
  * process-scoped in-memory holder would lose it on app kill, which the 계약 forbids. So the same
  * [SessionTurnSnapshot] the session VM already serializes for `SavedStateHandle` (rotation / same-screen
- * process-kill) is mirrored here to DataStore, surviving app termination. Home reads [recoverable] to
+ * process-kill) is mirrored here to DataStore, surviving app termination. Home reads [resumeInfo] to
  * decide whether to show the 이어하기 prompt; the session route restores from [read] when its
  * `SavedStateHandle` has no in-screen snapshot (i.e. a fresh entry reached from home).
  *
@@ -36,9 +36,6 @@ class SessionSnapshotStore
         @SessionResumePrefs private val dataStore: DataStore<Preferences>,
     ) {
         private val json = Json { ignoreUnknownKeys = true }
-
-        /** `true` while a persisted, schema-current snapshot exists. Home observes this reactively. */
-        val recoverable: Flow<Boolean> = dataStore.data.map { it[KEY_SNAPSHOT] != null }
 
         /**
          * 이어하기 프롬프트용 검증·해석 스냅샷. `recoverable`(key 존재만 검사)의 팬텀을 근절한다:
