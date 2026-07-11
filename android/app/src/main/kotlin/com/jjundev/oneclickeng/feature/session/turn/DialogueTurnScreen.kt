@@ -123,7 +123,7 @@ internal fun DialogueTurnContent(
     // 헤더 뒤로가기 화살표 콜백(대화 나가기). 미주입이면 no-op(스텁·프리뷰·테스트 호환).
     onBack: () -> Unit = {},
     // 상대역 말풍선 TTS(M1-05)·해석 토글 콜백. 현재는 시각 셸 seam 으로 기본 no-op.
-    onReplay: () -> Unit = {},
+    onReplay: (String) -> Unit = {},
     onToggleTranslation: () -> Unit = {},
     // 입력 독 slot(M1-08). 미주입(스텁 라우트·프리뷰)이면 기존 [ScaffoldDock] 로 폴백해 M1-03 화면을 유지한다.
     dock: (@Composable (ScaffoldTask) -> Unit)? = null,
@@ -171,7 +171,7 @@ internal fun DialogueTurnContent(
                         is DialogueMessage.Opponent ->
                             OpponentTurn(
                                 text = message.english,
-                                onReplay = onReplay,
+                                onReplay = { onReplay(message.english) },
                                 onToggleTranslation = onToggleTranslation,
                             )
                         is DialogueMessage.Learner ->

@@ -118,14 +118,14 @@ fun GeneratedDialogueSessionRoute(
     // 턴 진행 시퀀스(스텁 rememberDialogueState 정합): 스켈레톤 지연 → 대사 표시([GeneratedDialogueState.commitReveal])
     // → 자동 진행 지연 → 턴 마감. 실기기는 대본이 미리 버퍼링돼 대사가 즉시 표시되던 것을, 이 스켈레톤 지연으로
     // "타이핑 중" 창을 되살린다. reduce-motion 이면 두 지연 모두 0(스켈레톤 없이 즉시).
+    // 자동진행은 이제 고정 지연이 아니라 상대역 대사 디바이스 TTS 완료(VM 의 completions/ERROR_TEXT_ONLY
+    // 수집 → completeOpponentTurn)가 구동한다. 여기서는 스켈레톤 지연 후 대사를 표시하고 자동발화만 시작한다.
     val effectiveSkeleton = if (reduceMotion) 0L else DEFAULT_OPPONENT_SKELETON_DELAY_MS.toLong()
-    val effectiveAdvance = if (reduceMotion) 0L else DEFAULT_OPPONENT_ADVANCE_DELAY_MS.toLong()
     LaunchedEffect(state.opponentTurnSerial) {
         if (state.turnPhase == TurnPhase.OpponentTurn && state.sessionPhase == SessionPhase.InTurn) {
             delay(effectiveSkeleton)
             state.commitReveal()
-            delay(effectiveAdvance)
-            state.completeOpponentTurn()
+            state.lastOpponentEnglish()?.let(viewModel::speakOpponent)
         }
     }
 
@@ -145,6 +145,7 @@ fun GeneratedDialogueSessionRoute(
                 reduceMotion = reduceMotion,
             )
         },
+        onReplay = { text -> viewModel.replayOpponent(text) },
     )
 
     // 턴 피드백 시트는 드래그 없는 고정 오버레이라 대화 콘텐츠의 형제로 얹는다. Idle 이면 스스로 아무것도
@@ -634,6 +635,8 @@ internal fun GeneratedDialogueSessionContent(
     // 헤더 뒤로가기 화살표 콜백(대화 나가기). 미주입이면 no-op(프리뷰·테스트 호환).
     onBack: () -> Unit = {},
     dock: (@Composable (ScaffoldTask) -> Unit)? = null,
+    // 상대역 말풍선 "다시 듣기" 콜백(발화 텍스트 전달). 미주입이면 no-op(프리뷰·테스트 호환).
+    onReplay: (String) -> Unit = {},
 ) {
     val listState = rememberLazyListState()
     // 메시지 추가·타이핑 스켈레톤 등장 시 최신 아이템으로 자동 스크롤(스켈레톤은 메시지 뒤 마지막 아이템).
@@ -656,6 +659,7 @@ internal fun GeneratedDialogueSessionContent(
         onBack = onBack,
         dock = dock,
         opponentTyping = state.opponentTyping,
+        onReplay = onReplay,
     )
 }
 
