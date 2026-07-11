@@ -1,12 +1,9 @@
 package com.jjundev.oneclickeng.ui.navigation
 
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -21,8 +18,8 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
  * NavHost 가 아니라 outer NavHost 의 `homeSessionGraph` 형제가 소유한다(M3-08, 풀스크린) — 홈 히어로·추천
  * 행/이어하기는 [onStartSession]/[onResume] 람다(outer NavController 배선)로 진입한다.
  *
- * **전환 훅(F4 미결 · 잠정 기본값):** 교체 가능한 전환 seam 에 잠정 기본값(크로스페이드 200ms)을 주입한다.
- * [reduceMotion] 이 true 면 정적 스냅으로 대체한다(수용기준).
+ * **전환(F4 확정):** 프로토 `oc-fade-up`(fade + 8dp 상승, 진입만) 정합 — 공유 [oceScreenEnter]/[oceScreenExit]
+ * 를 소비한다. 진입=fade+8dp↑, 퇴장=하드 컷([oceScreenExit]). [reduceMotion] 이 true 면 진입도 정적(None).
  */
 @Composable
 fun OceNavHost(
@@ -32,18 +29,16 @@ fun OceNavHost(
     modifier: Modifier = Modifier,
     reduceMotion: Boolean = rememberReduceMotion(),
 ) {
-    val durationMs = OceTheme.motion.durationBaseMs
-    val easing = OceTheme.motion.easingStandard
+    val motion = OceTheme.motion
+    val offsetY8Px = with(LocalDensity.current) { 8.dp.roundToPx() }
     NavHost(
         navController = navController,
         startDestination = OceTab.Start.route,
         modifier = modifier,
-        enterTransition = {
-            if (reduceMotion) EnterTransition.None else fadeIn(tween(durationMs, easing = easing))
-        },
-        exitTransition = {
-            if (reduceMotion) ExitTransition.None else fadeOut(tween(durationMs, easing = easing))
-        },
+        enterTransition = { oceScreenEnter(motion, offsetY8Px, reduceMotion) },
+        exitTransition = { oceScreenExit },
+        popEnterTransition = { oceScreenEnter(motion, offsetY8Px, reduceMotion) },
+        popExitTransition = { oceScreenExit },
     ) {
         composable(OceTab.Home.route) {
             HomeScreen(
