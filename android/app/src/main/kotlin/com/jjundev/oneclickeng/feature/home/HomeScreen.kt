@@ -38,6 +38,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
@@ -74,6 +75,8 @@ import com.jjundev.oneclickeng.ui.foundation.OceIconSize
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.theme.OceTheme
+import kotlin.math.PI
+import kotlin.math.sin
 
 /** 히어로 CTA 최소 탭 타겟(오프라인 비활성 시에도 48dp 유지, H1/H7). */
 private val HeroMinHeight = 96.dp
@@ -81,11 +84,14 @@ private const val DISABLED_ALPHA = 0.38f
 private const val HERO_BADGE_ALPHA = 0.2f
 private const val SITUATION_ICON_BG_ALPHA = 0.12f
 
-/** NameDrop 리빌 지속(ms) — 헤이즈 확장·메타 드롭인 공용. */
-private const val REVEAL_MS = 700
+/** NameDrop 리빌 지속(ms) — 좌→우 물결 스윕·메타 드롭인 공용. 느리게 강조(기존 700). */
+private const val REVEAL_MS = 1200
 
-/** 스파클이 살아있는 리빌 진행 구간(0..이 값). */
-private const val SPARKLE_FRACTION = 0.4f
+/** 좌→우 물결 글로우의 피크 alpha(강도). 기존 0.30f 대비 상향. */
+private const val WAVE_PEAK_ALPHA = 0.5f
+
+/** 물결 글로우 반경 = 카드 폭의 이 비율. */
+private const val WAVE_RADIUS_FRACTION = 0.6f
 
 /** 세션 설정 옵션(프로토 인라인 패널 levelOptions/lengthOptions 정합, 저장값 = profile.level 계약). */
 private val LEVEL_OPTIONS = listOf("easy", "normal", "hard")
@@ -407,7 +413,7 @@ private fun HeroCta(
 
     val p = reveal.value
     val revealActive = p > 0f && p < 1f
-    val sparkleAlpha = if (revealActive) (1f - p / SPARKLE_FRACTION).coerceIn(0f, 1f) else 0f
+    val sparkleAlpha = if (revealActive) sin(p * PI).toFloat().coerceIn(0f, 1f) else 0f
     val subtitle =
         if (resumeTopic != null) {
             "$resumeTopic · $resumeTurn / ${resumeTotalTurns}턴"
@@ -459,11 +465,10 @@ private fun HeroCta(
                     tint = onPrimary,
                     modifier =
                         Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(end = OceTheme.spacing.xl + 12.dp)
+                            .align(BiasAlignment(horizontalBias = lerp(-1f, 1f, p), verticalBias = 0f))
                             .graphicsLayer {
                                 alpha = sparkleAlpha
-                                val s = 0.6f + 0.6f * (1f - sparkleAlpha)
+                                val s = 0.7f + 0.6f * sparkleAlpha
                                 scaleX = s
                                 scaleY = s
                             },
@@ -510,8 +515,8 @@ private fun HeroMeta(
 }
 
 /**
- * NameDrop 헤이즈 — [progress] 0→1 동안 배지 기점에서 흰 블룸이 확장·페이드한다(가법 합성 BlendMode.Plus).
- * [progress] 가 0/1(비활성·완료)이면 원 콘텐츠만 그린다.
+ * NameDrop 물결 — [progress] 0→1 동안 흰 글로우 블롭이 카드 **좌측 밖에서 우측 밖으로** 스윕한다(가법 합성 BlendMode.Plus).
+ * 진입(좌)·이탈(우)에서 sin 엔벨로프로 부드럽게 페이드하고 중앙에서 가장 강하다. [progress] 가 0/1(비활성·완료)이면 원 콘텐츠만.
  */
 private fun Modifier.nameDropHaze(
     progress: Float,
@@ -520,14 +525,16 @@ private fun Modifier.nameDropHaze(
     drawWithContent {
         drawContent()
         if (progress <= 0f || progress >= 1f) return@drawWithContent
-        val center = Offset(size.width - 44.dp.toPx(), size.height / 2f)
-        val radius = lerp(0f, size.width * 1.1f, progress).coerceAtLeast(1f)
+        val waveX = lerp(-0.15f * size.width, 1.15f * size.width, progress)
+        val center = Offset(waveX, size.height / 2f)
+        val radius = (size.width * WAVE_RADIUS_FRACTION).coerceAtLeast(1f)
+        val envelope = sin(progress * PI).toFloat().coerceIn(0f, 1f)
         drawCircle(
             brush =
                 Brush.radialGradient(
                     colors =
                         listOf(
-                            color.copy(alpha = 0.30f * (1f - progress)),
+                            color.copy(alpha = WAVE_PEAK_ALPHA * envelope),
                             Color.Transparent,
                         ),
                     center = center,
