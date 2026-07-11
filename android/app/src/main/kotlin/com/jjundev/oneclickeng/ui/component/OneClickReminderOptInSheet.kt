@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -31,6 +32,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,6 +54,9 @@ private val REMINDER_ROW_INSET = 68.dp
 
 /** 제목↔보조 문구 세로 간격(프로토 실측 2~3dp) + lineHeight leading 제거(SettingsScreen 정합). */
 private val REMINDER_LABEL_GAP = 2.dp
+
+/** opt-in 시트 제목→본문 간격(프로토 4px). ReminderSettingRow의 REMINDER_LABEL_GAP(2dp)과는 다른 맥락. */
+private val OptInLabelGap = 4.dp
 private val ReminderTrimmedLineHeight =
     LineHeightStyle(alignment = LineHeightStyle.Alignment.Center, trim = LineHeightStyle.Trim.Both)
 
@@ -96,59 +101,75 @@ internal fun OneClickReminderOptInSheetContent(
                 .fillMaxWidth()
                 .padding(OceTheme.spacing.sheetPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
     ) {
-        // 프로토: 스트릭 틴트(radius16) 박스 안 🔥. 이모지 미사용(P16) — 스트릭 벡터로 동일 인상.
-        Box(
-            modifier =
-                Modifier
-                    .size(OPTIN_ICON_BOX)
-                    .clip(OceTheme.shapes.radius16)
-                    .background(OceTheme.colors.gameStreak.copy(alpha = OPTIN_ICON_BG_ALPHA)),
-            contentAlignment = Alignment.Center,
+        // ① 텍스트 클러스터 — 중앙정렬·타이트(간격은 각 자식 padding 단일 소스, 외곽 arrangement 없음).
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            OneClickIcon(
-                icon = OceIcon.LocalFireDepartment,
-                contentDescription = null,
-                tint = OceTheme.colors.gameStreak,
-                size = OPTIN_ICON_SIZE,
-            )
-        }
-        Text(
-            text = "내일도 이어가도록 살짝 알려드릴까요?",
-            style = OceTheme.typography.dialogHeader,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier =
-                Modifier
-                    .focusRequester(headerFocus)
-                    .focusable(),
-        )
-        Text(
-            text = "부담 없이, 하루 한 번만 살짝 알려드려요.",
-            style = OceTheme.typography.body,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Button(
-            onClick = onOptIn,
-            modifier = Modifier.fillMaxWidth().height(SheetPrimaryHeight),
-            shape = OceTheme.shapes.radius12,
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-        ) {
-            Text(text = "알림 받기", style = OceTheme.typography.sectionLabel)
-        }
-        TextButton(
-            onClick = onLater,
-            modifier = Modifier.fillMaxWidth().height(SheetGhostHeight),
-        ) {
+            // 프로토: 스트릭 틴트(radius16) 박스 안 🔥. 이모지 미사용(P16) — 스트릭 벡터로 동일 인상.
+            Box(
+                modifier =
+                    Modifier
+                        .size(OPTIN_ICON_BOX)
+                        .clip(OceTheme.shapes.radius16)
+                        .background(OceTheme.colors.gameStreak.copy(alpha = OPTIN_ICON_BG_ALPHA)),
+                contentAlignment = Alignment.Center,
+            ) {
+                OneClickIcon(
+                    icon = OceIcon.LocalFireDepartment,
+                    contentDescription = null,
+                    tint = OceTheme.colors.gameStreak,
+                    size = OPTIN_ICON_SIZE,
+                )
+            }
             Text(
-                text = "다음에",
-                style = OceTheme.typography.sectionLabel,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = "내일도 이어가도록 살짝 알려드릴까요?",
+                style = OceTheme.typography.dialogHeader,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                modifier =
+                    Modifier
+                        .padding(top = OceTheme.spacing.sm)
+                        .focusRequester(headerFocus)
+                        .focusable(),
             )
+            Text(
+                text = "부담 없이, 하루 한 번만 살짝 알려드려요.",
+                style = OceTheme.typography.body,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = OptInLabelGap),
+            )
+        }
+        Spacer(modifier = Modifier.height(OceTheme.spacing.xl))
+        // ② 액션 클러스터.
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.actionGap),
+        ) {
+            Button(
+                onClick = onOptIn,
+                modifier = Modifier.fillMaxWidth().height(SheetPrimaryHeight),
+                shape = OceTheme.shapes.radius12,
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+            ) {
+                Text(text = "알림 받기", style = OceTheme.typography.sectionLabel)
+            }
+            TextButton(
+                onClick = onLater,
+                modifier = Modifier.fillMaxWidth().height(SheetGhostHeight),
+            ) {
+                Text(
+                    text = "다음에",
+                    style = OceTheme.typography.sectionLabel,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
