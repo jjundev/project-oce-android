@@ -115,11 +115,11 @@ fun GeneratedDialogueSessionRoute(
     // no-op 이고, 시드된 스냅샷이 정본으로 남는다(결정 #4).
     LaunchedEffect(generationState) { viewModel.onGenerationState(generationState) }
 
-    // 턴 진행 시퀀스(스텁 rememberDialogueState 정합): 스켈레톤 지연 → 대사 표시([GeneratedDialogueState.commitReveal])
-    // → 자동 진행 지연 → 턴 마감. 실기기는 대본이 미리 버퍼링돼 대사가 즉시 표시되던 것을, 이 스켈레톤 지연으로
-    // "타이핑 중" 창을 되살린다. reduce-motion 이면 두 지연 모두 0(스켈레톤 없이 즉시).
-    // 자동진행은 이제 고정 지연이 아니라 상대역 대사 디바이스 TTS 완료(VM 의 completions/ERROR_TEXT_ONLY
-    // 수집 → completeOpponentTurn)가 구동한다. 여기서는 스켈레톤 지연 후 대사를 표시하고 자동발화만 시작한다.
+    // 턴 진행 시퀀스: 스켈레톤 지연 → 대사 표시([GeneratedDialogueState.commitReveal]) → 자동발화 시작.
+    // 실기기는 대본이 미리 버퍼링돼 대사가 즉시 표시되던 것을, 이 스켈레톤 지연으로 "타이핑 중" 창을 되살린다.
+    // reduce-motion 이면 스켈레톤 지연은 0(대사 즉시 표시)이나 자동발화는 그대로다(청각 ≠ 모션, 결정 #10).
+    // 자동진행(턴 마감)은 더 이상 고정 지연이 아니라 상대역 대사 디바이스 TTS 완료(VM 의 completions/
+    // ERROR_TEXT_ONLY 수집 → completeOpponentTurn)가 구동한다. 여기서는 대사 표시 후 자동발화만 시작한다.
     val effectiveSkeleton = if (reduceMotion) 0L else DEFAULT_OPPONENT_SKELETON_DELAY_MS.toLong()
     LaunchedEffect(state.opponentTurnSerial) {
         if (state.turnPhase == TurnPhase.OpponentTurn && state.sessionPhase == SessionPhase.InTurn) {
@@ -297,6 +297,9 @@ class GeneratedDialogueSessionViewModel
             viewModelScope.launch { tts.completions.collect { onOpponentTtsDone() } }
             // 음성 데이터 없음(ERROR_TEXT_ONLY)은 completions 대신 상태로만 표출된다(코디네이터 advance=false).
             // device-only 라 서버 폴백이 없으므로 텍스트는 남긴 채 그냥 전진시켜 세션이 멈추지 않게 한다(결정 #14).
+            // 주의: 이 수집기는 advanceOnDone 게이트가 없다 — replay(LearnerTurn 한정) 중 음성없음이 나도
+            // completeOpponentTurn 의 OpponentTurn/InTurn 가드가 오전진을 흡수하는 데 의존한다. replay 를
+            // OpponentTurn 중 허용하거나 그 가드를 완화하면 이 의존이 깨지니 함께 재검토할 것.
             viewModelScope.launch {
                 tts.state.collect { if (it == PlaybackState.ERROR_TEXT_ONLY) onOpponentTtsDone() }
             }
