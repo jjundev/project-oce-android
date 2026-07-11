@@ -23,6 +23,7 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import com.jjundev.oneclickeng.feature.home.HomeContent
 import com.jjundev.oneclickeng.feature.home.HomeSituation
 import com.jjundev.oneclickeng.feature.home.HomeUiState
+import com.jjundev.oneclickeng.ui.component.primitive.OceSheetDefaults
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import org.junit.Rule
@@ -112,7 +113,11 @@ class TopicSelectScreenshotTest {
                             TopicSelectSheetContent(
                                 onTopicChosen = { _, _ -> },
                                 onDismiss = {},
-                                modifier = Modifier.fillMaxWidth().weight(1f),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f)
+                                        .padding(OceSheetDefaults.contentPadding),
                             )
                         }
                     }

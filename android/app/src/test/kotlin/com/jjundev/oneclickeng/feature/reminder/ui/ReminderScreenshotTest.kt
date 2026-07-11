@@ -28,6 +28,7 @@ import com.jjundev.oneclickeng.feature.home.HomeUiState
 import com.jjundev.oneclickeng.feature.home.SelectedSituation
 import com.jjundev.oneclickeng.ui.component.OneClickPermissionPrimingSheetContent
 import com.jjundev.oneclickeng.ui.component.OneClickReminderOptInSheetContent
+import com.jjundev.oneclickeng.ui.component.primitive.OceSheetDefaults
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import org.junit.Rule
@@ -141,7 +142,9 @@ class ReminderScreenshotTest {
                                             .background(MaterialTheme.colorScheme.outlineVariant),
                                 )
                             }
-                            content()
+                            Box(modifier = Modifier.padding(OceSheetDefaults.contentPadding)) {
+                                content()
+                            }
                         }
                     }
                 }
