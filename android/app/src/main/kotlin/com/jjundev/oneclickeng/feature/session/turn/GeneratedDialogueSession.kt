@@ -36,6 +36,8 @@ import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
 import com.jjundev.oneclickeng.feature.session.speaking.SpeakingAnalysisCoordinator
 import com.jjundev.oneclickeng.feature.session.speaking.SpeakingAnalysisState
 import com.jjundev.oneclickeng.feature.session.summary.SessionTurnBufferStore
+import com.jjundev.oneclickeng.feature.session.tts.PlaybackState
+import com.jjundev.oneclickeng.feature.session.tts.TtsPlaybackCoordinator
 import com.jjundev.oneclickeng.ui.audio.MicState
 import com.jjundev.oneclickeng.ui.audio.MicTransientReason
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
@@ -187,6 +189,7 @@ class GeneratedDialogueSessionViewModel
         private val turnBuffer: SessionTurnBufferStore,
         private val appScope: CoroutineScope,
         private val snapshotStore: SessionSnapshotStore,
+        private val tts: TtsPlaybackCoordinator,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         val generationState = generation.state
@@ -288,6 +291,14 @@ class GeneratedDialogueSessionViewModel
             // 시트(M1-07)가 아직 라이브에 없어 사용자는 정착 전에 "다음"을 누를 수 있으므로, 백그라운드
             // 정착 기록 + [onAdvance] best-effort 폴백의 이중 경로로 턴당 1회 기록을 보장한다(pendingTurn 가드).
             viewModelScope.launch { feedback.state.collect(::onFeedbackState) }
+            // 상대역 자동발화 완료(정상/실패/mute) → 현재 턴 마감(입력 독 상승). advanceOnDone=false 인 replay 는
+            // completions 를 내지 않으므로 여기로 오지 않는다(자동발화만 전진 구동).
+            viewModelScope.launch { tts.completions.collect { onOpponentTtsDone() } }
+            // 음성 데이터 없음(ERROR_TEXT_ONLY)은 completions 대신 상태로만 표출된다(코디네이터 advance=false).
+            // device-only 라 서버 폴백이 없으므로 텍스트는 남긴 채 그냥 전진시켜 세션이 멈추지 않게 한다(결정 #14).
+            viewModelScope.launch {
+                tts.state.collect { if (it == PlaybackState.ERROR_TEXT_ONLY) onOpponentTtsDone() }
+            }
             savedStateHandle.setSavedStateProvider(PROVIDER_KEY) {
                 bundleOf(BUNDLE_JSON to json.encodeToString(currentSnapshot()))
             }
@@ -356,6 +367,23 @@ class GeneratedDialogueSessionViewModel
             if (state is DialogueGenState.Ready) latestTurns = state.turns
             turnState.accept(state)
             persistResume()
+        }
+
+        /** 상대역 대사 디바이스 자동발화(Route 가 commitReveal 직후 호출). 완료 시 completions→자동진행. */
+        fun speakOpponent(text: String) {
+            tts.playTurn(text, gender = null, deviceOnly = true, advanceOnDone = true)
+        }
+
+        /** 말풍선 "다시 듣기" 재발화. 자동발화 중(OpponentTurn)엔 no-op — 라이브 발화 취소·조기전진을 막는다.
+         *  advanceOnDone=false 라 재발화 완료가 턴 전진을 구동하지 않는다(경쟁 봉인, 결정 #9). */
+        fun replayOpponent(text: String) {
+            if (turnState.turnPhase == TurnPhase.OpponentTurn) return
+            tts.playTurn(text, gender = null, deviceOnly = true, advanceOnDone = false)
+        }
+
+        /** TTS 완료/음성없음 폴백 시 현재 상대역 턴 마감. 내부 가드로 OpponentTurn·InTurn 일 때만 실효. */
+        private fun onOpponentTtsDone() {
+            turnState.completeOpponentTurn()
         }
 
         /** 도크 마이크 탭. 정착 상태별 분기(결정 #12). */
@@ -560,6 +588,7 @@ class GeneratedDialogueSessionViewModel
             // 진행 중 캡처/분석을 화면 이탈 시 취소(결정 #13b). appScope 는 VM scope 소멸과 무관.
             appScope.launch { runCatching { recording.stop() } }
             speaking.reset()
+            tts.stop() // 잔여 발화 차단(nav-pop 시 이 훅이 커버 — 별도 onExit 훅 없음).
         }
 
         /** 요약 버퍼 기록 대기 중인 턴의 과제·답변 echo(피드백 스냅샷과 함께 record 로 밀어넣는다). */
