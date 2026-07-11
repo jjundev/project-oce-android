@@ -39,9 +39,10 @@ class SessionSnapshotStore
 
         /**
          * 이어하기 프롬프트용 검증·해석 스냅샷. `recoverable`(key 존재만 검사)의 팬텀을 근절한다:
-         * 디코드 성공 + 스키마 일치 + 미완(sessionPhase != Completed) + 실제 진행(학습자 턴 ≥ 1) +
-         * 표시 가능한 제목이 모두 성립할 때만 [ResumeInfo]. 진행 단위(doneTurns)는 완료한 학습자 턴 수로,
-         * 세션 헤더 `completedTurns`(GeneratedDialogueSession) 및 `totalTurns` 와 같은 축이다.
+         * 디코드 성공 + 스키마 일치 + 미완(sessionPhase != Completed) + 실제 렌더 메시지 1개 이상 +
+         * 표시 가능한 제목이 모두 성립할 때만 [ResumeInfo]. [SessionTurnSnapshot.messages]는 렌더된
+         * 말풍선만 담으므로, 비어 있으면 아직 타이핑 스켈레톤 상태여서 제외한다. 진행 단위(doneTurns)는
+         * 완료한 학습자 턴 수로, 세션 헤더 `completedTurns`(GeneratedDialogueSession) 및 `totalTurns` 와 같은 축이다.
          */
         val resumeInfo: Flow<ResumeInfo?> =
             dataStore.data.map { prefs ->
@@ -52,7 +53,11 @@ class SessionSnapshotStore
                         ?: return@map null
                 val title = snap.topicTitle
                 val done = snap.messages.count { it.isLearner }
-                if (title.isNullOrBlank() || done == 0 || snap.sessionPhase == SessionPhase.Completed.name) {
+                if (
+                    title.isNullOrBlank() ||
+                        snap.messages.isEmpty() ||
+                        snap.sessionPhase == SessionPhase.Completed.name
+                ) {
                     return@map null
                 }
                 ResumeInfo(

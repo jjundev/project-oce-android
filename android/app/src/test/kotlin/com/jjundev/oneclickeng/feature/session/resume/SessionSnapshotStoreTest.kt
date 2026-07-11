@@ -45,6 +45,8 @@ class SessionSnapshotStoreTest {
 
     private fun learner(text: String) = MessageData(isLearner = true, english = text)
 
+    private fun opponent(text: String) = MessageData(isLearner = false, english = text)
+
     private fun snapshot(
         messages: List<MessageData>,
         sessionPhase: String = SessionPhase.InTurn.name,
@@ -136,7 +138,23 @@ class SessionSnapshotStoreTest {
         }
 
     @Test
-    fun `turn0 snapshot (no learner message) is not resumable`() =
+    fun `rendered opening opponent snapshot is resumable before first learner reply`() =
+        runTest {
+            val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
+            val store = newStore(scope)
+
+            store.write(snapshot(messages = listOf(opponent("Hello! What would you like?"))))
+
+            val info = store.resumeInfo.first()
+            assertEquals("카페에서 주문하기", info?.topicTitle)
+            assertEquals(0, info?.doneTurns)
+            assertEquals(5, info?.totalTurns)
+
+            scope.cancel()
+        }
+
+    @Test
+    fun `snapshot with no rendered message is not resumable`() =
         runTest {
             val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
             val store = newStore(scope)
