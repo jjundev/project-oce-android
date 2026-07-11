@@ -17,11 +17,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -320,15 +322,15 @@ internal fun HomeContent(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
-                                .padding(top = if (index == 0) OceTheme.spacing.lg else OceTheme.spacing.sm),
+                                .padding(top = if (index == 0) OceTheme.spacing.lg else OceTheme.spacing.sm)
+                                .height(IntrinsicSize.Min),
                         horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
                     ) {
                         pair.forEach { situation ->
                             SituationCell(
                                 situation = situation,
                                 onClick = { onSituationSelected(situation) },
-                                // 프로토 정합: 그리드 셀은 정사각(aspect-ratio:1). weight 로 동일 폭 → 정사각 → 동일 높이.
-                                modifier = Modifier.weight(1f).aspectRatio(1f),
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
                             )
                         }
                         if (pair.size == 1) Spacer(modifier = Modifier.weight(1f))
@@ -820,10 +822,7 @@ private fun SituationRow(
     }
 }
 
-/**
- * 그리드 셀 — **정사각** 카드(프로토 정합: aspect-ratio:1). 상단 아이콘 박스, 하단 라벨(최대 2줄, chevron 없음)로
- * space-between 배치한다. 셀의 정사각 크기는 부모 Row 의 `weight(1f).aspectRatio(1f)` 가 준다. 탭 = 선택 갱신 + 즉시 시작.
- */
+/** 그리드 셀 — 컴팩트 카드(상단 아이콘 박스 + 라벨 최대 2줄, chevron 없음). 탭 = 선택 갱신 + 즉시 시작. */
 @Composable
 private fun SituationCell(
     situation: HomeSituation,
@@ -834,14 +833,15 @@ private fun SituationCell(
         Column(
             modifier =
                 Modifier
-                    .fillMaxSize()
-                    .padding(OceTheme.spacing.lg),
-            verticalArrangement = Arrangement.SpaceBetween,
+                    .fillMaxWidth()
+                    .heightIn(min = 88.dp)
+                    .padding(horizontal = OceTheme.spacing.lg, vertical = OceTheme.spacing.md),
+            verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
         ) {
             Box(
                 modifier =
                     Modifier
-                        .size(52.dp)
+                        .size(40.dp)
                         .clip(OceTheme.shapes.radius12)
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = SITUATION_ICON_BG_ALPHA)),
                 contentAlignment = Alignment.Center,
@@ -850,7 +850,7 @@ private fun SituationCell(
                     icon = situation.icon,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    size = OceIconSize.Default,
+                    size = OceIconSize.ListDisclosure,
                 )
             }
             Text(
