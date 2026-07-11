@@ -58,7 +58,14 @@ class DialogueGeneratingScreenshotTest {
         )
     }
 
-    /** 1s 지연 게이트를 테스트 클록으로 넘긴 뒤 캡처(게이트 전엔 중립 로딩만 렌더). */
+    /**
+     * 1s 지연 게이트를 테스트 클록으로 넘긴 뒤 캡처(게이트 전엔 중립 로딩만 렌더).
+     *
+     * 대기 퀴즈 링은 [DialogueGenState.Generating]에서 rememberInfiniteTransition으로 회전한다. 무한 전이가
+     * 살아있으면 autoAdvance=true + waitForIdle()은 절대 idle에 도달하지 못해 행(hang)한다. 그래서
+     * autoAdvance=false를 유지한 채 advanceTimeBy로 고정 프레임(게이트 통과 + 결정적 회전 위상)까지 진행한
+     * 뒤 그대로 캡처한다(waitForIdle 미호출). Ready 골든은 loading=false라 무한 전이가 없어 동일 경로로 안전.
+     */
     private fun captureAfterGate(
         state: DialogueGenState,
         name: String,
@@ -77,8 +84,6 @@ class DialogueGeneratingScreenshotTest {
             }
         }
         composeRule.mainClock.advanceTimeBy(GATE_ADVANCE_MS)
-        composeRule.mainClock.autoAdvance = true
-        composeRule.waitForIdle()
         composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/$name.png")
     }
 

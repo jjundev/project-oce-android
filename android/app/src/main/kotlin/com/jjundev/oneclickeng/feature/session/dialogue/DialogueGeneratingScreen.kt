@@ -172,9 +172,10 @@ private fun ColumnScope.GeneratingContent(
 
         is DialogueGenState.Ready ->
             // 프로토 genReady: 퀴즈는 중앙에 유지(준비 배너·CTA는 화면 하단 [ReadyBottomSheet] 오버레이).
+            // 준비 완료면 링 회전 정지(loading=false) → 정적 hairline(프로토 quizRingBg=--border-hairline 정합).
             if (gatePassed) {
                 if (quizEnabled) {
-                    OneClickWaitQuiz(items = quizItems, onAnswered = onQuizAnswered)
+                    OneClickWaitQuiz(items = quizItems, onAnswered = onQuizAnswered, loading = false)
                 } else {
                     SlimLoading()
                 }
