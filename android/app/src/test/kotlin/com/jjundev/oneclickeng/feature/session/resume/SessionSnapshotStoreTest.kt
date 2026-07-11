@@ -79,6 +79,23 @@ class SessionSnapshotStoreTest {
         }
 
     @Test
+    fun `persist removes an earlier incomplete snapshot when the session completes`() =
+        runTest {
+            val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
+            val store = newStore(scope)
+            val incomplete = snapshot(messages = listOf(learner("Hi")))
+
+            store.persist(incomplete)
+            assertEquals("카페에서 주문하기", store.resumeInfo.first()?.topicTitle)
+
+            store.persist(incomplete.copy(sessionPhase = SessionPhase.Completed.name))
+
+            assertNull(store.read())
+            assertNull(store.resumeInfo.first())
+            scope.cancel()
+        }
+
+    @Test
     fun `turn0 snapshot (no learner message) is not resumable`() =
         runTest {
             val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
