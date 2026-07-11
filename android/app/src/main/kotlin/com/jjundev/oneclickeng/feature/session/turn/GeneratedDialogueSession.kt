@@ -121,9 +121,9 @@ fun GeneratedDialogueSessionRoute(
     LaunchedEffect(state.opponentTurnSerial) {
         if (state.turnPhase == TurnPhase.OpponentTurn && state.sessionPhase == SessionPhase.InTurn) {
             delay(effectiveSkeleton)
-            state.commitReveal()
+            viewModel.revealOpponentTurn()
             delay(effectiveAdvance)
-            state.completeOpponentTurn()
+            viewModel.completeOpponentTurn()
         }
     }
 
@@ -224,6 +224,7 @@ class GeneratedDialogueSessionViewModel
 
         // 내부 턴머신 타입이라 internal(같은 모듈 Route/테스트만 접근). public 노출 금지.
         internal val turnState = GeneratedDialogueState()
+        private val progress = SessionTurnProgress(turnState, ::persistResume)
 
         /** 실시간 파형(Recording 시 도크가 소비). */
         val waveform = recording.waveform
@@ -345,11 +346,12 @@ class GeneratedDialogueSessionViewModel
          */
         private fun persistResume() {
             val snapshot = currentSnapshot()
-            val completed = turnState.sessionPhase == SessionPhase.Completed
-            appScope.launch {
-                if (completed) snapshotStore.clear() else snapshotStore.write(snapshot)
-            }
+            appScope.launch { snapshotStore.persist(snapshot) }
         }
+
+        fun revealOpponentTurn() = progress.revealOpponentTurn()
+
+        fun completeOpponentTurn() = progress.completeOpponentTurn()
 
         /** 코디네이터 상태를 턴머신에 반영(Route 가 라이프사이클 인지 collect 로 호출). */
         fun onGenerationState(state: DialogueGenState) {
@@ -646,6 +648,25 @@ private fun dialogueLevelLabel(
             else -> null
         }
     return listOfNotNull(levelKo, "${totalTurns}턴").joinToString(" · ")
+}
+
+/**
+ * Couples timer-driven opponent-state mutations to their durable-state notification. Keeping this
+ * separate from Compose lets a regression test drive the exact automatic completion path.
+ */
+internal class SessionTurnProgress(
+    private val state: GeneratedDialogueState,
+    private val onStateChanged: () -> Unit,
+) {
+    fun revealOpponentTurn() {
+        state.commitReveal()
+        onStateChanged()
+    }
+
+    fun completeOpponentTurn() {
+        state.completeOpponentTurn()
+        onStateChanged()
+    }
 }
 
 // 턴머신 전이 헬퍼 + M1-08 SavedState export/seed 로 메서드가 많다(상태 머신 클래스, 의도적).
