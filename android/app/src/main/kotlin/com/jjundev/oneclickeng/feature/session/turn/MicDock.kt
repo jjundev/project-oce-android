@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
@@ -244,7 +245,13 @@ private fun MicColumn(
                     Text(text = "다음", style = OceTheme.typography.sectionLabel)
                 }
             } else {
-                ChatInputToggle(onClick = { onToggleTextMode(true) })
+                InputModeToggle(
+                    icon = OceIcon.Keyboard,
+                    label = "채팅으로 입력하기",
+                    onClick = { onToggleTextMode(true) },
+                    // 마이크 모드: 상태 문구와 밀착(중앙정렬로 생긴 텍스트 위 여백 상쇄) — 토글은 도크 하단 고정.
+                    topGap = 0.dp,
+                )
             }
         }
     }
@@ -298,30 +305,40 @@ private fun MicFailBanner(message: String) {
 }
 
 /**
- * 마이크-우선 도크의 텍스트 입력 전환 어피던스(프로토타입 정합: `keyboard` 아이콘 + tertiary 회색).
- * 터치 타겟 48dp 는 유지하되 콘텐츠를 상단 정렬해 상태 문구와의 시각 간격을 프로토처럼 좁힌다(잉여
- * 높이는 아래 도크 패딩 쪽으로 흡수).
+ * 입력 모드 전환 어피던스(마이크↔채팅 공용). 두 모드에서 **동일 스타일**(48dp 터치타깃 · 중앙정렬 ·
+ * radius8 리플 · tertiary 회색)이라, 각 도크의 마지막 자식으로서 화면 하단에서 같은 위치에 온다.
+ * 마이크 모드: 키보드 아이콘 + "채팅으로 입력하기". 텍스트 모드: 마이크 아이콘 + "마이크로 말하기".
+ *
+ * [topGap] 은 위 콘텐츠와의 간격만 조절한다 — 도크 하단 정착이라 토글 자체 위치는 불변이고 위 콘텐츠가
+ * 당겨진다. 마이크 모드는 48dp 중앙정렬로 생기는 텍스트 위 여백을 상쇄하려 `0.dp` 를 넘겨 상태 문구와
+ * 밀착시킨다(프로토 정합). 텍스트 모드는 기본 `md`.
  */
 @Composable
-private fun ChatInputToggle(onClick: () -> Unit) {
+private fun InputModeToggle(
+    icon: OceIcon,
+    label: String,
+    onClick: () -> Unit,
+    topGap: Dp = OceTheme.spacing.md,
+) {
     Row(
         modifier =
             Modifier
-                .padding(top = OceTheme.spacing.md)
-                .heightIn(min = MinTouchTarget)
+                .padding(top = topGap)
+                .clip(OceTheme.shapes.radius8)
                 .clickable(onClick = onClick)
+                .heightIn(min = MinTouchTarget)
                 .padding(horizontal = OceTheme.spacing.sm, vertical = OceTheme.spacing.xs),
         horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
-        verticalAlignment = Alignment.Top,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         OneClickIcon(
-            icon = OceIcon.Keyboard,
+            icon = icon,
             contentDescription = null,
             tint = OceTheme.colors.textTertiary,
             size = 18.dp,
         )
         Text(
-            text = "채팅으로 입력하기",
+            text = label,
             style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),
             color = OceTheme.colors.textTertiary,
         )
@@ -365,29 +382,12 @@ private fun TextInputDock(
             )
             SendButton(enabled = textValue.isNotBlank(), onClick = onSubmitText)
         }
-        // 마이크 복귀 어피던스 — 센터, transparent(프로토 mic 18px + 13sp 600 tertiary).
-        Row(
-            modifier =
-                Modifier
-                    .padding(top = OceTheme.spacing.md)
-                    .clip(OceTheme.shapes.radius8)
-                    .clickable { onToggleTextMode(false) }
-                    .padding(horizontal = OceTheme.spacing.sm, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OneClickIcon(
-                icon = OceIcon.Mic,
-                contentDescription = null,
-                tint = OceTheme.colors.textTertiary,
-                size = 18.dp,
-            )
-            Text(
-                text = "마이크로 말하기",
-                style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),
-                color = OceTheme.colors.textTertiary,
-            )
-        }
+        // 마이크 복귀 어피던스 — 채팅 토글과 동일 위치/스타일(InputModeToggle 공용).
+        InputModeToggle(
+            icon = OceIcon.Mic,
+            label = "마이크로 말하기",
+            onClick = { onToggleTextMode(false) },
+        )
     }
 }
 

@@ -458,7 +458,7 @@ private fun CardPurgeSheet(
     onSelect: (PurgeScope) -> Unit,
 ) {
     OneClickBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.fillMaxWidth().padding(OceTheme.spacing.xl)) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = stringResource(R.string.settings_purge_sheet_title),
                 style = OceTheme.typography.dialogHeader,

@@ -73,6 +73,8 @@ tasks.withType<Test>().configureEach {
             "**/ConceptualBridgeLegendTest*",
             "**/ConceptualBridgeInsideModeTest*",
             "**/HomeHeroRevealTest*",
+            "**/OneClickBottomSheetExpandTest*",
+            "**/MicDockTogglePositionTest*",
         )
     }
 }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -75,7 +76,17 @@ fun OneClickReminderOptInSheet(
     modifier: Modifier = Modifier,
 ) {
     val headerFocus = remember { FocusRequester() }
-    OneClickBottomSheet(onDismissRequest = onLater, modifier = modifier) {
+    OneClickBottomSheet(
+        onDismissRequest = onLater,
+        modifier = modifier,
+        contentPadding = PaddingValues(
+            start = OceTheme.spacing.sheetPadding,
+            end = OceTheme.spacing.sheetPadding,
+            top = 0.dp,
+            bottom = 26.dp,
+        ),
+        dragHandle = { ReminderOptInDragHandle() },
+    ) {
         OneClickReminderOptInSheetContent(
             onOptIn = onOptIn,
             onLater = onLater,
@@ -98,8 +109,7 @@ internal fun OneClickReminderOptInSheetContent(
     Column(
         modifier =
             modifier
-                .fillMaxWidth()
-                .padding(OceTheme.spacing.sheetPadding),
+                .fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // ① 텍스트 클러스터 — 중앙정렬·타이트(간격은 각 자식 padding 단일 소스, 외곽 arrangement 없음).
@@ -171,6 +181,24 @@ internal fun OneClickReminderOptInSheetContent(
                 )
             }
         }
+    }
+}
+
+/** 프로토 정합 드래그 핸들 — 36×4 pill, 위 12dp(시트 top)·아래 16dp. M3 기본(32×4·내장 22dp)과 다름. */
+@Composable
+private fun ReminderOptInDragHandle() {
+    Box(
+        modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .size(width = 36.dp, height = 4.dp)
+                    .clip(OceTheme.shapes.pill)
+                    // proto `--border-strong` 정확 매핑. outlineVariant(hairline)은 더 옅어 사용 금지.
+                    .background(OceTheme.colors.borderStrong),
+        )
     }
 }
 

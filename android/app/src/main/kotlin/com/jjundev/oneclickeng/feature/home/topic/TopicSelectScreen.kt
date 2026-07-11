@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -35,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.jjundev.oneclickeng.ui.component.OneClickSegmentedControl
+import com.jjundev.oneclickeng.ui.component.SheetPrimaryHeight
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickBottomSheet
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
@@ -100,8 +102,7 @@ internal fun TopicSelectSheetContent(
     Column(
         modifier =
             modifier
-                .fillMaxWidth()
-                .padding(OceTheme.spacing.sheetPadding),
+                .fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.lg),
     ) {
         // 헤더 — 제목 + X 닫기
@@ -281,7 +282,7 @@ private fun CustomTopicRow(
             Button(
                 onClick = onSubmit,
                 enabled = text.isNotBlank(),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(SheetPrimaryHeight),
                 shape = OceTheme.shapes.radius12,
             ) {
                 Text(text = "이 상황으로 시작", style = OceTheme.typography.sectionLabel)

@@ -111,8 +111,7 @@ internal fun OneClickPermissionPrimingSheetContent(
         // 프로토 priming 시트: 콘텐츠 **좌측 정렬**(넛지 시트와 달리 중앙 아님), 아이콘도 좌측.
         modifier =
             modifier
-                .fillMaxWidth()
-                .padding(OceTheme.spacing.sheetPadding),
+                .fillMaxWidth(),
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
     ) {

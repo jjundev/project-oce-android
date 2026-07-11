@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -82,7 +84,7 @@ fun SummaryScreen(
     val expanded = remember { mutableStateMapOf<SummarySection, Boolean>() }
 
     Box(modifier = modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
             // 스크롤 콘텐츠(위) — weight 로 남은 높이를 채우고, 완료 풋터는 하단 고정(프로토 flex:none 풋터).
             Column(
                 modifier =
@@ -129,7 +131,13 @@ private fun SummaryDoneFooter(
     label: String,
     onDone: () -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface)
+                .navigationBarsPadding(),
+    ) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Button(
             onClick = onDone,

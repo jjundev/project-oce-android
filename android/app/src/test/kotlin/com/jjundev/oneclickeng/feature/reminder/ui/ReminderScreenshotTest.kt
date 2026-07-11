@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,6 +29,7 @@ import com.jjundev.oneclickeng.feature.home.HomeUiState
 import com.jjundev.oneclickeng.feature.home.SelectedSituation
 import com.jjundev.oneclickeng.ui.component.OneClickPermissionPrimingSheetContent
 import com.jjundev.oneclickeng.ui.component.OneClickReminderOptInSheetContent
+import com.jjundev.oneclickeng.ui.component.primitive.OceSheetDefaults
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import org.junit.Rule
@@ -50,9 +52,54 @@ class ReminderScreenshotTest {
 
     @Test
     fun reminder_optin_light() {
-        captureSheet("reminder_optin_light") {
-            OneClickReminderOptInSheetContent(onOptIn = {}, onLater = {})
+        composeRule.setContent {
+            OceTheme(darkTheme = false) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Surface(color = MaterialTheme.colorScheme.background) {
+                        HomeContent(
+                            state = sampleHomeState.copy(),
+                            onStartLearning = {},
+                            onResumeContinue = {},
+                            onResumeStartNew = {},
+                            onViewRecords = {},
+                            onOfflineBlocked = {},
+                        )
+                    }
+                    Box(modifier = Modifier.fillMaxSize().background(Color(SCRIM)))
+                    Surface(
+                        modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                    ) {
+                        Column {
+                            // 프로토 정합 핸들(36×4, 위12/아래16)
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 16.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .width(36.dp)
+                                            .height(4.dp)
+                                            .clip(OceTheme.shapes.pill)
+                                            .background(OceTheme.colors.borderStrong),
+                                )
+                            }
+                            Box(
+                                modifier =
+                                    Modifier.padding(
+                                        PaddingValues(start = 24.dp, end = 24.dp, top = 0.dp, bottom = 26.dp),
+                                    ),
+                            ) {
+                                OneClickReminderOptInSheetContent(onOptIn = {}, onLater = {})
+                            }
+                        }
+                    }
+                }
+            }
         }
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/reminder_optin_light.png")
     }
 
     @Test
@@ -141,7 +188,9 @@ class ReminderScreenshotTest {
                                             .background(MaterialTheme.colorScheme.outlineVariant),
                                 )
                             }
-                            content()
+                            Box(modifier = Modifier.padding(OceSheetDefaults.contentPadding)) {
+                                content()
+                            }
                         }
                     }
                 }
