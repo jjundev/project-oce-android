@@ -85,4 +85,37 @@
     <string name="settings_msg_delete_failed">계정을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요</string>
     <string name="settings_msg_logout_failed">로그아웃하지 못했어요. 잠시 후 다시 시도해 주세요</string>
     <string name="settings_msg_link_failed">연결에 실패했어요. 잠시 후 다시 시도해 주세요</string>
+
+    <!-- 설정: 프로토 정합 신규 카피 -->
+    <string name="settings_data_purge_desc">보관 기간이 지난 카드를 삭제해요.</string>
+    <string name="settings_data_reset_desc">XP · 연속 학습일 · 학습시간을 0으로.</string>
+    <string name="settings_reminder_title">학습 리마인더</string>
+    <string name="settings_reminder_time_label">리마인더 시간</string>
+    <string name="settings_reminder_time_desc">단말 시각 기준이에요.</string>
+    <string name="settings_reminder_blocked_body">알림이 시스템에서 꺼져 있어요. 설정에서 켜야 리마인더를 받을 수 있어요.</string>
+    <string name="settings_reminder_blocked_action">시스템 설정 열기</string>
+    <string name="settings_account_badge_guest">게스트</string>
+    <string name="settings_account_badge_member">로그인</string>
+    <string name="settings_account_google_save_desc">기기가 바뀌어도 진도가 안전해요.</string>
+    <string name="settings_account_retry_merge_desc">이전 이관이 실패했어요. 다시 시도해요.</string>
+    <string name="settings_account_delete_desc">탈퇴 · 2단계 확인이 필요해요.</string>
+    <string name="settings_account_guest_footnote">게스트예요. 앱을 지우면 진도가 사라져요.</string>
+    <string name="settings_purge_sheet_desc">보관 기간이 지난 카드를 정리해요. 되돌릴 수 없어요.</string>
+    <string name="settings_purge_count_badge">%1$d개</string>
+    <string name="settings_purge_confirm_body_short">되돌릴 수 없어요.</string>
+    <string name="settings_purge_confirm_title_scoped">%1$d개 카드를 삭제할까요?</string>
+    <string name="settings_purge_confirm_title_all">전체 카드 %1$d개를 삭제할까요?</string>
+    <string name="settings_nickname_edit_subtitle">1~20자 · 비워둘 수 있어요.</string>
+    <string name="settings_nickname_input_placeholder">닉네임 (선택)</string>
+    <string name="settings_nickname_counter">%1$d/20</string>
+    <string name="settings_delete_step1_badge">1 / 2 단계</string>
+    <string name="settings_delete_step2_badge">2 / 2 단계</string>
+    <string name="settings_delete_step1_title">정말 탈퇴할까요?</string>
+    <string name="settings_delete_step1_body">저장 카드 · 진도 · 계정이 영구 삭제돼요. 되돌릴 수 없어요.</string>
+    <string name="settings_delete_step1_continue">계속</string>
+    <string name="settings_delete_step2_title">확인을 위해 입력해주세요</string>
+    <string name="settings_delete_step2_body">아래 칸에 삭제 라고 입력하면 탈퇴가 진행돼요.</string>
+    <string name="settings_reminder_time_confirm">설정</string>
+    <string name="settings_time_period_am">오전</string>
+    <string name="settings_time_period_pm">오후</string>
 </resources>
