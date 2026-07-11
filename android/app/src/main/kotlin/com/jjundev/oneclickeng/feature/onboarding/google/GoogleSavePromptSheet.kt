@@ -25,6 +25,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jjundev.oneclickeng.core.auth.GoogleCredentialProvider
 import com.jjundev.oneclickeng.feature.onboarding.OnboardingViewModel
+import com.jjundev.oneclickeng.ui.component.primitive.OceSheetDefaults
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickBottomSheet
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import kotlinx.coroutines.launch
@@ -98,8 +99,7 @@ fun GoogleSavePromptSheet(
         Column(
             modifier =
                 Modifier
-                    .fillMaxWidth()
-                    .padding(OceTheme.spacing.sheetPadding),
+                    .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.actionGap),
         ) {
             Text(
@@ -166,7 +166,7 @@ fun GoogleSavePromptSheet(
 private fun GoogleSavePromptPreview() {
     OceTheme {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(OceTheme.spacing.sheetPadding),
+            modifier = Modifier.fillMaxWidth().padding(OceSheetDefaults.contentPadding),
             verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.actionGap),
         ) {
             Text("진도를 저장할까요?", style = OceTheme.typography.dialogHeader)

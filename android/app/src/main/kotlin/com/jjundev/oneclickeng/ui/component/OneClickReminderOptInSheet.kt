@@ -98,8 +98,7 @@ internal fun OneClickReminderOptInSheetContent(
     Column(
         modifier =
             modifier
-                .fillMaxWidth()
-                .padding(OceTheme.spacing.sheetPadding),
+                .fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // ① 텍스트 클러스터 — 중앙정렬·타이트(간격은 각 자식 padding 단일 소스, 외곽 arrangement 없음).

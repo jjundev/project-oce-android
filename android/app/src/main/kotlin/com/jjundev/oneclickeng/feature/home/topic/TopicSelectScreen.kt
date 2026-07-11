@@ -100,8 +100,7 @@ internal fun TopicSelectSheetContent(
     Column(
         modifier =
             modifier
-                .fillMaxWidth()
-                .padding(OceTheme.spacing.sheetPadding),
+                .fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.lg),
     ) {
         // 헤더 — 제목 + X 닫기
