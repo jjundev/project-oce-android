@@ -1,11 +1,17 @@
 package com.jjundev.oneclickeng.feature.home
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +32,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,7 +41,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -42,6 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.util.lerp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jjundev.oneclickeng.feature.home.topic.TopicCatalog
@@ -56,6 +72,7 @@ import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
+import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /** 히어로 CTA 최소 탭 타겟(오프라인 비활성 시에도 48dp 유지, H1/H7). */
@@ -63,6 +80,12 @@ private val HeroMinHeight = 96.dp
 private const val DISABLED_ALPHA = 0.38f
 private const val HERO_BADGE_ALPHA = 0.2f
 private const val SITUATION_ICON_BG_ALPHA = 0.12f
+
+/** NameDrop 리빌 지속(ms) — 헤이즈 확장·메타 드롭인 공용. */
+private const val REVEAL_MS = 700
+
+/** 스파클이 살아있는 리빌 진행 구간(0..이 값). */
+private const val SPARKLE_FRACTION = 0.4f
 
 /** 세션 설정 옵션(프로토 인라인 패널 levelOptions/lengthOptions 정합, 저장값 = profile.level 계약). */
 private val LEVEL_OPTIONS = listOf("easy", "normal", "hard")
@@ -134,6 +157,7 @@ fun HomeScreen(
         onSetLength = viewModel::setLength,
         gridMode = gridMode,
         onToggleLayout = { gridMode = !gridMode },
+        reduceMotion = rememberReduceMotion(),
         showReminderBanner = reminderState.showEnabledBanner,
         reminderHour = reminderState.hour,
         reminderMinute = reminderState.minute,
@@ -189,6 +213,7 @@ internal fun HomeContent(
     onSetLength: (Int) -> Unit = {},
     gridMode: Boolean = false,
     onToggleLayout: () -> Unit = {},
+    reduceMotion: Boolean = false,
     showReminderBanner: Boolean = false,
     reminderHour: Int = 20,
     reminderMinute: Int = 0,
@@ -257,6 +282,7 @@ internal fun HomeContent(
                 length = state.length,
                 onClick = if (state.hasResume) onResumeContinue else onStartLearning,
                 onDisabledClick = onOfflineBlocked,
+                reduceMotion = reduceMotion,
                 modifier = Modifier.padding(top = OceTheme.spacing.xl),
             )
         }
@@ -358,55 +384,91 @@ private fun HeroCta(
     length: Int,
     onClick: () -> Unit,
     onDisabledClick: () -> Unit,
+    reduceMotion: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val haptic = LocalHapticFeedback.current
+    val onPrimary = MaterialTheme.colorScheme.onPrimary
+    val reveal = remember { Animatable(0f) }
+    var primed by remember { mutableStateOf(false) }
+
+    // 주제(라벨) 변경 시 1회 리빌. 최초 컴포지션(기본 선택)·이어하기 히어로·reduce-motion 에서는 재생하지 않는다.
+    LaunchedEffect(situationLabel, resumeTopic) {
+        if (resumeTopic != null) return@LaunchedEffect
+        if (!primed) {
+            primed = true
+            return@LaunchedEffect
+        }
+        if (reduceMotion) return@LaunchedEffect
+        reveal.snapTo(0f)
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        reveal.animateTo(1f, tween(REVEAL_MS, easing = FastOutSlowInEasing))
+    }
+
+    val p = reveal.value
+    val revealActive = p > 0f && p < 1f
+    val sparkleAlpha = if (revealActive) (1f - p / SPARKLE_FRACTION).coerceIn(0f, 1f) else 0f
+    val subtitle =
+        if (resumeTopic != null) {
+            "$resumeTopic · $resumeTurn / ${resumeTotalTurns}턴"
+        } else {
+            listOfNotNull(situationLabel, "${length}턴", level?.let(::levelLabel)).joinToString(" · ")
+        }
+
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = HeroMinHeight)
-                    .clip(OceTheme.shapes.radius24)
-                    .alpha(if (online) 1f else DISABLED_ALPHA)
-                    .background(OceTheme.colors.brandGradient())
-                    .then(
-                        if (online) {
-                            Modifier.clickable(onClick = onClick)
-                        } else {
-                            Modifier
-                                .clickable(onClick = onDisabledClick)
-                                .semantics { disabled() }
-                        },
-                    )
-                    .padding(OceTheme.spacing.xl),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = HeroMinHeight)
+                        .clip(OceTheme.shapes.radius24)
+                        .alpha(if (online) 1f else DISABLED_ALPHA)
+                        .background(OceTheme.colors.brandGradient())
+                        .nameDropHaze(progress = p, color = onPrimary)
+                        .then(
+                            if (online) {
+                                Modifier.clickable(onClick = onClick)
+                            } else {
+                                Modifier
+                                    .clickable(onClick = onDisabledClick)
+                                    .semantics { disabled() }
+                            },
+                        )
+                        .padding(OceTheme.spacing.xl),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
             ) {
-                Text(
-                    text = if (resumeTopic != null) "이어서 대화하기" else "바로 대화 시작하기",
-                    style = OceTheme.typography.homeTitle.copy(fontSize = 23.sp),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-                Text(
-                    text =
-                        if (resumeTopic != null) {
-                            "$resumeTopic · $resumeTurn / ${resumeTotalTurns}턴"
-                        } else {
-                            listOfNotNull(
-                                situationLabel,
-                                "${length}턴",
-                                level?.let(::levelLabel),
-                            ).joinToString(" · ")
-                        },
-                    style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onPrimary,
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+                ) {
+                    Text(
+                        text = if (resumeTopic != null) "이어서 대화하기" else "바로 대화 시작하기",
+                        style = OceTheme.typography.homeTitle.copy(fontSize = 23.sp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                    HeroMeta(subtitle = subtitle, animate = !reduceMotion && resumeTopic == null)
+                }
+                HeroBadge(icon = if (resumeTopic != null) OceIcon.PlayArrow else OceIcon.Mic)
+            }
+            if (sparkleAlpha > 0f) {
+                OneClickIcon(
+                    icon = OceIcon.AutoAwesome,
+                    contentDescription = null,
+                    tint = onPrimary,
+                    modifier =
+                        Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = OceTheme.spacing.xl + 12.dp)
+                            .graphicsLayer {
+                                alpha = sparkleAlpha
+                                val s = 0.6f + 0.6f * (1f - sparkleAlpha)
+                                scaleX = s
+                                scaleY = s
+                            },
                 )
             }
-            HeroBadge(icon = if (resumeTopic != null) OceIcon.PlayArrow else OceIcon.Mic)
         }
         if (!online) {
             Text(
@@ -417,6 +479,65 @@ private fun HeroCta(
         }
     }
 }
+
+/**
+ * 히어로 부제(선택 상황 메타 또는 이어하기 요약). [animate]=true 면 주제 변경 시 드롭인(fade+슬라이드),
+ * false 면 즉시 스왑한다(reduce-motion·이어하기 모드 — 메타는 항상 갱신, 정지하지 않는다).
+ */
+@Composable
+private fun HeroMeta(
+    subtitle: String,
+    animate: Boolean,
+) {
+    val style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold)
+    val color = MaterialTheme.colorScheme.onPrimary
+    if (!animate) {
+        Text(text = subtitle, style = style, color = color)
+        return
+    }
+    AnimatedContent(
+        targetState = subtitle,
+        transitionSpec = {
+            (
+                fadeIn(tween(REVEAL_MS)) +
+                    slideInVertically(tween(REVEAL_MS)) { it / 3 }
+            ) togetherWith fadeOut(tween(REVEAL_MS / 2))
+        },
+        label = "heroMetaDrop",
+    ) { text ->
+        Text(text = text, style = style, color = color)
+    }
+}
+
+/**
+ * NameDrop 헤이즈 — [progress] 0→1 동안 배지 기점에서 흰 블룸이 확장·페이드한다(가법 합성 BlendMode.Plus).
+ * [progress] 가 0/1(비활성·완료)이면 원 콘텐츠만 그린다.
+ */
+private fun Modifier.nameDropHaze(
+    progress: Float,
+    color: Color,
+): Modifier =
+    drawWithContent {
+        drawContent()
+        if (progress <= 0f || progress >= 1f) return@drawWithContent
+        val center = Offset(size.width - 44.dp.toPx(), size.height / 2f)
+        val radius = lerp(0f, size.width * 1.1f, progress).coerceAtLeast(1f)
+        drawCircle(
+            brush =
+                Brush.radialGradient(
+                    colors =
+                        listOf(
+                            color.copy(alpha = 0.30f * (1f - progress)),
+                            Color.Transparent,
+                        ),
+                    center = center,
+                    radius = radius,
+                ),
+            radius = radius,
+            center = center,
+            blendMode = BlendMode.Plus,
+        )
+    }
 
 /** 히어로 CTA 우측 배지 — 반투명 흰 사각 + glyph(프로토 heroIcon: mic/play_arrow). */
 @Composable
