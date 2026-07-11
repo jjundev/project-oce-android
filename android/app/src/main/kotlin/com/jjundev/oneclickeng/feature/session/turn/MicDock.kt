@@ -244,7 +244,11 @@ private fun MicColumn(
                     Text(text = "다음", style = OceTheme.typography.sectionLabel)
                 }
             } else {
-                ChatInputToggle(onClick = { onToggleTextMode(true) })
+                InputModeToggle(
+                    icon = OceIcon.Keyboard,
+                    label = "채팅으로 입력하기",
+                    onClick = { onToggleTextMode(true) },
+                )
             }
         }
     }
@@ -298,30 +302,35 @@ private fun MicFailBanner(message: String) {
 }
 
 /**
- * 마이크-우선 도크의 텍스트 입력 전환 어피던스(프로토타입 정합: `keyboard` 아이콘 + tertiary 회색).
- * 터치 타겟 48dp 는 유지하되 콘텐츠를 상단 정렬해 상태 문구와의 시각 간격을 프로토처럼 좁힌다(잉여
- * 높이는 아래 도크 패딩 쪽으로 흡수).
+ * 입력 모드 전환 어피던스(마이크↔채팅 공용). 두 모드에서 **동일 스타일**(48dp 터치타깃 · 중앙정렬 ·
+ * radius8 리플 · tertiary 회색)이라, 각 도크의 마지막 자식으로서 화면 하단에서 같은 위치에 온다.
+ * 마이크 모드: 키보드 아이콘 + "채팅으로 입력하기". 텍스트 모드: 마이크 아이콘 + "마이크로 말하기".
  */
 @Composable
-private fun ChatInputToggle(onClick: () -> Unit) {
+private fun InputModeToggle(
+    icon: OceIcon,
+    label: String,
+    onClick: () -> Unit,
+) {
     Row(
         modifier =
             Modifier
                 .padding(top = OceTheme.spacing.md)
-                .heightIn(min = MinTouchTarget)
+                .clip(OceTheme.shapes.radius8)
                 .clickable(onClick = onClick)
+                .heightIn(min = MinTouchTarget)
                 .padding(horizontal = OceTheme.spacing.sm, vertical = OceTheme.spacing.xs),
         horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
-        verticalAlignment = Alignment.Top,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         OneClickIcon(
-            icon = OceIcon.Keyboard,
+            icon = icon,
             contentDescription = null,
             tint = OceTheme.colors.textTertiary,
             size = 18.dp,
         )
         Text(
-            text = "채팅으로 입력하기",
+            text = label,
             style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),
             color = OceTheme.colors.textTertiary,
         )
@@ -365,29 +374,12 @@ private fun TextInputDock(
             )
             SendButton(enabled = textValue.isNotBlank(), onClick = onSubmitText)
         }
-        // 마이크 복귀 어피던스 — 센터, transparent(프로토 mic 18px + 13sp 600 tertiary).
-        Row(
-            modifier =
-                Modifier
-                    .padding(top = OceTheme.spacing.md)
-                    .clip(OceTheme.shapes.radius8)
-                    .clickable { onToggleTextMode(false) }
-                    .padding(horizontal = OceTheme.spacing.sm, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OneClickIcon(
-                icon = OceIcon.Mic,
-                contentDescription = null,
-                tint = OceTheme.colors.textTertiary,
-                size = 18.dp,
-            )
-            Text(
-                text = "마이크로 말하기",
-                style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),
-                color = OceTheme.colors.textTertiary,
-            )
-        }
+        // 마이크 복귀 어피던스 — 채팅 토글과 동일 위치/스타일(InputModeToggle 공용).
+        InputModeToggle(
+            icon = OceIcon.Mic,
+            label = "마이크로 말하기",
+            onClick = { onToggleTextMode(false) },
+        )
     }
 }
 

@@ -124,6 +124,44 @@ class SessionFlowScreenshotTest {
     fun flow_wrong_light() =
         captureDock("flow_wrong_light", MicState.Ready, retryHint = "다시 말해볼까요? 채팅으로 입력해도 돼요.")
 
+    @Test
+    fun flow_text_input_light() {
+        composeRule.setContent {
+            OceTheme(darkTheme = false) {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    DialogueTurnContent(
+                        messages = opponent,
+                        turnPhase = TurnPhase.LearnerTurn,
+                        sessionPhase = SessionPhase.InTurn,
+                        currentTask = task,
+                        listState = rememberLazyListState(),
+                        onSubmitStub = {},
+                        onViewSummary = {},
+                        header = header,
+                        dock = { t ->
+                            MicDock(
+                                task = t,
+                                micState = MicState.Ready,
+                                waveform = waveform,
+                                textMode = true,
+                                textValue = "",
+                                retryHint = null,
+                                permanentlyDenied = false,
+                                reduceMotion = true,
+                                onMicTap = {},
+                                onAdvance = {},
+                                onToggleTextMode = {},
+                                onTextChange = {},
+                                onSubmitText = {},
+                            )
+                        },
+                    )
+                }
+            }
+        }
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/flow_text_input_light.png")
+    }
+
     private val feedbackBehind =
         listOf(
             DialogueMessage.Opponent("Hi! What can I get for you?"),
