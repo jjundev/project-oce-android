@@ -48,7 +48,10 @@ object OceSheetDefaults {
 fun OneClickBottomSheet(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
-    sheetState: SheetState = rememberModalBottomSheetState(),
+    // 콘텐츠-hug 시트라 항상 완전 펼침으로 연다. skipPartiallyExpanded=false(M3 기본)면 콘텐츠가 화면 50%를
+    // 넘길 때 show()가 절반 detent(PartiallyExpanded)에서 멈춰 "완전히 안 펼쳐지는" 버그가 난다(예: 권한/리마인더
+    // 시트가 긴 화면에서). 절반 detent 드래그 UX가 필요한 시트는 없다.
+    sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     contentPadding: PaddingValues = OceSheetDefaults.contentPadding,
     content: @Composable ColumnScope.() -> Unit,
 ) {
