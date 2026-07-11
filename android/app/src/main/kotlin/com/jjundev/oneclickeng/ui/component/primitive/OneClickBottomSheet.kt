@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -53,6 +54,7 @@ fun OneClickBottomSheet(
     // 시트가 긴 화면에서). 절반 detent 드래그 UX가 필요한 시트는 없다.
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     contentPadding: PaddingValues = OceSheetDefaults.contentPadding,
+    dragHandle: @Composable (() -> Unit)? = { BottomSheetDefaults.DragHandle() },
     content: @Composable ColumnScope.() -> Unit,
 ) {
     ModalBottomSheet(
@@ -61,6 +63,7 @@ fun OneClickBottomSheet(
         sheetState = sheetState,
         shape = OceTheme.shapes.radius24,
         containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = dragHandle,
     ) {
         Column(
             modifier =
