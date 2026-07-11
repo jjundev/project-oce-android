@@ -135,8 +135,8 @@ private fun SummaryDoneFooter(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
-                .background(MaterialTheme.colorScheme.surface),
+                .background(MaterialTheme.colorScheme.surface)
+                .navigationBarsPadding(),
     ) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Button(
