@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
@@ -248,6 +249,8 @@ private fun MicColumn(
                     icon = OceIcon.Keyboard,
                     label = "채팅으로 입력하기",
                     onClick = { onToggleTextMode(true) },
+                    // 마이크 모드: 상태 문구와 밀착(중앙정렬로 생긴 텍스트 위 여백 상쇄) — 토글은 도크 하단 고정.
+                    topGap = 0.dp,
                 )
             }
         }
@@ -305,17 +308,22 @@ private fun MicFailBanner(message: String) {
  * 입력 모드 전환 어피던스(마이크↔채팅 공용). 두 모드에서 **동일 스타일**(48dp 터치타깃 · 중앙정렬 ·
  * radius8 리플 · tertiary 회색)이라, 각 도크의 마지막 자식으로서 화면 하단에서 같은 위치에 온다.
  * 마이크 모드: 키보드 아이콘 + "채팅으로 입력하기". 텍스트 모드: 마이크 아이콘 + "마이크로 말하기".
+ *
+ * [topGap] 은 위 콘텐츠와의 간격만 조절한다 — 도크 하단 정착이라 토글 자체 위치는 불변이고 위 콘텐츠가
+ * 당겨진다. 마이크 모드는 48dp 중앙정렬로 생기는 텍스트 위 여백을 상쇄하려 `0.dp` 를 넘겨 상태 문구와
+ * 밀착시킨다(프로토 정합). 텍스트 모드는 기본 `md`.
  */
 @Composable
 private fun InputModeToggle(
     icon: OceIcon,
     label: String,
     onClick: () -> Unit,
+    topGap: Dp = OceTheme.spacing.md,
 ) {
     Row(
         modifier =
             Modifier
-                .padding(top = OceTheme.spacing.md)
+                .padding(top = topGap)
                 .clip(OceTheme.shapes.radius8)
                 .clickable(onClick = onClick)
                 .heightIn(min = MinTouchTarget)
