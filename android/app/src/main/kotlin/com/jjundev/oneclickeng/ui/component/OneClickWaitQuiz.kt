@@ -1,6 +1,11 @@
 package com.jjundev.oneclickeng.ui.component
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -18,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,6 +31,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -37,12 +49,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.theme.OceTheme
+import kotlin.math.sqrt
 
 /**
  * C20 WaitQuiz = scratch 무상태·무채점 로딩 인터스티셜. 정본: 02-shared-components.md:140 · ADR-0005.
@@ -56,6 +68,9 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
  * SoT 가 "신규 정의"로 남긴 잔여 open 항목**(02-shared-components.md:139-140)으로, 여기서는 기본 Crossfade 로
  * 두고 M3-06 튜닝(또는 소비 이슈)에서 확정한다. EN 콘텐츠(prompt/옵션)에는 `LocaleList("en")`(A4).
  *
+ * @param loading 생성 in-flight면 테두리 링이 회전한다(무한 전이 구독). 준비/실패 등 정지 상태는 `false`.
+ *   `true` + 비-reduceMotion은 무한 전이를 구독하므로, 이 컴포넌트를 렌더하는 스크린샷 테스트는
+ *   `reduceMotion=true`를 주입하거나 `loading=false`로 캡처하고 `waitForIdle()`을 피해야 한다(행 방지).
  * @param onAnswered (문항, 선택 인덱스, 정답여부) — 채점 아닌 텔레메트리 훅.
  */
 @Composable
@@ -63,6 +78,7 @@ fun OneClickWaitQuiz(
     items: List<QuizItem>,
     modifier: Modifier = Modifier,
     onAnswered: (item: QuizItem, selectedIndex: Int, correct: Boolean) -> Unit = { _, _, _ -> },
+    loading: Boolean = true,
     reduceMotion: Boolean = rememberReduceMotion(),
 ) {
     var index by remember(items) { mutableIntStateOf(0) }
@@ -75,90 +91,91 @@ fun OneClickWaitQuiz(
         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xl),
     ) {
         if (item != null) {
-            OneClickCard(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    // 좌우 여백을 넉넉히(xxl=24) — 프로토 카드 내부 padding 정합(카드가 좁아 보이지 않게).
-                    modifier =
-                        Modifier.padding(
+            Column(
+                // 링 래퍼(radius24 외곽) + 내부 surface(radius22) + 기존 카드 내부 padding.
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .quizLoadingRing(loading = loading, reduceMotion = reduceMotion)
+                        .padding(
                             horizontal = OceTheme.spacing.xxl,
                             vertical = OceTheme.spacing.xl,
                         ),
-                    verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
-                ) {
-                    QuizCardHeader(counter = "${index + 1} / ${items.size}")
-                    Text(
-                        // 프로토 정합: 질문은 한국어(로케일 스팬 없음), 선택지는 EN(enText).
-                        text = item.prompt,
-                        style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold, fontSize = 17.sp),
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    QuizOption(
-                        label = item.optionA,
-                        answered = revealed != null,
-                        isCorrect = item.correctIndex == 0,
-                        onClick = {
-                            revealed = 0
-                            onAnswered(item, 0, item.correctIndex == 0)
+                verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
+            ) {
+                QuizCardHeader(counter = "${index + 1} / ${items.size}")
+                Text(
+                    // 프로토 정합: 질문은 한국어(로케일 스팬 없음), 선택지는 EN(enText).
+                    text = item.prompt,
+                    style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold, fontSize = 17.sp),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                QuizOption(
+                    label = item.optionA,
+                    answered = revealed != null,
+                    isCorrect = item.correctIndex == 0,
+                    onClick = {
+                        revealed = 0
+                        onAnswered(item, 0, item.correctIndex == 0)
+                    },
+                )
+                QuizOption(
+                    label = item.optionB,
+                    answered = revealed != null,
+                    isCorrect = item.correctIndex == 1,
+                    onClick = {
+                        revealed = 1
+                        onAnswered(item, 1, item.correctIndex == 1)
+                    },
+                )
+                val selection = revealed
+                Crossfade(
+                    targetState = selection,
+                    animationSpec =
+                        if (reduceMotion) {
+                            snap()
+                        } else {
+                            tween(OceTheme.motion.durationBaseMs)
                         },
-                    )
-                    QuizOption(
-                        label = item.optionB,
-                        answered = revealed != null,
-                        isCorrect = item.correctIndex == 1,
-                        onClick = {
-                            revealed = 1
-                            onAnswered(item, 1, item.correctIndex == 1)
-                        },
-                    )
-                    val selection = revealed
-                    Crossfade(
-                        targetState = selection,
-                        animationSpec =
-                            if (reduceMotion) {
-                                snap()
-                            } else {
-                                tween(OceTheme.motion.durationBaseMs)
-                            },
-                        label = "quiz-reveal",
-                    ) { sel ->
-                        if (sel != null) {
-                            val revealCopy =
-                                if (sel == item.correctIndex) item.revealCopyCorrect else item.revealCopyWrong
-                            Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
+                    label = "quiz-reveal",
+                ) { sel ->
+                    if (sel != null) {
+                        val revealCopy =
+                            if (sel == item.correctIndex) item.revealCopyCorrect else item.revealCopyWrong
+                        Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
+                            Text(
+                                text = revealCopy,
+                                style = OceTheme.typography.body,
+                                color = OceTheme.colors.feedbackCorrectAccent,
+                                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                            )
+                            TextButton(
+                                onClick = {
+                                    index = if (items.isEmpty()) 0 else (index + 1) % items.size
+                                    revealed = null
+                                },
+                                modifier = Modifier.align(Alignment.End),
+                            ) {
                                 Text(
-                                    text = revealCopy,
-                                    style = OceTheme.typography.body,
-                                    color = OceTheme.colors.feedbackCorrectAccent,
-                                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                                    text = "다음",
+                                    style = OceTheme.typography.sectionLabel,
+                                    color = MaterialTheme.colorScheme.primary,
                                 )
-                                TextButton(
-                                    onClick = {
-                                        index = if (items.isEmpty()) 0 else (index + 1) % items.size
-                                        revealed = null
-                                    },
-                                    modifier = Modifier.align(Alignment.End),
-                                ) {
-                                    Text(
-                                        text = "다음",
-                                        style = OceTheme.typography.sectionLabel,
-                                        color = MaterialTheme.colorScheme.primary,
-                                    )
-                                    OneClickIcon(
-                                        icon = OceIcon.ChevronRight,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        size = OceIconSize.ListDisclosure,
-                                    )
-                                }
+                                OneClickIcon(
+                                    icon = OceIcon.ChevronRight,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    size = OceIconSize.ListDisclosure,
+                                )
                             }
                         }
                     }
-                    Text(
-                        text = "점수·기록에 반영되지 않아요. 편하게 풀어보세요.",
-                        style = OceTheme.typography.accrualLabel,
-                        color = OceTheme.colors.textTertiary,
-                    )
                 }
+                Text(
+                    text = "점수·기록에 반영되지 않아요. 편하게 풀어보세요.",
+                    style = OceTheme.typography.accrualLabel,
+                    color = OceTheme.colors.textTertiary,
+                )
             }
         }
     }
@@ -274,6 +291,66 @@ private fun enText(text: String): AnnotatedString =
     buildAnnotatedString {
         withStyle(SpanStyle(localeList = LocaleList("en"))) { append(text) }
     }
+
+/** 대기 퀴즈 링 폭·회전 주기·스윕 피크(프로토 2px·oc-rot 1.1s·70°/150° 정합). */
+private val RING_WIDTH = 2.dp
+private const val RING_ROTATION_MS = 1_100
+private const val RING_PEAK_START = 70f / 360f
+private const val RING_PEAK_END = 150f / 360f
+
+/**
+ * 회전 그라디언트 테두리 링(프로토 quizRingBg 정합). 외곽 radius24 clip → drawBehind(오버사이즈 스윕 필을
+ * 각도만큼 회전, 대각선 크기라 회전 각도 무관 모서리 간극 없음) → 2dp padding → 내부 radius22 surface 마스크.
+ * 2dp 간극에 드러난 회전 필이 "도는 혜성" 링. 정적 케이스(reduceMotion || !loading)는 sweep 대신 균일
+ * hairline(outlineVariant) 스트로크 — 무한 전이를 **구독하지 않아** 테스트 idle·성능 안전(MicButton 관용구).
+ */
+@Composable
+private fun Modifier.quizLoadingRing(
+    loading: Boolean,
+    reduceMotion: Boolean,
+): Modifier {
+    val rotating = loading && !reduceMotion
+    val transition = rememberInfiniteTransition(label = "quiz-ring")
+    val angle by if (rotating) {
+        transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(tween(RING_ROTATION_MS, easing = LinearEasing), RepeatMode.Restart),
+            label = "quiz-ring-angle",
+        )
+    } else {
+        remember { mutableFloatStateOf(0f) }
+    }
+    val peakColor = MaterialTheme.colorScheme.primary
+    val hairlineColor = MaterialTheme.colorScheme.outlineVariant
+    val innerSurface = MaterialTheme.colorScheme.surface
+    return this
+        .clip(OceTheme.shapes.radius24)
+        .drawBehind {
+            if (rotating) {
+                val diagonal = sqrt(size.width * size.width + size.height * size.height)
+                rotate(angle) {
+                    drawRect(
+                        brush =
+                            Brush.sweepGradient(
+                                0f to Color.Transparent,
+                                RING_PEAK_START to peakColor,
+                                RING_PEAK_END to Color.Transparent,
+                                1f to Color.Transparent,
+                                center = center,
+                            ),
+                        topLeft = Offset(center.x - diagonal / 2f, center.y - diagonal / 2f),
+                        size = Size(diagonal, diagonal),
+                    )
+                }
+            } else {
+                drawRect(color = hairlineColor)
+            }
+        }
+        .padding(RING_WIDTH)
+        .clip(OceTheme.shapes.radius22)
+        .background(innerSurface)
+}
 
 /** 프리뷰/테스트용 샘플 문항(실 번들은 소비 이슈가 주입). */
 internal fun previewWaitQuizItems(): List<QuizItem> =

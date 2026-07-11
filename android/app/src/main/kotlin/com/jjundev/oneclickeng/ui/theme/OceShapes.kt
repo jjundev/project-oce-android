@@ -7,8 +7,9 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.dp
 
 /**
- * 코너 반경 스케일 8단. 값 정본: design-tokens.md §4.3.
+ * 코너 반경 스케일 9단. 값 정본: design-tokens.md §4.3.
  * 앱 컴포넌트는 OceTheme.shapes 만 소비한다(예: radius18 채팅 말풍선은 M3 large 금지, 여기서 직접 read).
+ * radius22 = 대기 퀴즈 링 내부 surface(외곽 radius24 − 링폭 2dp 파생, OneClickWaitQuiz).
  */
 @Immutable
 data class OceShapes(
@@ -18,6 +19,7 @@ data class OceShapes(
     val radius14: RoundedCornerShape = RoundedCornerShape(14.dp),
     val radius16: RoundedCornerShape = RoundedCornerShape(16.dp),
     val radius18: RoundedCornerShape = RoundedCornerShape(18.dp),
+    val radius22: RoundedCornerShape = RoundedCornerShape(22.dp),
     val radius24: RoundedCornerShape = RoundedCornerShape(24.dp),
     val pill: RoundedCornerShape = RoundedCornerShape(100.dp),
 )
