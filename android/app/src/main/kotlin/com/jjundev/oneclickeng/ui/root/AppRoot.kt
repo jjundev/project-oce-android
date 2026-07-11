@@ -10,8 +10,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
@@ -78,13 +76,12 @@ fun AppRoot(
     val outerNavController = rememberNavController()
     val reduceMotion = rememberReduceMotion()
     val motion = OceTheme.motion
-    val offsetY8Px = with(LocalDensity.current) { 8.dp.roundToPx() }
     NavHost(
         navController = outerNavController,
         startDestination = resolvedStart,
-        enterTransition = { oceScreenEnter(motion, offsetY8Px, reduceMotion) },
+        enterTransition = { oceScreenEnter(motion, reduceMotion) },
         exitTransition = { oceScreenExit },
-        popEnterTransition = { oceScreenEnter(motion, offsetY8Px, reduceMotion) },
+        popEnterTransition = { oceScreenEnter(motion, reduceMotion) },
         popExitTransition = { oceScreenExit },
     ) {
         composable(MAIN_TABS_ROUTE) {
