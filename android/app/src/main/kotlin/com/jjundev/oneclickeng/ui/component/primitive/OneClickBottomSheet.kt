@@ -22,7 +22,9 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
  *  - 핸들→첫 제목 갭 = `sheetHandleGap`(12dp). M3 드래그 핸들 자체 여백 위에 얹힌다.
  *  - 최하단 콘텐츠 하단 = `navigationBarsPadding()`(제스처바 인셋) + `sheetContentBottom`(24dp).
  *  - 가로 거터 = `sheetPadding`(24dp).
- * ModalBottomSheet 는 기본 `windowInsets` 가 top 만 처리하므로 하단 nav bar 는 여기서 명시 흡수한다.
+ * ModalBottomSheet 의 기본 `windowInsets`(safeDrawing 하단)가 하단 제스처바 인셋을 이미 소비하므로
+ * 버튼이 제스처바를 클리어한다. 아래 `navigationBarsPadding()` 은 그 위의 중복 안전망(기본 인셋이
+ * 소비돼 실제로는 0dp)이며, `contentPadding.bottom`(24dp)이 그 위에 얹힌다.
  */
 object OceSheetDefaults {
     val contentPadding: PaddingValues
