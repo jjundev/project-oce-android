@@ -100,6 +100,41 @@ class HomeScreenScreenshotTest {
         )
     }
 
+    /** 그리드 레이아웃 — 추천 4개가 2×2 컴팩트 셀(chevron 없음)로 배치되는지 프로토와 대조. */
+    @Test
+    fun home_light_grid() {
+        composeRule.setContent {
+            OceTheme(darkTheme = false) {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        HomeContent(
+                            state =
+                                HomeUiState(
+                                    studyTimeLabel = "오늘 8분",
+                                    streak = 7,
+                                    isOnline = true,
+                                    hasResume = false,
+                                    level = "easy",
+                                    length = 5,
+                                    selectedSituation = sampleSelected,
+                                    situations = sampleSituations,
+                                ),
+                            onStartLearning = {},
+                            onResumeContinue = {},
+                            onResumeStartNew = {},
+                            onViewRecords = {},
+                            onOfflineBlocked = {},
+                            gridMode = true,
+                            modifier = Modifier.weight(1f),
+                        )
+                        OceBottomNav(rememberNavController())
+                    }
+                }
+            }
+        }
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/home_light_grid.png")
+    }
+
     /** 하단 네비(OceBottomNav) 포함 — 앱 셸(Scaffold+NavHost)을 재현해 프로토타입 전체 화면과 대조. */
     @Test
     fun home_light_resume_nav() {

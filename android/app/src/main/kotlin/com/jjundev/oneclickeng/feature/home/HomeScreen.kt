@@ -11,9 +11,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -35,6 +39,7 @@ import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -93,6 +98,7 @@ fun HomeScreen(
     val reminderState by reminderViewModel.uiState.collectAsStateWithLifecycle()
     var topicSheetVisible by remember { mutableStateOf(false) }
     var timePickerVisible by remember { mutableStateOf(false) }
+    var gridMode by remember { mutableStateOf(false) }
 
     fun startWithCurrentSetup(situation: SelectedSituation?) {
         val level = state.level ?: return // #6: profile.level 미해소 동안 시작 차단(easy 누출 방지).
@@ -126,6 +132,8 @@ fun HomeScreen(
         onMoreSituations = { topicSheetVisible = true },
         onSetLevel = viewModel::setLevel,
         onSetLength = viewModel::setLength,
+        gridMode = gridMode,
+        onToggleLayout = { gridMode = !gridMode },
         showReminderBanner = reminderState.showEnabledBanner,
         reminderHour = reminderState.hour,
         reminderMinute = reminderState.minute,
@@ -179,6 +187,8 @@ internal fun HomeContent(
     onMoreSituations: () -> Unit = {},
     onSetLevel: (String) -> Unit = {},
     onSetLength: (Int) -> Unit = {},
+    gridMode: Boolean = false,
+    onToggleLayout: () -> Unit = {},
     showReminderBanner: Boolean = false,
     reminderHour: Int = 20,
     reminderMinute: Int = 0,
@@ -273,19 +283,44 @@ internal fun HomeContent(
         if (state.situations.isNotEmpty()) {
             item(key = "situations_header") {
                 SituationsHeader(
+                    gridMode = gridMode,
+                    onToggleLayout = onToggleLayout,
                     onRefresh = onRefreshSituations,
                     modifier = Modifier.padding(top = OceTheme.spacing.xxl),
                 )
             }
-            itemsIndexed(state.situations, key = { _, item -> item.id }) { index, situation ->
-                SituationRow(
-                    situation = situation,
-                    onClick = { onSituationSelected(situation) },
-                    modifier =
-                        Modifier.padding(
-                            top = if (index == 0) OceTheme.spacing.lg else OceTheme.spacing.sm,
-                        ),
-                )
+            if (gridMode) {
+                val rows = state.situations.chunked(2)
+                itemsIndexed(rows, key = { _, pair -> "grid_" + pair.joinToString("_") { it.id } }) { index, pair ->
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(top = if (index == 0) OceTheme.spacing.lg else OceTheme.spacing.sm)
+                                .height(IntrinsicSize.Min),
+                        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+                    ) {
+                        pair.forEach { situation ->
+                            SituationCell(
+                                situation = situation,
+                                onClick = { onSituationSelected(situation) },
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                            )
+                        }
+                        if (pair.size == 1) Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            } else {
+                itemsIndexed(state.situations, key = { _, item -> item.id }) { index, situation ->
+                    SituationRow(
+                        situation = situation,
+                        onClick = { onSituationSelected(situation) },
+                        modifier =
+                            Modifier.padding(
+                                top = if (index == 0) OceTheme.spacing.lg else OceTheme.spacing.sm,
+                            ),
+                    )
+                }
             }
             item(key = "more_situations") {
                 MoreSituationsButton(
@@ -565,9 +600,11 @@ private fun NewChatLink(
     }
 }
 
-/** "추천 상황" 섹션 헤더 — 라벨 + 그리드 토글 + 새로고침. */
+/** "추천 상황" 섹션 헤더 — 라벨 + 레이아웃 토글(리스트↔그리드) + 새로고침. */
 @Composable
 private fun SituationsHeader(
+    gridMode: Boolean,
+    onToggleLayout: () -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -582,12 +619,21 @@ private fun SituationsHeader(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
         )
-        OneClickIcon(
-            icon = OceIcon.GridView,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            size = OceIconSize.ListDisclosure,
-        )
+        Box(
+            modifier =
+                Modifier
+                    .clip(OceTheme.shapes.radius12)
+                    .clickable(onClick = onToggleLayout)
+                    .padding(OceTheme.spacing.xs),
+            contentAlignment = Alignment.Center,
+        ) {
+            OneClickIcon(
+                icon = if (gridMode) OceIcon.ViewAgenda else OceIcon.GridView,
+                contentDescription = if (gridMode) "목록으로 보기" else "그리드로 보기",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                size = OceIconSize.ListDisclosure,
+            )
+        }
         Row(
             modifier = Modifier.clickable(onClick = onRefresh),
             verticalAlignment = Alignment.CenterVertically,
@@ -650,6 +696,48 @@ private fun SituationRow(
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 size = OceIconSize.ListDisclosure,
+            )
+        }
+    }
+}
+
+/** 그리드 셀 — 컴팩트 카드(상단 아이콘 박스 + 라벨 최대 2줄, chevron 없음). 탭 = 선택 갱신 + 즉시 시작. */
+@Composable
+private fun SituationCell(
+    situation: HomeSituation,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OneClickCard(modifier = modifier.clickable(onClick = onClick)) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 88.dp)
+                    .padding(horizontal = OceTheme.spacing.lg, vertical = OceTheme.spacing.md),
+            verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .size(40.dp)
+                        .clip(OceTheme.shapes.radius12)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = SITUATION_ICON_BG_ALPHA)),
+                contentAlignment = Alignment.Center,
+            ) {
+                OneClickIcon(
+                    icon = situation.icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    size = OceIconSize.ListDisclosure,
+                )
+            }
+            Text(
+                text = situation.labelKo,
+                style = OceTheme.typography.body.copy(fontWeight = FontWeight.SemiBold, fontSize = 15.sp),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
