@@ -15,6 +15,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.jjundev.oneclickeng.R
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickBottomSheet
+import com.jjundev.oneclickeng.ui.component.primitive.OneClickInput
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import com.jjundev.oneclickeng.feature.settings.data.PurgeScope
 
@@ -222,4 +227,137 @@ private fun PurgeOption(
     }
 }
 
+/** 닉네임 편집 다이얼로그(프로토 정합) — 부제 + n/20 카운터 + placeholder "닉네임 (선택)". */
+@Composable
+internal fun NicknameEditDialog(
+    initial: String,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var text by remember { mutableStateOf(initial) }
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .widthIn(max = 320.dp)
+                .fillMaxWidth()
+                .clip(OceTheme.shapes.radius16)
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
+        ) {
+            Text(
+                text = stringResource(R.string.settings_nickname_edit_title),
+                style = OceTheme.typography.dialogHeader.copy(fontWeight = FontWeight.ExtraBold, fontSize = 18.sp),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = stringResource(R.string.settings_nickname_edit_subtitle),
+                style = OceTheme.typography.body.copy(fontSize = 13.5f.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OneClickInput(
+                value = text,
+                onValueChange = { if (it.length <= NICKNAME_MAX_LEN) text = it },
+                placeholder = stringResource(R.string.settings_nickname_input_placeholder),
+                helper = stringResource(R.string.settings_nickname_counter, text.length),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            DialogButtonRow(
+                confirmLabel = stringResource(R.string.settings_nickname_edit_save),
+                confirmColor = MaterialTheme.colorScheme.primary,
+                confirmEnabled = true,
+                onConfirm = { onConfirm(text) },
+                onDismiss = onDismiss,
+            )
+        }
+    }
+}
+
+private enum class DeleteStep { Warn, Confirm }
+
+/** 계정 삭제 2단계(프로토 정합) — 1/2 경고(계속) → 2/2 "삭제" 타이핑 확인(정확 일치 전 disabled). */
+@Composable
+internal fun DeleteAccountDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var step by remember { mutableStateOf(DeleteStep.Warn) }
+    var typed by remember { mutableStateOf("") }
+    val confirmWord = stringResource(R.string.settings_delete_confirm_word)
+    val matched = typed.trim().equals(confirmWord.trim(), ignoreCase = true)
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .widthIn(max = 320.dp)
+                .fillMaxWidth()
+                .clip(OceTheme.shapes.radius16)
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
+        ) {
+            val badgeRes = if (step == DeleteStep.Warn) R.string.settings_delete_step1_badge else R.string.settings_delete_step2_badge
+            Box(
+                modifier = Modifier
+                    .clip(OceTheme.shapes.pill)
+                    .background(OceTheme.colors.feedbackCorrectBg)
+                    .padding(horizontal = OceTheme.spacing.md, vertical = 5.dp),
+            ) {
+                Text(
+                    text = stringResource(badgeRes),
+                    style = OceTheme.typography.tabActive.copy(fontSize = 11.sp),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            when (step) {
+                DeleteStep.Warn -> {
+                    Text(
+                        text = stringResource(R.string.settings_delete_step1_title),
+                        style = OceTheme.typography.dialogHeader.copy(fontWeight = FontWeight.ExtraBold, fontSize = 18.sp),
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_delete_step1_body),
+                        style = OceTheme.typography.body.copy(fontSize = 14.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    DialogButtonRow(
+                        confirmLabel = stringResource(R.string.settings_delete_step1_continue),
+                        confirmColor = MaterialTheme.colorScheme.error,
+                        confirmEnabled = true,
+                        onConfirm = { step = DeleteStep.Confirm },
+                        onDismiss = onDismiss,
+                    )
+                }
+                DeleteStep.Confirm -> {
+                    Text(
+                        text = stringResource(R.string.settings_delete_step2_title),
+                        style = OceTheme.typography.dialogHeader.copy(fontWeight = FontWeight.ExtraBold, fontSize = 18.sp),
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_delete_step2_body),
+                        style = OceTheme.typography.body.copy(fontSize = 14.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    OneClickInput(
+                        value = typed,
+                        onValueChange = { typed = it },
+                        placeholder = confirmWord,
+                        isError = typed.isNotEmpty() && !matched,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    DialogButtonRow(
+                        confirmLabel = stringResource(R.string.settings_account_delete),
+                        confirmColor = MaterialTheme.colorScheme.error,
+                        confirmEnabled = matched,
+                        onConfirm = onConfirm,
+                        onDismiss = onDismiss,
+                    )
+                }
+            }
+        }
+    }
+}
+
 private const val DISABLED_ALPHA = 0.38f
+private const val NICKNAME_MAX_LEN = 20
