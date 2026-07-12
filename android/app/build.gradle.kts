@@ -76,6 +76,7 @@ tasks.withType<Test>().configureEach {
             "**/HomeHeroRevealTest*",
             "**/HomeSituationsSkeletonTest*",
             "**/OneClickBottomSheetExpandTest*",
+            "**/GoogleSaveActionsTest*",
             "**/MicDockTogglePositionTest*",
             "**/DeepFeedbackRegionTest*",
             "**/SummaryScrollEndGateTest*",

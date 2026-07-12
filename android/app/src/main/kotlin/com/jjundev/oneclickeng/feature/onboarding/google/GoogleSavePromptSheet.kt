@@ -1,8 +1,11 @@
 package com.jjundev.oneclickeng.feature.onboarding.google
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
@@ -17,7 +20,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.credentials.exceptions.GetCredentialCancellationException
@@ -27,6 +33,8 @@ import com.jjundev.oneclickeng.core.auth.GoogleCredentialProvider
 import com.jjundev.oneclickeng.feature.onboarding.OnboardingViewModel
 import com.jjundev.oneclickeng.ui.component.primitive.OceSheetDefaults
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickBottomSheet
+import com.jjundev.oneclickeng.ui.component.SheetGhostHeight
+import com.jjundev.oneclickeng.ui.component.SheetPrimaryHeight
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import kotlinx.coroutines.launch
 
@@ -120,45 +128,81 @@ fun GoogleSavePromptSheet(
                     color = MaterialTheme.colorScheme.error,
                 )
             }
-            Button(
-                onClick = { onPrimary() },
-                enabled = !linking,
-                modifier = Modifier.fillMaxWidth(),
-                shape = OceTheme.shapes.radius12,
-            ) {
-                if (linking) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp,
-                    )
-                } else {
-                    val label = if (error?.afterSignIn == true) "진도 이관 다시 시도" else "Google로 진도 저장"
-                    Text(text = label, style = OceTheme.typography.sectionLabel)
-                }
-            }
-            OutlinedButton(
-                onClick = onOneMore,
-                enabled = !linking,
-                modifier = Modifier.fillMaxWidth(),
-                shape = OceTheme.shapes.radius12,
-            ) {
-                Text(text = "한 번 더 하기", style = OceTheme.typography.sectionLabel)
-            }
-            TextButton(
-                onClick = skip,
-                enabled = !linking,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = "나중에 할게요",
-                    style = OceTheme.typography.sectionLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            GoogleSaveActions(
+                linking = linking,
+                primaryLabel = if (error?.afterSignIn == true) "진도 이관 다시 시도" else "Google로 진도 저장",
+                onPrimary = onPrimary,
+                onOneMore = onOneMore,
+                onSkip = skip,
+            )
         }
     }
 }
+
+/** Google 저장 시트의 액션 군 — 모든 시트와 같은 primary 52dp / ghost 48dp 리듬을 따른다. */
+@Composable
+internal fun GoogleSaveActions(
+    linking: Boolean,
+    primaryLabel: String,
+    onPrimary: () -> Unit,
+    onOneMore: () -> Unit,
+    onSkip: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.actionGap),
+    ) {
+        Button(
+            onClick = onPrimary,
+            enabled = !linking,
+            modifier = Modifier.fillMaxWidth().height(SheetPrimaryHeight),
+            shape = OceTheme.shapes.radius12,
+        ) {
+            if (linking) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp,
+                )
+            } else {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Image(
+                        painter = painterResource(com.google.android.gms.base.R.drawable.googleg_standard_color_18),
+                        contentDescription = null,
+                        modifier = Modifier.size(GoogleLogoSize).testTag(GOOGLE_SAVE_LOGO_TAG),
+                    )
+                    Text(text = primaryLabel, style = OceTheme.typography.sectionLabel)
+                }
+            }
+        }
+        OutlinedButton(
+            onClick = onOneMore,
+            enabled = !linking,
+            modifier = Modifier.fillMaxWidth().height(SheetPrimaryHeight),
+            shape = OceTheme.shapes.radius12,
+        ) {
+            Text(text = "한 번 더 하기", style = OceTheme.typography.sectionLabel)
+        }
+        TextButton(
+            onClick = onSkip,
+            enabled = !linking,
+            modifier = Modifier.fillMaxWidth().height(SheetGhostHeight),
+        ) {
+            Text(
+                text = "나중에 할게요",
+                style = OceTheme.typography.sectionLabel,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+internal const val GOOGLE_SAVE_LOGO_TAG = "google_save_logo"
+private val GoogleLogoSize = 18.dp
 
 @Suppress("UnusedPrivateMember")
 @Preview(showBackground = true, widthDp = 360, heightDp = 320)
@@ -170,9 +214,13 @@ private fun GoogleSavePromptPreview() {
             verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.actionGap),
         ) {
             Text("진도를 저장할까요?", style = OceTheme.typography.dialogHeader)
-            Button(onClick = {}, modifier = Modifier.fillMaxWidth()) { Text("Google로 진도 저장") }
-            OutlinedButton(onClick = {}, modifier = Modifier.fillMaxWidth()) { Text("한 번 더 하기") }
-            TextButton(onClick = {}, modifier = Modifier.fillMaxWidth()) { Text("나중에 할게요") }
+            GoogleSaveActions(
+                linking = false,
+                primaryLabel = "Google로 진도 저장",
+                onPrimary = {},
+                onOneMore = {},
+                onSkip = {},
+            )
         }
     }
 }
