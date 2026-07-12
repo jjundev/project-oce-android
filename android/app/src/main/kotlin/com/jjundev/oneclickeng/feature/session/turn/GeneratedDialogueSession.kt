@@ -151,6 +151,9 @@ fun GeneratedDialogueSessionRoute(
         onReplay = { text -> viewModel.replayOpponent(text) },
         // 상대 발화자 이름을 말풍선에 반영. 미배정(초기·sessionId 미도착)이면 "Emma" 폴백.
         opponentSpeaker = viewModel.opponentSpeaker?.name ?: "Emma",
+        // 자기 녹음 재생: 어떤 학습자 말풍선에 버튼을 띄울지 + 탭 시 그 순번 클립 재생.
+        learnerClipIndices = viewModel.learnerClipIndices,
+        onPlayLearnerClip = { index -> viewModel.playLearnerClip(index) },
     )
 
     // 턴 피드백 시트는 드래그 없는 고정 오버레이라 대화 콘텐츠의 형제로 얹는다. Idle 이면 스스로 아무것도
@@ -260,6 +263,22 @@ class GeneratedDialogueSessionViewModel
             private set
 
         var textValue by mutableStateOf("")
+            private set
+
+        /**
+         * 자기 녹음 재생용 세션 메모리 클립 저장소. 키 = 0-based 학습자 턴 순번([learnerOrdinalAt] 와 동일).
+         * 영속하지 않는다(프로세스킬/복원 시 비어 시작 — 상대 replay 정합). VM 소멸과 함께 GC 된다.
+         */
+        private val learnerClips = mutableMapOf<Int, RecordingResult.Captured>()
+
+        /** 아직 전사 대기 중인(= append 전) 방금 캡처된 클립. [onAnalysisState] 가 소비하고 비운다. */
+        private var pendingClip: RecordingResult.Captured? = null
+
+        /**
+         * 자기 녹음이 있는 학습자 말풍선 순번 집합. 관찰 가능 상태라, 클립이 들어오는 순간 해당 말풍선이
+         * 재구성돼 스피커 버튼이 나타난다. Route 가 [GeneratedDialogueSessionContent] 로 흘려보낸다.
+         */
+        var learnerClipIndices by mutableStateOf<Set<Int>>(emptySet())
             private set
 
         // L2 원본 버퍼-of-record. 정상 운영 시 코디네이터 Ready.turns 에서 갱신, 복원 시 스냅샷에서 seed.
@@ -404,6 +423,7 @@ class GeneratedDialogueSessionViewModel
         private fun acceptGenerationState(state: DialogueGenState) {
             if (state is DialogueGenState.Ready) latestTurns = state.turns
             turnState.accept(state)
+            reconcileLearnerClips() // turns 축소 리셋 시 사라진 순번의 stale 클립 파기
             assignSpeakerIfNeeded()
             persistResume()
         }
@@ -425,6 +445,31 @@ class GeneratedDialogueSessionViewModel
         fun replayOpponent(text: String) {
             if (turnState.turnPhase == TurnPhase.OpponentTurn) return
             tts.playTurn(text, gender = opponentSpeaker?.gender, deviceOnly = true, advanceOnDone = false)
+        }
+
+        /**
+         * 학습자 말풍선 스피커 탭 → 그 순번의 세션 메모리 클립을 재생(상대 발화와 단일 재생 권위 공유).
+         * 상대 자동발화 중(OpponentTurn)엔 no-op — [replayOpponent] 와 **동일한 가드**다. [TtsPlaybackCoordinator.playClip]
+         * 은 `startNewSession()` 으로 진행 중 재생을 취소하는데, 그때 취소되는 상대 자동발화(`playTurn`,
+         * advanceOnDone=true)는 완료 신호(completions)를 못 내 [onOpponentTtsDone]→completeOpponentTurn 이
+         * 영영 호출되지 않아 턴이 OpponentTurn 에 갇힌다. 이 가드가 그 교착을 봉인한다(회귀 방지).
+         */
+        fun playLearnerClip(index: Int) {
+            if (turnState.turnPhase == TurnPhase.OpponentTurn) return
+            learnerClips[index]?.let { tts.playClip(it.pcm, it.sampleRate) }
+        }
+
+        /**
+         * turnState 리셋(생성 재시작으로 turns 축소, [GeneratedDialogueState] `reset`) 등으로 학습자 말풍선이
+         * 줄면, 더 이상 존재하지 않는 순번의 세션 클립을 버린다(stale 오귀속 방지). 정상 운영 시엔 모든 클립
+         * 순번이 현재 학습자 수 미만이라 no-op 이다.
+         */
+        private fun reconcileLearnerClips() {
+            val learnerCount = turnState.messages.count { it is DialogueMessage.Learner }
+            if (learnerClips.keys.any { it >= learnerCount }) {
+                learnerClips.keys.retainAll { it < learnerCount }
+                learnerClipIndices = learnerClips.keys.toSet()
+            }
         }
 
         /** TTS 완료/음성없음 폴백 시 현재 상대역 턴 마감. 내부 가드로 OpponentTurn·InTurn 일 때만 실효. */
@@ -468,6 +513,7 @@ class GeneratedDialogueSessionViewModel
                     is RecordingResult.Captured -> {
                         val sid = currentSessionId()
                         if (sid != null) {
+                            pendingClip = result // 전사 성공 시 append 되는 말풍선에 붙일 자기 녹음
                             micState = MicState.Analyzing
                             speaking.analyze(result, sid)
                         } else {
@@ -493,15 +539,24 @@ class GeneratedDialogueSessionViewModel
             when (state) {
                 is SpeakingAnalysisState.Result -> {
                     turnState.appendLearnerAnswer(state.transcript)
+                    // 방금 append 된 학습자 말풍선의 0-based 순번에 이 턴의 녹음을 매핑(있으면).
+                    pendingClip?.let { clip ->
+                        val ordinal = turnState.messages.count { it is DialogueMessage.Learner } - 1
+                        learnerClips[ordinal] = clip
+                        learnerClipIndices = learnerClips.keys.toSet()
+                    }
+                    pendingClip = null
                     micState = MicState.Complete
                     triggerFeedback(state.transcript)
                     persistResume()
                 }
                 SpeakingAnalysisState.Empty -> {
+                    pendingClip = null
                     micState = MicState.Ready
                     retryHint = HINT_RETRY
                 }
                 SpeakingAnalysisState.Failed -> {
+                    pendingClip = null
                     micState = MicState.Ready
                     retryHint = HINT_ERROR
                 }
@@ -701,6 +756,10 @@ internal fun GeneratedDialogueSessionContent(
     onReplay: (String) -> Unit = {},
     // 상대역 화자명(로컬 SpeakerDirectory 배정). 미주입(프리뷰·테스트)이면 "Emma" 고정(스크린샷 계약 유지).
     opponentSpeaker: String = "Emma",
+    // 자기 녹음이 있는 학습자 말풍선 순번 집합. 미주입(프리뷰·테스트)이면 빈 집합(버튼 없음, 스크린샷 계약 유지).
+    learnerClipIndices: Set<Int> = emptySet(),
+    // 학습자 말풍선 스피커 탭 콜백. 미주입이면 no-op.
+    onPlayLearnerClip: (Int) -> Unit = {},
 ) {
     val listState = rememberLazyListState()
     // 메시지 추가·타이핑 스켈레톤 등장 시 최신 아이템으로 자동 스크롤(스켈레톤은 메시지 뒤 마지막 아이템).
@@ -725,6 +784,8 @@ internal fun GeneratedDialogueSessionContent(
         opponentTyping = state.opponentTyping,
         onReplay = onReplay,
         opponentSpeaker = opponentSpeaker,
+        learnerClipIndices = learnerClipIndices,
+        onPlayLearnerClip = onPlayLearnerClip,
     )
 }
 
