@@ -43,7 +43,6 @@ import com.jjundev.oneclickeng.ui.audio.MicTransientReason
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -115,20 +114,16 @@ fun GeneratedDialogueSessionRoute(
     // no-op 이고, 시드된 스냅샷이 정본으로 남는다(결정 #4).
     LaunchedEffect(generationState) { viewModel.onGenerationState(generationState) }
 
-    // 턴 진행 시퀀스: 스켈레톤 지연 → 대사 표시([GeneratedDialogueState.commitReveal]) → 자동발화 시작.
-    // 실기기는 대본이 미리 버퍼링돼 대사가 즉시 표시되던 것을, 이 스켈레톤 지연으로 "타이핑 중" 창을 되살린다.
-    // reduce-motion 이면 스켈레톤 지연은 0(대사 즉시 표시)이나 자동발화는 그대로다(청각 ≠ 모션, 결정 #10).
-    // 자동진행(턴 마감)은 더 이상 고정 지연이 아니라 상대역 대사 디바이스 TTS 완료(VM 의 completions/
-    // ERROR_TEXT_ONLY 수집 → completeOpponentTurn)가 구동한다. 여기서는 대사 표시 후 자동발화만 시작한다.
-    val effectiveSkeleton = if (reduceMotion) 0L else DEFAULT_OPPONENT_SKELETON_DELAY_MS.toLong()
+    // 턴 진행: 상대역 턴에 진입하면 스켈레톤을 유지한 채 곧바로 대사를 합성/발화한다. 말풍선 표시는 더 이상
+    // 고정 지연이 아니라 오디오가 실제 재생을 시작하는 순간(VM 의 tts.audioReady 수집 → revealOnAudioReady)이
+    // 구동한다. 합성/엔진-init 지연(첫 오디오 API 로딩 등) 동안 "표시된 대사 + 침묵" 대신 "타이핑 중" 스켈레톤이
+    // 보이고, 오디오가 준비되면 대사와 소리가 함께 나타난다. 자동진행(턴 마감)은 발화 완료(VM 의 completions/
+    // ERROR_TEXT_ONLY 수집 → completeOpponentTurn)가 구동한다 — 발화 실패·mute 도 그 경로에서 표시+전진 폴백이라
+    // 스켈레톤이 영원히 남지 않는다. reduce-motion 은 스켈레톤을 숨기지 않는다(청각 로딩 게이트이지 모션 아님 —
+    // 스켈레톤은 reduceMotion 이면 시머/페이드 없이 정적으로 렌더된다).
     LaunchedEffect(state.opponentTurnSerial) {
         if (state.turnPhase == TurnPhase.OpponentTurn && state.sessionPhase == SessionPhase.InTurn) {
-            delay(effectiveSkeleton)
-            // 대사 표시는 master 의 progress 경유(commitReveal + durable 영속). 이어서 상대역 대사를 디바이스
-            // TTS 로 자동발화만 시작하고, 턴 마감은 고정 지연이 아니라 발화 완료(VM 의 completions/
-            // ERROR_TEXT_ONLY 수집 → completeOpponentTurn)가 구동한다.
-            viewModel.revealOpponentTurn()
-            state.lastOpponentEnglish()?.let(viewModel::speakOpponent)
+            state.pendingOpponentEnglish()?.let(viewModel::speakOpponent)
         }
     }
 
@@ -346,6 +341,11 @@ class GeneratedDialogueSessionViewModel
             viewModelScope.launch {
                 tts.state.collect { if (it == PlaybackState.ERROR_TEXT_ONLY) onOpponentTtsDone() }
             }
+            // 상대역 오디오가 실제 재생을 시작하는 순간(코디네이터 audioReady: 디바이스 엔진 onStart / 서버 PCM
+            // 재생 시작) 말풍선을 표시한다. 그 전까지는 스켈레톤이 유지돼 첫 오디오 API 로딩(디바이스 엔진 init)
+            // 동안 "표시된 대사 + 침묵"이 아니라 "타이핑 중"으로 보인다. OpponentTurn 가드는 progress 안에 있어
+            // replay/자기녹음 재생(LearnerTurn)의 PLAYING 은 무시된다.
+            viewModelScope.launch { tts.audioReady.collect { revealOnAudioReady() } }
             savedStateHandle.setSavedStateProvider(PROVIDER_KEY) {
                 bundleOf(BUNDLE_JSON to json.encodeToString(currentSnapshot()))
             }
@@ -408,6 +408,8 @@ class GeneratedDialogueSessionViewModel
         }
 
         fun revealOpponentTurn() = progress.revealOpponentTurn()
+
+        fun revealOnAudioReady() = progress.revealOnAudioReady()
 
         fun completeOpponentTurn() = progress.completeOpponentTurn()
 
