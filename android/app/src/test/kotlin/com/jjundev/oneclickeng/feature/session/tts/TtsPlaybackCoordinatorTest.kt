@@ -75,9 +75,13 @@ private class FakeDeviceTts(
         text: String,
         gender: String?,
         speechRate: Float,
+        onStart: () -> Unit,
     ): DeviceTtsResult {
         callCount++
         if (delayMs > 0) delay(delayMs)
+        // Faithful to AndroidDeviceTts: onStart fires only when audio actually begins — i.e. the
+        // engine initialized and the utterance started. LANGUAGE_MISSING / ERROR return before that.
+        if (result == DeviceTtsResult.COMPLETED) onStart()
         return result
     }
 
@@ -352,4 +356,89 @@ class TtsPlaybackCoordinatorTest {
         }
         return received
     }
+
+    /** Subscribe to audioReady before the action so the SharedFlow (replay=0) delivers. */
+    private fun TestScope.collectAudioReady(coordinator: TtsPlaybackCoordinator): List<Unit> {
+        val received = mutableListOf<Unit>()
+        CoroutineScope(UnconfinedTestDispatcher(testScheduler)).launch {
+            coordinator.audioReady.collect { received += it }
+        }
+        return received
+    }
+
+    @Test
+    fun `audioReady emits when the server path starts playing`() =
+        runTest {
+            val coordinator =
+                TtsPlaybackCoordinator(
+                    FakeLlmApi(),
+                    FakePcmPlayer(),
+                    FakeDeviceTts(),
+                    FakeSettings(),
+                    coordScope(),
+                )
+
+            val ready = collectAudioReady(coordinator)
+            coordinator.playTurn("Hello", "female")
+            advanceUntilIdle()
+
+            assertEquals(1, ready.size)
+        }
+
+    @Test
+    fun `audioReady emits when the device path starts playing`() =
+        runTest {
+            val coordinator =
+                TtsPlaybackCoordinator(
+                    FakeLlmApi(),
+                    FakePcmPlayer(),
+                    FakeDeviceTts(result = DeviceTtsResult.COMPLETED),
+                    FakeSettings(),
+                    coordScope(),
+                )
+
+            val ready = collectAudioReady(coordinator)
+            coordinator.playTurn("Hello", null, deviceOnly = true)
+            advanceUntilIdle()
+
+            assertEquals(1, ready.size)
+        }
+
+    @Test
+    fun `audioReady does not emit when muted`() =
+        runTest {
+            val coordinator =
+                TtsPlaybackCoordinator(
+                    FakeLlmApi(),
+                    FakePcmPlayer(),
+                    FakeDeviceTts(),
+                    FakeSettings(TtsSettings(muted = true)),
+                    coordScope(),
+                )
+
+            val ready = collectAudioReady(coordinator)
+            coordinator.playTurn("Hello", "female", deviceOnly = true)
+            advanceUntilIdle()
+
+            assertTrue(ready.isEmpty()) // muted → no audio; reveal comes from the completions path
+        }
+
+    @Test
+    fun `audioReady does not emit when the device has no english voice`() =
+        runTest {
+            val coordinator =
+                TtsPlaybackCoordinator(
+                    FakeLlmApi(error = RuntimeException("server down")),
+                    FakePcmPlayer(),
+                    FakeDeviceTts(result = DeviceTtsResult.LANGUAGE_MISSING),
+                    FakeSettings(),
+                    coordScope(),
+                )
+
+            val ready = collectAudioReady(coordinator)
+            coordinator.playTurn("Hello", "female", deviceOnly = true)
+            advanceUntilIdle()
+
+            assertTrue(ready.isEmpty()) // reveal comes from the ERROR_TEXT_ONLY safety net, not audioReady
+        }
 }
