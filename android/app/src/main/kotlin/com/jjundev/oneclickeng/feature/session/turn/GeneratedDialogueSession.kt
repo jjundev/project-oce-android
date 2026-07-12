@@ -541,9 +541,13 @@ class GeneratedDialogueSessionViewModel
                     turnState.appendLearnerAnswer(state.transcript)
                     // 방금 append 된 학습자 말풍선의 0-based 순번에 이 턴의 녹음을 매핑(있으면).
                     pendingClip?.let { clip ->
+                        // append 가 LearnerTurn 가드로 no-op 된 경우(예: 전사 중 turnState 리셋)엔 messages 가 비어
+                        // ordinal 이 -1 이 된다 — 그런 유령 클립은 저장하지 않는다(영구 누수·오귀속 방지).
                         val ordinal = turnState.messages.count { it is DialogueMessage.Learner } - 1
-                        learnerClips[ordinal] = clip
-                        learnerClipIndices = learnerClips.keys.toSet()
+                        if (ordinal >= 0) {
+                            learnerClips[ordinal] = clip
+                            learnerClipIndices = learnerClips.keys.toSet()
+                        }
                     }
                     pendingClip = null
                     micState = MicState.Complete
