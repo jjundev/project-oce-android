@@ -37,9 +37,9 @@ import javax.inject.Inject
  * Routing signal is Firestore `profile.level` alone (no local mirror): an absent/unreadable level
  * fails open to onboarding (the correct behavior for a fresh install, whose profile has no level
  * yet), and a returning user resolves their level from Firestore's default on-disk cache even
- * offline. A fresh-install *offline* launch fails at anonymous sign-in itself (AuthRepository throws)
- * and stays [BootState.Loading] — that retry surface is handled before the gate, so the cache-miss
- * edge never reaches level resolution.
+ * offline. A fresh-install launch can fail at anonymous sign-in itself (AuthRepository throws); that
+ * failure resolves to [BootState.AuthFailed] so the root can show the existing retry gate instead of
+ * leaving the user on an indeterminate splash.
  *
  * Scoped to the Activity's ViewModelStore, so bootstrap fires once per process and survives
  * configuration changes (no re-sign-in on rotation). `ensureSignedIn`/`ensureProfile` are both
@@ -85,6 +85,13 @@ class AppViewModel
             }
         }
 
+        /** Retries an explicit anonymous-auth bootstrap failure from the root blocking gate. */
+        fun retryBootstrap() {
+            if (_uiState.value != BootState.AuthFailed) return
+            _uiState.value = BootState.Loading
+            viewModelScope.launch { bootstrap() }
+        }
+
         /**
          * App-entry bootstrap, re-runnable (init + [AccountResetBus] reset). Resumes an interrupted
          * account deletion FIRST (precedence over guest-merge resume: a to-be-deleted identity must not be
@@ -108,10 +115,11 @@ class AppViewModel
             }.onSuccess { level ->
                 _uiState.value = bootStateForLevel(level)
             }.onFailure {
-                // Stay Loading: the next launch re-runs this bootstrap, and the next `/llm` call
-                // re-attempts sign-in lazily via the token provider. (A dedicated auth-failure
-                // retry surface is a follow-up seam — OneClickBlockingGate/Auth already exists.)
-                Log.w(TAG, "Guest bootstrap failed — retries on next launch or /llm call", it)
+                // Anonymous Auth can be disabled in the Firebase console or a first launch can be
+                // offline. Surface a retryable gate; leaving this as Loading strands the user on
+                // the splash forever and prevents the next `/llm` call from being reachable.
+                _uiState.value = BootState.AuthFailed
+                runCatching { Log.w(TAG, "Guest bootstrap failed — showing retry gate", it) }
             }
 
             // Gamification studytime seed/drain (M3-05). Sequenced after sign-in (both no-op without
@@ -167,8 +175,11 @@ internal fun bootStateForLevel(level: String?): BootState =
  * start destination — onboarding vs the 3-tab shell.
  */
 sealed interface BootState {
-    /** Bootstrap in flight (or failed and awaiting retry) — [AppRoot] shows a splash. */
+    /** Bootstrap in flight — [AppRoot] shows a splash. */
     data object Loading : BootState
+
+    /** Anonymous bootstrap failed — [AppRoot] shows the existing auth retry gate. */
+    data object AuthFailed : BootState
 
     /** Signed in, but `profile.level` is absent → run onboarding (M3-02). */
     data object NeedsOnboarding : BootState

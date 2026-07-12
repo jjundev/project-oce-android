@@ -8,6 +8,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraphBuilder
@@ -207,11 +211,11 @@ private fun NavGraphBuilder.summaryDestination(navController: NavHostController)
     }
 }
 
-/**
- * 요약 + 종료 어포던스(결정 14·18). 항상 [SummaryRoute] 를 렌더하고, 첫 세션이면 [GoogleSavePromptSheet] 를
- * 띄운다. 2차 세션은 저장 제안을 재노출하지 않으므로(결정 18), 자동전이가 없는 정적 요약 화면에 **단일 홈
- * CTA** 를 얹어 명시 종료 어포던스를 준다. `difficulty` 는 표시용 — 첫 세션은 easy, 2차는 저장 레벨.
- */
+internal fun shouldShowGoogleSavePrompt(
+    isFirstSession: Boolean,
+    summaryScrollEndReached: Boolean,
+): Boolean = isFirstSession && summaryScrollEndReached
+
 @Composable
 private fun OnboardingSummaryDestination(
     sessionId: String,
@@ -221,19 +225,30 @@ private fun OnboardingSummaryDestination(
     onOneMore: () -> Unit,
     onExitToHome: () -> Unit,
 ) {
+    var summaryScrollEndReached by rememberSaveable(sessionId) { mutableStateOf(false) }
+    val onScrollEndReached: (() -> Unit)? =
+        if (isFirstSession && !summaryScrollEndReached) {
+            { summaryScrollEndReached = true }
+        } else {
+            null
+        }
+
     Box(modifier = Modifier.fillMaxSize()) {
         SummaryRoute(
             sessionId = sessionId,
             difficulty = if (isFirstSession) FIRST_SESSION_LEVEL else userLevel,
             modeId = "default",
-            // 적립 값 소스는 M3-05(요약 코디네이터가 산출) — 여기선 정적 placeholder(animate=false, 스트립 0 렌더).
             accrual = AccrualStrip(streakDays = 0, xp = 0),
             isFirstSession = isFirstSession,
-            // 첫 세션은 GoogleSavePromptSheet 가 종료 어포던스를 소유하므로 요약 고정 풋터 미표시(onDone=null).
-            // 2차 세션은 요약 화면이 "완료" 고정 풋터를 소유한다(항상 노출, 프로토 정합).
             onDone = if (isFirstSession) null else onExitToHome,
+            onScrollEndReached = onScrollEndReached,
         )
-        if (isFirstSession) {
+        if (
+            shouldShowGoogleSavePrompt(
+                isFirstSession = isFirstSession,
+                summaryScrollEndReached = summaryScrollEndReached,
+            )
+        ) {
             GoogleSavePromptSheet(
                 sessionId = sessionId,
                 onLinked = onLinked,

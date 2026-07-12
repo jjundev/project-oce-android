@@ -42,7 +42,8 @@ AnonymousStarting
   → SummaryEntered
   → AwardingCompletion  ┊  SummaryLoading(turnBuffer)   # 독립/병렬 (┊ = 서로 게이팅 안 함)
                         ┊    → SummaryPartialFailure(done.sections) | SummaryReady
-  → GoogleSavePrompt
+                             └→ SummaryScrollEndHeld(500ms)  # 어느 요약 상태에서도 최하단 도달 시
+                                 → GoogleSavePrompt
   → GoogleLinking
       → GoogleLinkSucceeded                # FR-3a 신규 신원, merge 없이 → Done
       → GuestMergePending                  # FR-3b 충돌만
@@ -67,7 +68,8 @@ AnonymousStarting
 | `SummaryLoading` | 클라이언트 턴 버퍼를 summary 프록시에 번들 전송. **적립 성공에 게이팅하지 않는다** |
 | `SummaryPartialFailure` | `done.sections`에서 실패한 섹션만 재시도 가능 |
 | `SummaryReady` | 요약 표시 가능 |
-| `GoogleSavePrompt` | 첫 성공 후 진도 저장 제안 |
+| `SummaryScrollEndHeld` | 첫 세션의 스크롤 가능한 요약이 최하단에 도달한 상태. 500ms 동안 유지되면 `GoogleSavePrompt`로 전이하고, 최하단을 벗어나면 요약 상태로 돌아간다. |
+| `GoogleSavePrompt` | 첫 세션의 **스크롤 가능한** 요약을 최하단까지 내린 뒤 500ms 동안 그 위치를 유지하면 진도 저장 제안을 표시한다. 대기 중 위로 스크롤하거나 콘텐츠 변화로 최하단이 아니게 되면 대기를 취소한다. |
 | `GoogleLinking` | `linkWithCredential` 시도. 신규 신원이면 `GoogleLinkSucceeded`, 충돌이면 `GuestMergePending`으로 분기 |
 | `GoogleLinkSucceeded` | FR-3a. 신규 신원 → 익명 UID 인플레이스 승격, 게스트 데이터 자동 보존, **merge 없이** `Done` |
 | `GoogleSaveSkipped` | 사용자가 저장 제안을 건너뜀 |
@@ -89,10 +91,11 @@ AnonymousStarting
 8. 첫 학습자 턴의 마이크 탭 시점에만 마이크 권한을 요청한다.
 9. 권한 거부 시 `채팅으로 입력하기`로 계속 진행할 수 있다.
 10. 마지막 학습자 턴 이후 `SummaryEntered`에 진입하면 완주로 보고 XP/streak 적립을 시도한다.
-11. 요약이 준비되면 `GoogleSavePrompt`를 보여준다.
-12. `Google로 진도 저장`을 primary CTA로, `한 번 더 하기`를 secondary CTA로 둔다.
-13. `Google로 진도 저장`은 `linkWithCredential`을 시도한다. 신규 신원이면 `GoogleLinkSucceeded`(데이터 자동 보존, merge 없음)로 홈에 진입하고, `credential-already-in-use` 충돌이면 `GuestMergePending`으로 이관 흐름을 탄다.
-14. 사용자가 스킵하면 게스트 상태로 홈에 진입한다.
+11. 첫 세션 요약이 스크롤 가능해진 뒤 사용자가 최하단까지 내리고 500ms 동안 그 위치를 유지하면 `GoogleSavePrompt`를 보여준다. 요약 로딩·부분 실패·적립은 이 노출 조건을 게이팅하지 않는다.
+12. 최하단 대기 중 사용자가 위로 스크롤하거나 동적 요약 콘텐츠 변화로 현재 위치가 더 이상 최하단이 아니게 되면 500ms 대기를 취소한다. 콘텐츠 높이만 바뀌어도 현재 위치가 계속 최하단이면 대기를 유지한다. 화면이 스크롤 불가능하면 자동으로 시트를 열지 않는다.
+13. `Google로 진도 저장`을 primary CTA로, `한 번 더 하기`를 secondary CTA로 둔다.
+14. `Google로 진도 저장`은 `linkWithCredential`을 시도한다. 신규 신원이면 `GoogleLinkSucceeded`(데이터 자동 보존, merge 없음)로 홈에 진입하고, `credential-already-in-use` 충돌이면 `GuestMergePending`으로 이관 흐름을 탄다.
+15. 사용자가 스킵하면 게스트 상태로 홈에 진입한다.
 
 ## 5. 실패와 복귀
 
@@ -107,7 +110,7 @@ AnonymousStarting
 | `LevelQuestion` 중 이탈 | `LevelQuestion` 복원 |
 | `TopicQuestion` 중 이탈 | `TopicQuestion` 복원 |
 | 첫 세션 중 이탈 | `sessionId`가 있으면 세션 복귀 |
-| 요약 진입 후 이탈 | 요약/Google 저장 제안으로 복귀 |
+| 요약 진입 후 이탈 | 요약으로 복귀한다. 최하단 500ms 조건을 아직 충족하지 못했으면 Google 저장 제안을 다시 열지 않는다. |
 | 마이크 권한 거부 | 텍스트 입력으로 계속 |
 | session cap/만료 | 비난 없는 중단/재시도 안내. 필요 시 홈으로 복귀 |
 | 요약 부분 실패 | 실패 섹션만 재시도 |
@@ -187,7 +190,7 @@ done.sections = {
 | `session_complete` | `session_id`, `turn_count`, `is_first` (첫 세션은 `is_first=true`) |
 | `summary_partial_failure` | `sections_failed` |
 | `saved_card_create` | `card_type`, `source` |
-| `google_save_prompt_shown` | `session_id` |
+| `google_save_prompt_shown` | `session_id` — 첫 세션 요약 최하단 500ms 조건 충족 후 시트가 실제로 표시될 때 기록 |
 | `google_link_success` | `is_new_identity` |
 | `google_link_skipped` | `session_id` |
 | `guest_merge_started` | `guest_uid_present` |

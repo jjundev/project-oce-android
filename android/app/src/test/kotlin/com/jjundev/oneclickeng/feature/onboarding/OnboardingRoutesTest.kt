@@ -69,4 +69,16 @@ class OnboardingRoutesTest {
         assertTrue(route.contains("level=hard"))
         assertTrue(route.contains("first=true"))
     }
+
+    @Test
+    fun `Google save prompt stays hidden until the first-session summary reaches its lower bound`() {
+        assertTrue(!shouldShowGoogleSavePrompt(isFirstSession = true, summaryScrollEndReached = false))
+        assertTrue(shouldShowGoogleSavePrompt(isFirstSession = true, summaryScrollEndReached = true))
+    }
+
+    @Test
+    fun `repeat-session summary never shows the onboarding Google save prompt`() {
+        assertTrue(!shouldShowGoogleSavePrompt(isFirstSession = false, summaryScrollEndReached = false))
+        assertTrue(!shouldShowGoogleSavePrompt(isFirstSession = false, summaryScrollEndReached = true))
+    }
 }

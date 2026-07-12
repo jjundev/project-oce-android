@@ -73,6 +73,7 @@ fun SummaryRoute(
     isFirstSession: Boolean = false,
     onDone: (() -> Unit)? = null,
     doneLabel: String = "완료",
+    onScrollEndReached: (() -> Unit)? = null,
     viewModel: SummaryViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(sessionId) {
@@ -93,5 +94,6 @@ fun SummaryRoute(
         modifier = modifier,
         onDone = onDone,
         doneLabel = doneLabel,
+        onScrollEndReached = onScrollEndReached,
     )
 }

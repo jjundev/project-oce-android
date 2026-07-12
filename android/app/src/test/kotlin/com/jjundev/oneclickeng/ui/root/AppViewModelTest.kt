@@ -16,6 +16,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -74,12 +75,41 @@ class AppViewModelTest {
             assertEquals(listOf(false), offlineAnalytics.transitions) // connectivity_changed(online=false)
         }
 
+    @Test
+    fun `anonymous sign-in failure leaves loading and retry resolves bootstrap`() =
+        runTest {
+            Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+            try {
+                val auth = FailOnceAuth()
+                val model =
+                    appViewModel(
+                        studytime = RecordingStudytime(),
+                        connectivity = MutableConnectivity(Connectivity.Online),
+                        offlineAnalytics = RecordingOfflineAnalytics(),
+                        authRepository = auth,
+                )
+
+                advanceUntilIdle()
+                assertEquals(1, auth.calls)
+                assertEquals(BootState.AuthFailed, model.uiState.value)
+
+                auth.fail = false
+                model.retryBootstrap()
+                advanceUntilIdle()
+
+                assertEquals(BootState.MainReady, model.uiState.value)
+            } finally {
+                Dispatchers.setMain(dispatcher)
+            }
+        }
+
     private fun appViewModel(
         studytime: StudytimeRepository,
         connectivity: ConnectivityObserver,
         offlineAnalytics: OfflineAnalytics,
+        authRepository: AuthRepository = FakeAuth,
     ) = AppViewModel(
-        authRepository = FakeAuth,
+        authRepository = authRepository,
         profileRepository = FakeProfile,
         googleAccountLinker = FakeLinker,
         studytimeRepository = studytime,
@@ -104,6 +134,19 @@ private object FakeAuth : AuthRepository {
     override val currentUid: String? = "uid"
 
     override suspend fun ensureSignedIn(): String = "uid"
+}
+
+private class FailOnceAuth : AuthRepository {
+    var fail = true
+    var calls = 0
+
+    override val currentUid: String? = null
+
+    override suspend fun ensureSignedIn(): String {
+        calls++
+        if (fail) error("anonymous sign-in is disabled")
+        return "uid"
+    }
 }
 
 private object FakeProfile : ProfileRepository {
