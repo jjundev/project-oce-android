@@ -148,7 +148,7 @@ enum class BlockingGateSurface {
 fun OneClickBlockingGate(
     surface: BlockingGateSurface,
     onRetry: () -> Unit,
-    onHome: () -> Unit,
+    onHome: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     onRestart: (() -> Unit)? = null,
 ) {
@@ -175,7 +175,7 @@ fun OneClickBlockingGate(
         buildList {
             add(GateAction(label = "다시 시도", onClick = onRetry, primary = true))
             onRestart?.let { add(GateAction(label = "새로 시작", onClick = it)) }
-            add(GateAction(label = "홈으로", onClick = onHome))
+            onHome?.let { add(GateAction(label = "홈으로", onClick = it)) }
         }
 
     BlockingGateScaffold(

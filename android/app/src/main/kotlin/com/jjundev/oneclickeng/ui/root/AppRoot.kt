@@ -22,6 +22,8 @@ import com.jjundev.oneclickeng.feature.home.homeSessionResumeRoute
 import com.jjundev.oneclickeng.feature.home.homeSessionStartRoute
 import com.jjundev.oneclickeng.feature.onboarding.ONBOARDING_ROUTE
 import com.jjundev.oneclickeng.feature.onboarding.onboardingGraph
+import com.jjundev.oneclickeng.ui.component.BlockingGateSurface
+import com.jjundev.oneclickeng.ui.component.OneClickBlockingGate
 import com.jjundev.oneclickeng.ui.component.OneClickOfflineBanner
 import com.jjundev.oneclickeng.ui.component.OneClickProgressRing
 import com.jjundev.oneclickeng.ui.component.ProgressRingMode
@@ -61,13 +63,24 @@ fun AppRoot(
             else ->
                 when (bootState) {
                     BootState.Loading -> null // 부트 확정 전 — NavHost 미컴포즈, splash 만.
+                    BootState.AuthFailed -> null // 익명 로그인 실패 — 재시도 게이트만.
                     BootState.NeedsOnboarding -> ONBOARDING_ROUTE
                     BootState.MainReady -> MAIN_TABS_ROUTE
                 }
         }
 
     if (resolvedStart == null) {
-        BootSplash()
+        when (bootState) {
+            BootState.Loading -> BootSplash()
+            BootState.AuthFailed ->
+                OneClickBlockingGate(
+                    surface = BlockingGateSurface.Auth,
+                    onRetry = appViewModel::retryBootstrap,
+                )
+            BootState.NeedsOnboarding,
+            BootState.MainReady,
+            -> Unit // startRoute override resolves these states before this branch.
+        }
         return
     }
 
