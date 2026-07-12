@@ -1,11 +1,13 @@
 package com.jjundev.oneclickeng.feature.session.feedback
 
 import android.app.Application
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithText
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.jjundev.oneclickeng.ui.component.RichSegment
@@ -28,6 +30,10 @@ class SlimFeedbackSheetTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    private companion object {
+        const val FEEDBACK_LOADING_CARD_TAG = "feedback_loading_card"
+    }
+
     private fun active(): SlimFeedbackState.Active =
         SlimFeedbackState.Active(
             header = RecapHeader(koreanPrompt = "라떼 한 잔을 주문해보세요", userText = "Can I get a latte?"),
@@ -37,6 +43,14 @@ class SlimFeedbackSheetTest {
                 SectionState.Ready(
                     NaturalExpression(listOf(RichSegment.Normal("Can I get a latte?")), Reason("자연스러움", "이미 자연스러워요")),
                 ),
+        )
+
+    private fun loading(): SlimFeedbackState.Active =
+        SlimFeedbackState.Active(
+            header = RecapHeader(koreanPrompt = "라떼 한 잔을 주문해보세요", userText = "Can I get a latte?"),
+            writingScore = SectionState.Loading,
+            grammar = SectionState.Loading,
+            natural = SectionState.Loading,
         )
 
     @Test
@@ -52,5 +66,28 @@ class SlimFeedbackSheetTest {
         // 고정 풋터가 "더 보기"와 "다음"을 함께 담는다.
         composeRule.onNode(hasTestTag("slim_footer") and hasAnyDescendant(hasText("더 보기"))).assertExists()
         composeRule.onNode(hasTestTag("slim_footer") and hasAnyDescendant(hasText("다음"))).assertExists()
+    }
+
+    @Test
+    fun loading_keeps_slim_and_deep_titles_visible_above_home_style_cards() {
+        // OneClickShimmerPiece uses an infinite transition; keep the test scheduler from waiting for it.
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            OceTheme {
+                SlimFeedbackContent(
+                    state = loading(),
+                    onRetry = {},
+                    onSkip = {},
+                    onNext = {},
+                    deepState = DeepFeedbackState.Loading(),
+                    deepExpanded = true,
+                )
+            }
+        }
+
+        listOf("작문 점수", "문법", "자연스러운 표현", "개념 브리지", "톤 · 스타일", "다르게 말해보기").forEach { title ->
+            composeRule.onNodeWithText(title).assertIsDisplayed()
+        }
+        composeRule.onAllNodesWithTag(FEEDBACK_LOADING_CARD_TAG).assertCountEquals(6)
     }
 }

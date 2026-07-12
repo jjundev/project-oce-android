@@ -38,8 +38,6 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.jjundev.oneclickeng.ui.component.InlineErrorMode
 import com.jjundev.oneclickeng.ui.component.OneClickInlineError
-import com.jjundev.oneclickeng.ui.component.OneClickSkeleton
-import com.jjundev.oneclickeng.ui.component.SkeletonShape
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.component.venn.VennDiagramCanvas
@@ -148,25 +146,30 @@ private fun DeepBlocks(
     ) {
         when {
             conceptualBridge != null -> ConceptualBridgeBlock(conceptualBridge)
-            showSkeletons -> BlockSkeleton()
+            showSkeletons -> BlockSkeleton(icon = OceIcon.Hub, label = "개념 브리지")
         }
         when {
             toneStyle != null -> ToneStyleBlock(toneStyle)
-            showSkeletons -> BlockSkeleton()
+            showSkeletons -> BlockSkeleton(icon = OceIcon.FormatPaint, label = "톤 · 스타일")
         }
         when {
             paraphrasing != null -> ParaphrasingBlock(paraphrasing, bookmarkedLevels, onToggleBookmark)
-            showSkeletons -> BlockSkeleton()
+            showSkeletons -> BlockSkeleton(icon = OceIcon.FormatQuote, label = "다르게 말해보기")
         }
     }
 }
 
 @Composable
-private fun BlockSkeleton() {
-    OneClickSkeleton(
-        shape = SkeletonShape.Section,
-        modifier = Modifier.testTag(DEEP_BLOCK_SKELETON_TAG),
-    )
+private fun BlockSkeleton(
+    icon: OceIcon,
+    label: String,
+) {
+    Box(modifier = Modifier.testTag(DEEP_BLOCK_SKELETON_TAG)) {
+        Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
+            DeepSectionHeader(icon = icon, label = label)
+            FeedbackLoadingSkeleton()
+        }
+    }
 }
 
 /**
