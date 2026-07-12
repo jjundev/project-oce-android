@@ -79,6 +79,9 @@ import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.foundation.TabScreenScaffold
+import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
+import com.jjundev.oneclickeng.ui.foundation.rememberScreenEntrance
+import com.jjundev.oneclickeng.ui.foundation.staggerReveal
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import java.util.Locale
 import kotlinx.coroutines.launch
@@ -194,6 +197,7 @@ fun SettingsScreen(
             onRetryMerge = { linkViewModel.retryMerge(LINK_SESSION_ID) },
             onPrivacy = { openUrl(context, SettingsUrls.PRIVACY) },
             onTerms = { openUrl(context, SettingsUrls.TERMS) },
+            reduceMotion = rememberReduceMotion(),
         )
 
         // ----- 오버레이(다이얼로그·시트·스낵바) -----
@@ -291,12 +295,14 @@ internal fun SettingsContent(
     onPrivacy: () -> Unit,
     onTerms: () -> Unit,
     modifier: Modifier = Modifier,
+    reduceMotion: Boolean = false,
 ) {
+    val entrance = rememberScreenEntrance(reduceMotion)
     TabScreenScaffold(titleRes = R.string.tab_settings, modifier = modifier) {
         // ----- 프로필 -----
         sectionHeader(R.string.settings_section_profile)
         item(key = "profile_card") {
-            OneClickCard(modifier = Modifier.fillMaxWidth()) {
+            OneClickCard(modifier = Modifier.staggerReveal(0, entrance).fillMaxWidth()) {
                 ProfileRow(nickname = state.nickname, onNicknameChange = onNicknameChange)
             }
         }
@@ -309,7 +315,7 @@ internal fun SettingsContent(
             val serverLabel = stringResource(R.string.settings_voice_quality_server)
             val deviceLabel = stringResource(R.string.settings_voice_quality_device)
             var speed by remember(state.speechRate) { mutableStateOf(state.speechRate) }
-            OneClickCard(modifier = Modifier.fillMaxWidth()) {
+            OneClickCard(modifier = Modifier.staggerReveal(1, entrance).fillMaxWidth()) {
                 // 보조 문구는 선택된 음질을 설명(동적). 순서는 프로토 정합 [빠른 발음 | 자연스러운 발음].
                 val qualityDesc =
                     if (state.ttsQuality == TtsQuality.DEVICE) {
@@ -368,7 +374,7 @@ internal fun SettingsContent(
         // ----- 알림 -----
         sectionHeader(R.string.settings_section_notify)
         item(key = "notify_card") {
-            OneClickCard(modifier = Modifier.fillMaxWidth()) {
+            OneClickCard(modifier = Modifier.staggerReveal(2, entrance).fillMaxWidth()) {
                 ReminderSettingRow(
                     enabled = state.reminderEnabled,
                     onEnabledChange = onReminderToggle,
@@ -384,7 +390,7 @@ internal fun SettingsContent(
         // ----- 데이터 관리 -----
         sectionHeader(R.string.settings_section_data)
         item(key = "data_card") {
-            OneClickCard(modifier = Modifier.fillMaxWidth()) {
+            OneClickCard(modifier = Modifier.staggerReveal(3, entrance).fillMaxWidth()) {
                 OneClickListRow(
                     headline = stringResource(R.string.settings_data_purge),
                     onClick = onPurgeClick,
@@ -400,7 +406,7 @@ internal fun SettingsContent(
         // ----- 계정 (적응형) -----
         sectionHeader(R.string.settings_section_account)
         item(key = "account_card") {
-            OneClickCard(modifier = Modifier.fillMaxWidth()) {
+            OneClickCard(modifier = Modifier.staggerReveal(4, entrance).fillMaxWidth()) {
                 if (state.isGuest) {
                     OneClickListRow(
                         headline = stringResource(R.string.settings_account_google_save),
@@ -430,7 +436,7 @@ internal fun SettingsContent(
         // ----- 정보 -----
         sectionHeader(R.string.settings_section_info)
         item(key = "info_card") {
-            OneClickCard(modifier = Modifier.fillMaxWidth()) {
+            OneClickCard(modifier = Modifier.staggerReveal(5, entrance).fillMaxWidth()) {
                 SettingValueRow(
                     label = stringResource(R.string.settings_info_version),
                     value = versionLabel,

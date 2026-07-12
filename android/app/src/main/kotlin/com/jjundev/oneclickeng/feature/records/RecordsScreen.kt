@@ -40,7 +40,11 @@ import com.jjundev.oneclickeng.ui.component.OneClickSegmentedControl
 import com.jjundev.oneclickeng.ui.component.OneClickSnackbarHost
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
+import com.jjundev.oneclickeng.ui.foundation.ScreenEntranceState
 import com.jjundev.oneclickeng.ui.foundation.TabScreenScaffold
+import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
+import com.jjundev.oneclickeng.ui.foundation.rememberScreenEntrance
+import com.jjundev.oneclickeng.ui.foundation.staggerReveal
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /**
@@ -80,6 +84,7 @@ fun RecordsScreen(
         onDelete = viewModel::onSwipeDelete,
         onLoadMore = viewModel::loadMore,
         snackbarHostState = snackbarHostState,
+        reduceMotion = rememberReduceMotion(),
         modifier = modifier,
     )
 }
@@ -97,8 +102,10 @@ internal fun RecordsContent(
     onLoadMore: () -> Unit,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    reduceMotion: Boolean = false,
 ) {
     var expandedId by rememberSaveable { mutableStateOf<String?>(null) }
+    val entrance = rememberScreenEntrance(reduceMotion)
 
     Box(modifier = modifier.fillMaxSize()) {
         TabScreenScaffold(titleRes = R.string.tab_records) {
@@ -106,7 +113,7 @@ internal fun RecordsContent(
                 LifetimeStatsHeader(
                     lifetime = state.lifetime,
                     animate = state.animateCountUp,
-                    modifier = Modifier.padding(bottom = OceTheme.spacing.lg),
+                    modifier = Modifier.staggerReveal(0, entrance).padding(bottom = OceTheme.spacing.lg),
                 )
             }
             stickyHeader(key = "segments") {
@@ -131,7 +138,7 @@ internal fun RecordsContent(
                         text = "${state.cards.size}개 · 최신순",
                         style = OceTheme.typography.helper,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = OceTheme.spacing.sm),
+                        modifier = Modifier.staggerReveal(1, entrance).padding(bottom = OceTheme.spacing.sm),
                     )
                 }
             }
@@ -141,6 +148,7 @@ internal fun RecordsContent(
                 onToggleExpand = { id -> expandedId = if (expandedId == id) null else id },
                 onDelete = onDelete,
                 onLoadMore = onLoadMore,
+                entrance = entrance,
             )
         }
         OneClickSnackbarHost(
@@ -150,16 +158,22 @@ internal fun RecordsContent(
     }
 }
 
+@Suppress("LongParameterList")
 private fun LazyListScope.cardList(
     state: RecordsUiState,
     expandedId: String?,
     onToggleExpand: (String) -> Unit,
     onDelete: (SavedCardEntry) -> Unit,
     onLoadMore: () -> Unit,
+    entrance: ScreenEntranceState,
 ) {
     if (state.cards.isEmpty()) {
         if (!state.loading) {
-            item(key = "empty") { EmptyState(state.selected) }
+            item(key = "empty") {
+                Box(modifier = Modifier.staggerReveal(1, entrance)) {
+                    EmptyState(state.selected)
+                }
+            }
         }
         return
     }
@@ -171,7 +185,7 @@ private fun LazyListScope.cardList(
             expanded = expandedId == entry.cardId,
             onToggleExpand = { onToggleExpand(entry.cardId) },
             onDelete = { onDelete(entry) },
-            modifier = Modifier.padding(bottom = OceTheme.spacing.md),
+            modifier = Modifier.staggerReveal(2 + index, entrance).padding(bottom = OceTheme.spacing.md),
         )
     }
 

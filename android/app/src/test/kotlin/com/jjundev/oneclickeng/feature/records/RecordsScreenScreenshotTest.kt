@@ -52,6 +52,7 @@ class RecordsScreenScreenshotTest {
                         onSelectTab = {},
                         onDelete = {},
                         onLoadMore = {},
+                        reduceMotion = true,
                     )
                 }
             }

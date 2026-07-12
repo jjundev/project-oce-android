@@ -53,6 +53,7 @@ class SettingsScreenScreenshotTest {
                         onRetryMerge = {},
                         onPrivacy = {},
                         onTerms = {},
+                        reduceMotion = true,
                     )
                 }
             }
