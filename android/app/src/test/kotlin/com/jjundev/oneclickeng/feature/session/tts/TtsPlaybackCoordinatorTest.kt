@@ -300,6 +300,45 @@ class TtsPlaybackCoordinatorTest {
             assertEquals(PlaybackState.IDLE, coordinator.state.value)
         }
 
+    @Test
+    fun `playClip plays given pcm at its rate without advancing`() =
+        runTest {
+            val player = FakePcmPlayer()
+            val coordinator =
+                TtsPlaybackCoordinator(FakeLlmApi(), player, FakeDeviceTts(), FakeSettings(), coordScope())
+
+            val completions = collectCompletions(coordinator)
+            val clip = byteArrayOf(9, 8, 7, 6)
+            coordinator.playClip(clip, 16000)
+            advanceUntilIdle()
+
+            assertEquals(1, player.played.size)
+            assertTrue(clip.contentEquals(player.played[0].first))
+            assertEquals(16000, player.played[0].second) // honors the recording's own rate
+            assertTrue(completions.isEmpty()) // 자기 녹음 재생은 턴을 전진시키지 않는다
+            assertEquals(PlaybackState.IDLE, coordinator.state.value)
+        }
+
+    @Test
+    fun `playClip is a silent no-op when muted`() =
+        runTest {
+            val player = FakePcmPlayer()
+            val coordinator =
+                TtsPlaybackCoordinator(
+                    FakeLlmApi(),
+                    player,
+                    FakeDeviceTts(),
+                    FakeSettings(TtsSettings(muted = true)),
+                    coordScope(),
+                )
+
+            coordinator.playClip(byteArrayOf(1, 2, 3), 16000)
+            advanceUntilIdle()
+
+            assertTrue(player.played.isEmpty())
+            assertEquals(PlaybackState.IDLE, coordinator.state.value)
+        }
+
     /** Coordinator scope on an unconfined dispatcher tied to the test scheduler, so
      *  launches run eagerly while virtual time still drives the watchdogs. */
     private fun TestScope.coordScope(): CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
