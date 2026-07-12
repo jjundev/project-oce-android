@@ -26,12 +26,10 @@ import com.jjundev.oneclickeng.ui.component.OneClickOfflineBanner
 import com.jjundev.oneclickeng.ui.component.OneClickProgressRing
 import com.jjundev.oneclickeng.ui.component.ProgressRingMode
 import com.jjundev.oneclickeng.ui.foundation.OceBottomNav
-import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.navigation.OceNavHost
 import com.jjundev.oneclickeng.ui.navigation.OceTab
 import com.jjundev.oneclickeng.ui.navigation.oceScreenEnter
 import com.jjundev.oneclickeng.ui.navigation.oceScreenExit
-import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /** 3탭 셸(하단 내비 + [OceNavHost])을 담는 바깥 그래프 목적지 경로. */
 const val MAIN_TABS_ROUTE = "main_tabs"
@@ -74,14 +72,12 @@ fun AppRoot(
     }
 
     val outerNavController = rememberNavController()
-    val reduceMotion = rememberReduceMotion()
-    val motion = OceTheme.motion
     NavHost(
         navController = outerNavController,
         startDestination = resolvedStart,
-        enterTransition = { oceScreenEnter(motion, reduceMotion) },
+        enterTransition = { oceScreenEnter },
         exitTransition = { oceScreenExit },
-        popEnterTransition = { oceScreenEnter(motion, reduceMotion) },
+        popEnterTransition = { oceScreenEnter },
         popExitTransition = { oceScreenExit },
     ) {
         composable(MAIN_TABS_ROUTE) {

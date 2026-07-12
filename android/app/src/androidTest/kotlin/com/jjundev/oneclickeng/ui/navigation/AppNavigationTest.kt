@@ -57,12 +57,10 @@ class AppNavigationTest {
     }
 
     /**
-     * reduce-motion 정적 대체 seam 검증(수용기준 #4). 시스템 설정 토글(WRITE_SECURE_SETTINGS 필요)
-     * 대신 [OceNavHost] 의 reduceMotion 인자를 직접 주입해, 정적 전환 경로에서도 시작 화면이 정상
-     * 렌더됨을 반증가능하게 확인한다.
+     * 컨테이너 전환이 즉시 교체(무전환)로 바뀐 뒤에도 시작 목적지가 정상 렌더됨을 확인한다.
      */
     @Test
-    fun navHostRendersStartDestinationWithReduceMotion() {
+    fun navHostRendersStartDestination() {
         composeRule.setContent {
             OceTheme {
                 val navController = rememberNavController()
@@ -71,7 +69,6 @@ class AppNavigationTest {
                         navController = navController,
                         onStartSession = { _, _, _, _, _ -> },
                         onResume = {},
-                        reduceMotion = true,
                     )
                     OceBottomNav(navController)
                 }
