@@ -49,10 +49,6 @@ class AndroidDeviceTts
             }
             selectGenderVoice(gender)
             tts.setSpeechRate(speechRate)
-            // 실기기 보이스 이름이 "male"/"female" 를 담지 않아 selectGenderVoice 가 대개 매칭 실패 →
-            // 항상 엔진 기본(여성) 보이스로 재생된다. device TTS 엔 표준 성별 API 가 없으므로, 성별을
-            // 피치로도 구분해(남성=낮은 피치) 보이스 카탈로그와 무관하게 귀로 남/녀가 구분되게 한다.
-            tts.setPitch(pitchForGender(gender))
 
             val utteranceId = "oce_tts_${utteranceSeq.incrementAndGet()}"
             return suspendCancellableCoroutine { cont ->
@@ -108,13 +104,3 @@ class AndroidDeviceTts
             if (match != null) tts.voice = match
         }
     }
-
-/** 남성 발화 피치(기본 1.0 대비 낮춰 남성적으로 들리게). device TTS 성별 구분의 정본. */
-internal const val MALE_PITCH: Float = 0.85f
-
-/** 여성/미지정 발화 피치(엔진 기본값). */
-internal const val FEMALE_PITCH: Float = 1.0f
-
-/** 성별 문자열("male"/"female"/null)을 발화 피치로 매핑한다. male 만 [MALE_PITCH], 그 외는 [FEMALE_PITCH]. */
-internal fun pitchForGender(gender: String?): Float =
-    if (gender?.equals("male", ignoreCase = true) == true) MALE_PITCH else FEMALE_PITCH
