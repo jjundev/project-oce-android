@@ -98,16 +98,19 @@ fun DeepFeedbackRegion(
                 verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.lg),
             ) {
                 // 실패 시 미도착 블록의 무한 시머 스켈레톤을 없앤다(showSkeletons=false) — 도착 블록은
-                // sticky 로 남기고, 하단 재시도 메시지만 노출해 "로딩 중"으로 오인되지 않게 한다.
-                DeepBlocks(
-                    Modifier,
-                    state.conceptualBridge,
-                    state.toneStyle,
-                    state.paraphrasing,
-                    bookmarkedLevels,
-                    onToggleBookmark,
-                    showSkeletons = false,
-                )
+                // sticky 로 남기고, 하단 재시도 메시지만 노출해 "로딩 중"으로 오인되지 않게 한다. 아무 블록도
+                // 도착하지 않은(가장 흔한) 실패에서는 빈 블록 영역을 아예 두지 않아 메시지 위 여백을 없앤다.
+                if (state.conceptualBridge != null || state.toneStyle != null || state.paraphrasing != null) {
+                    DeepBlocks(
+                        Modifier,
+                        state.conceptualBridge,
+                        state.toneStyle,
+                        state.paraphrasing,
+                        bookmarkedLevels,
+                        onToggleBookmark,
+                        showSkeletons = false,
+                    )
+                }
                 OneClickInlineError(
                     mode = InlineErrorMode.Recoverable,
                     message = "깊은 분석을 불러오지 못했어요. 다시 시도해볼까요?",
