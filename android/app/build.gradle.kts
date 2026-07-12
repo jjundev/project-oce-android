@@ -78,6 +78,7 @@ tasks.withType<Test>().configureEach {
             "**/OneClickBottomSheetExpandTest*",
             "**/MicDockTogglePositionTest*",
             "**/DeepFeedbackRegionTest*",
+            "**/SummaryScrollEndGateTest*",
         )
     }
 }
