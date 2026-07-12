@@ -441,4 +441,24 @@ class TtsPlaybackCoordinatorTest {
 
             assertTrue(ready.isEmpty()) // reveal comes from the ERROR_TEXT_ONLY safety net, not audioReady
         }
+
+    @Test
+    fun `device path stays LOADING with no audioReady until the engine reports onStart`() =
+        runTest {
+            val device = FakeDeviceTts(result = DeviceTtsResult.COMPLETED, delayMs = 5_000)
+            val coordinator =
+                TtsPlaybackCoordinator(FakeLlmApi(), FakePcmPlayer(), device, FakeSettings(), coordScope())
+
+            val ready = collectAudioReady(coordinator)
+            coordinator.playTurn("Hello", null, deviceOnly = true)
+            runCurrent() // playTurn sets LOADING and suspends inside deviceTts.speak's delay (pre-onStart)
+
+            assertEquals(PlaybackState.LOADING, coordinator.state.value) // not prematurely PLAYING
+            assertTrue(ready.isEmpty()) // audioReady must wait for onStart, not fire before speak
+
+            advanceUntilIdle() // delay elapses → onStart → PLAYING + audioReady → finish(IDLE)
+
+            assertEquals(1, ready.size)
+            assertEquals(PlaybackState.IDLE, coordinator.state.value)
+        }
 }
