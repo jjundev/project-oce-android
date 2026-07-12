@@ -146,6 +146,8 @@ fun GeneratedDialogueSessionRoute(
             )
         },
         onReplay = { text -> viewModel.replayOpponent(text) },
+        // 상대 발화자 이름을 말풍선에 반영. 미배정(초기·sessionId 미도착)이면 "Emma" 폴백.
+        opponentSpeaker = viewModel.opponentSpeaker?.name ?: "Emma",
     )
 
     // 턴 피드백 시트는 드래그 없는 고정 오버레이라 대화 콘텐츠의 형제로 얹는다. Idle 이면 스스로 아무것도
@@ -208,6 +210,14 @@ class GeneratedDialogueSessionViewModel
         // [rememberHeaderIdentity] 로 심고, durable 스냅샷에도 실어 이어하기/프로세스킬 재진입(빈 nav-arg)에서
         // 상단바를 되살린다(회귀: 재진입 시 헤더 소멸). Route 는 nav-arg 가 비면 이 값으로 폴백한다.
         var headerIdentity by mutableStateOf<SessionHeaderIdentity?>(null)
+            private set
+
+        /**
+         * 이 세션의 상대 발화자(로컬 [SpeakerDirectory] 배정). sessionId 가 처음 알려질 때 1회 배정하고,
+         * 배정은 sessionId 결정적이라 복원 시 [seedFrom] 이 동일 발화자를 재도출한다(영속 불필요).
+         * Route 가 이름을 말풍선에, [speakOpponent]/[replayOpponent] 가 성별을 TTS 에 쓴다.
+         */
+        var opponentSpeaker by mutableStateOf<Speaker?>(null)
             private set
 
         /** "더 보기" 펼침 여부(호스트 소유 UI 상태). 코디네이터는 개시/캐시만 알고 펼침은 모른다(P3). */
@@ -314,6 +324,7 @@ class GeneratedDialogueSessionViewModel
             latestTurns = snapshot.turns.map { it.toDomain() }
             restoredSessionId = snapshot.sessionId
             restoredLevel = snapshot.level
+            assignSpeakerIfNeeded() // 결정적 매핑이라 복원 sessionId 로 동일 발화자 재도출
             restoreHeaderIdentity(snapshot)
             val settled = micStateFromName(snapshot.micState)
             // 진행 중 캡처/분석은 프로세스킬/이탈로 소멸 → Ready 강등 + 재시도 고지.
@@ -370,19 +381,27 @@ class GeneratedDialogueSessionViewModel
         fun onGenerationState(state: DialogueGenState) {
             if (state is DialogueGenState.Ready) latestTurns = state.turns
             turnState.accept(state)
+            assignSpeakerIfNeeded()
             persistResume()
+        }
+
+        /** sessionId 가 알려져 있고 아직 미배정이면 상대 발화자를 배정한다(멱등 — 결정적 매핑). */
+        private fun assignSpeakerIfNeeded() {
+            if (opponentSpeaker == null) {
+                currentSessionId()?.let { opponentSpeaker = SpeakerDirectory.assign(it) }
+            }
         }
 
         /** 상대역 대사 디바이스 자동발화(Route 가 commitReveal 직후 호출). 완료 시 completions→자동진행. */
         fun speakOpponent(text: String) {
-            tts.playTurn(text, gender = null, deviceOnly = true, advanceOnDone = true)
+            tts.playTurn(text, gender = opponentSpeaker?.gender, deviceOnly = true, advanceOnDone = true)
         }
 
         /** 말풍선 "다시 듣기" 재발화. 자동발화 중(OpponentTurn)엔 no-op — 라이브 발화 취소·조기전진을 막는다.
          *  advanceOnDone=false 라 재발화 완료가 턴 전진을 구동하지 않는다(경쟁 봉인, 결정 #9). */
         fun replayOpponent(text: String) {
             if (turnState.turnPhase == TurnPhase.OpponentTurn) return
-            tts.playTurn(text, gender = null, deviceOnly = true, advanceOnDone = false)
+            tts.playTurn(text, gender = opponentSpeaker?.gender, deviceOnly = true, advanceOnDone = false)
         }
 
         /** TTS 완료/음성없음 폴백 시 현재 상대역 턴 마감. 내부 가드로 OpponentTurn·InTurn 일 때만 실효. */
@@ -640,6 +659,8 @@ internal fun GeneratedDialogueSessionContent(
     dock: (@Composable (ScaffoldTask) -> Unit)? = null,
     // 상대역 말풍선 "다시 듣기" 콜백(발화 텍스트 전달). 미주입이면 no-op(프리뷰·테스트 호환).
     onReplay: (String) -> Unit = {},
+    // 상대역 화자명(로컬 SpeakerDirectory 배정). 미주입(프리뷰·테스트)이면 "Emma" 고정(스크린샷 계약 유지).
+    opponentSpeaker: String = "Emma",
 ) {
     val listState = rememberLazyListState()
     // 메시지 추가·타이핑 스켈레톤 등장 시 최신 아이템으로 자동 스크롤(스켈레톤은 메시지 뒤 마지막 아이템).
@@ -663,6 +684,7 @@ internal fun GeneratedDialogueSessionContent(
         dock = dock,
         opponentTyping = state.opponentTyping,
         onReplay = onReplay,
+        opponentSpeaker = opponentSpeaker,
     )
 }
 
