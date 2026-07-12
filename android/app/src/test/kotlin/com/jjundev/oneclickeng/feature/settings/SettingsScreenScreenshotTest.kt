@@ -56,16 +56,36 @@ class SettingsScreenScreenshotTest {
     }
 
     @Test fun settings_light_guest() =
-        renderSettings(SettingsUiState(loading = false, nickname = "준영", isGuest = true), dark = false, blocked = false, name = "settings_light_guest")
+        renderSettings(
+            SettingsUiState(loading = false, nickname = "준영", isGuest = true),
+            dark = false,
+            blocked = false,
+            name = "settings_light_guest",
+        )
 
     @Test fun settings_light_member() =
-        renderSettings(SettingsUiState(loading = false, nickname = "준영", isGuest = false, reminderEnabled = true), dark = false, blocked = false, name = "settings_light_member")
+        renderSettings(
+            SettingsUiState(loading = false, nickname = "준영", isGuest = false, reminderEnabled = true),
+            dark = false,
+            blocked = false,
+            name = "settings_light_member",
+        )
 
     @Test fun settings_dark_guest() =
-        renderSettings(SettingsUiState(loading = false, nickname = "준영", isGuest = true), dark = true, blocked = false, name = "settings_dark_guest")
+        renderSettings(
+            SettingsUiState(loading = false, nickname = "준영", isGuest = true),
+            dark = true,
+            blocked = false,
+            name = "settings_dark_guest",
+        )
 
     @Test fun settings_notif_blocked() =
-        renderSettings(SettingsUiState(loading = false, nickname = "준영", isGuest = true, reminderEnabled = false), dark = false, blocked = true, name = "settings_notif_blocked")
+        renderSettings(
+            SettingsUiState(loading = false, nickname = "준영", isGuest = true, reminderEnabled = false),
+            dark = false,
+            blocked = true,
+            name = "settings_notif_blocked",
+        )
 
     @Test fun reminder_time_sheet() {
         composeRule.setContent {

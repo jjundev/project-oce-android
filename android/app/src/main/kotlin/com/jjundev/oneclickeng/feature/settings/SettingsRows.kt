@@ -91,7 +91,11 @@ internal fun SettingsNavRow(
             if (desc != null) {
                 Text(
                     text = desc,
-                    style = OceTheme.typography.helper.copy(fontWeight = FontWeight.Medium, fontSize = 12.5f.sp, lineHeightStyle = TrimmedLineHeight),
+                    style = OceTheme.typography.helper.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 12.5f.sp,
+                        lineHeightStyle = TrimmedLineHeight,
+                    ),
                     color = OceTheme.colors.textTertiary,
                     modifier = Modifier.padding(top = RowLabelGap),
                 )
@@ -182,8 +186,16 @@ internal fun NotificationBlockedBanner(
                 .clickable(onClick = onOpenSettings)
                 .padding(horizontal = OceTheme.spacing.lg, vertical = 10.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs)) {
-                OneClickIcon(OceIcon.OpenInNew, null, tint = MaterialTheme.colorScheme.onSurface, size = OceIconSize.FeedbackInline)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+            ) {
+                OneClickIcon(
+                    OceIcon.OpenInNew,
+                    null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    size = OceIconSize.FeedbackInline,
+                )
                 Text(
                     text = stringResource(R.string.settings_reminder_blocked_action),
                     style = OceTheme.typography.tabActive,

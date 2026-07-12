@@ -295,7 +295,11 @@ internal fun DeleteAccountDialog(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
         ) {
-            val badgeRes = if (step == DeleteStep.Warn) R.string.settings_delete_step1_badge else R.string.settings_delete_step2_badge
+            val badgeRes = if (step == DeleteStep.Warn) {
+                R.string.settings_delete_step1_badge
+            } else {
+                R.string.settings_delete_step2_badge
+            }
             Box(
                 modifier = Modifier
                     .clip(OceTheme.shapes.pill)
@@ -312,7 +316,10 @@ internal fun DeleteAccountDialog(
                 DeleteStep.Warn -> {
                     Text(
                         text = stringResource(R.string.settings_delete_step1_title),
-                        style = OceTheme.typography.dialogHeader.copy(fontWeight = FontWeight.ExtraBold, fontSize = 18.sp),
+                        style = OceTheme.typography.dialogHeader.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 18.sp,
+                        ),
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
@@ -331,7 +338,10 @@ internal fun DeleteAccountDialog(
                 DeleteStep.Confirm -> {
                     Text(
                         text = stringResource(R.string.settings_delete_step2_title),
-                        style = OceTheme.typography.dialogHeader.copy(fontWeight = FontWeight.ExtraBold, fontSize = 18.sp),
+                        style = OceTheme.typography.dialogHeader.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 18.sp,
+                        ),
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(

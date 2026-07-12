@@ -107,7 +107,9 @@ fun SettingsScreen(
 
     // 시스템 알림 on/off 는 화면 재개마다 재확인(설정 앱에서 끄고 돌아온 경우 반영).
     val lifecycleOwner = LocalLifecycleOwner.current
-    var notificationsEnabled by remember { mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled()) }
+    var notificationsEnabled by remember {
+        mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
+    }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -371,7 +373,9 @@ internal fun SettingsContent(
                         icon = OceIcon.Notifications,
                         title = stringResource(R.string.settings_reminder_title),
                         desc = stringResource(R.string.settings_reminder_desc),
-                        trailing = { OneClickSwitch(checked = state.reminderEnabled, onCheckedChange = onReminderToggle) },
+                        trailing = {
+                            OneClickSwitch(checked = state.reminderEnabled, onCheckedChange = onReminderToggle)
+                        },
                     )
                     if (notificationsBlocked) {
                         SettingsCardDivider()
@@ -388,11 +392,19 @@ internal fun SettingsContent(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         text = reminderTimeLabel(state.reminderHour, state.reminderMinute),
-                                        style = OceTheme.typography.sectionLabel.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
+                                        style = OceTheme.typography.sectionLabel.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp,
+                                        ),
                                         color = MaterialTheme.colorScheme.primary,
                                     )
                                     Spacer(Modifier.width(OceTheme.spacing.xs))
-                                    OneClickIcon(OceIcon.ChevronRight, null, tint = OceTheme.colors.textTertiary, size = OceIconSize.ListDisclosure)
+                                    OneClickIcon(
+                                        OceIcon.ChevronRight,
+                                        null,
+                                        tint = OceTheme.colors.textTertiary,
+                                        size = OceIconSize.ListDisclosure,
+                                    )
                                 }
                             },
                         )
@@ -442,7 +454,10 @@ internal fun SettingsContent(
                         trailing = {
                             Text(
                                 text = versionLabel,
-                                style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
+                                style = OceTheme.typography.helper.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp,
+                                ),
                                 color = OceTheme.colors.textTertiary,
                             )
                         },
@@ -452,14 +467,28 @@ internal fun SettingsContent(
                         icon = OceIcon.Shield,
                         title = stringResource(R.string.settings_info_privacy),
                         onClick = onPrivacy,
-                        trailing = { OneClickIcon(OceIcon.OpenInNew, null, tint = OceTheme.colors.textTertiary, size = OceIconSize.ListDisclosure) },
+                        trailing = {
+                            OneClickIcon(
+                                OceIcon.OpenInNew,
+                                null,
+                                tint = OceTheme.colors.textTertiary,
+                                size = OceIconSize.ListDisclosure,
+                            )
+                        },
                     )
                     SettingsCardDivider()
                     SettingsNavRow(
                         icon = OceIcon.Description,
                         title = stringResource(R.string.settings_info_terms),
                         onClick = onTerms,
-                        trailing = { OneClickIcon(OceIcon.OpenInNew, null, tint = OceTheme.colors.textTertiary, size = OceIconSize.ListDisclosure) },
+                        trailing = {
+                            OneClickIcon(
+                                OceIcon.OpenInNew,
+                                null,
+                                tint = OceTheme.colors.textTertiary,
+                                size = OceIconSize.ListDisclosure,
+                            )
+                        },
                     )
                 }
             }
@@ -598,7 +627,10 @@ private fun AccountSection(
             horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
             modifier = Modifier.padding(start = 4.dp),
         ) {
-            SettingsSectionHeader(title = stringResource(R.string.settings_section_account), modifier = Modifier.padding(start = 0.dp))
+            SettingsSectionHeader(
+                title = stringResource(R.string.settings_section_account),
+                modifier = Modifier.padding(start = 0.dp),
+            )
             SettingsAccountBadge(isGuest = state.isGuest)
         }
         OneClickCard(modifier = Modifier.fillMaxWidth(), shape = OceTheme.shapes.radius24) {

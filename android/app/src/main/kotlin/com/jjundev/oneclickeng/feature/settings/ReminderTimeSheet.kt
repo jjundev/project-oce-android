@@ -144,7 +144,10 @@ internal fun ReminderTimeSheetContent(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             ),
         ) {
-            Text(text = stringResource(R.string.settings_reminder_time_confirm), style = OceTheme.typography.sectionLabel)
+            Text(
+                text = stringResource(R.string.settings_reminder_time_confirm),
+                style = OceTheme.typography.sectionLabel,
+            )
         }
     }
 }
