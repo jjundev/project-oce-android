@@ -57,9 +57,7 @@ import com.jjundev.oneclickeng.ui.component.InlineErrorMode
 import com.jjundev.oneclickeng.ui.component.OneClickDualExposureBlock
 import com.jjundev.oneclickeng.ui.component.OneClickInlineError
 import com.jjundev.oneclickeng.ui.component.OneClickRichText
-import com.jjundev.oneclickeng.ui.component.OneClickSkeleton
 import com.jjundev.oneclickeng.ui.component.RichSegment
-import com.jjundev.oneclickeng.ui.component.SkeletonShape
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /** 턴 피드백 시트 높이 상한(화면 대비). 시트는 콘텐츠에 맞춰 커지되 이 비율을 넘지 않는다(넘으면 내부 스크롤). */
@@ -401,7 +399,7 @@ private fun <T> SectionSlot(
     ready: @Composable (T) -> Unit,
 ) {
     when (state) {
-        is SectionState.Loading -> OneClickSkeleton(shape = SkeletonShape.Section)
+        is SectionState.Loading -> FeedbackLoadingSkeleton(showTitlePlaceholder = false)
         is SectionState.Ready -> ready(state.value)
         is SectionState.Failed ->
             OneClickInlineError(

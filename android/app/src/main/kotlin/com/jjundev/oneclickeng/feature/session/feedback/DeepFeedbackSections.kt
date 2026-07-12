@@ -38,8 +38,6 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.jjundev.oneclickeng.ui.component.InlineErrorMode
 import com.jjundev.oneclickeng.ui.component.OneClickInlineError
-import com.jjundev.oneclickeng.ui.component.OneClickSkeleton
-import com.jjundev.oneclickeng.ui.component.SkeletonShape
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.component.venn.VennDiagramCanvas
@@ -163,10 +161,9 @@ private fun DeepBlocks(
 
 @Composable
 private fun BlockSkeleton() {
-    OneClickSkeleton(
-        shape = SkeletonShape.Section,
-        modifier = Modifier.testTag(DEEP_BLOCK_SKELETON_TAG),
-    )
+    Box(modifier = Modifier.testTag(DEEP_BLOCK_SKELETON_TAG)) {
+        FeedbackLoadingSkeleton(showTitlePlaceholder = true)
+    }
 }
 
 /**
