@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -47,12 +48,15 @@ import com.jjundev.oneclickeng.ui.component.venn.rememberVennLayoutMode
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import java.util.Locale
 
+/** Compose test tag on every deep-block shimmer skeleton — lets tests assert skeleton count. */
+internal const val DEEP_BLOCK_SKELETON_TAG = "deep_block_skeleton"
+
 /**
  * "더 보기" deep 영역(M2-03) — 단일 시트 하단에 conceptualBridge → toneStyle → paraphrasing 을 고정 순서로
  * 펼친다(turn-feedback-ia.md §4). 요청-레벨 상태([DeepFeedbackState])를 분기:
  * - [DeepFeedbackState.Loading]: 도착 블록은 실데이터, 미도착은 시머 스켈레톤(블록별 점진 렌더).
  * - [DeepFeedbackState.Ready]: 세 블록 전체.
- * - [DeepFeedbackState.Error]: 이미 도착한 블록은 보존(sticky) + 영역 1개 인라인 재시도(§9.2).
+ * - [DeepFeedbackState.Error]: 이미 도착한 블록은 보존(sticky), 미도착 블록은 스켈레톤 없이 생략 + 영역 1개 인라인 재시도(§9.2).
  * - [DeepFeedbackState.QuotaBlocked]: 중립 문구(재시도 아님).
  * - [DeepFeedbackState.Idle]·[DeepFeedbackState.Canceled]: 아무것도 렌더하지 않음.
  *
@@ -93,17 +97,23 @@ fun DeepFeedbackRegion(
                 modifier = modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.lg),
             ) {
-                DeepBlocks(
-                    Modifier,
-                    state.conceptualBridge,
-                    state.toneStyle,
-                    state.paraphrasing,
-                    bookmarkedLevels,
-                    onToggleBookmark,
-                )
+                // 실패 시 미도착 블록의 무한 시머 스켈레톤을 없앤다(showSkeletons=false) — 도착 블록은
+                // sticky 로 남기고, 하단 재시도 메시지만 노출해 "로딩 중"으로 오인되지 않게 한다. 아무 블록도
+                // 도착하지 않은(가장 흔한) 실패에서는 빈 블록 영역을 아예 두지 않아 메시지 위 여백을 없앤다.
+                if (state.conceptualBridge != null || state.toneStyle != null || state.paraphrasing != null) {
+                    DeepBlocks(
+                        Modifier,
+                        state.conceptualBridge,
+                        state.toneStyle,
+                        state.paraphrasing,
+                        bookmarkedLevels,
+                        onToggleBookmark,
+                        showSkeletons = false,
+                    )
+                }
                 OneClickInlineError(
                     mode = InlineErrorMode.Recoverable,
-                    message = "깊은 분석을 불러오지 못했어요.",
+                    message = "깊은 분석을 불러오지 못했어요. 다시 시도해볼까요?",
                     onRetry = onRetry,
                     onSkip = {}, // deep 은 섹션별 스킵이 없다(영역 재시도만, §9.2)
                 )
@@ -130,24 +140,33 @@ private fun DeepBlocks(
     paraphrasing: Paraphrasing?,
     bookmarkedLevels: Set<Int>,
     onToggleBookmark: (Paraphrase) -> Unit,
+    showSkeletons: Boolean = true,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sectionGap),
     ) {
-        if (conceptualBridge != null) ConceptualBridgeBlock(conceptualBridge) else BlockSkeleton()
-        if (toneStyle != null) ToneStyleBlock(toneStyle) else BlockSkeleton()
-        if (paraphrasing != null) {
-            ParaphrasingBlock(paraphrasing, bookmarkedLevels, onToggleBookmark)
-        } else {
-            BlockSkeleton()
+        when {
+            conceptualBridge != null -> ConceptualBridgeBlock(conceptualBridge)
+            showSkeletons -> BlockSkeleton()
+        }
+        when {
+            toneStyle != null -> ToneStyleBlock(toneStyle)
+            showSkeletons -> BlockSkeleton()
+        }
+        when {
+            paraphrasing != null -> ParaphrasingBlock(paraphrasing, bookmarkedLevels, onToggleBookmark)
+            showSkeletons -> BlockSkeleton()
         }
     }
 }
 
 @Composable
 private fun BlockSkeleton() {
-    OneClickSkeleton(shape = SkeletonShape.Section)
+    OneClickSkeleton(
+        shape = SkeletonShape.Section,
+        modifier = Modifier.testTag(DEEP_BLOCK_SKELETON_TAG),
+    )
 }
 
 /**

@@ -36,6 +36,8 @@ import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
 import com.jjundev.oneclickeng.feature.session.speaking.SpeakingAnalysisCoordinator
 import com.jjundev.oneclickeng.feature.session.speaking.SpeakingAnalysisState
 import com.jjundev.oneclickeng.feature.session.summary.SessionTurnBufferStore
+import com.jjundev.oneclickeng.feature.session.tts.PlaybackState
+import com.jjundev.oneclickeng.feature.session.tts.TtsPlaybackCoordinator
 import com.jjundev.oneclickeng.ui.audio.MicState
 import com.jjundev.oneclickeng.ui.audio.MicTransientReason
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
@@ -113,17 +115,20 @@ fun GeneratedDialogueSessionRoute(
     // no-op 이고, 시드된 스냅샷이 정본으로 남는다(결정 #4).
     LaunchedEffect(generationState) { viewModel.onGenerationState(generationState) }
 
-    // 턴 진행 시퀀스(스텁 rememberDialogueState 정합): 스켈레톤 지연 → 대사 표시([GeneratedDialogueState.commitReveal])
-    // → 자동 진행 지연 → 턴 마감. 실기기는 대본이 미리 버퍼링돼 대사가 즉시 표시되던 것을, 이 스켈레톤 지연으로
-    // "타이핑 중" 창을 되살린다. reduce-motion 이면 두 지연 모두 0(스켈레톤 없이 즉시).
+    // 턴 진행 시퀀스: 스켈레톤 지연 → 대사 표시([GeneratedDialogueState.commitReveal]) → 자동발화 시작.
+    // 실기기는 대본이 미리 버퍼링돼 대사가 즉시 표시되던 것을, 이 스켈레톤 지연으로 "타이핑 중" 창을 되살린다.
+    // reduce-motion 이면 스켈레톤 지연은 0(대사 즉시 표시)이나 자동발화는 그대로다(청각 ≠ 모션, 결정 #10).
+    // 자동진행(턴 마감)은 더 이상 고정 지연이 아니라 상대역 대사 디바이스 TTS 완료(VM 의 completions/
+    // ERROR_TEXT_ONLY 수집 → completeOpponentTurn)가 구동한다. 여기서는 대사 표시 후 자동발화만 시작한다.
     val effectiveSkeleton = if (reduceMotion) 0L else DEFAULT_OPPONENT_SKELETON_DELAY_MS.toLong()
-    val effectiveAdvance = if (reduceMotion) 0L else DEFAULT_OPPONENT_ADVANCE_DELAY_MS.toLong()
     LaunchedEffect(state.opponentTurnSerial) {
         if (state.turnPhase == TurnPhase.OpponentTurn && state.sessionPhase == SessionPhase.InTurn) {
             delay(effectiveSkeleton)
-            state.commitReveal()
-            delay(effectiveAdvance)
-            state.completeOpponentTurn()
+            // 대사 표시는 master 의 progress 경유(commitReveal + durable 영속). 이어서 상대역 대사를 디바이스
+            // TTS 로 자동발화만 시작하고, 턴 마감은 고정 지연이 아니라 발화 완료(VM 의 completions/
+            // ERROR_TEXT_ONLY 수집 → completeOpponentTurn)가 구동한다.
+            viewModel.revealOpponentTurn()
+            state.lastOpponentEnglish()?.let(viewModel::speakOpponent)
         }
     }
 
@@ -143,6 +148,9 @@ fun GeneratedDialogueSessionRoute(
                 reduceMotion = reduceMotion,
             )
         },
+        onReplay = { text -> viewModel.replayOpponent(text) },
+        // 상대 발화자 이름을 말풍선에 반영. 미배정(초기·sessionId 미도착)이면 "Emma" 폴백.
+        opponentSpeaker = viewModel.opponentSpeaker?.name ?: "Emma",
     )
 
     // 턴 피드백 시트는 드래그 없는 고정 오버레이라 대화 콘텐츠의 형제로 얹는다. Idle 이면 스스로 아무것도
@@ -187,6 +195,7 @@ class GeneratedDialogueSessionViewModel
         private val turnBuffer: SessionTurnBufferStore,
         private val appScope: CoroutineScope,
         private val snapshotStore: SessionSnapshotStore,
+        private val tts: TtsPlaybackCoordinator,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         val generationState = generation.state
@@ -204,6 +213,14 @@ class GeneratedDialogueSessionViewModel
         // [rememberHeaderIdentity] 로 심고, durable 스냅샷에도 실어 이어하기/프로세스킬 재진입(빈 nav-arg)에서
         // 상단바를 되살린다(회귀: 재진입 시 헤더 소멸). Route 는 nav-arg 가 비면 이 값으로 폴백한다.
         var headerIdentity by mutableStateOf<SessionHeaderIdentity?>(null)
+            private set
+
+        /**
+         * 이 세션의 상대 발화자(로컬 [SpeakerDirectory] 배정). sessionId 가 처음 알려질 때 1회 배정하고,
+         * 배정은 sessionId 결정적이라 복원 시 [seedFrom] 이 동일 발화자를 재도출한다(영속 불필요).
+         * Route 가 이름을 말풍선에, [speakOpponent]/[replayOpponent] 가 성별을 TTS 에 쓴다.
+         */
+        var opponentSpeaker by mutableStateOf<Speaker?>(null)
             private set
 
         /** "더 보기" 펼침 여부(호스트 소유 UI 상태). 코디네이터는 개시/캐시만 알고 펼침은 모른다(P3). */
@@ -224,6 +241,7 @@ class GeneratedDialogueSessionViewModel
 
         // 내부 턴머신 타입이라 internal(같은 모듈 Route/테스트만 접근). public 노출 금지.
         internal val turnState = GeneratedDialogueState()
+        private val progress = SessionTurnProgress(turnState, ::persistResume)
 
         /** 실시간 파형(Recording 시 도크가 소비). */
         val waveform = recording.waveform
@@ -257,6 +275,11 @@ class GeneratedDialogueSessionViewModel
 
         private val json = Json { ignoreUnknownKeys = true }
 
+        // 첫 NavBackStackEntry 복원 전에는 생성 코디네이터의 Ready emission을 잠시 보류한다. 같은 프로세스의
+        // 이어하기는 Singleton 코디네이터가 전체 대본을 들고 있어도 durable 스냅샷의 진행 위치가 정본이다.
+        private var initialRestoreComplete = false
+        private var deferredGenerationState: DialogueGenState? = null
+
         init {
             val restored =
                 savedStateHandle.get<Bundle>(PROVIDER_KEY)
@@ -265,29 +288,45 @@ class GeneratedDialogueSessionViewModel
                     ?.takeIf { it.schemaVersion == SessionTurnSnapshot.SCHEMA_VERSION }
             if (restored != null) {
                 seedFrom(restored)
-            } else if (generation.state.value !is DialogueGenState.Ready) {
+            } else {
                 // SavedStateHandle 에 화면-체류 스냅샷이 없다 = 새 NavBackStackEntry(홈-복귀 재진입 등).
-                // durable 스냅샷(§2.5)은 라이브 코디네이터가 세션을 들고 있지 **않을 때**(크로스-프로세스,
-                // 코디네이터 non-Ready)만 정본이다. 같은 프로세스에서 코디네이터가 이미 Ready 면 Route 의
-                // onGenerationState→accept() 가 정본이므로 durable read 를 아예 시작하지 않는다 — 이 동기
-                // 분기로 async read 와 accept() 사이 순서 경쟁을 제거한다(둘 중 무엇이 정본인지 결정적).
-                // messages.isEmpty() 는 그래도 남겨 belt-and-suspenders 로 이중 seed 를 막는다.
+                // durable read 가 끝날 때까지 Route 의 Ready emission 을 보류해, 같은 프로세스 이어하기에서
+                // 코디네이터의 처음부터인 turns 가 durable 진행 위치를 덮어쓰지 않게 한다.
                 viewModelScope.launch {
                     val durable = snapshotStore.read()
-                    if (durable != null && turnState.messages.isEmpty()) seedFrom(durable)
+                    val liveState = generation.state.value
+                    if (
+                        durable != null &&
+                            shouldRestoreDurableSnapshot(durable, liveState) &&
+                            turnState.messages.isEmpty()
+                    ) {
+                        seedFrom(durable)
+                    }
+                    initialRestoreComplete = true
+                    deferredGenerationState?.let {
+                        deferredGenerationState = null
+                        acceptGenerationState(it)
+                    }
                 }
-            } else {
-                // 라이브 이어하기(같은 프로세스, 코디네이터가 이미 정본): messages 는 accept 가 복원하지만 헤더
-                // 정체성은 코디네이터에 없다 → durable 에서 헤더만 별도 복원한다(빈 nav-arg 재진입 시 상단바 유지,
-                // messages seed 경쟁 없음). 새 세션 시작은 durable 을 비워(§2.5) 이전 주제로 오염되지 않는다.
-                viewModelScope.launch { snapshotStore.read()?.let(::restoreHeaderIdentity) }
             }
+            if (restored != null) initialRestoreComplete = true
             // onGenerationState 는 Route 의 collectAsStateWithLifecycle 가 구동한다(중복 collect 회피).
             viewModelScope.launch { speaking.state.collect(::onAnalysisState) }
             // 슬림 피드백이 정착(3섹션 모두 Loading 종료)하면 그 턴을 요약 버퍼에 기록한다(M2-02 handoff).
             // 시트(M1-07)가 아직 라이브에 없어 사용자는 정착 전에 "다음"을 누를 수 있으므로, 백그라운드
             // 정착 기록 + [onAdvance] best-effort 폴백의 이중 경로로 턴당 1회 기록을 보장한다(pendingTurn 가드).
             viewModelScope.launch { feedback.state.collect(::onFeedbackState) }
+            // 상대역 자동발화 완료(정상/실패/mute) → 현재 턴 마감(입력 독 상승). advanceOnDone=false 인 replay 는
+            // completions 를 내지 않으므로 여기로 오지 않는다(자동발화만 전진 구동).
+            viewModelScope.launch { tts.completions.collect { onOpponentTtsDone() } }
+            // 음성 데이터 없음(ERROR_TEXT_ONLY)은 completions 대신 상태로만 표출된다(코디네이터 advance=false).
+            // device-only 라 서버 폴백이 없으므로 텍스트는 남긴 채 그냥 전진시켜 세션이 멈추지 않게 한다(결정 #14).
+            // 주의: 이 수집기는 advanceOnDone 게이트가 없다 — replay(LearnerTurn 한정) 중 음성없음이 나도
+            // completeOpponentTurn 의 OpponentTurn/InTurn 가드가 오전진을 흡수하는 데 의존한다. replay 를
+            // OpponentTurn 중 허용하거나 그 가드를 완화하면 이 의존이 깨지니 함께 재검토할 것.
+            viewModelScope.launch {
+                tts.state.collect { if (it == PlaybackState.ERROR_TEXT_ONLY) onOpponentTtsDone() }
+            }
             savedStateHandle.setSavedStateProvider(PROVIDER_KEY) {
                 bundleOf(BUNDLE_JSON to json.encodeToString(currentSnapshot()))
             }
@@ -299,6 +338,7 @@ class GeneratedDialogueSessionViewModel
             latestTurns = snapshot.turns.map { it.toDomain() }
             restoredSessionId = snapshot.sessionId
             restoredLevel = snapshot.level
+            assignSpeakerIfNeeded() // 결정적 매핑이라 복원 sessionId 로 동일 발화자 재도출
             restoreHeaderIdentity(snapshot)
             val settled = micStateFromName(snapshot.micState)
             // 진행 중 캡처/분석은 프로세스킬/이탈로 소멸 → Ready 강등 + 재시도 고지.
@@ -345,17 +385,53 @@ class GeneratedDialogueSessionViewModel
          */
         private fun persistResume() {
             val snapshot = currentSnapshot()
-            val completed = turnState.sessionPhase == SessionPhase.Completed
-            appScope.launch {
-                if (completed) snapshotStore.clear() else snapshotStore.write(snapshot)
-            }
+            appScope.launch { snapshotStore.persist(snapshot) }
         }
+
+        fun revealOpponentTurn() = progress.revealOpponentTurn()
+
+        fun completeOpponentTurn() = progress.completeOpponentTurn()
 
         /** 코디네이터 상태를 턴머신에 반영(Route 가 라이프사이클 인지 collect 로 호출). */
         fun onGenerationState(state: DialogueGenState) {
+            if (!initialRestoreComplete) {
+                deferredGenerationState = state
+                return
+            }
+            acceptGenerationState(state)
+        }
+
+        private fun acceptGenerationState(state: DialogueGenState) {
             if (state is DialogueGenState.Ready) latestTurns = state.turns
             turnState.accept(state)
+            assignSpeakerIfNeeded()
             persistResume()
+        }
+
+        /** sessionId 가 알려져 있고 아직 미배정이면 상대 발화자를 배정한다(멱등 — 결정적 매핑). */
+        private fun assignSpeakerIfNeeded() {
+            if (opponentSpeaker == null) {
+                currentSessionId()?.let { opponentSpeaker = SpeakerDirectory.assign(it) }
+            }
+        }
+
+        /** 상대역 대사 디바이스 자동발화(Route 가 commitReveal 직후 호출). 완료 시 completions→자동진행. */
+        fun speakOpponent(text: String) {
+            tts.playTurn(text, gender = opponentSpeaker?.gender, deviceOnly = true, advanceOnDone = true)
+        }
+
+        /** 말풍선 "다시 듣기" 재발화. 자동발화 중(OpponentTurn)엔 no-op — 라이브 발화 취소·조기전진을 막는다.
+         *  advanceOnDone=false 라 재발화 완료가 턴 전진을 구동하지 않는다(경쟁 봉인, 결정 #9). */
+        fun replayOpponent(text: String) {
+            if (turnState.turnPhase == TurnPhase.OpponentTurn) return
+            tts.playTurn(text, gender = opponentSpeaker?.gender, deviceOnly = true, advanceOnDone = false)
+        }
+
+        /** TTS 완료/음성없음 폴백 시 현재 상대역 턴 마감. 내부 가드로 OpponentTurn·InTurn 일 때만 실효. */
+        private fun onOpponentTtsDone() {
+            // 자동발화 완료가 턴을 마감한다. progress 경유(completeOpponentTurn())라야 마감 후 durable 스냅샷이
+            // 갱신돼 master 의 "전진 후 영속" 계약이 유지된다(turnState 직접 호출은 persistResume 를 건너뜀).
+            completeOpponentTurn()
         }
 
         /** 도크 마이크 탭. 정착 상태별 분기(결정 #12). */
@@ -560,6 +636,7 @@ class GeneratedDialogueSessionViewModel
             // 진행 중 캡처/분석을 화면 이탈 시 취소(결정 #13b). appScope 는 VM scope 소멸과 무관.
             appScope.launch { runCatching { recording.stop() } }
             speaking.reset()
+            tts.stop() // 잔여 발화 차단(nav-pop 시 이 훅이 커버 — 별도 onExit 훅 없음).
         }
 
         /** 요약 버퍼 기록 대기 중인 턴의 과제·답변 echo(피드백 스냅샷과 함께 record 로 밀어넣는다). */
@@ -585,6 +662,21 @@ class GeneratedDialogueSessionViewModel
     }
 
 /**
+ * Selects the durable snapshot when a new session ViewModel sees a live generation state.
+ * A Ready state with the same server session id is the same conversation at a later in-app
+ * re-entry, so its durable cursor wins over the coordinator's full turn list. A different Ready
+ * id is a genuinely new generation and must not be polluted by an older resume candidate; a
+ * non-Ready state has no live conversation to prefer (the process-death restore path).
+ */
+internal fun shouldRestoreDurableSnapshot(
+    snapshot: SessionTurnSnapshot,
+    liveState: DialogueGenState,
+): Boolean {
+    val ready = liveState as? DialogueGenState.Ready ?: return true
+    return snapshot.sessionId != null && snapshot.sessionId == ready.sessionId
+}
+
+/**
  * 세션 헤더 정체성(주제 이모지·제목·레벨·턴 수). 시작 플로우 nav-arg 로 실려오거나 durable 스냅샷에서 복원돼
  * [DialogueHeaderState] 로 렌더된다. 진행 점(completedTurns)은 라이브 말풍선 수라 여기 담지 않는다.
  */
@@ -605,6 +697,10 @@ internal fun GeneratedDialogueSessionContent(
     // 헤더 뒤로가기 화살표 콜백(대화 나가기). 미주입이면 no-op(프리뷰·테스트 호환).
     onBack: () -> Unit = {},
     dock: (@Composable (ScaffoldTask) -> Unit)? = null,
+    // 상대역 말풍선 "다시 듣기" 콜백(발화 텍스트 전달). 미주입이면 no-op(프리뷰·테스트 호환).
+    onReplay: (String) -> Unit = {},
+    // 상대역 화자명(로컬 SpeakerDirectory 배정). 미주입(프리뷰·테스트)이면 "Emma" 고정(스크린샷 계약 유지).
+    opponentSpeaker: String = "Emma",
 ) {
     val listState = rememberLazyListState()
     // 메시지 추가·타이핑 스켈레톤 등장 시 최신 아이템으로 자동 스크롤(스켈레톤은 메시지 뒤 마지막 아이템).
@@ -627,6 +723,8 @@ internal fun GeneratedDialogueSessionContent(
         onBack = onBack,
         dock = dock,
         opponentTyping = state.opponentTyping,
+        onReplay = onReplay,
+        opponentSpeaker = opponentSpeaker,
     )
 }
 
@@ -646,6 +744,25 @@ private fun dialogueLevelLabel(
             else -> null
         }
     return listOfNotNull(levelKo, "${totalTurns}턴").joinToString(" · ")
+}
+
+/**
+ * Couples timer-driven opponent-state mutations to their durable-state notification. Keeping this
+ * separate from Compose lets a regression test drive the exact automatic completion path.
+ */
+internal class SessionTurnProgress(
+    private val state: GeneratedDialogueState,
+    private val onStateChanged: () -> Unit,
+) {
+    fun revealOpponentTurn() {
+        state.commitReveal()
+        onStateChanged()
+    }
+
+    fun completeOpponentTurn() {
+        state.completeOpponentTurn()
+        onStateChanged()
+    }
 }
 
 // 턴머신 전이 헬퍼 + M1-08 SavedState export/seed 로 메서드가 많다(상태 머신 클래스, 의도적).
@@ -752,6 +869,10 @@ internal class GeneratedDialogueState {
 
     /** 현재 학습자 턴의 목표 영어(피드백 referenceEnglish 재사용). */
     fun currentReferenceEnglish(): String? = pending.referenceEnglish
+
+    /** 방금 reveal 된(=messages 마지막) 상대역 영어. 발화 대상(Route TTS)으로 읽는다. 마지막이 학습자
+     *  말풍선이거나 아직 아무 것도 append 안 됐으면 null. */
+    fun lastOpponentEnglish(): String? = (messages.lastOrNull() as? DialogueMessage.Opponent)?.english
 
     /** 학습자 턴을 마감하고 다음 상대역 턴/완료로 전진한다(스텁·실답변 공용 tail). */
     fun advanceTurn() {
@@ -881,16 +1002,6 @@ internal class GeneratedDialogueState {
 
     // --- M1-08 SavedState (L1 파생 상태 export/seed, replay 없음) ---
 
-    /** 직렬화용 유효 메시지: 표시 대기([awaitingReveal]) 중인 상대역 대사를 커밋한 것으로 간주해 무손실 저장. */
-    private fun effectiveMessages(): List<DialogueMessage> {
-        val pendingEnglish = pending.opponentEnglish
-        return if (awaitingReveal && pendingEnglish != null) {
-            messages + DialogueMessage.Opponent(pendingEnglish)
-        } else {
-            messages
-        }
-    }
-
     /** 현 상태 + 앰비언트 micState/turns + 세션 식별(sessionId/level)을 [SessionTurnSnapshot] 으로 직렬화. */
     fun toSnapshot(
         micState: MicState,
@@ -901,9 +1012,9 @@ internal class GeneratedDialogueState {
         SessionTurnSnapshot(
             sessionId = sessionId,
             level = level,
-            // 표시 대기 중인 상대역 대사를 커밋한 것으로 간주해 저장(무손실·스냅샷 스키마 무변경). 복원 시엔
-            // 이미 messages 에 있으므로 스켈레톤을 재생하지 않고 곧장 대사가 보인다.
-            messages = effectiveMessages().map { MessageData(it is DialogueMessage.Learner, it.english) },
+            // messages는 실제로 렌더된 말풍선만 보존한다. 표시 대기 상대역 대사는 pending에 남겨 복원 시
+            // 스켈레톤을 다시 거친다. 따라서 홈의 resumeInfo가 messages를 렌더 사실로 사용할 수 있다.
+            messages = messages.map { MessageData(it is DialogueMessage.Learner, it.english) },
             turnPhase = turnPhase.name,
             sessionPhase = sessionPhase.name,
             currentTaskKo = currentTask?.koreanPrompt,
@@ -935,8 +1046,14 @@ internal class GeneratedDialogueState {
             runCatching { DialogueStreamStatus.valueOf(snapshot.streamStatus) }
                 .getOrDefault(DialogueStreamStatus.Streaming)
         diagnostic = snapshot.diagnostic
-        // 스냅샷은 대기 대사를 커밋해 저장하므로([toSnapshot]) 복원 시 표시 대기는 없다(대사는 이미 messages 에).
-        awaitingReveal = false
+        // v3에는 awaitingReveal 전용 필드가 없다. 상대역 차례에서 현재 pending 대사가 마지막 말풍선이면
+        // 이미 표시된 상태이고, 아니면 pending에만 보존된 스켈레톤 상태다. 직전 턴은 학습자 말풍선으로 끝나므로
+        // 이 마지막-메시지 비교는 현재 pending 대사의 표시 여부를 결정한다.
+        val pendingOpponent = pending.opponentEnglish
+        awaitingReveal =
+            turnPhase == TurnPhase.OpponentTurn &&
+                pendingOpponent != null &&
+                messages.lastOrNull() != DialogueMessage.Opponent(pendingOpponent)
         recomputeTyping()
     }
 

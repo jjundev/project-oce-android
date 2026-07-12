@@ -41,7 +41,13 @@ fun OneClickSnackbarHost(
 ) {
     SnackbarHost(
         hostState = hostState,
-        modifier = modifier.padding(bottom = bottomInset),
+        // 좌우 화면 가장자리에 붙지 않도록 거터 마진(플로팅 토스트 정합). 하단은 BottomNav 인셋.
+        modifier =
+            modifier.padding(
+                start = OceTheme.spacing.lg,
+                end = OceTheme.spacing.lg,
+                bottom = bottomInset,
+            ),
     ) { data ->
         OneClickSnackbar(data = data)
     }

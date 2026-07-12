@@ -8,6 +8,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -68,6 +69,29 @@ class SessionTurnSnapshotTest {
 
         assertTrue(state.messages.any { it == DialogueMessage.Opponent("Anything else?") })
         assertEquals(TurnPhase.OpponentTurn, state.turnPhase)
+    }
+
+    @Test
+    fun `snapshot stores only rendered opening and restores awaiting reveal`() {
+        val state = GeneratedDialogueState()
+        state.accept(ready(listOf(model("Hello"))))
+
+        val awaiting = state.toSnapshot(MicState.Ready, listOf(model("Hello")), "s1", "easy")
+        assertTrue(awaiting.messages.isEmpty())
+        val restoredAwaiting = GeneratedDialogueState().apply { restoreFrom(awaiting) }
+        assertTrue(restoredAwaiting.opponentTyping)
+        restoredAwaiting.commitReveal()
+        assertEquals(listOf(DialogueMessage.Opponent("Hello")), restoredAwaiting.messages)
+        assertFalse(restoredAwaiting.opponentTyping)
+
+        state.commitReveal()
+
+        val revealed = state.toSnapshot(MicState.Ready, listOf(model("Hello")), "s1", "easy")
+        assertEquals(listOf(MessageData(isLearner = false, english = "Hello")), revealed.messages)
+        val restoredRevealed = GeneratedDialogueState().apply { restoreFrom(revealed) }
+        assertFalse(restoredRevealed.opponentTyping)
+        restoredRevealed.commitReveal()
+        assertEquals(listOf(DialogueMessage.Opponent("Hello")), restoredRevealed.messages)
     }
 
     @Test

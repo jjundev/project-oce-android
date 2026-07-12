@@ -61,12 +61,22 @@ class TtsPlaybackCoordinator
         @Volatile
         private var lastSampleRate = 0
 
-        /** Synthesize + play the opponent line. Cancels any in-flight playback first. */
+        // replay 등 "발화는 하되 턴을 전진시키지 않는" 재생을 위한 플래그. startNewSession 이 true 로 리셋하고
+        // playTurn 이 인자로 덮어쓴다. finish 가 completions emit 여부를 이 값으로 게이트한다.
+        @Volatile
+        private var advanceOnDone = true
+
+        /** Synthesize + play the opponent line. Cancels any in-flight playback first.
+         *  [deviceOnly] 면 서버 경로를 건너뛴다(디바이스 전용). [advanceOnDone]=false 면 정상 종료에서도
+         *  completions 를 emit 하지 않아 재생이 턴 전진을 구동하지 않는다(replay 용). */
         fun playTurn(
             text: String,
             gender: String?,
+            deviceOnly: Boolean = false,
+            advanceOnDone: Boolean = true,
         ) {
             val token = startNewSession()
+            this.advanceOnDone = advanceOnDone
             currentJob =
                 scope.launch {
                     val settings = settingsRepo.current()
@@ -76,7 +86,7 @@ class TtsPlaybackCoordinator
                     }
                     lastPcm = null
                     _state.value = PlaybackState.LOADING
-                    if (settings.quality == TtsQuality.SERVER) {
+                    if (!deviceOnly && settings.quality == TtsQuality.SERVER) {
                         if (playFromServer(token, text, gender, settings.speechRate)) return@launch
                         // server timed out / failed → fall through to device TTS
                     }
@@ -120,6 +130,7 @@ class TtsPlaybackCoordinator
             currentJob = null
             player.stop()
             deviceTts.stop()
+            advanceOnDone = true
             return token
         }
 
@@ -206,7 +217,7 @@ class TtsPlaybackCoordinator
         ) {
             if (token != sessionToken) return
             _state.value = state
-            if (advance) _completions.tryEmit(Unit)
+            if (advance && advanceOnDone) _completions.tryEmit(Unit)
         }
 
         companion object {
