@@ -31,7 +31,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -61,6 +61,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.theme.OceTheme
+
+/**
+ * [messages] 안 [index] 위치 말풍선의 0-based 학습자 턴 순번(= 그 앞에 놓인 [DialogueMessage.Learner] 개수).
+ * ViewModel 이 클립을 저장할 때 쓰는 키(`count { Learner } - 1`, append 직후)와 정확히 일치한다.
+ */
+internal fun learnerOrdinalAt(
+    messages: List<DialogueMessage>,
+    index: Int,
+): Int = messages.take(index).count { it is DialogueMessage.Learner }
 
 /**
  * M1-03 대화 턴 화면 = 채팅 표면 + 한국어 발판 카드(정적 셸). 인메모리 스텁 대본([SampleDialogue])으로
@@ -132,6 +141,11 @@ internal fun DialogueTurnContent(
     opponentTyping: Boolean = false,
     // 상대역 말풍선 화자명(로컬 SpeakerDirectory 배정). 미주입(스텁·프리뷰·스크린샷)이면 "Emma" 고정.
     opponentSpeaker: String = "Emma",
+    // 자기 녹음이 있는 학습자 말풍선의 0-based 순번 집합(세션 메모리). 미주입(스텁·프리뷰·스크린샷)이면
+    // 빈 집합이라 스피커 버튼이 없다(기존 렌더 유지).
+    learnerClipIndices: Set<Int> = emptySet(),
+    // 학습자 말풍선 스피커 탭 → 해당 순번 클립 재생. 미주입이면 no-op.
+    onPlayLearnerClip: (Int) -> Unit = {},
 ) {
     // reduceMotion 게이트(스켈레톤 진입 페이드·입력 독 슬라이드업). 무상태 렌더도 시스템 설정을 읽지만,
     // 슬라이드업은 초기 visible=true 시 애니메이션이 없고 스켈레톤은 opponentTyping=false 라 프리뷰/테스트는 정적.
@@ -168,7 +182,7 @@ internal fun DialogueTurnContent(
                 contentPadding = PaddingValues(horizontal = 18.dp, vertical = OceTheme.spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                items(messages) { message ->
+                itemsIndexed(messages) { index, message ->
                     when (message) {
                         is DialogueMessage.Opponent ->
                             OpponentTurn(
@@ -177,8 +191,14 @@ internal fun DialogueTurnContent(
                                 onReplay = { onReplay(message.english) },
                                 onToggleTranslation = onToggleTranslation,
                             )
-                        is DialogueMessage.Learner ->
-                            ChatBubble(text = message.english, isLearner = true)
+                        is DialogueMessage.Learner -> {
+                            val ordinal = learnerOrdinalAt(messages, index)
+                            LearnerTurn(
+                                text = message.english,
+                                hasAudio = ordinal in learnerClipIndices,
+                                onReplay = { onPlayLearnerClip(ordinal) },
+                            )
+                        }
                     }
                 }
                 // 상대역 발화 직전 타이핑 스켈레톤 = 메시지 뒤 마지막 아이템(프로토타입 oppSkeleton).

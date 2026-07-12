@@ -58,7 +58,7 @@ private val OpponentBubbleShape =
  * 아이콘 center 를 텍스트 첫 줄 center 에 고정한다(프로토: 아이콘 center Y ≈ 첫 줄 center Y, 오차 2px).
  * dp 고정(A7) — 텍스트가 여러 줄로 래핑되거나 `해석 보기` 토글이 아래에 있어도 아이콘이 최상/최하로 밀리지 않는다.
  */
-private val OpponentFirstLineHeight = 23.dp
+private val BubbleFirstLineHeight = 23.dp
 
 /** 상대역 말풍선 최대폭 비율(프로토: `max-width:78%`, 고정폭 아님). 아바타(30dp)+행 간격 오프셋과 함께 화면에 안착. */
 private const val OPPONENT_BUBBLE_WIDTH_FRACTION = 0.78f
@@ -98,6 +98,52 @@ fun ChatBubble(
                     .background(container)
                     .padding(horizontal = OceTheme.spacing.lg, vertical = OceTheme.spacing.md),
         )
+    }
+}
+
+/**
+ * 학습자 발화 1턴. 기본은 우측 primary 말풍선([ChatBubble])만 렌더한다(기존 스크린샷 계약 유지).
+ * [hasAudio] 면 말풍선 왼쪽에 자기 녹음 재생 스피커 버튼([ReplayButton], 상대역 `다시 듣기`와 동일 외형)을
+ * 함께 얹는다 — 버튼은 말풍선 첫 줄 높이 래퍼에 center 배치돼 텍스트가 여러 줄이어도 첫 줄 중앙에 고정된다.
+ * 버튼은 primary 말풍선 바깥(스레드 배경) 좌측에 둔다 — 상대역 버튼색(background/onSurfaceVariant)이 primary
+ * 위에서 뭉개지지 않게 하기 위함이다.
+ */
+@Composable
+fun LearnerTurn(
+    text: String,
+    modifier: Modifier = Modifier,
+    hasAudio: Boolean = false,
+    onReplay: () -> Unit = {},
+) {
+    if (!hasAudio) {
+        ChatBubble(text = text, isLearner = true, modifier = modifier)
+        return
+    }
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val maxBubbleWidth = maxWidth * 0.8f
+        Row(
+            modifier = Modifier.align(Alignment.CenterEnd),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            // 스피커 버튼을 첫 줄 높이(23dp) 래퍼에 center — 아이콘 center 를 말풍선 첫 줄 center 에 맞춘다.
+            Box(
+                modifier = Modifier.height(BubbleFirstLineHeight),
+                contentAlignment = Alignment.Center,
+            ) {
+                ReplayButton(onReplay = onReplay)
+            }
+            Text(
+                text = englishLocaleText(text),
+                style = OceTheme.typography.body,
+                color = MaterialTheme.colorScheme.onPrimary,
+                modifier =
+                    Modifier
+                        .widthIn(max = maxBubbleWidth)
+                        .clip(OceTheme.shapes.radius18)
+                        .background(MaterialTheme.colorScheme.primary)
+                        .padding(horizontal = OceTheme.spacing.lg, vertical = OceTheme.spacing.md),
+            )
+        }
     }
 }
 
@@ -181,7 +227,7 @@ private fun OpponentBubble(
         }
         // 첫 줄 높이(23dp) 래퍼에 center — 아이콘(28dp) center 를 텍스트 첫 줄 center 에 고정한다.
         Box(
-            modifier = Modifier.height(OpponentFirstLineHeight),
+            modifier = Modifier.height(BubbleFirstLineHeight),
             contentAlignment = Alignment.Center,
         ) {
             ReplayButton(onReplay = onReplay)
