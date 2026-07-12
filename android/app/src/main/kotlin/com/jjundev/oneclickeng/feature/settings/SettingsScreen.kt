@@ -10,6 +10,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -119,7 +120,7 @@ fun SettingsScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-    val notificationsBlocked = !notificationsEnabled && !state.reminderEnabled
+    val notificationsBlocked = !notificationsEnabled
 
     // Google 연결 성공 → 계정 분기 갱신(게스트 CTA → 로그아웃/삭제).
     LaunchedEffect(linkState) { if (linkState is LinkUiState.Success) viewModel.refreshAccount() }
@@ -499,7 +500,7 @@ internal fun SettingsContent(
 /** 섹션 = 헤더(10dp gap) + radius24 카드. */
 @Composable
 private fun SettingsSection(
-    titleRes: Int,
+    @StringRes titleRes: Int,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

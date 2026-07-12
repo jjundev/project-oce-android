@@ -145,7 +145,6 @@ class SettingsViewModel
 
         // ----- 데이터 관리 -----
 
-        /** 정리 범위 선택(바텀시트) → 실행 직전 재쿼리한 건수로 확인 다이얼로그를 띄운다. */
         /** 정리 시트 오픈 시 3범위 카운트를 선로딩(배지 표기용). */
         fun loadPurgeCounts() {
             viewModelScope.launch {
@@ -154,6 +153,7 @@ class SettingsViewModel
             }
         }
 
+        /** 정리 범위 선택(바텀시트) → 실행 직전 재쿼리한 건수로 확인 다이얼로그를 띄운다. */
         fun selectPurgeScope(scope: PurgeScope) {
             viewModelScope.launch {
                 val count = cardPurgeRepository.count(scope)

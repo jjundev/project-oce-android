@@ -87,6 +87,14 @@ class SettingsScreenScreenshotTest {
             name = "settings_notif_blocked",
         )
 
+    @Test fun settings_member_blocked() =
+        renderSettings(
+            SettingsUiState(loading = false, nickname = "준영", isGuest = false, reminderEnabled = true),
+            dark = false,
+            blocked = true,
+            name = "settings_member_blocked",
+        )
+
     @Test fun reminder_time_sheet() {
         composeRule.setContent {
             OceTheme(darkTheme = false) {
