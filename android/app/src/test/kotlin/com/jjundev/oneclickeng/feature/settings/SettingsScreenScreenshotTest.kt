@@ -25,21 +25,14 @@ class SettingsScreenScreenshotTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    @Test
-    fun settings_light_guest() {
-        val state =
-            SettingsUiState(
-                loading = false,
-                nickname = "준영",
-                isGuest = true,
-            )
+    private fun renderSettings(state: SettingsUiState, dark: Boolean, blocked: Boolean, name: String) {
         composeRule.setContent {
-            OceTheme(darkTheme = false) {
+            OceTheme(darkTheme = dark) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     SettingsContent(
                         state = state,
                         versionLabel = "1.0.0 (1)",
-                        notificationsBlocked = false,
+                        notificationsBlocked = blocked,
                         onNicknameChange = {},
                         onQualityChange = {},
                         onSpeedChange = {},
@@ -59,6 +52,29 @@ class SettingsScreenScreenshotTest {
                 }
             }
         }
-        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/settings_light_guest.png")
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/$name.png")
+    }
+
+    @Test fun settings_light_guest() =
+        renderSettings(SettingsUiState(loading = false, nickname = "준영", isGuest = true), dark = false, blocked = false, name = "settings_light_guest")
+
+    @Test fun settings_light_member() =
+        renderSettings(SettingsUiState(loading = false, nickname = "준영", isGuest = false, reminderEnabled = true), dark = false, blocked = false, name = "settings_light_member")
+
+    @Test fun settings_dark_guest() =
+        renderSettings(SettingsUiState(loading = false, nickname = "준영", isGuest = true), dark = true, blocked = false, name = "settings_dark_guest")
+
+    @Test fun settings_notif_blocked() =
+        renderSettings(SettingsUiState(loading = false, nickname = "준영", isGuest = true, reminderEnabled = false), dark = false, blocked = true, name = "settings_notif_blocked")
+
+    @Test fun reminder_time_sheet() {
+        composeRule.setContent {
+            OceTheme(darkTheme = false) {
+                Surface(color = MaterialTheme.colorScheme.surface) {
+                    ReminderTimeSheetContent(initialHour = 20, initialMinute = 0, onConfirm = { _, _ -> })
+                }
+            }
+        }
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/reminder_time_sheet.png")
     }
 }
