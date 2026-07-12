@@ -824,6 +824,15 @@ internal class SessionTurnProgress(
         onStateChanged()
     }
 
+    /** 상대역 오디오가 실제 재생을 시작할 때(코디네이터 audioReady) 호출 — 표시 대기 중인 상대역 대사를
+     *  표시한다. OpponentTurn 일 때만 실효해 replay·자기녹음 재생(LearnerTurn)의 재생 시작을 무시한다.
+     *  commitReveal 은 멱등이라 이미 표시됐으면 append 는 no-op 다. */
+    fun revealOnAudioReady() {
+        if (state.turnPhase != TurnPhase.OpponentTurn) return
+        state.commitReveal()
+        onStateChanged()
+    }
+
     fun completeOpponentTurn() {
         state.completeOpponentTurn()
         onStateChanged()
@@ -938,6 +947,10 @@ internal class GeneratedDialogueState {
     /** 방금 reveal 된(=messages 마지막) 상대역 영어. 발화 대상(Route TTS)으로 읽는다. 마지막이 학습자
      *  말풍선이거나 아직 아무 것도 append 안 됐으면 null. */
     fun lastOpponentEnglish(): String? = (messages.lastOrNull() as? DialogueMessage.Opponent)?.english
+
+    /** 아직 표시 대기(awaitingReveal)인 상대역 대사 = 이번 턴 스켈레톤 뒤에서 합성/발화할 대상. Route 가
+     *  오디오 준비 전 선(先)합성을 위해 읽는다(표시 전이라 messages.last 가 아니라 pending 에서 가져온다). */
+    fun pendingOpponentEnglish(): String? = pending.opponentEnglish
 
     /** 학습자 턴을 마감하고 다음 상대역 턴/완료로 전진한다(스텁·실답변 공용 tail). */
     fun advanceTurn() {
