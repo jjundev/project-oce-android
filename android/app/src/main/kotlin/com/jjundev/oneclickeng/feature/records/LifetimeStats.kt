@@ -1,5 +1,6 @@
 package com.jjundev.oneclickeng.feature.records
 
+import com.jjundev.oneclickeng.BuildConfig
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,10 +23,19 @@ interface LifetimeStatsSource {
     suspend fun lifetime(): LifetimeStats?
 }
 
-/** M3-05 배선 전 스텁 — 항상 `null`. 헤더는 정적 0 지표로 렌더된다. */
+/**
+ * M3-05 배선 전 스텁. **release = 항상 `null`**(헤더 정적 0). **debug 빌드에서는** 슬롯머신 카운트업을 눈으로
+ * 검증할 수 있도록 샘플 통계([DEBUG_SAMPLE])를 시드한다(`BuildConfig.DEBUG` 게이트) — 실데이터 배선(M3-05)과
+ * 무관한 개발 확인용이며, M3-05 가 이 seam 을 교체하면 제거 대상이다.
+ */
 @Singleton
 class StubLifetimeStatsSource
     @Inject
     constructor() : LifetimeStatsSource {
-        override suspend fun lifetime(): LifetimeStats? = null
+        override suspend fun lifetime(): LifetimeStats? =
+            if (BuildConfig.DEBUG) DEBUG_SAMPLE else null
+
+        private companion object {
+            val DEBUG_SAMPLE = LifetimeStats(xp = 1240, studyMinutes = 135, studyDays = 12)
+        }
     }
