@@ -123,13 +123,15 @@ internal fun DialogueTurnContent(
     // 헤더 뒤로가기 화살표 콜백(대화 나가기). 미주입이면 no-op(스텁·프리뷰·테스트 호환).
     onBack: () -> Unit = {},
     // 상대역 말풍선 TTS(M1-05)·해석 토글 콜백. 현재는 시각 셸 seam 으로 기본 no-op.
-    onReplay: () -> Unit = {},
+    onReplay: (String) -> Unit = {},
     onToggleTranslation: () -> Unit = {},
     // 입력 독 slot(M1-08). 미주입(스텁 라우트·프리뷰)이면 기존 [ScaffoldDock] 로 폴백해 M1-03 화면을 유지한다.
     dock: (@Composable (ScaffoldTask) -> Unit)? = null,
     // 상대역 발화 append 직전 타이핑 스켈레톤 국면(프로토타입 정합). 기본 false 라 프리뷰·스크린샷 테스트·
     // 무상태 렌더는 스켈레톤을 그리지 않는다(결정성 유지). 상태 홀더만 실제 국면을 주입한다.
     opponentTyping: Boolean = false,
+    // 상대역 말풍선 화자명(로컬 SpeakerDirectory 배정). 미주입(스텁·프리뷰·스크린샷)이면 "Emma" 고정.
+    opponentSpeaker: String = "Emma",
 ) {
     // reduceMotion 게이트(스켈레톤 진입 페이드·입력 독 슬라이드업). 무상태 렌더도 시스템 설정을 읽지만,
     // 슬라이드업은 초기 visible=true 시 애니메이션이 없고 스켈레톤은 opponentTyping=false 라 프리뷰/테스트는 정적.
@@ -171,7 +173,8 @@ internal fun DialogueTurnContent(
                         is DialogueMessage.Opponent ->
                             OpponentTurn(
                                 text = message.english,
-                                onReplay = onReplay,
+                                speaker = opponentSpeaker,
+                                onReplay = { onReplay(message.english) },
                                 onToggleTranslation = onToggleTranslation,
                             )
                         is DialogueMessage.Learner ->

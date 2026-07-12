@@ -260,6 +260,46 @@ class TtsPlaybackCoordinatorTest {
             assertEquals(PlaybackState.IDLE, coordinator.state.value)
         }
 
+    @Test
+    fun `deviceOnly skips server synthesis even when quality is SERVER`() =
+        runTest {
+            val api = FakeLlmApi() // FakeSettings() 기본 quality = SERVER
+            val device = FakeDeviceTts(result = DeviceTtsResult.COMPLETED)
+            val coordinator =
+                TtsPlaybackCoordinator(api, FakePcmPlayer(), device, FakeSettings(), coordScope())
+
+            val completions = collectCompletions(coordinator)
+            coordinator.playTurn("Hello", null, deviceOnly = true)
+            advanceUntilIdle()
+
+            assertEquals(0, api.callCount) // 서버 합성 미호출
+            assertEquals(1, device.callCount) // 곧장 디바이스 TTS
+            assertEquals(1, completions.size) // 정상 종료 → 자동진행
+            assertEquals(PlaybackState.IDLE, coordinator.state.value)
+        }
+
+    @Test
+    fun `advanceOnDone false suppresses the completion so replay never advances`() =
+        runTest {
+            val device = FakeDeviceTts(result = DeviceTtsResult.COMPLETED)
+            val coordinator =
+                TtsPlaybackCoordinator(
+                    FakeLlmApi(),
+                    FakePcmPlayer(),
+                    device,
+                    FakeSettings(),
+                    coordScope(),
+                )
+
+            val completions = collectCompletions(coordinator)
+            coordinator.playTurn("Hello", null, deviceOnly = true, advanceOnDone = false)
+            advanceUntilIdle()
+
+            assertEquals(1, device.callCount) // 발화는 정상 재생
+            assertTrue(completions.isEmpty()) // 그러나 자동진행 신호는 없음
+            assertEquals(PlaybackState.IDLE, coordinator.state.value)
+        }
+
     /** Coordinator scope on an unconfined dispatcher tied to the test scheduler, so
      *  launches run eagerly while virtual time still drives the watchdogs. */
     private fun TestScope.coordScope(): CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
