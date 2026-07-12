@@ -114,6 +114,29 @@ class TtsPlaybackCoordinator
                 }
         }
 
+        /**
+         * 학습자 자기 녹음(캡처된 raw PCM16)을 그대로 재생한다. 진행 중 재생을 먼저 취소하고
+         * ([startNewSession]) 이 클립을 재생한다. 상대 발화·`다시 듣기`와 **동일한 단일 재생 권위**
+         * (같은 [player])를 공유해 두 오디오가 겹치지 않는다. 자기 녹음 재생은 대화 턴을 전진시키지
+         * 않으므로 완료 신호를 내지 않는다([advanceOnDone]=false). muted 면 무음 no-op 으로 즉시 IDLE 로
+         * 정착한다(상대 [replay] 정합). 상대 턴 재합성용 [lastPcm] 은 건드리지 않는다.
+         */
+        fun playClip(
+            pcm: ByteArray,
+            sampleRate: Int,
+        ) {
+            val token = startNewSession()
+            this.advanceOnDone = false
+            currentJob =
+                scope.launch {
+                    if (settingsRepo.current().muted) {
+                        finish(token, PlaybackState.IDLE, advance = false)
+                        return@launch
+                    }
+                    playPcm(token, pcm, sampleRate)
+                }
+        }
+
         /** Stop all playback and reset to idle (e.g. speaker re-tap = stop, plan #14). */
         fun stop() {
             sessionToken++
