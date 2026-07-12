@@ -43,7 +43,7 @@
 - **결정(rev3, 로딩 퀴즈 추가):** 96dp 링과 안심 카피 슬롯 **아래에** 무채점 로딩 퀴즈(C20 `OneClickWaitQuiz`)를 배치한다. 대기 1000ms 지연 게이트 이후 노출, 안심 카피 슬롯은 존치(숨기지 않음), 준비 완료 시 하단 `대화 시작하기` 유저 탭(자동전이 없음). 스택 순서 = [96dp 링] → [안심 카피] → [퀴즈 카드] → [하단 CTA]. 정본: [loading-quiz-interstitial.md](../ux/loading-quiz-interstitial.md), 스코프: [ADR-0005](../adr/0005-loading-quiz-vs-review-quiz.md).
 
 ### O4 · Google 저장 제안 (GoogleSavePrompt) 🟠
-- **현황:** 첫 세션 완주 후에만. primary `Google로 진도 저장` / secondary `한 번 더 하기` / skip `나중에 할게요`. 스킵 시 게스트 홈 진입. 카피: `가입` 대신 `진도 저장`.
+- **현황:** 첫 세션에서만, 스크롤 가능한 세션 요약을 최하단까지 내린 뒤 500ms 동안 유지하면 노출한다. 대기 중 최하단을 벗어나면 취소한다. primary `Google로 진도 저장` / secondary `한 번 더 하기` / skip `나중에 할게요`. 스킵 시 게스트 홈 진입. 카피: `가입` 대신 `진도 저장`.
 - **쟁점:** 시트 vs 전체화면, 3버튼 위계.
 - **결정(rev2):** OneClickBottomSheet + 세로 3버튼(primary=Google로 진도 저장 / secondary=한 번 더 하기 / ghost=나중에 할게요). 버튼 라벨·순서는 기존 확정, 시트형 컨테이너는 rev2 결정.
 
