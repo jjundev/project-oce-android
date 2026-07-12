@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -103,10 +104,9 @@ fun ChatBubble(
 
 /**
  * 학습자 발화 1턴. 기본은 우측 primary 말풍선([ChatBubble])만 렌더한다(기존 스크린샷 계약 유지).
- * [hasAudio] 면 말풍선 왼쪽에 자기 녹음 재생 스피커 버튼([ReplayButton], 상대역 `다시 듣기`와 동일 외형)을
- * 함께 얹는다 — 버튼은 말풍선 첫 줄 높이 래퍼에 center 배치돼 텍스트가 여러 줄이어도 첫 줄 중앙에 고정된다.
- * 버튼은 primary 말풍선 바깥(스레드 배경) 좌측에 둔다 — 상대역 버튼색(background/onSurfaceVariant)이 primary
- * 위에서 뭉개지지 않게 하기 위함이다.
+ * [hasAudio] 면 말풍선 **안**에 자기 녹음 재생 스피커 버튼([ReplayButton], 상대역 `다시 듣기`와 동일 외형)을
+ * 담는다 — 상대역 [OpponentBubble] 의 거울상으로, primary 컨테이너 내부 텍스트 왼쪽에 버튼을 둔다. 버튼은
+ * 첫 줄 높이 래퍼에 center 배치돼 텍스트가 여러 줄이어도 첫 줄 중앙에 고정된다.
  */
 @Composable
 fun LearnerTurn(
@@ -122,26 +122,33 @@ fun LearnerTurn(
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val maxBubbleWidth = maxWidth * 0.8f
         Row(
-            modifier = Modifier.align(Alignment.CenterEnd),
+            modifier =
+                Modifier
+                    .align(Alignment.CenterEnd)
+                    .widthIn(max = maxBubbleWidth)
+                    .clip(OceTheme.shapes.radius18)
+                    .background(MaterialTheme.colorScheme.primary)
+                    .padding(horizontal = OceTheme.spacing.lg, vertical = OceTheme.spacing.md),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            // 스피커 버튼을 첫 줄 높이(23dp) 래퍼에 center — 아이콘 center 를 말풍선 첫 줄 center 에 맞춘다.
+            // 스피커 버튼을 첫 줄 높이(23dp) 래퍼에 center — 아이콘 center 를 텍스트 첫 줄 center 에 맞춘다.
+            // primary 말풍선 위에서 어울리게 반투명 흰 원 + 흰 아이콘으로 색을 덮어쓴다.
             Box(
                 modifier = Modifier.height(BubbleFirstLineHeight),
                 contentAlignment = Alignment.Center,
             ) {
-                ReplayButton(onReplay = onReplay)
+                ReplayButton(
+                    onReplay = onReplay,
+                    container = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.20f),
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                )
             }
+            // 폭은 고정이 아닌 상대값(80%) — 텍스트는 버튼/간격/패딩을 제외한 나머지에서 자연스럽게 래핑된다.
             Text(
                 text = englishLocaleText(text),
                 style = OceTheme.typography.body,
                 color = MaterialTheme.colorScheme.onPrimary,
-                modifier =
-                    Modifier
-                        .widthIn(max = maxBubbleWidth)
-                        .clip(OceTheme.shapes.radius18)
-                        .background(MaterialTheme.colorScheme.primary)
-                        .padding(horizontal = OceTheme.spacing.lg, vertical = OceTheme.spacing.md),
+                modifier = Modifier.weight(1f, fill = false),
             )
         }
     }
@@ -257,22 +264,30 @@ private fun TurnAvatar(
     }
 }
 
-/** 말풍선 안 `다시 듣기` TTS 버튼(28dp, surface-background 원형). 아이콘은 장식 — 라벨은 버튼이 보유. */
+/**
+ * 말풍선 안 `다시 듣기` TTS 버튼(28dp, 원형). 아이콘은 장식 — 라벨은 버튼이 보유.
+ * 기본색은 상대역 말풍선(surface 배경) 기준이고, 학습자 primary 말풍선은 [container]/[tint] 로 덮어써
+ * 배경 위에서 어울리는 색을 준다.
+ */
 @Composable
-private fun ReplayButton(onReplay: () -> Unit) {
+private fun ReplayButton(
+    onReplay: () -> Unit,
+    container: Color = MaterialTheme.colorScheme.background,
+    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+) {
     Box(
         modifier =
             Modifier
                 .size(28.dp)
                 .clip(OceTheme.shapes.pill)
-                .background(MaterialTheme.colorScheme.background)
+                .background(container)
                 .clickable(onClick = onReplay),
         contentAlignment = Alignment.Center,
     ) {
         OneClickIcon(
             icon = OceIcon.VolumeUp,
             contentDescription = "다시 듣기",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = tint,
             size = 16.dp,
         )
     }
