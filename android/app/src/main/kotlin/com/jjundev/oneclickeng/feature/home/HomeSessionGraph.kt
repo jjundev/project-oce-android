@@ -22,6 +22,8 @@ import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGeneratingRoute
 import com.jjundev.oneclickeng.feature.session.summary.AccrualStrip
 import com.jjundev.oneclickeng.feature.session.summary.SummaryRoute
 import com.jjundev.oneclickeng.feature.session.turn.GeneratedDialogueSessionRoute
+import com.jjundev.oneclickeng.ui.navigation.sessionExitFor
+import com.jjundev.oneclickeng.ui.navigation.summaryEnterFor
 import com.jjundev.oneclickeng.ui.root.MAIN_TABS_ROUTE
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
@@ -38,11 +40,11 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
  * **이어하기 재진입(#12):** [homeSessionResumeRoute] 로 [HOME_SESSION_ROUTE] 에 직접 진입한다(생성 라우트
  * 우회 — 생성 라우트는 `start()` 로 turns 를 wipe). 세션 VM 은 durable 스냅샷/라이브 코디네이터에서 복원한다.
  */
-fun NavGraphBuilder.homeSessionGraph(navController: NavHostController) {
+fun NavGraphBuilder.homeSessionGraph(navController: NavHostController, reduceMotion: Boolean) {
     navigation(startDestination = HOME_GENERATING_ROUTE, route = HOME_SESSION_GRAPH_ROUTE) {
         generatingDestination(navController)
-        sessionDestination(navController)
-        summaryDestination(navController)
+        sessionDestination(navController, reduceMotion)
+        summaryDestination(navController, reduceMotion)
     }
 }
 
@@ -110,7 +112,7 @@ private fun NavGraphBuilder.generatingDestination(navController: NavHostControll
     }
 }
 
-private fun NavGraphBuilder.sessionDestination(navController: NavHostController) {
+private fun NavGraphBuilder.sessionDestination(navController: NavHostController, reduceMotion: Boolean) {
     composable(
         route = HOME_SESSION_ROUTE,
         arguments =
@@ -120,6 +122,8 @@ private fun NavGraphBuilder.sessionDestination(navController: NavHostController)
                 navArgument(H_ARG_TOPIC_LABEL) { type = NavType.StringType; defaultValue = "" },
                 navArgument(H_ARG_TOPIC_EMOJI) { type = NavType.StringType; defaultValue = "" },
             ),
+        // 대화 → 요약 핸드오프에서만 왼쪽으로 슬라이드 퇴장(요약 나가기 pop 은 popExitTransition=기본 유지).
+        exitTransition = { sessionExitFor(targetState.destination.route, HOME_SUMMARY_ROUTE, reduceMotion) },
     ) { entry ->
         val args = entry.arguments
         // 정상 흐름은 level 을 실어오고, 이어하기 재진입은 비운다(요약 difficulty 는 표시용 → 비면 normal).
@@ -144,7 +148,7 @@ private fun NavGraphBuilder.sessionDestination(navController: NavHostController)
     }
 }
 
-private fun NavGraphBuilder.summaryDestination(navController: NavHostController) {
+private fun NavGraphBuilder.summaryDestination(navController: NavHostController, reduceMotion: Boolean) {
     composable(
         route = HOME_SUMMARY_ROUTE,
         arguments =
@@ -152,6 +156,8 @@ private fun NavGraphBuilder.summaryDestination(navController: NavHostController)
                 navArgument(H_ARG_SESSION_ID) { type = NavType.StringType; defaultValue = "" },
                 navArgument(H_ARG_LEVEL) { type = NavType.StringType; defaultValue = DISPLAY_DIFFICULTY_DEFAULT },
             ),
+        // 대화(HOME_SESSION_ROUTE)에서 진입할 때만 오른쪽에서 슬라이드 진입.
+        enterTransition = { summaryEnterFor(initialState.destination.route, HOME_SESSION_ROUTE, reduceMotion) },
     ) { entry ->
         val args = entry.arguments
         val sessionId = args?.getString(H_ARG_SESSION_ID).orEmpty()

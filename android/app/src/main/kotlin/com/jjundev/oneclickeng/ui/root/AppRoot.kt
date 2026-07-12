@@ -28,6 +28,7 @@ import com.jjundev.oneclickeng.ui.component.OneClickOfflineBanner
 import com.jjundev.oneclickeng.ui.component.OneClickProgressRing
 import com.jjundev.oneclickeng.ui.component.ProgressRingMode
 import com.jjundev.oneclickeng.ui.foundation.OceBottomNav
+import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.navigation.OceNavHost
 import com.jjundev.oneclickeng.ui.navigation.OceTab
 import com.jjundev.oneclickeng.ui.navigation.oceScreenEnter
@@ -85,6 +86,8 @@ fun AppRoot(
     }
 
     val outerNavController = rememberNavController()
+    // reduce-motion 스냅샷(1회) — 세션→요약 슬라이드 전환을 그래프 빌더에 파라미터 seam 으로 전달한다.
+    val reduceMotion = rememberReduceMotion()
     NavHost(
         navController = outerNavController,
         startDestination = resolvedStart,
@@ -115,9 +118,9 @@ fun AppRoot(
             )
         }
         // 온보딩 그래프(M3-02): 3탭 밖 풀스크린 형제.
-        onboardingGraph(outerNavController)
+        onboardingGraph(outerNavController, reduceMotion)
         // 홈 주도 세션 그래프(M3-08): 3탭 밖 풀스크린 형제(주제→생성→대화→요약).
-        homeSessionGraph(outerNavController)
+        homeSessionGraph(outerNavController, reduceMotion)
     }
 }
 
