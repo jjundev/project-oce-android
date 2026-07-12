@@ -1,6 +1,7 @@
 package com.jjundev.oneclickeng.feature.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,10 +19,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jjundev.oneclickeng.R
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
@@ -120,4 +123,73 @@ internal fun SettingsCardDivider() {
         thickness = 1.dp,
         color = MaterialTheme.colorScheme.outlineVariant,
     )
+}
+
+/** 계정 상태 pill 배지(프로토 정합) — 게스트=중립, 로그인=natural-accent. */
+@Composable
+internal fun SettingsAccountBadge(
+    isGuest: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val labelRes = if (isGuest) R.string.settings_account_badge_guest else R.string.settings_account_badge_member
+    val fg = if (isGuest) MaterialTheme.colorScheme.onSurfaceVariant else OceTheme.colors.feedbackNaturalAccent
+    val bg = if (isGuest) MaterialTheme.colorScheme.background else OceTheme.colors.feedbackNaturalBg
+    Box(
+        modifier = modifier
+            .clip(OceTheme.shapes.pill)
+            .background(bg)
+            .padding(horizontal = OceTheme.spacing.sm, vertical = 3.dp),
+    ) {
+        Text(
+            text = stringResource(labelRes),
+            style = OceTheme.typography.tabInactive.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
+            color = fg,
+        )
+    }
+}
+
+/** 시스템 알림 차단 배너(프로토 정합) — feedback-correct-bg 안 notifications_off + 카피 + "시스템 설정 열기". */
+@Composable
+internal fun NotificationBlockedBanner(
+    onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(OceTheme.colors.feedbackCorrectBg)
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OneClickIcon(
+                icon = OceIcon.Notifications,
+                contentDescription = null,
+                tint = OceTheme.colors.feedbackCorrectAccent,
+                size = OceIconSize.ListDisclosure,
+            )
+            Text(
+                text = stringResource(R.string.settings_reminder_blocked_body),
+                style = OceTheme.typography.helper.copy(fontSize = 13.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Box(
+            modifier = Modifier
+                .clip(OceTheme.shapes.radius12)
+                .border(1.dp, OceTheme.colors.borderStrong, OceTheme.shapes.radius12)
+                .background(MaterialTheme.colorScheme.surface)
+                .clickable(onClick = onOpenSettings)
+                .padding(horizontal = OceTheme.spacing.lg, vertical = 10.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs)) {
+                OneClickIcon(OceIcon.OpenInNew, null, tint = MaterialTheme.colorScheme.onSurface, size = OceIconSize.FeedbackInline)
+                Text(
+                    text = stringResource(R.string.settings_reminder_blocked_action),
+                    style = OceTheme.typography.tabActive,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+    }
 }
