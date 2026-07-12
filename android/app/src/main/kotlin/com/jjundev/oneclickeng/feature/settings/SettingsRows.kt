@@ -88,7 +88,7 @@ internal fun SettingsNavRow(
             if (desc != null) {
                 Text(
                     text = desc,
-                    style = OceTheme.typography.helper.copy(fontSize = 12.5f.sp, lineHeightStyle = TrimmedLineHeight),
+                    style = OceTheme.typography.helper.copy(fontWeight = FontWeight.Medium, fontSize = 12.5f.sp, lineHeightStyle = TrimmedLineHeight),
                     color = OceTheme.colors.textTertiary,
                     modifier = Modifier.padding(top = RowLabelGap),
                 )
