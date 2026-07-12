@@ -74,6 +74,8 @@ import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
+import com.jjundev.oneclickeng.ui.foundation.rememberScreenEntrance
+import com.jjundev.oneclickeng.ui.foundation.staggerReveal
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import kotlin.math.PI
 import kotlin.math.sin
@@ -226,6 +228,7 @@ internal fun HomeContent(
     onDismissReminderBanner: () -> Unit = {},
     onChangeReminderTime: () -> Unit = {},
 ) {
+    val entrance = rememberScreenEntrance(reduceMotion)
     LazyColumn(
         modifier =
             modifier
@@ -240,14 +243,14 @@ internal fun HomeContent(
                     minute = reminderMinute,
                     onDismiss = onDismissReminderBanner,
                     onChangeTime = onChangeReminderTime,
-                    modifier = Modifier.padding(top = OceTheme.spacing.lg),
+                    modifier = Modifier.staggerReveal(0, entrance).padding(top = OceTheme.spacing.lg),
                 )
             }
         }
         // 프로토타입 홈 리듬(비균일): 섹션 사이는 넉넉히(12~24dp), 상황 카드끼리는 촘촘히(8dp).
         item(key = "header") {
             Column(
-                modifier = Modifier.padding(top = OceTheme.spacing.xxl),
+                modifier = Modifier.staggerReveal(1, entrance).padding(top = OceTheme.spacing.xxl),
                 verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
             ) {
                 Text(
@@ -273,7 +276,7 @@ internal fun HomeContent(
             StatsStrip(
                 studyTimeLabel = state.studyTimeLabel,
                 streak = state.streak,
-                modifier = Modifier.padding(top = OceTheme.spacing.md),
+                modifier = Modifier.staggerReveal(2, entrance).padding(top = OceTheme.spacing.md),
             )
         }
 
@@ -289,7 +292,7 @@ internal fun HomeContent(
                 onClick = if (state.hasResume) onResumeContinue else onStartLearning,
                 onDisabledClick = onOfflineBlocked,
                 reduceMotion = reduceMotion,
-                modifier = Modifier.padding(top = OceTheme.spacing.xl),
+                modifier = Modifier.staggerReveal(3, entrance).padding(top = OceTheme.spacing.xl),
             )
         }
 
@@ -297,7 +300,7 @@ internal fun HomeContent(
             item(key = "new_chat") {
                 NewChatLink(
                     onClick = onResumeStartNew,
-                    modifier = Modifier.padding(top = OceTheme.spacing.md),
+                    modifier = Modifier.staggerReveal(4, entrance).padding(top = OceTheme.spacing.md),
                 )
             }
         } else {
@@ -307,7 +310,7 @@ internal fun HomeContent(
                     length = state.length,
                     onSetLevel = onSetLevel,
                     onSetLength = onSetLength,
-                    modifier = Modifier.padding(top = OceTheme.spacing.md),
+                    modifier = Modifier.staggerReveal(4, entrance).padding(top = OceTheme.spacing.md),
                 )
             }
         }
@@ -318,7 +321,7 @@ internal fun HomeContent(
                     gridMode = gridMode,
                     onToggleLayout = onToggleLayout,
                     onRefresh = onRefreshSituations,
-                    modifier = Modifier.padding(top = OceTheme.spacing.xxl),
+                    modifier = Modifier.staggerReveal(5, entrance).padding(top = OceTheme.spacing.xxl),
                 )
             }
             if (gridMode) {
@@ -327,6 +330,7 @@ internal fun HomeContent(
                     Row(
                         modifier =
                             Modifier
+                                .staggerReveal(6 + index, entrance)
                                 .fillMaxWidth()
                                 .padding(top = if (index == 0) OceTheme.spacing.lg else OceTheme.spacing.sm)
                                 .height(IntrinsicSize.Min),
@@ -348,7 +352,7 @@ internal fun HomeContent(
                         situation = situation,
                         onClick = { onSituationSelected(situation) },
                         modifier =
-                            Modifier.padding(
+                            Modifier.staggerReveal(6 + index, entrance).padding(
                                 top = if (index == 0) OceTheme.spacing.lg else OceTheme.spacing.sm,
                             ),
                     )
@@ -357,7 +361,7 @@ internal fun HomeContent(
             item(key = "more_situations") {
                 MoreSituationsButton(
                     onClick = onMoreSituations,
-                    modifier = Modifier.padding(top = OceTheme.spacing.xl),
+                    modifier = Modifier.staggerReveal(11, entrance).padding(top = OceTheme.spacing.xl),
                 )
             }
         }
@@ -366,7 +370,7 @@ internal fun HomeContent(
             item(key = "atLimit") {
                 OneClickAtLimitNotice(
                     onViewRecords = onViewRecords,
-                    modifier = Modifier.padding(top = OceTheme.spacing.md),
+                    modifier = Modifier.staggerReveal(11, entrance).padding(top = OceTheme.spacing.md),
                 )
             }
         }
