@@ -18,11 +18,12 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
 @Composable
 fun OneClickCard(
     modifier: Modifier = Modifier,
+    shape: androidx.compose.ui.graphics.Shape = OceTheme.shapes.radius16,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
         modifier = modifier,
-        shape = OceTheme.shapes.radius16,
+        shape = shape,
         colors =
             CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface,

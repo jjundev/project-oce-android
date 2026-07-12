@@ -17,6 +17,7 @@ fun OneClickInput(
     modifier: Modifier = Modifier,
     label: String? = null,
     placeholder: String? = null,
+    helper: String? = null,
     isError: Boolean = false,
     singleLine: Boolean = true,
 ) {
@@ -27,6 +28,7 @@ fun OneClickInput(
         textStyle = OceTheme.typography.body,
         label = label?.let { { Text(text = it) } },
         placeholder = placeholder?.let { { Text(text = it) } },
+        supportingText = helper?.let { { Text(text = it) } },
         isError = isError,
         singleLine = singleLine,
         shape = OceTheme.shapes.radius12,

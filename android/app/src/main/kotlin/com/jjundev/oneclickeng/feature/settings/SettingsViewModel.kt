@@ -145,6 +145,14 @@ class SettingsViewModel
 
         // ----- 데이터 관리 -----
 
+        /** 정리 시트 오픈 시 3범위 카운트를 선로딩(배지 표기용). */
+        fun loadPurgeCounts() {
+            viewModelScope.launch {
+                val counts = collectPurgeCounts(cardPurgeRepository)
+                _uiState.update { it.copy(purgeCounts = counts) }
+            }
+        }
+
         /** 정리 범위 선택(바텀시트) → 실행 직전 재쿼리한 건수로 확인 다이얼로그를 띄운다. */
         fun selectPurgeScope(scope: PurgeScope) {
             viewModelScope.launch {
@@ -225,4 +233,10 @@ class SettingsViewModel
             const val MAX_NICKNAME = 20
             const val NICKNAME_SAVE_DEBOUNCE_MS = 500L
         }
+    }
+
+/** 3범위 카운트 수집(정리 시트 배지용). 각 범위 실패는 0으로 강등(오프라인/권한 안전). */
+suspend fun collectPurgeCounts(repo: CardPurgeRepository): Map<PurgeScope, Int> =
+    PurgeScope.entries.associateWith { scope ->
+        runCatching { repo.count(scope) }.getOrDefault(0)
     }

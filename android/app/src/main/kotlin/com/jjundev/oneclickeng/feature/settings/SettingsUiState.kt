@@ -23,6 +23,8 @@ data class SettingsUiState(
     val showRetryMerge: Boolean = false,
     /** null 이 아니면 카드 정리 확인 다이얼로그를 띄운다(범위 + 영향 건수). */
     val purgeConfirm: PurgeConfirm? = null,
+    /** 카드 정리 시트가 열릴 때 3범위 카운트를 선로딩(null=미로딩/로딩중). */
+    val purgeCounts: Map<PurgeScope, Int>? = null,
     val purgeInFlight: Boolean = false,
     val metricsResetInFlight: Boolean = false,
     val deleteInFlight: Boolean = false,
