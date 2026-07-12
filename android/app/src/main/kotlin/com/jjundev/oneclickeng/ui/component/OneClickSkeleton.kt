@@ -19,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -60,42 +62,72 @@ fun OneClickSkeleton(
             SkeletonShape.Card -> OceTheme.shapes.radius8
             SkeletonShape.Section -> OceTheme.shapes.radius8
         }
-    val height = shape.height()
-    val base = MaterialTheme.colorScheme.surface
     val highlight = MaterialTheme.colorScheme.outlineVariant
-
-    val brush: Brush =
-        if (reduceMotion) {
-            SolidColor(base)
-        } else {
-            val transition = rememberInfiniteTransition(label = "skeleton")
-            val offset by transition.animateFloat(
-                initialValue = 0f,
-                targetValue = SHIMMER_TRAVEL_PX,
-                animationSpec =
-                    infiniteRepeatable(
-                        animation = tween(OceTheme.motion.shimmerLoopMs, easing = LinearEasing),
-                        repeatMode = RepeatMode.Restart,
-                    ),
-                label = "shimmer",
-            )
-            Brush.linearGradient(
-                colors = listOf(base, highlight, base),
-                start = Offset(offset - SHIMMER_BAND_PX, 0f),
-                end = Offset(offset, 0f),
-            )
-        }
+    val brush =
+        rememberSkeletonBrush(
+            base = MaterialTheme.colorScheme.surface,
+            highlight = highlight,
+            reduceMotion = reduceMotion,
+        )
 
     Box(
         modifier =
             modifier
                 .fillMaxWidth()
-                .height(height)
+                .height(shape.height())
                 .clip(cornerShape)
                 .background(brush)
                 .border(BorderStroke(SkeletonHairline, highlight), cornerShape),
     )
 }
+
+/**
+ * 임의 크기 시머 조각(프로토 `.oc-sk`) — 카드 프레임 안의 아이콘/텍스트 자리표시자용. [OneClickSkeleton] 과 달리
+ * 테두리·고정 높이가 없고, 크기·모서리는 호출부 [modifier]/[shape] 가 정한다. base 는 `background`(카드 위에서
+ * 보이는 회색), 스윕은 hairline. [reduceMotion] 이면 정적(A7).
+ */
+@Composable
+fun OneClickShimmerPiece(
+    shape: Shape,
+    modifier: Modifier = Modifier,
+    reduceMotion: Boolean = rememberReduceMotion(),
+) {
+    val brush =
+        rememberSkeletonBrush(
+            base = MaterialTheme.colorScheme.background,
+            highlight = MaterialTheme.colorScheme.outlineVariant,
+            reduceMotion = reduceMotion,
+        )
+    Box(modifier.clip(shape).background(brush))
+}
+
+/** 시머 스윕 브러시(1200ms `shimmerLoopMs` 좌향 스윕). [reduceMotion] 이면 정적 [SolidColor]. */
+@Composable
+private fun rememberSkeletonBrush(
+    base: Color,
+    highlight: Color,
+    reduceMotion: Boolean,
+): Brush =
+    if (reduceMotion) {
+        SolidColor(base)
+    } else {
+        val transition = rememberInfiniteTransition(label = "skeleton")
+        val offset by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = SHIMMER_TRAVEL_PX,
+            animationSpec =
+                infiniteRepeatable(
+                    animation = tween(OceTheme.motion.shimmerLoopMs, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart,
+                ),
+            label = "shimmer",
+        )
+        Brush.linearGradient(
+            colors = listOf(base, highlight, base),
+            start = Offset(offset - SHIMMER_BAND_PX, 0f),
+            end = Offset(offset, 0f),
+        )
+    }
 
 private fun SkeletonShape.height(): Dp =
     when (this) {
