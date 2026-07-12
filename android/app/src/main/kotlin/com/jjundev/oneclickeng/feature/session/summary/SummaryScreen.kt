@@ -26,15 +26,19 @@ import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -55,6 +59,10 @@ import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 
 /**
  * 화면 05 — 세션 요약(M2-02). 정본: 04-screen-05-summary.md · gamification-emphasis.md §4 ·
@@ -70,6 +78,9 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
  * 이렇게를 **각각 별도 카드**로 분리한다(사용자 요청 정합). 로딩 단계엔 상단 단일 스켈레톤이 SSE 전체를
  * 대표하고, 코칭 카드는 `done`(Sectioned) 이후에만 하단에 렌더된다.
  */
+internal const val GOOGLE_SAVE_PROMPT_DELAY_MS = 500L
+internal const val SUMMARY_SCROLL_CONTENT_TAG = "summary_scroll_content"
+
 @Composable
 fun SummaryScreen(
     state: SummaryState,
@@ -79,9 +90,34 @@ fun SummaryScreen(
     modifier: Modifier = Modifier,
     onDone: (() -> Unit)? = null,
     doneLabel: String = "완료",
+    onScrollEndReached: (() -> Unit)? = null,
 ) {
     // "더 보기" 접힘 상태(#15): 섹션별 독립, 초기 접힘. 기본 표시 [COLLAPSED_PREVIEW]개.
     val expanded = remember { mutableStateMapOf<SummarySection, Boolean>() }
+    val scrollState = rememberScrollState()
+    val currentOnScrollEndReached by rememberUpdatedState(onScrollEndReached)
+
+    if (onScrollEndReached != null) {
+        LaunchedEffect(scrollState) {
+            snapshotFlow {
+                when {
+                    scrollState.maxValue <= 0 -> false
+                    scrollState.value == scrollState.maxValue -> true
+                    scrollState.value < scrollState.maxValue -> false
+                    else -> null
+                }
+            }.filterNotNull()
+                .distinctUntilChanged()
+                .collectLatest { isAtBottom ->
+                    if (isAtBottom) {
+                        delay(GOOGLE_SAVE_PROMPT_DELAY_MS)
+                        if (scrollState.maxValue > 0 && scrollState.value == scrollState.maxValue) {
+                            currentOnScrollEndReached?.invoke()
+                        }
+                    }
+                }
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
@@ -91,7 +127,8 @@ fun SummaryScreen(
                     Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
+                        .verticalScroll(scrollState)
+                        .testTag(SUMMARY_SCROLL_CONTENT_TAG)
                         .padding(OceTheme.spacing.sheetPadding),
                 verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sectionGap),
             ) {
