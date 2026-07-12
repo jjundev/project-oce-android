@@ -123,7 +123,7 @@ fun OpponentTurn(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
         ) {
-            TurnAvatar(letter = "E", modifier = Modifier.padding(top = 20.dp))
+            TurnAvatar(letter = avatarInitial(speaker), modifier = Modifier.padding(top = 20.dp))
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(
                     text = speaker,
