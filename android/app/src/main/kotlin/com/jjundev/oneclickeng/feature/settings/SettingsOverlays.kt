@@ -26,9 +26,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.jjundev.oneclickeng.R
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickBottomSheet
-import com.jjundev.oneclickeng.ui.foundation.OceIconSize
-import com.jjundev.oneclickeng.ui.foundation.OceIcon
-import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import com.jjundev.oneclickeng.feature.settings.data.PurgeScope
 
@@ -145,9 +142,30 @@ internal fun CardPurgeSheet(
             modifier = Modifier.padding(top = 4.dp, bottom = OceTheme.spacing.lg),
         )
         Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
-            PurgeOption(PurgeScope.LAST_30_DAYS, R.string.settings_purge_30, counts, isAll = false, onSelect)
-            PurgeOption(PurgeScope.LAST_90_DAYS, R.string.settings_purge_90, counts, isAll = false, onSelect)
-            PurgeOption(PurgeScope.ALL, R.string.settings_purge_all, counts, isAll = true, onSelect)
+            PurgeOption(
+                PurgeScope.LAST_30_DAYS,
+                R.string.settings_purge_30,
+                R.string.settings_purge_30_sub,
+                counts,
+                isAll = false,
+                onSelect,
+            )
+            PurgeOption(
+                PurgeScope.LAST_90_DAYS,
+                R.string.settings_purge_90,
+                R.string.settings_purge_90_sub,
+                counts,
+                isAll = false,
+                onSelect,
+            )
+            PurgeOption(
+                PurgeScope.ALL,
+                R.string.settings_purge_all,
+                R.string.settings_purge_all_sub,
+                counts,
+                isAll = true,
+                onSelect,
+            )
         }
     }
 }
@@ -156,6 +174,7 @@ internal fun CardPurgeSheet(
 private fun PurgeOption(
     scope: PurgeScope,
     labelRes: Int,
+    subRes: Int,
     counts: Map<PurgeScope, Int>?,
     isAll: Boolean,
     onSelect: (PurgeScope) -> Unit,
@@ -170,12 +189,21 @@ private fun PurgeOption(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
     ) {
-        Text(
-            text = stringResource(labelRes),
-            style = OceTheme.typography.sectionLabel.copy(fontWeight = FontWeight.Bold, fontSize = 14.5f.sp),
-            color = if (isAll) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+        Column(
             modifier = Modifier.weight(1f),
-        )
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = stringResource(labelRes),
+                style = OceTheme.typography.sectionLabel.copy(fontWeight = FontWeight.Bold, fontSize = 14.5f.sp),
+                color = if (isAll) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = stringResource(subRes),
+                style = OceTheme.typography.helper.copy(fontWeight = FontWeight.Medium, fontSize = 12.sp),
+                color = OceTheme.colors.textTertiary,
+            )
+        }
         val n = counts?.get(scope)
         if (n != null) {
             Box(

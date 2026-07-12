@@ -55,9 +55,12 @@
 
     <!-- 카드 정리 시트 · 확인 -->
     <string name="settings_purge_sheet_title">저장 카드 정리</string>
-    <string name="settings_purge_30">30일 지난 카드 삭제</string>
-    <string name="settings_purge_90">90일 지난 카드 삭제</string>
+    <string name="settings_purge_30">30일 지난 카드</string>
+    <string name="settings_purge_30_sub">30일 전에 저장한 카드</string>
+    <string name="settings_purge_90">90일 지난 카드</string>
+    <string name="settings_purge_90_sub">90일 전에 저장한 카드</string>
     <string name="settings_purge_all">전체 삭제</string>
+    <string name="settings_purge_all_sub">저장한 모든 카드</string>
     <string name="settings_purge_confirm_title">카드를 삭제할까요?</string>
     <string name="settings_purge_confirm_body">%1$d개 카드를 삭제해요. 되돌릴 수 없어요.</string>
     <string name="settings_purge_confirm_action">삭제</string>
