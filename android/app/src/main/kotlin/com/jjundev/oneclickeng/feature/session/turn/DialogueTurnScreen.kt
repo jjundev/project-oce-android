@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.theme.OceTheme
+import kotlinx.coroutines.delay
 
 /**
  * [messages] 안 [index] 위치 말풍선의 0-based 학습자 턴 순번(= 그 앞에 놓인 [DialogueMessage.Learner] 개수).
@@ -117,6 +118,9 @@ fun DialogueTurnScreen(
  * 상태 무관 콘텐츠. 상태 홀더에서 분리해 [DialogueTurnScreen] 은 배선만, 프리뷰는 각 위상을 결정적으로
  * 렌더한다(자동 진행 타이머에 흔들리지 않음).
  */
+/** 대화학습 완료 → 세션 요약 자동 이동 전, 완료 상태를 노출하는 대기(ms). 이후 nav 그래프가 오른쪽 슬라이드로 넘긴다. */
+internal const val SUMMARY_HANDOFF_DELAY_MS = 1_000L
+
 @Composable
 internal fun DialogueTurnContent(
     messages: List<DialogueMessage>,
@@ -154,7 +158,13 @@ internal fun DialogueTurnContent(
     // 피드백 "다음"이 recordTurn→advanceTurn 순서라 요약이 읽을 턴 버퍼는 Completed 시점에 이미 정착돼 있다.
     // sessionPhase 전이는 단방향(Completed 도달 후 유지)이라 이 LaunchedEffect 는 정확히 한 번만 발화한다.
     LaunchedEffect(sessionPhase) {
-        if (sessionPhase == SessionPhase.Completed) onViewSummary()
+        if (sessionPhase == SessionPhase.Completed) {
+            // 완료 화면 없이 곧장 요약으로 가되, 완료 상태를 1초 노출한 뒤 넘어간다(요구). 컨테이너 전환(요약이
+            // 오른쪽에서 슬라이드)은 nav 그래프가 담당한다. sessionPhase 전이는 단방향(Completed 유지)이라
+            // 이 delay 는 정확히 한 번만 걸리고, 대기 중 화면 이탈 시 코루틴이 취소된다.
+            delay(SUMMARY_HANDOFF_DELAY_MS)
+            onViewSummary()
+        }
     }
     Scaffold(
         modifier = modifier,
