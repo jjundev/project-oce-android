@@ -146,23 +146,29 @@ private fun DeepBlocks(
     ) {
         when {
             conceptualBridge != null -> ConceptualBridgeBlock(conceptualBridge)
-            showSkeletons -> BlockSkeleton()
+            showSkeletons -> BlockSkeleton(icon = OceIcon.Hub, label = "개념 브리지")
         }
         when {
             toneStyle != null -> ToneStyleBlock(toneStyle)
-            showSkeletons -> BlockSkeleton()
+            showSkeletons -> BlockSkeleton(icon = OceIcon.FormatPaint, label = "톤 · 스타일")
         }
         when {
             paraphrasing != null -> ParaphrasingBlock(paraphrasing, bookmarkedLevels, onToggleBookmark)
-            showSkeletons -> BlockSkeleton()
+            showSkeletons -> BlockSkeleton(icon = OceIcon.FormatQuote, label = "다르게 말해보기")
         }
     }
 }
 
 @Composable
-private fun BlockSkeleton() {
+private fun BlockSkeleton(
+    icon: OceIcon,
+    label: String,
+) {
     Box(modifier = Modifier.testTag(DEEP_BLOCK_SKELETON_TAG)) {
-        FeedbackLoadingSkeleton(showTitlePlaceholder = true)
+        Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
+            DeepSectionHeader(icon = icon, label = label)
+            FeedbackLoadingSkeleton()
+        }
     }
 }
 

@@ -399,7 +399,7 @@ private fun <T> SectionSlot(
     ready: @Composable (T) -> Unit,
 ) {
     when (state) {
-        is SectionState.Loading -> FeedbackLoadingSkeleton(showTitlePlaceholder = false)
+        is SectionState.Loading -> FeedbackLoadingSkeleton()
         is SectionState.Ready -> ready(state.value)
         is SectionState.Failed ->
             OneClickInlineError(

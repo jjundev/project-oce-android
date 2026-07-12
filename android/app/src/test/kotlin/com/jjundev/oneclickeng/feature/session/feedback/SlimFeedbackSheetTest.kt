@@ -32,7 +32,6 @@ class SlimFeedbackSheetTest {
 
     private companion object {
         const val FEEDBACK_LOADING_CARD_TAG = "feedback_loading_card"
-        const val DEEP_FEEDBACK_TITLE_SHIMMER_TAG = "deep_feedback_title_shimmer"
     }
 
     private fun active(): SlimFeedbackState.Active =
@@ -70,7 +69,7 @@ class SlimFeedbackSheetTest {
     }
 
     @Test
-    fun loading_keeps_slim_titles_visible_and_shimmers_deep_titles_inside_home_style_cards() {
+    fun loading_keeps_slim_and_deep_titles_visible_above_home_style_cards() {
         // OneClickShimmerPiece uses an infinite transition; keep the test scheduler from waiting for it.
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
@@ -86,13 +85,9 @@ class SlimFeedbackSheetTest {
             }
         }
 
-        listOf("작문 점수", "문법", "자연스러운 표현").forEach { title ->
+        listOf("작문 점수", "문법", "자연스러운 표현", "개념 브리지", "톤 · 스타일", "다르게 말해보기").forEach { title ->
             composeRule.onNodeWithText(title).assertIsDisplayed()
         }
-        listOf("개념 브리지", "톤 · 스타일", "다르게 말해보기").forEach { title ->
-            composeRule.onNodeWithText(title).assertDoesNotExist()
-        }
         composeRule.onAllNodesWithTag(FEEDBACK_LOADING_CARD_TAG).assertCountEquals(6)
-        composeRule.onAllNodesWithTag(DEEP_FEEDBACK_TITLE_SHIMMER_TAG).assertCountEquals(3)
     }
 }
