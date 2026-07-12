@@ -16,15 +16,15 @@ import androidx.compose.ui.unit.dp
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import kotlinx.coroutines.delay
 
-// oc-rise 정본(prototype .oc-home-stagger): translateY 14px→0 + opacity 0→1, 0.62s easeOut,
-// 지연 40 + 110*index (nth-child 1..12 → 40..1250ms).
+// oc-rise 정본(prototype .oc-home-stagger): translateY 14px→0 + opacity 0→1, 0.38s easeOut,
+// 지연 20 + 60*index (index 0..11 → 20..680ms).
 const val STAGGER_RISE_DP = 14
-const val STAGGER_DURATION_MS = 620
-const val STAGGER_BASE_DELAY_MS = 40
-const val STAGGER_STEP_MS = 110
+const val STAGGER_DURATION_MS = 380
+const val STAGGER_BASE_DELAY_MS = 20
+const val STAGGER_STEP_MS = 60
 const val STAGGER_MAX_INDEX = 11
 
-/** nth-child 스태거 지연(ms): 40 + 110*clamp(index,0,11). 순수 함수(테스트 대상). */
+/** 스태거 지연(ms): 20 + 60*clamp(index,0,11). 순수 함수(테스트 대상). */
 fun staggerDelayMs(index: Int): Int =
     STAGGER_BASE_DELAY_MS + STAGGER_STEP_MS * index.coerceIn(0, STAGGER_MAX_INDEX)
 
@@ -44,7 +44,7 @@ class ScreenEntranceState internal constructor(active: Boolean) {
 @Composable
 fun rememberScreenEntrance(
     reduceMotion: Boolean,
-    windowMs: Int = 400,
+    windowMs: Int = 300,
 ): ScreenEntranceState {
     val state = remember { ScreenEntranceState(active = !reduceMotion) }
     LaunchedEffect(reduceMotion) {
