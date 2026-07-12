@@ -47,13 +47,12 @@ class SpeakerDirectoryTest {
     @Test
     fun `avatarInitial returns first character uppercased`() {
         assertEquals("E", avatarInitial("Emma"))
-        assertEquals("O", avatarInitial("Olivia"))
-        assertEquals("L", avatarInitial("Liam"))
-        assertEquals("N", avatarInitial("Noah"))
+        assertEquals("L", avatarInitial("liam"))
+        assertEquals("?", avatarInitial(""))
     }
 
     @Test
     fun `avatarInitial handles empty string`() {
-        assertEquals("", avatarInitial(""))
+        assertEquals("?", avatarInitial(""))
     }
 }

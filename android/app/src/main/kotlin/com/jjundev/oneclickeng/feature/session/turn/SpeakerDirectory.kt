@@ -70,4 +70,4 @@ object SpeakerDirectory {
 /**
  * 아바타 이니셜 = 발화자 이름의 첫 글자(대문자). 예: Emma → "E", Liam → "L".
  */
-fun avatarInitial(name: String): String = name.firstOrNull()?.uppercaseChar()?.toString().orEmpty()
+fun avatarInitial(name: String): String = name.firstOrNull()?.uppercase() ?: "?"
