@@ -10,9 +10,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -157,11 +157,13 @@ private fun WheelColumn(
     label: (Int) -> String,
     modifier: Modifier = Modifier,
 ) {
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = items.indexOf(selected).coerceAtLeast(0))
     LazyColumn(
         modifier = modifier
             .clip(OceTheme.shapes.radius16)
             .background(MaterialTheme.colorScheme.background)
             .padding(4.dp),
+        state = listState,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         items(items) { value ->
