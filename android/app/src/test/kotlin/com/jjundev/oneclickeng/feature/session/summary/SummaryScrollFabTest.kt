@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.compose.material3.Surface
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -23,14 +25,23 @@ class SummaryScrollFabTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun `shows down chevron at top and stays down after a single page-down`() {
+    fun `shows down chevron at top`() {
         setScreen(onDone = {})
 
         composeRule.onNodeWithContentDescription("아래로 스크롤").assertIsDisplayed()
+    }
 
-        // 한 번 page-down 해도 20개 표현 카드라 끝에 못 닿음 → 여전히 "아래로 스크롤".
-        composeRule.onNodeWithContentDescription("아래로 스크롤").performClick()
-        composeRule.onNodeWithContentDescription("아래로 스크롤").assertIsDisplayed()
+    @Test
+    fun `down tap pages the scroll until it reaches the bottom`() {
+        setScreen(onDone = {})
+        // FAB 버튼 자체로 page-down 을 반복해 끝까지 스크롤되는지 검증(스와이프 아님).
+        repeat(15) {
+            val down = composeRule.onAllNodesWithContentDescription("아래로 스크롤")
+            if (down.fetchSemanticsNodes().isEmpty()) return@repeat
+            down.onFirst().performClick()
+            composeRule.waitForIdle()
+        }
+        composeRule.onNodeWithContentDescription("맨 위로").assertIsDisplayed()
     }
 
     @Test
@@ -54,12 +65,24 @@ class SummaryScrollFabTest {
         composeRule.onNodeWithContentDescription("맨 위로").assertDoesNotExist()
     }
 
-    private fun setScreen(onDone: (() -> Unit)?) {
+    @Test
+    @Config(sdk = [26], application = Application::class, qualifiers = "w411dp-h2000dp")
+    fun `hides fab when content is not scrollable`() {
+        setScreen(onDone = {}, state = shortState())
+
+        composeRule.onNodeWithContentDescription("아래로 스크롤").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("맨 위로").assertDoesNotExist()
+    }
+
+    private fun setScreen(
+        onDone: (() -> Unit)?,
+        state: SummaryState = tallState(),
+    ) {
         composeRule.setContent {
             OceTheme {
                 Surface {
                     SummaryScreen(
-                        state = tallState(),
+                        state = state,
                         onRetry = {},
                         onToggleSaveWord = {},
                         onToggleSaveExpression = {},
@@ -99,5 +122,15 @@ class SummaryScrollFabTest {
                     coaching =
                         SummarySectionState.Ready(Coaching("끝까지 대화를 이어갔어요.", "과거형을 한 번 써볼까요?")),
                 ),
+        )
+
+    /** 뷰포트에 다 들어가 스크롤 불가(maxValue<=0)여야 하는 최소 콘텐츠 — FAB 숨김 검증용. */
+    private fun shortState() =
+        SummaryState(
+            totalScore = null,
+            highlight = null,
+            bookmarks = emptyList(),
+            accrual = AccrualStrip(streakDays = 0, xp = 0),
+            bundle = SectionBundle.BundleLoading,
         )
 }
