@@ -40,7 +40,7 @@ class DeviceTtsVoiceSelectionTest {
     @Test
     fun `pass2 matches the first google female voice code in order`() {
         val voices = listOf(v("en-us-x-iol-local"), v("en-us-x-tpf-local"), v("en-us-x-sfg-local"))
-        // female codes: tpf comes before sfg here → first female-ish wins.
+        // First voice matching ANY female code (by input-list order) wins — here tpf precedes sfg.
         assertEquals("en-us-x-tpf-local", pickGenderVoiceName(voices, "female", "en", "US"))
     }
 
@@ -82,6 +82,26 @@ class DeviceTtsVoiceSelectionTest {
     fun `pass4 falls back to any english voice when no gender signal exists`() {
         val voices = listOf(v("en-us-x-neutral-local"))
         assertEquals("en-us-x-neutral-local", pickGenderVoiceName(voices, "male", "en", "US"))
+    }
+
+    @Test
+    fun `pass3 keeps the last non-opposite candidate when no country matches`() {
+        // Two unmarked en voices, neither country == target US → pass3 overwrites each iteration,
+        // never breaks on a country match, so the LAST candidate wins (order-sensitive tie-break).
+        val voices =
+            listOf(
+                v("en-us-x-aaa-local", country = "GB"),
+                v("en-us-x-bbb-local", country = "CA"),
+            )
+        assertEquals("en-us-x-bbb-local", pickGenderVoiceName(voices, "male", "en", "US"))
+    }
+
+    @Test
+    fun `pass4 accepts an opposite-gender voice as the true last resort`() {
+        // Every en voice is female-coded; a male request exhausts pass1-3 (all skipped in pass3),
+        // so pass4 must fall back and accept the first en voice regardless of its gender code.
+        val voices = listOf(v("en-us-x-sfg-local"), v("en-us-x-tpf-local"))
+        assertEquals("en-us-x-sfg-local", pickGenderVoiceName(voices, "male", "en", "US"))
     }
 
     @Test
