@@ -114,13 +114,13 @@ fun DialogueTurnScreen(
     )
 }
 
+/** 대화학습 완료 → 세션 요약 자동 이동 전, 완료 상태를 노출하는 대기(ms). 이후 nav 그래프가 오른쪽 슬라이드로 넘긴다. */
+internal const val SUMMARY_HANDOFF_DELAY_MS = 1_000L
+
 /**
  * 상태 무관 콘텐츠. 상태 홀더에서 분리해 [DialogueTurnScreen] 은 배선만, 프리뷰는 각 위상을 결정적으로
  * 렌더한다(자동 진행 타이머에 흔들리지 않음).
  */
-/** 대화학습 완료 → 세션 요약 자동 이동 전, 완료 상태를 노출하는 대기(ms). 이후 nav 그래프가 오른쪽 슬라이드로 넘긴다. */
-internal const val SUMMARY_HANDOFF_DELAY_MS = 1_000L
-
 @Composable
 internal fun DialogueTurnContent(
     messages: List<DialogueMessage>,
