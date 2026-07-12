@@ -31,6 +31,9 @@ import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
+import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
+import com.jjundev.oneclickeng.ui.foundation.rememberScreenEntrance
+import com.jjundev.oneclickeng.ui.foundation.staggerReveal
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /**
@@ -57,6 +60,7 @@ fun TopicQuestionScreen(
         },
         onBack = onBack,
         modifier = modifier,
+        reduceMotion = rememberReduceMotion(),
     )
 }
 
@@ -66,7 +70,9 @@ internal fun TopicQuestionContent(
     onTopicSelected: (topic: OnboardingTopic) -> Unit,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
+    reduceMotion: Boolean = false,
 ) {
+    val entrance = rememberScreenEntrance(reduceMotion)
     Column(
         modifier =
             modifier
@@ -76,28 +82,38 @@ internal fun TopicQuestionContent(
                 .padding(OceTheme.spacing.sheetPadding),
         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.actionGap),
     ) {
-        OnboardingStepBar(step = 2, total = 2, onBack = onBack)
+        OnboardingStepBar(
+            step = 2,
+            total = 2,
+            modifier = Modifier.staggerReveal(0, entrance),
+            onBack = onBack,
+        )
         Text(
             text = "어떤 상황에서 말해볼까요?",
             // 온보딩 H1 은 프로토 정합상 ExtraBold·24sp → homeTitle(800·25sp) 재사용(±1sp, 공용 screenTitle 과 구분).
             style = OceTheme.typography.homeTitle,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.semantics { heading() },
+            modifier = Modifier.staggerReveal(1, entrance).semantics { heading() },
         )
         Text(
             text = "익숙한 상황부터 골라보세요. 대화 중에도 언제든 바꿀 수 있어요.",
             style = OceTheme.typography.helper,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = OceTheme.spacing.md),
+            modifier = Modifier.staggerReveal(2, entrance).padding(bottom = OceTheme.spacing.md),
         )
-        ONBOARDING_TOPICS.forEach { topic ->
-            TopicCard(
-                topic = topic,
-                onClick = { onTopicSelected(topic) },
-            )
+        ONBOARDING_TOPICS.forEachIndexed { index, topic ->
+            Box(modifier = Modifier.staggerReveal(index + TOPIC_CARD_STAGGER_OFFSET, entrance)) {
+                TopicCard(
+                    topic = topic,
+                    onClick = { onTopicSelected(topic) },
+                )
+            }
         }
     }
 }
+
+/** Column 직계 자식 중 스텝바/제목/부제(0~2) 다음, TopicCard 스태거 인덱스 시작 오프셋. */
+private const val TOPIC_CARD_STAGGER_OFFSET = 3
 
 /**
  * 상황 카드 1장(프로토타입 온보딩·상황 정합) — 좌측 상황 아이콘(브랜드 틴트 원) + titleKo + 우측 chevron.

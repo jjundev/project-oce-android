@@ -28,6 +28,8 @@ import com.jjundev.oneclickeng.ui.component.ProgressRingMode
 import com.jjundev.oneclickeng.ui.foundation.OceBottomNav
 import com.jjundev.oneclickeng.ui.navigation.OceNavHost
 import com.jjundev.oneclickeng.ui.navigation.OceTab
+import com.jjundev.oneclickeng.ui.navigation.oceScreenEnter
+import com.jjundev.oneclickeng.ui.navigation.oceScreenExit
 
 /** 3탭 셸(하단 내비 + [OceNavHost])을 담는 바깥 그래프 목적지 경로. */
 const val MAIN_TABS_ROUTE = "main_tabs"
@@ -70,7 +72,14 @@ fun AppRoot(
     }
 
     val outerNavController = rememberNavController()
-    NavHost(navController = outerNavController, startDestination = resolvedStart) {
+    NavHost(
+        navController = outerNavController,
+        startDestination = resolvedStart,
+        enterTransition = { oceScreenEnter },
+        exitTransition = { oceScreenExit },
+        popEnterTransition = { oceScreenEnter },
+        popExitTransition = { oceScreenExit },
+    ) {
         composable(MAIN_TABS_ROUTE) {
             // 프로토 완전 정합: 홈이 상황·레벨·길이를 확정하고(인라인 설정·상황 시트 소유) 히어로 탭 시
             // 바로 생성 라우트로 진입한다(세션 설정 화면 폐기).

@@ -30,7 +30,7 @@ class LevelQuestionScreenshotTest {
         composeRule.setContent {
             OceTheme(darkTheme = false) {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    LevelQuestionContent(onLevelSelected = {})
+                    LevelQuestionContent(onLevelSelected = {}, reduceMotion = true)
                 }
             }
         }

@@ -27,7 +27,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,6 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
@@ -68,21 +71,37 @@ import com.jjundev.oneclickeng.feature.reminder.ui.HomeReminderViewModel
 import com.jjundev.oneclickeng.ui.component.OneClickAtLimitNotice
 import com.jjundev.oneclickeng.ui.component.OneClickReminderEnabledBanner
 import com.jjundev.oneclickeng.ui.component.OneClickSegmentedControl
+import com.jjundev.oneclickeng.ui.component.OneClickShimmerPiece
 import com.jjundev.oneclickeng.ui.component.OneClickTimePickerDialog
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
+import com.jjundev.oneclickeng.ui.foundation.ScreenEntranceState
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
+import com.jjundev.oneclickeng.ui.foundation.rememberScreenEntrance
+import com.jjundev.oneclickeng.ui.foundation.staggerReveal
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import kotlin.math.PI
 import kotlin.math.sin
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** 히어로 CTA 최소 탭 타겟(오프라인 비활성 시에도 48dp 유지, H1/H7). */
 private val HeroMinHeight = 96.dp
 private const val DISABLED_ALPHA = 0.38f
 private const val HERO_BADGE_ALPHA = 0.2f
 private const val SITUATION_ICON_BG_ALPHA = 0.12f
+
+/** 추천 상황 스켈레톤 플래시 지속(프로토 `_flashRecSkel`) — 새로고침 780ms · 그리드 전환 300ms(둘 다름). */
+private const val SITUATIONS_REFRESH_SKELETON_MS = 780L
+private const val SITUATIONS_GRID_SKELETON_MS = 300L
+
+/** 스켈레톤 라벨 줄 모서리(프로토 `.oc-sk` 6px)와 폭 비율(그리드 82%/58%). */
+private val SkeletonLineShape = RoundedCornerShape(6.dp)
+private const val SKELETON_LINE_WIDE = 0.82f
+private const val SKELETON_LINE_NARROW = 0.58f
 
 /** NameDrop 리빌 지속(ms) — 좌→우 물결 스윕·메타 드롭인 공용. 느리게 강조(기존 700). */
 private const val REVEAL_MS = 1200
@@ -129,6 +148,21 @@ fun HomeScreen(
     var timePickerVisible by remember { mutableStateOf(false) }
     var gridMode by remember { mutableStateOf(false) }
 
+    // 추천 상황 스켈레톤 플래시(프로토 `_flashRecSkel`): 새로고침·그리드 전환 시 지정 시간 동안 시머 자리표시자
+    // 노출 후 실제 카드로 교체. 두 트리거의 지속이 다르다(새로고침 780ms / 그리드 300ms).
+    val skeletonScope = rememberCoroutineScope()
+    var situationsSkeleton by remember { mutableStateOf(false) }
+    var skeletonJob by remember { mutableStateOf<Job?>(null) }
+    fun flashSituationsSkeleton(durationMs: Long) {
+        skeletonJob?.cancel()
+        situationsSkeleton = true
+        skeletonJob =
+            skeletonScope.launch {
+                delay(durationMs)
+                situationsSkeleton = false
+            }
+    }
+
     fun startWithCurrentSetup(situation: SelectedSituation?) {
         val level = state.level ?: return // #6: profile.level 미해소 동안 시작 차단(easy 누출 방지).
         val target = situation ?: return
@@ -157,12 +191,19 @@ fun HomeScreen(
                 SelectedSituation(situation.id, situation.labelKo, situation.promptSeed),
             )
         },
-        onRefreshSituations = viewModel::refreshSituations,
+        onRefreshSituations = {
+            flashSituationsSkeleton(SITUATIONS_REFRESH_SKELETON_MS)
+            viewModel.refreshSituations()
+        },
         onMoreSituations = { topicSheetVisible = true },
         onSetLevel = viewModel::setLevel,
         onSetLength = viewModel::setLength,
         gridMode = gridMode,
-        onToggleLayout = { gridMode = !gridMode },
+        onToggleLayout = {
+            flashSituationsSkeleton(SITUATIONS_GRID_SKELETON_MS)
+            gridMode = !gridMode
+        },
+        situationsSkeleton = situationsSkeleton,
         reduceMotion = rememberReduceMotion(),
         showReminderBanner = reminderState.showEnabledBanner,
         reminderHour = reminderState.hour,
@@ -219,6 +260,7 @@ internal fun HomeContent(
     onSetLength: (Int) -> Unit = {},
     gridMode: Boolean = false,
     onToggleLayout: () -> Unit = {},
+    situationsSkeleton: Boolean = false,
     reduceMotion: Boolean = false,
     showReminderBanner: Boolean = false,
     reminderHour: Int = 20,
@@ -226,6 +268,7 @@ internal fun HomeContent(
     onDismissReminderBanner: () -> Unit = {},
     onChangeReminderTime: () -> Unit = {},
 ) {
+    val entrance = rememberScreenEntrance(reduceMotion)
     LazyColumn(
         modifier =
             modifier
@@ -240,14 +283,14 @@ internal fun HomeContent(
                     minute = reminderMinute,
                     onDismiss = onDismissReminderBanner,
                     onChangeTime = onChangeReminderTime,
-                    modifier = Modifier.padding(top = OceTheme.spacing.lg),
+                    modifier = Modifier.staggerReveal(0, entrance).padding(top = OceTheme.spacing.lg),
                 )
             }
         }
         // 프로토타입 홈 리듬(비균일): 섹션 사이는 넉넉히(12~24dp), 상황 카드끼리는 촘촘히(8dp).
         item(key = "header") {
             Column(
-                modifier = Modifier.padding(top = OceTheme.spacing.xxl),
+                modifier = Modifier.staggerReveal(1, entrance).padding(top = OceTheme.spacing.xxl),
                 verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
             ) {
                 Text(
@@ -273,7 +316,7 @@ internal fun HomeContent(
             StatsStrip(
                 studyTimeLabel = state.studyTimeLabel,
                 streak = state.streak,
-                modifier = Modifier.padding(top = OceTheme.spacing.md),
+                modifier = Modifier.staggerReveal(2, entrance).padding(top = OceTheme.spacing.md),
             )
         }
 
@@ -289,7 +332,7 @@ internal fun HomeContent(
                 onClick = if (state.hasResume) onResumeContinue else onStartLearning,
                 onDisabledClick = onOfflineBlocked,
                 reduceMotion = reduceMotion,
-                modifier = Modifier.padding(top = OceTheme.spacing.xl),
+                modifier = Modifier.staggerReveal(3, entrance).padding(top = OceTheme.spacing.xl),
             )
         }
 
@@ -297,7 +340,7 @@ internal fun HomeContent(
             item(key = "new_chat") {
                 NewChatLink(
                     onClick = onResumeStartNew,
-                    modifier = Modifier.padding(top = OceTheme.spacing.md),
+                    modifier = Modifier.staggerReveal(4, entrance).padding(top = OceTheme.spacing.md),
                 )
             }
         } else {
@@ -307,7 +350,7 @@ internal fun HomeContent(
                     length = state.length,
                     onSetLevel = onSetLevel,
                     onSetLength = onSetLength,
-                    modifier = Modifier.padding(top = OceTheme.spacing.md),
+                    modifier = Modifier.staggerReveal(4, entrance).padding(top = OceTheme.spacing.md),
                 )
             }
         }
@@ -318,46 +361,18 @@ internal fun HomeContent(
                     gridMode = gridMode,
                     onToggleLayout = onToggleLayout,
                     onRefresh = onRefreshSituations,
-                    modifier = Modifier.padding(top = OceTheme.spacing.xxl),
+                    modifier = Modifier.staggerReveal(5, entrance).padding(top = OceTheme.spacing.xxl),
                 )
             }
-            if (gridMode) {
-                val rows = state.situations.chunked(2)
-                itemsIndexed(rows, key = { _, pair -> "grid_" + pair.joinToString("_") { it.id } }) { index, pair ->
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(top = if (index == 0) OceTheme.spacing.lg else OceTheme.spacing.sm)
-                                .height(IntrinsicSize.Min),
-                        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
-                    ) {
-                        pair.forEach { situation ->
-                            SituationCell(
-                                situation = situation,
-                                onClick = { onSituationSelected(situation) },
-                                modifier = Modifier.weight(1f).fillMaxHeight(),
-                            )
-                        }
-                        if (pair.size == 1) Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
+            if (situationsSkeleton) {
+                situationsSkeletonItems(state.situations.size, gridMode, reduceMotion)
             } else {
-                itemsIndexed(state.situations, key = { _, item -> item.id }) { index, situation ->
-                    SituationRow(
-                        situation = situation,
-                        onClick = { onSituationSelected(situation) },
-                        modifier =
-                            Modifier.padding(
-                                top = if (index == 0) OceTheme.spacing.lg else OceTheme.spacing.sm,
-                            ),
-                    )
-                }
+                situationsCardItems(state.situations, gridMode, entrance, onSituationSelected)
             }
             item(key = "more_situations") {
                 MoreSituationsButton(
                     onClick = onMoreSituations,
-                    modifier = Modifier.padding(top = OceTheme.spacing.xl),
+                    modifier = Modifier.staggerReveal(11, entrance).padding(top = OceTheme.spacing.xl),
                 )
             }
         }
@@ -366,9 +381,137 @@ internal fun HomeContent(
             item(key = "atLimit") {
                 OneClickAtLimitNotice(
                     onViewRecords = onViewRecords,
-                    modifier = Modifier.padding(top = OceTheme.spacing.md),
+                    modifier = Modifier.staggerReveal(11, entrance).padding(top = OceTheme.spacing.md),
                 )
             }
+        }
+    }
+}
+
+/** 추천 상황 카드 목록(그리드 2열 / 리스트) — 실제 카드. 진입 stagger 유지. */
+private fun LazyListScope.situationsCardItems(
+    situations: List<HomeSituation>,
+    gridMode: Boolean,
+    entrance: ScreenEntranceState,
+    onSituationSelected: (HomeSituation) -> Unit,
+) {
+    if (gridMode) {
+        val rows = situations.chunked(2)
+        itemsIndexed(rows, key = { _, pair -> "grid_" + pair.joinToString("_") { it.id } }) { index, pair ->
+            Row(
+                modifier =
+                    Modifier
+                        .staggerReveal(6 + index, entrance)
+                        .fillMaxWidth()
+                        .padding(top = if (index == 0) OceTheme.spacing.lg else OceTheme.spacing.sm)
+                        .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+            ) {
+                pair.forEach { situation ->
+                    SituationCell(
+                        situation = situation,
+                        onClick = { onSituationSelected(situation) },
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                    )
+                }
+                if (pair.size == 1) Spacer(modifier = Modifier.weight(1f))
+            }
+        }
+    } else {
+        itemsIndexed(situations, key = { _, item -> item.id }) { index, situation ->
+            SituationRow(
+                situation = situation,
+                onClick = { onSituationSelected(situation) },
+                modifier =
+                    Modifier.staggerReveal(6 + index, entrance).padding(
+                        top = if (index == 0) OceTheme.spacing.lg else OceTheme.spacing.sm,
+                    ),
+            )
+        }
+    }
+}
+
+/**
+ * 추천 상황 스켈레톤(프로토 `recSkel`) — 현재 레이아웃에 맞춰 [count]개 카드를 실제 카드 골격(아이콘 40dp +
+ * 라벨 줄)으로 시머 렌더한다. 새로고침·그리드 전환 플래시 중에만 카드 대신 노출([reduceMotion] 이면 정적, A7).
+ */
+private fun LazyListScope.situationsSkeletonItems(
+    count: Int,
+    gridMode: Boolean,
+    reduceMotion: Boolean,
+) {
+    val indices = List(count) { it }
+    if (gridMode) {
+        itemsIndexed(indices.chunked(2), key = { i, _ -> "skel_grid_$i" }) { index, row ->
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = if (index == 0) OceTheme.spacing.lg else OceTheme.spacing.sm)
+                        .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+            ) {
+                row.forEach { _ ->
+                    SituationSkeletonCell(reduceMotion, Modifier.weight(1f).fillMaxHeight())
+                }
+                if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
+            }
+        }
+    } else {
+        itemsIndexed(indices, key = { i, _ -> "skel_list_$i" }) { index, _ ->
+            val topPad = if (index == 0) OceTheme.spacing.lg else OceTheme.spacing.sm
+            SituationSkeletonRow(reduceMotion, Modifier.padding(top = topPad))
+        }
+    }
+}
+
+/** 리스트 스켈레톤 1행 — [SituationRow] 미러(아이콘 40dp + 라벨 한 줄 시머). 프로토 `recSkel` notGrid. */
+@Composable
+private fun SituationSkeletonRow(
+    reduceMotion: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    OneClickCard(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = OceTheme.spacing.lg, vertical = OceTheme.spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
+        ) {
+            OneClickShimmerPiece(OceTheme.shapes.radius12, Modifier.size(40.dp), reduceMotion)
+            OneClickShimmerPiece(SkeletonLineShape, Modifier.weight(1f).height(14.dp), reduceMotion)
+        }
+    }
+}
+
+/** 그리드 스켈레톤 셀 — [SituationCell] 미러(상단 아이콘 40dp + 라벨 2줄 시머). 프로토 `recSkel` isGrid. */
+@Composable
+private fun SituationSkeletonCell(
+    reduceMotion: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    OneClickCard(modifier = modifier) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 88.dp)
+                    .padding(horizontal = OceTheme.spacing.lg, vertical = OceTheme.spacing.md),
+            verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+        ) {
+            OneClickShimmerPiece(OceTheme.shapes.radius12, Modifier.size(40.dp), reduceMotion)
+            OneClickShimmerPiece(
+                shape = SkeletonLineShape,
+                modifier = Modifier.fillMaxWidth(SKELETON_LINE_WIDE).height(14.dp),
+                reduceMotion = reduceMotion,
+            )
+            OneClickShimmerPiece(
+                shape = SkeletonLineShape,
+                modifier = Modifier.fillMaxWidth(SKELETON_LINE_NARROW).height(11.dp),
+                reduceMotion = reduceMotion,
+            )
         }
     }
 }

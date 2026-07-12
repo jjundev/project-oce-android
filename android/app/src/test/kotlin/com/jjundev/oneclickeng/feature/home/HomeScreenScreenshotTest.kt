@@ -125,6 +125,7 @@ class HomeScreenScreenshotTest {
                             onViewRecords = {},
                             onOfflineBlocked = {},
                             gridMode = true,
+                            reduceMotion = true,
                             modifier = Modifier.weight(1f),
                         )
                         OceBottomNav(rememberNavController())
@@ -165,6 +166,7 @@ class HomeScreenScreenshotTest {
                                 onResumeStartNew = {},
                                 onViewRecords = {},
                                 onOfflineBlocked = {},
+                                reduceMotion = true,
                             )
                         }
                     }
@@ -206,6 +208,7 @@ class HomeScreenScreenshotTest {
                             onResumeStartNew = {},
                             onViewRecords = {},
                             onOfflineBlocked = {},
+                            reduceMotion = true,
                             modifier = Modifier.weight(1f),
                         )
                         OceBottomNav(nav)

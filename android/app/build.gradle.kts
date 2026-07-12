@@ -41,6 +41,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     testOptions {
@@ -73,6 +74,7 @@ tasks.withType<Test>().configureEach {
             "**/ConceptualBridgeLegendTest*",
             "**/ConceptualBridgeInsideModeTest*",
             "**/HomeHeroRevealTest*",
+            "**/HomeSituationsSkeletonTest*",
             "**/OneClickBottomSheetExpandTest*",
             "**/MicDockTogglePositionTest*",
             "**/DeepFeedbackRegionTest*",

@@ -77,6 +77,9 @@ import com.jjundev.oneclickeng.ui.component.primitive.OneClickSwitch
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
+import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
+import com.jjundev.oneclickeng.ui.foundation.rememberScreenEntrance
+import com.jjundev.oneclickeng.ui.foundation.staggerReveal
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import java.util.Locale
 import kotlinx.coroutines.launch
@@ -214,6 +217,7 @@ fun SettingsScreen(
             onRetryMerge = { linkViewModel.retryMerge(LINK_SESSION_ID) },
             onPrivacy = { openUrl(context, SettingsUrls.PRIVACY) },
             onTerms = { openUrl(context, SettingsUrls.TERMS) },
+            reduceMotion = rememberReduceMotion(),
         )
 
         // ----- 오버레이(다이얼로그·시트·스낵바) -----
@@ -315,8 +319,10 @@ internal fun SettingsContent(
     onPrivacy: () -> Unit,
     onTerms: () -> Unit,
     modifier: Modifier = Modifier,
+    reduceMotion: Boolean = false,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
+        val entrance = rememberScreenEntrance(reduceMotion)
         // 48px 고정 중앙 헤더(프로토 정합).
         Box(
             modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -344,20 +350,27 @@ internal fun SettingsContent(
                         onRetryMerge = onRetryMerge,
                         onLogoutClick = onLogoutClick,
                         onDeleteClick = onDeleteClick,
+                        modifier = Modifier.staggerReveal(0, entrance),
                     )
                 }
             }
 
             // ----- 프로필 -----
             item(key = "profile") {
-                SettingsSection(titleRes = R.string.settings_section_profile) {
+                SettingsSection(
+                    titleRes = R.string.settings_section_profile,
+                    modifier = Modifier.staggerReveal(1, entrance),
+                ) {
                     ProfileRow(nickname = state.nickname, onNicknameChange = onNicknameChange)
                 }
             }
 
             // ----- 음성 -----
             item(key = "voice") {
-                SettingsSection(titleRes = R.string.settings_section_voice) {
+                SettingsSection(
+                    titleRes = R.string.settings_section_voice,
+                    modifier = Modifier.staggerReveal(2, entrance),
+                ) {
                     VoiceCardBody(
                         state = state,
                         onQualityChange = onQualityChange,
@@ -369,7 +382,10 @@ internal fun SettingsContent(
 
             // ----- 알림 -----
             item(key = "notify") {
-                SettingsSection(titleRes = R.string.settings_section_notify) {
+                SettingsSection(
+                    titleRes = R.string.settings_section_notify,
+                    modifier = Modifier.staggerReveal(3, entrance),
+                ) {
                     SettingsNavRow(
                         icon = OceIcon.Notifications,
                         title = stringResource(R.string.settings_reminder_title),
@@ -415,7 +431,10 @@ internal fun SettingsContent(
 
             // ----- 데이터 관리 -----
             item(key = "data") {
-                SettingsSection(titleRes = R.string.settings_section_data) {
+                SettingsSection(
+                    titleRes = R.string.settings_section_data,
+                    modifier = Modifier.staggerReveal(4, entrance),
+                ) {
                     SettingsNavRow(
                         icon = OceIcon.CleaningServices,
                         title = stringResource(R.string.settings_data_purge),
@@ -441,13 +460,17 @@ internal fun SettingsContent(
                         onRetryMerge = onRetryMerge,
                         onLogoutClick = onLogoutClick,
                         onDeleteClick = onDeleteClick,
+                        modifier = Modifier.staggerReveal(5, entrance),
                     )
                 }
             }
 
             // ----- 정보 -----
             item(key = "info") {
-                SettingsSection(titleRes = R.string.settings_section_info) {
+                SettingsSection(
+                    titleRes = R.string.settings_section_info,
+                    modifier = Modifier.staggerReveal(6, entrance),
+                ) {
                     SettingsNavRow(
                         icon = OceIcon.Info,
                         title = stringResource(R.string.settings_info_version),
@@ -501,9 +524,10 @@ internal fun SettingsContent(
 @Composable
 private fun SettingsSection(
     @StringRes titleRes: Int,
+    modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         SettingsSectionHeader(title = stringResource(titleRes))
         OneClickCard(modifier = Modifier.fillMaxWidth(), shape = OceTheme.shapes.radius24, content = content)
     }
@@ -621,8 +645,9 @@ private fun AccountSection(
     onRetryMerge: () -> Unit,
     onLogoutClick: () -> Unit,
     onDeleteClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
