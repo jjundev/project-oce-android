@@ -31,6 +31,9 @@ import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
+import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
+import com.jjundev.oneclickeng.ui.foundation.rememberScreenEntrance
+import com.jjundev.oneclickeng.ui.foundation.staggerReveal
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /**
@@ -57,6 +60,7 @@ fun LevelQuestionScreen(
             onLevelSelected(value)
         },
         modifier = modifier,
+        reduceMotion = rememberReduceMotion(),
     )
 }
 
@@ -68,7 +72,9 @@ fun LevelQuestionScreen(
 internal fun LevelQuestionContent(
     onLevelSelected: (level: String) -> Unit,
     modifier: Modifier = Modifier,
+    reduceMotion: Boolean = false,
 ) {
+    val entrance = rememberScreenEntrance(reduceMotion)
     Column(
         modifier =
             modifier
@@ -77,28 +83,33 @@ internal fun LevelQuestionContent(
                 .padding(OceTheme.spacing.sheetPadding),
         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.actionGap),
     ) {
-        OnboardingStepBar(step = 1, total = 2)
+        OnboardingStepBar(step = 1, total = 2, modifier = Modifier.staggerReveal(0, entrance))
         Text(
             text = "먼저, 오늘 연습을 맞춰볼게요",
             // 온보딩 H1 은 프로토 정합상 ExtraBold·24sp → homeTitle(800·25sp) 재사용(±1sp, 공용 screenTitle 과 구분).
             style = OceTheme.typography.homeTitle,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.semantics { heading() },
+            modifier = Modifier.staggerReveal(1, entrance).semantics { heading() },
         )
         Text(
             text = "첫 대화는 쉽게 시작하고, 선택한 난이도는 다음 대화부터 반영돼요.",
             style = OceTheme.typography.helper,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = OceTheme.spacing.md),
+            modifier = Modifier.staggerReveal(2, entrance).padding(bottom = OceTheme.spacing.md),
         )
-        LEVEL_OPTIONS.forEach { option ->
-            LevelCard(
-                option = option,
-                onClick = { onLevelSelected(option.value) },
-            )
+        LEVEL_OPTIONS.forEachIndexed { index, option ->
+            Box(modifier = Modifier.staggerReveal(index + LEVEL_CARD_STAGGER_OFFSET, entrance)) {
+                LevelCard(
+                    option = option,
+                    onClick = { onLevelSelected(option.value) },
+                )
+            }
         }
     }
 }
+
+/** Column 직계 자식 중 스텝바/제목/부제(0~2) 다음, LevelCard 스태거 인덱스 시작 오프셋. */
+private const val LEVEL_CARD_STAGGER_OFFSET = 3
 
 /**
  * 레벨 선택카드 1장(프로토타입 온보딩·레벨 정합) — 좌측 표정 아이콘 + 제목/부제 + 우측 chevron. 추천 카드

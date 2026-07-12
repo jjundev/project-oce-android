@@ -30,7 +30,7 @@ class TopicQuestionScreenshotTest {
         composeRule.setContent {
             OceTheme(darkTheme = false) {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    TopicQuestionContent(onTopicSelected = {}, onBack = {})
+                    TopicQuestionContent(onTopicSelected = {}, onBack = {}, reduceMotion = true)
                 }
             }
         }
