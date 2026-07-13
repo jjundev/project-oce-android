@@ -736,9 +736,7 @@ private fun SettingsInline(
                 size = OceIconSize.FeedbackInline,
             )
             Text(
-                text =
-                    level?.let { "설정 변경 · ${levelLabel(it)} · ${length}턴" }
-                        ?: "설정 변경 · 불러오는 중",
+                text = "설정 변경",
                 style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
