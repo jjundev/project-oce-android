@@ -1,0 +1,2705 @@
+{
+  "version": 1,
+  "topics": [
+    {
+      "id": "cafe-order",
+      "emoji": "☕",
+      "titleKo": "카페에서 주문하기",
+      "promptSeed": "ordering a drink and a snack at a café counter",
+      "icon": "LocalCafe",
+      "group": "daily",
+      "beginnerFriendly": true
+    },
+    {
+      "id": "weather-smalltalk",
+      "emoji": "🌤️",
+      "titleKo": "날씨로 스몰토크",
+      "promptSeed": "making light small talk about today's weather with an acquaintance",
+      "icon": "PartlyCloudyDay",
+      "group": "daily",
+      "beginnerFriendly": true
+    },
+    {
+      "id": "hobby-intro",
+      "emoji": "🎸",
+      "titleKo": "취미·자기소개",
+      "promptSeed": "introducing yourself and talking about your hobbies to someone new",
+      "icon": "Interests",
+      "group": "daily",
+      "beginnerFriendly": true
+    },
+    {
+      "id": "restaurant",
+      "emoji": "🍽️",
+      "titleKo": "레스토랑 주문·예약",
+      "promptSeed": "ordering food or booking a table at a restaurant",
+      "icon": "Restaurant",
+      "group": "daily",
+      "beginnerFriendly": true
+    },
+    {
+      "id": "refund-exchange",
+      "emoji": "🛒",
+      "titleKo": "환불·교환 요청",
+      "promptSeed": "asking a store clerk for a refund or exchange on a purchased item",
+      "icon": "ShoppingCart",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "airport-immigration",
+      "emoji": "✈️",
+      "titleKo": "공항 입국 심사",
+      "promptSeed": "answering an officer's questions at airport immigration",
+      "icon": "Flight",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "hotel-checkin",
+      "emoji": "🏨",
+      "titleKo": "호텔 체크인",
+      "promptSeed": "checking in at a hotel front desk",
+      "icon": "Hotel",
+      "group": "travel",
+      "beginnerFriendly": true
+    },
+    {
+      "id": "taxi",
+      "emoji": "🚕",
+      "titleKo": "택시 목적지 말하기",
+      "promptSeed": "telling a taxi driver your destination and giving directions",
+      "icon": "LocalTaxi",
+      "group": "travel",
+      "beginnerFriendly": true
+    },
+    {
+      "id": "asking-directions",
+      "emoji": "🧭",
+      "titleKo": "길 묻기",
+      "promptSeed": "asking a stranger on the street how to get to a place",
+      "icon": "Directions",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "company-intro",
+      "emoji": "🏢",
+      "titleKo": "회사에서 자기소개",
+      "promptSeed": "introducing yourself to new colleagues on your first day at work",
+      "icon": "BusinessCenter",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "interview-intro",
+      "emoji": "💼",
+      "titleKo": "면접에서 자기소개",
+      "promptSeed": "introducing yourself and answering opening questions in a job interview",
+      "icon": "Work",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "meeting-schedule",
+      "emoji": "📅",
+      "titleKo": "회의 일정 조율",
+      "promptSeed": "coordinating a meeting time with a coworker",
+      "icon": "Event",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "hospital-symptoms",
+      "emoji": "🏥",
+      "titleKo": "병원에서 증상 설명",
+      "promptSeed": "describing your symptoms to a doctor at a clinic",
+      "icon": "LocalHospital",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "pharmacy",
+      "emoji": "💊",
+      "titleKo": "약국에서 약 사기",
+      "promptSeed": "buying over-the-counter medicine and asking the pharmacist for advice",
+      "icon": "Medication",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "bank-account",
+      "emoji": "🏦",
+      "titleKo": "은행 계좌 개설",
+      "promptSeed": "opening a new bank account at a branch",
+      "icon": "AccountBalance",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "phone-booking",
+      "emoji": "📞",
+      "titleKo": "전화로 예약하기",
+      "promptSeed": "making a reservation over the phone",
+      "icon": "Call",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "greeting-neighbor",
+      "emoji": "👋",
+      "titleKo": "이웃에게 인사하기",
+      "promptSeed": "greeting a new neighbor and making a friendly introduction",
+      "icon": "WavingHand",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "introduce-family",
+      "emoji": "👨‍👩‍👧",
+      "titleKo": "가족 소개하기",
+      "promptSeed": "introducing your family during a casual conversation",
+      "icon": "Person",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "weekend-plans",
+      "emoji": "🗓️",
+      "titleKo": "주말 계획 묻기",
+      "promptSeed": "asking a friend about their weekend plans",
+      "icon": "Event",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "invite-friend",
+      "emoji": "🎉",
+      "titleKo": "친구 초대하기",
+      "promptSeed": "inviting a friend to join a casual activity",
+      "icon": "WavingHand",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "cancel-plans",
+      "emoji": "🙏",
+      "titleKo": "약속 취소하기",
+      "promptSeed": "politely cancelling plans and suggesting another time",
+      "icon": "Event",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "birthday-wishes",
+      "emoji": "🎂",
+      "titleKo": "생일 축하하기",
+      "promptSeed": "wishing someone a happy birthday and giving a small gift",
+      "icon": "AutoAwesome",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "ask-favor",
+      "emoji": "🤝",
+      "titleKo": "부탁하기",
+      "promptSeed": "asking a friend for a small favor politely",
+      "icon": "NavForum",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "borrow-item",
+      "emoji": "📚",
+      "titleKo": "물건 빌리기",
+      "promptSeed": "asking to borrow an everyday item from a neighbor",
+      "icon": "Hub",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "return-item",
+      "emoji": "🔁",
+      "titleKo": "빌린 물건 돌려주기",
+      "promptSeed": "returning a borrowed item and thanking its owner",
+      "icon": "Autorenew",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "apartment-problem",
+      "emoji": "🏠",
+      "titleKo": "집 문제 알리기",
+      "promptSeed": "reporting a small problem in your apartment to the manager",
+      "icon": "Person",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "package-delivery",
+      "emoji": "📦",
+      "titleKo": "택배 받기",
+      "promptSeed": "talking to a courier about receiving a package",
+      "icon": "Send",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "laundry-room",
+      "emoji": "🧺",
+      "titleKo": "세탁실 이용하기",
+      "promptSeed": "asking about using a shared laundry room",
+      "icon": "CleaningServices",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "grocery-shopping",
+      "emoji": "🛒",
+      "titleKo": "장보기",
+      "promptSeed": "asking a grocery store worker where to find an item",
+      "icon": "ShoppingCart",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "clothing-size",
+      "emoji": "👕",
+      "titleKo": "옷 사이즈 묻기",
+      "promptSeed": "asking a shop assistant about clothing sizes",
+      "icon": "Person",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "salon-appointment",
+      "emoji": "💇",
+      "titleKo": "미용실 예약하기",
+      "promptSeed": "booking a haircut and describing the style you want",
+      "icon": "AccountCircle",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "gym-membership",
+      "emoji": "🏋️",
+      "titleKo": "헬스장 등록하기",
+      "promptSeed": "asking about gym membership plans and facilities",
+      "icon": "Bolt",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "library-card",
+      "emoji": "📖",
+      "titleKo": "도서관 카드 만들기",
+      "promptSeed": "applying for a library card and asking about borrowing rules",
+      "icon": "Description",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "pet-care",
+      "emoji": "🐶",
+      "titleKo": "반려동물 돌봄 부탁하기",
+      "promptSeed": "arranging pet care with a friend while you are away",
+      "icon": "SentimentSatisfied",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "cooking-recipe",
+      "emoji": "🍳",
+      "titleKo": "요리법 묻기",
+      "promptSeed": "asking a friend how to cook a simple dish",
+      "icon": "Restaurant",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "movie-plans",
+      "emoji": "🎬",
+      "titleKo": "영화 보러 가기",
+      "promptSeed": "choosing a movie and arranging a time to watch it",
+      "icon": "PlayArrow",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "concert-ticket",
+      "emoji": "🎵",
+      "titleKo": "공연 표 예매하기",
+      "promptSeed": "buying tickets for a concert and choosing seats",
+      "icon": "GraphicEq",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "lost-and-found",
+      "emoji": "🔎",
+      "titleKo": "분실물 찾기",
+      "promptSeed": "asking at a lost-and-found desk about a missing item",
+      "icon": "Search",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "public-transport",
+      "emoji": "🚌",
+      "titleKo": "버스 이용하기",
+      "promptSeed": "asking which bus to take and how to pay the fare",
+      "icon": "Directions",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "school-parents",
+      "emoji": "🏫",
+      "titleKo": "학부모 상담하기",
+      "promptSeed": "speaking with a teacher about a child's school progress",
+      "icon": "AccountCircle",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "neighborhood-event",
+      "emoji": "🎪",
+      "titleKo": "동네 행사 묻기",
+      "promptSeed": "asking a neighbor about a local community event",
+      "icon": "Event",
+      "group": "daily",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "flight-checkin",
+      "emoji": "🛫",
+      "titleKo": "항공편 체크인",
+      "promptSeed": "checking in for an international flight at the airport",
+      "icon": "Flight",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "boarding-gate",
+      "emoji": "🚪",
+      "titleKo": "탑승구 찾기",
+      "promptSeed": "asking airport staff for directions to a boarding gate",
+      "icon": "Directions",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "baggage-claim",
+      "emoji": "🧳",
+      "titleKo": "수하물 찾기",
+      "promptSeed": "asking for help when your luggage is missing at baggage claim",
+      "icon": "Hub",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "customs-declaration",
+      "emoji": "🛃",
+      "titleKo": "세관 신고하기",
+      "promptSeed": "answering customs questions about items you are carrying",
+      "icon": "Shield",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "currency-exchange",
+      "emoji": "💱",
+      "titleKo": "환전하기",
+      "promptSeed": "exchanging money at a currency exchange counter",
+      "icon": "AccountBalance",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "tourist-info",
+      "emoji": "ℹ️",
+      "titleKo": "관광 안내소 이용하기",
+      "promptSeed": "asking a tourist information clerk for local recommendations",
+      "icon": "Info",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "museum-ticket",
+      "emoji": "🖼️",
+      "titleKo": "박물관 표 사기",
+      "promptSeed": "buying museum admission tickets and asking about exhibits",
+      "icon": "Description",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "train-ticket",
+      "emoji": "🚆",
+      "titleKo": "기차표 예매하기",
+      "promptSeed": "buying a train ticket and choosing a departure time",
+      "icon": "Directions",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "platform-change",
+      "emoji": "🚉",
+      "titleKo": "승강장 변경 확인하기",
+      "promptSeed": "confirming a changed train platform with station staff",
+      "icon": "Directions",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "car-rental",
+      "emoji": "🚗",
+      "titleKo": "렌터카 빌리기",
+      "promptSeed": "renting a car and reviewing the rental agreement",
+      "icon": "LocalTaxi",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "gas-station",
+      "emoji": "⛽",
+      "titleKo": "주유소 이용하기",
+      "promptSeed": "asking for fuel and payment options at a gas station",
+      "icon": "Bolt",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "beach-rental",
+      "emoji": "🏖️",
+      "titleKo": "해변 용품 빌리기",
+      "promptSeed": "renting beach equipment for the day",
+      "icon": "PartlyCloudyDay",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "tour-booking",
+      "emoji": "🗺️",
+      "titleKo": "투어 예약하기",
+      "promptSeed": "booking a guided tour and asking what is included",
+      "icon": "Directions",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "lost-passport",
+      "emoji": "🛂",
+      "titleKo": "여권 분실 신고하기",
+      "promptSeed": "reporting a lost passport and asking for emergency help",
+      "icon": "Shield",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "emergency-help",
+      "emoji": "🚨",
+      "titleKo": "여행 중 긴급 도움 요청",
+      "promptSeed": "asking for urgent help while traveling in an unfamiliar city",
+      "icon": "Error",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "hotel-room-issue",
+      "emoji": "🛏️",
+      "titleKo": "호텔 객실 문제 알리기",
+      "promptSeed": "reporting a problem with your hotel room to the front desk",
+      "icon": "Hotel",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "hotel-breakfast",
+      "emoji": "🥐",
+      "titleKo": "호텔 조식 문의하기",
+      "promptSeed": "asking about breakfast hours and dietary options at a hotel",
+      "icon": "Restaurant",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "late-checkout",
+      "emoji": "⏰",
+      "titleKo": "레이트 체크아웃 요청",
+      "promptSeed": "requesting a late checkout at a hotel politely",
+      "icon": "Schedule",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "wifi-password",
+      "emoji": "📶",
+      "titleKo": "와이파이 비밀번호 묻기",
+      "promptSeed": "asking for the Wi-Fi password at a hotel or café",
+      "icon": "CloudSync",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "travel-restaurant",
+      "emoji": "🍜",
+      "titleKo": "여행지 식당 추천받기",
+      "promptSeed": "asking a local for a restaurant recommendation while traveling",
+      "icon": "Restaurant",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "local-market",
+      "emoji": "🧺",
+      "titleKo": "현지 시장에서 쇼핑하기",
+      "promptSeed": "buying food at a local market and asking about prices",
+      "icon": "ShoppingCart",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "souvenir-shopping",
+      "emoji": "🎁",
+      "titleKo": "기념품 사기",
+      "promptSeed": "choosing souvenirs and asking a shopkeeper for suggestions",
+      "icon": "ShoppingCart",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "travel-photo",
+      "emoji": "📸",
+      "titleKo": "사진 촬영 부탁하기",
+      "promptSeed": "asking another traveler to take a photo for you",
+      "icon": "AutoAwesome",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "train-delay",
+      "emoji": "⌛",
+      "titleKo": "기차 지연 문의하기",
+      "promptSeed": "asking station staff about a delayed train",
+      "icon": "Schedule",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "ride-share",
+      "emoji": "🚙",
+      "titleKo": "차량 호출하기",
+      "promptSeed": "arranging a ride-share pickup and confirming the destination",
+      "icon": "LocalTaxi",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "border-crossing",
+      "emoji": "🗺️",
+      "titleKo": "국경 통과하기",
+      "promptSeed": "answering questions while crossing a land border",
+      "icon": "Shield",
+      "group": "travel",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "email-followup",
+      "emoji": "✉️",
+      "titleKo": "이메일 후속 연락하기",
+      "promptSeed": "following up on an unanswered work email politely",
+      "icon": "Send",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "project-update",
+      "emoji": "📊",
+      "titleKo": "프로젝트 진행 상황 공유",
+      "promptSeed": "giving a concise update on your project progress",
+      "icon": "Notes",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "task-prioritization",
+      "emoji": "✅",
+      "titleKo": "업무 우선순위 정하기",
+      "promptSeed": "discussing which tasks should be prioritized this week",
+      "icon": "Check",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "deadline-extension",
+      "emoji": "⏳",
+      "titleKo": "마감 연장 요청하기",
+      "promptSeed": "requesting more time to complete a work task",
+      "icon": "HourglassEmpty",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "request-feedback",
+      "emoji": "💬",
+      "titleKo": "피드백 요청하기",
+      "promptSeed": "asking a colleague for feedback on your work",
+      "icon": "NavForum",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "give-feedback",
+      "emoji": "🗣️",
+      "titleKo": "피드백 주기",
+      "promptSeed": "giving constructive feedback to a coworker",
+      "icon": "NavForum",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "ask-help",
+      "emoji": "🙋",
+      "titleKo": "업무 도움 요청하기",
+      "promptSeed": "asking a teammate for help with a difficult task",
+      "icon": "Person",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "delegate-task",
+      "emoji": "📌",
+      "titleKo": "업무 맡기기",
+      "promptSeed": "delegating a task and explaining the expected result",
+      "icon": "Notes",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "meeting-agenda",
+      "emoji": "📝",
+      "titleKo": "회의 안건 정하기",
+      "promptSeed": "proposing an agenda before a team meeting",
+      "icon": "Event",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "meeting-notes",
+      "emoji": "📒",
+      "titleKo": "회의록 공유하기",
+      "promptSeed": "summarizing meeting decisions and next steps",
+      "icon": "Notes",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "presentation-opening",
+      "emoji": "🎤",
+      "titleKo": "발표 시작하기",
+      "promptSeed": "opening a work presentation and introducing the topic",
+      "icon": "FormatQuote",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "presentation-qna",
+      "emoji": "❓",
+      "titleKo": "발표 질의응답",
+      "promptSeed": "answering a question after a business presentation",
+      "icon": "NavForum",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "client-call",
+      "emoji": "📞",
+      "titleKo": "고객과 통화하기",
+      "promptSeed": "discussing a project update with a client on a call",
+      "icon": "Call",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "sales-demo",
+      "emoji": "🖥️",
+      "titleKo": "제품 시연하기",
+      "promptSeed": "demonstrating a product feature to a potential customer",
+      "icon": "AutoAwesome",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "negotiate-price",
+      "emoji": "🤝",
+      "titleKo": "가격 협상하기",
+      "promptSeed": "negotiating a price and terms with a business partner",
+      "icon": "AccountBalance",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "invoice-question",
+      "emoji": "🧾",
+      "titleKo": "청구서 문의하기",
+      "promptSeed": "asking about an invoice that has an unexpected charge",
+      "icon": "Description",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "office-equipment",
+      "emoji": "🖨️",
+      "titleKo": "사무용품 요청하기",
+      "promptSeed": "requesting office equipment or supplies from administration",
+      "icon": "BusinessCenter",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "it-support",
+      "emoji": "💻",
+      "titleKo": "IT 지원 요청하기",
+      "promptSeed": "explaining a computer problem to IT support",
+      "icon": "CloudSync",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "remote-work",
+      "emoji": "🏡",
+      "titleKo": "재택근무 조율하기",
+      "promptSeed": "coordinating a remote-work schedule with your manager",
+      "icon": "Person",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "sick-leave",
+      "emoji": "🤒",
+      "titleKo": "병가 알리기",
+      "promptSeed": "informing your manager that you need sick leave",
+      "icon": "LocalHospital",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "vacation-request",
+      "emoji": "🌴",
+      "titleKo": "휴가 신청하기",
+      "promptSeed": "requesting vacation days and arranging coverage",
+      "icon": "Event",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "performance-review",
+      "emoji": "⭐",
+      "titleKo": "성과 평가 면담",
+      "promptSeed": "discussing goals and achievements in a performance review",
+      "icon": "CheckCircle",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "networking-event",
+      "emoji": "🥂",
+      "titleKo": "네트워킹 행사에서 대화하기",
+      "promptSeed": "introducing yourself at a professional networking event",
+      "icon": "NavForum",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "recruiter-call",
+      "emoji": "📱",
+      "titleKo": "채용 담당자와 통화하기",
+      "promptSeed": "speaking with a recruiter about a job opportunity",
+      "icon": "Call",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "onboarding-question",
+      "emoji": "🧭",
+      "titleKo": "입사 초기 질문하기",
+      "promptSeed": "asking a coworker about a new employee process",
+      "icon": "Directions",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "schedule-interview",
+      "emoji": "📅",
+      "titleKo": "면접 일정 잡기",
+      "promptSeed": "arranging an interview time with a candidate",
+      "icon": "Event",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "workplace-conflict",
+      "emoji": "⚖️",
+      "titleKo": "직장 갈등 대화하기",
+      "promptSeed": "calmly discussing a workplace disagreement with a colleague",
+      "icon": "NavForum",
+      "group": "work",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "emergency-call",
+      "emoji": "📞",
+      "titleKo": "긴급 전화하기",
+      "promptSeed": "calling emergency services and describing an urgent situation",
+      "icon": "Call",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "dentist-appointment",
+      "emoji": "🦷",
+      "titleKo": "치과 예약하기",
+      "promptSeed": "booking a dental appointment and describing a tooth problem",
+      "icon": "LocalHospital",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "vision-exam",
+      "emoji": "👓",
+      "titleKo": "시력 검사 받기",
+      "promptSeed": "arranging an eye exam and asking about new glasses",
+      "icon": "AccountCircle",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "health-insurance",
+      "emoji": "🩺",
+      "titleKo": "건강보험 문의하기",
+      "promptSeed": "asking an insurance representative about health coverage",
+      "icon": "Shield",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "prescription-refill",
+      "emoji": "💊",
+      "titleKo": "처방약 재조제 요청",
+      "promptSeed": "requesting a refill for a prescription medicine",
+      "icon": "Medication",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "bank-transfer",
+      "emoji": "💸",
+      "titleKo": "은행 송금하기",
+      "promptSeed": "asking how to make a bank transfer at a branch",
+      "icon": "AccountBalance",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "credit-card-lost",
+      "emoji": "💳",
+      "titleKo": "신용카드 분실 신고",
+      "promptSeed": "reporting a lost credit card and asking for a replacement",
+      "icon": "Error",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "bill-payment",
+      "emoji": "🧾",
+      "titleKo": "공과금 납부하기",
+      "promptSeed": "paying a utility bill and asking about the due date",
+      "icon": "Description",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "post-office",
+      "emoji": "📮",
+      "titleKo": "우체국에서 소포 보내기",
+      "promptSeed": "sending a package at the post office and choosing delivery options",
+      "icon": "Send",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "internet-installation",
+      "emoji": "🌐",
+      "titleKo": "인터넷 설치 예약",
+      "promptSeed": "scheduling a home internet installation appointment",
+      "icon": "CloudSync",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "mobile-plan",
+      "emoji": "📱",
+      "titleKo": "휴대폰 요금제 변경",
+      "promptSeed": "comparing mobile phone plans at a service store",
+      "icon": "Call",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "utility-outage",
+      "emoji": "💡",
+      "titleKo": "정전·단수 신고",
+      "promptSeed": "reporting a power or water outage to the utility company",
+      "icon": "Bolt",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "landlord-repair",
+      "emoji": "🔧",
+      "titleKo": "집 수리 요청",
+      "promptSeed": "asking a landlord to arrange a repair in your home",
+      "icon": "RestartAlt",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "police-report",
+      "emoji": "👮",
+      "titleKo": "경찰 신고 접수",
+      "promptSeed": "filing a police report about a non-emergency incident",
+      "icon": "Shield",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "legal-consultation",
+      "emoji": "⚖️",
+      "titleKo": "법률 상담 예약",
+      "promptSeed": "booking an initial consultation with a lawyer",
+      "icon": "Description",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "child-school",
+      "emoji": "🎒",
+      "titleKo": "자녀 학교 문의",
+      "promptSeed": "asking a school office about enrollment requirements",
+      "icon": "AccountCircle",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "daycare-pickup",
+      "emoji": "🧸",
+      "titleKo": "어린이집 하원 조율",
+      "promptSeed": "coordinating a daycare pickup with a caregiver",
+      "icon": "Person",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "car-repair",
+      "emoji": "🔧",
+      "titleKo": "자동차 수리 맡기기",
+      "promptSeed": "describing a car problem at an auto repair shop",
+      "icon": "RestartAlt",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "car-insurance",
+      "emoji": "🚘",
+      "titleKo": "자동차 보험 문의",
+      "promptSeed": "asking about car insurance coverage and pricing",
+      "icon": "Shield",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "parking-ticket",
+      "emoji": "🅿️",
+      "titleKo": "주차 위반 딱지 문의",
+      "promptSeed": "asking how to pay or appeal a parking ticket",
+      "icon": "Directions",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "recycling-rules",
+      "emoji": "♻️",
+      "titleKo": "재활용 규칙 묻기",
+      "promptSeed": "asking a neighbor about local recycling rules",
+      "icon": "Autorenew",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "community-class",
+      "emoji": "🧑‍🎨",
+      "titleKo": "지역 강좌 신청",
+      "promptSeed": "registering for a community class and asking about materials",
+      "icon": "Interests",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "volunteer-signup",
+      "emoji": "🙌",
+      "titleKo": "봉사활동 신청",
+      "promptSeed": "signing up to volunteer for a local organization",
+      "icon": "WavingHand",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "voting-info",
+      "emoji": "🗳️",
+      "titleKo": "투표 정보 묻기",
+      "promptSeed": "asking where and when to vote in a local election",
+      "icon": "CheckCircle",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "donation-center",
+      "emoji": "❤️",
+      "titleKo": "기부 센터 이용",
+      "promptSeed": "asking a donation center what items they accept",
+      "icon": "SentimentSatisfied",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "fitness-class",
+      "emoji": "🧘",
+      "titleKo": "운동 수업 등록",
+      "promptSeed": "registering for a fitness class and asking about its schedule",
+      "icon": "Bolt",
+      "group": "life",
+      "beginnerFriendly": false
+    },
+    {
+      "id": "morning-routine",
+      "emoji": "🌅",
+      "icon": "Schedule",
+      "titleKo": "아침 일과 이야기하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "describing your morning routine and when you leave home"
+    },
+    {
+      "id": "breakfast-order",
+      "emoji": "🥞",
+      "icon": "Restaurant",
+      "titleKo": "아침 식사 주문하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "ordering breakfast and asking about menu options"
+    },
+    {
+      "id": "commute-delay",
+      "emoji": "🚇",
+      "icon": "Schedule",
+      "titleKo": "출근길 지연 알리기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "telling someone that your commute is delayed"
+    },
+    {
+      "id": "elevator-smalltalk",
+      "emoji": "🛗",
+      "icon": "WavingHand",
+      "titleKo": "엘리베이터에서 인사하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "making brief friendly conversation in an elevator"
+    },
+    {
+      "id": "neighbor-noise",
+      "emoji": "🔊",
+      "icon": "NavForum",
+      "titleKo": "이웃 소음 부탁하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "politely asking a neighbor to reduce noise"
+    },
+    {
+      "id": "housewarming-invite",
+      "emoji": "🏠",
+      "icon": "Event",
+      "titleKo": "집들이 초대하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "inviting friends to a housewarming gathering"
+    },
+    {
+      "id": "roommate-chores",
+      "emoji": "🧹",
+      "icon": "CleaningServices",
+      "titleKo": "룸메이트와 집안일 나누기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "agreeing on household chores with a roommate"
+    },
+    {
+      "id": "plant-watering",
+      "emoji": "🪴",
+      "icon": "SentimentSatisfied",
+      "titleKo": "식물 물주기 부탁하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "asking a friend to water your plants while away"
+    },
+    {
+      "id": "online-order",
+      "emoji": "📦",
+      "icon": "ShoppingCart",
+      "titleKo": "온라인 주문 문의하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "asking customer service about an online order"
+    },
+    {
+      "id": "delivery-reschedule",
+      "emoji": "🚚",
+      "icon": "Schedule",
+      "titleKo": "배송 일정 변경하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "rescheduling a package delivery"
+    },
+    {
+      "id": "return-borrowed-book",
+      "emoji": "📚",
+      "icon": "Autorenew",
+      "titleKo": "빌린 책 돌려주기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "returning a borrowed book and thanking its owner"
+    },
+    {
+      "id": "coffee-chat",
+      "emoji": "☕",
+      "icon": "LocalCafe",
+      "titleKo": "커피 약속 잡기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "arranging a casual coffee chat with a friend"
+    },
+    {
+      "id": "board-game-night",
+      "emoji": "🎲",
+      "icon": "Interests",
+      "titleKo": "보드게임 모임 제안하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "inviting friends to a board game night"
+    },
+    {
+      "id": "sports-watch-party",
+      "emoji": "⚽",
+      "icon": "GraphicEq",
+      "titleKo": "경기 함께 보기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "making plans to watch a sports match together"
+    },
+    {
+      "id": "recipe-substitution",
+      "emoji": "🥕",
+      "icon": "Restaurant",
+      "titleKo": "요리 재료 대체 묻기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "asking what ingredient can replace one in a recipe"
+    },
+    {
+      "id": "leftover-sharing",
+      "emoji": "🍱",
+      "icon": "SentimentSatisfied",
+      "titleKo": "음식 나눠 먹기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "offering leftover food to a neighbor"
+    },
+    {
+      "id": "lost-key",
+      "emoji": "🔑",
+      "icon": "Error",
+      "titleKo": "열쇠 분실 도움 요청",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "asking for help after losing your keys"
+    },
+    {
+      "id": "building-notice",
+      "emoji": "📋",
+      "icon": "Info",
+      "titleKo": "건물 공지 확인하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about a notice posted in your building"
+    },
+    {
+      "id": "mailbox-question",
+      "emoji": "📬",
+      "icon": "Send",
+      "titleKo": "우편함 문의하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "asking a neighbor about a mailbox delivery"
+    },
+    {
+      "id": "phone-call-back",
+      "emoji": "📲",
+      "icon": "Call",
+      "titleKo": "전화 다시 걸기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "returning a missed call and explaining why"
+    },
+    {
+      "id": "group-chat-plan",
+      "emoji": "💬",
+      "icon": "NavForum",
+      "titleKo": "단체 채팅 약속 잡기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "making weekend plans in a group chat"
+    },
+    {
+      "id": "new-hobby-class",
+      "emoji": "🎨",
+      "icon": "Interests",
+      "titleKo": "새 취미 수업 알아보기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about joining a beginner hobby class"
+    },
+    {
+      "id": "language-exchange",
+      "emoji": "🗣️",
+      "icon": "WavingHand",
+      "titleKo": "언어 교환 모임 소개하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "introducing yourself at a language exchange"
+    },
+    {
+      "id": "dog-walking",
+      "emoji": "🐕",
+      "icon": "SentimentSatisfied",
+      "titleKo": "반려견 산책 부탁하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "asking someone to walk your dog"
+    },
+    {
+      "id": "babysitting-request",
+      "emoji": "👶",
+      "icon": "Person",
+      "titleKo": "아이 돌봄 부탁하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "asking a friend to babysit for an evening"
+    },
+    {
+      "id": "house-guest",
+      "emoji": "🛋️",
+      "icon": "Hotel",
+      "titleKo": "손님 맞이 준비하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "discussing arrangements for an overnight guest"
+    },
+    {
+      "id": "cleaning-schedule",
+      "emoji": "🧽",
+      "icon": "CleaningServices",
+      "titleKo": "청소 일정 정하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "setting a time to clean a shared space"
+    },
+    {
+      "id": "recycling-dropoff",
+      "emoji": "♻️",
+      "icon": "Autorenew",
+      "titleKo": "재활용품 배출하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "asking where to drop off recycling"
+    },
+    {
+      "id": "apartment-viewing",
+      "emoji": "🏘️",
+      "icon": "Person",
+      "titleKo": "집 보러 가기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "arranging a viewing for an apartment"
+    },
+    {
+      "id": "lease-question",
+      "emoji": "📝",
+      "icon": "Description",
+      "titleKo": "임대 계약 문의하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "asking a landlord about a lease term"
+    },
+    {
+      "id": "home-decor",
+      "emoji": "🖼️",
+      "icon": "AutoAwesome",
+      "titleKo": "집 꾸미기 의견 묻기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "asking for advice about home decoration"
+    },
+    {
+      "id": "birthday-gift",
+      "emoji": "🎁",
+      "icon": "ShoppingCart",
+      "titleKo": "생일 선물 고르기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "choosing a birthday gift for a friend"
+    },
+    {
+      "id": "weather-warning",
+      "emoji": "🌧️",
+      "icon": "PartlyCloudyDay",
+      "titleKo": "날씨 경보 이야기하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "discussing a weather warning and plans"
+    },
+    {
+      "id": "picnic-plan",
+      "emoji": "🧺",
+      "icon": "Event",
+      "titleKo": "피크닉 계획 세우기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "planning a picnic with friends"
+    },
+    {
+      "id": "walk-in-park",
+      "emoji": "🌳",
+      "icon": "Directions",
+      "titleKo": "공원 산책 제안하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "inviting someone for a walk in the park"
+    },
+    {
+      "id": "book-club",
+      "emoji": "📖",
+      "icon": "Interests",
+      "titleKo": "독서 모임 참여하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "joining a local book club"
+    },
+    {
+      "id": "online-profile",
+      "emoji": "🪪",
+      "icon": "AccountCircle",
+      "titleKo": "온라인 프로필 소개하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "introducing yourself through an online profile"
+    },
+    {
+      "id": "social-media-comment",
+      "emoji": "💭",
+      "icon": "NavForum",
+      "titleKo": "소셜 미디어 댓글 달기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "replying politely to a social media comment"
+    },
+    {
+      "id": "favorite-podcast",
+      "emoji": "🎧",
+      "icon": "GraphicEq",
+      "titleKo": "좋아하는 팟캐스트 추천하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "recommending a favorite podcast"
+    },
+    {
+      "id": "streaming-choice",
+      "emoji": "📺",
+      "icon": "PlayArrow",
+      "titleKo": "볼 콘텐츠 고르기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "choosing something to watch on a streaming service"
+    },
+    {
+      "id": "game-invite",
+      "emoji": "🎮",
+      "icon": "Interests",
+      "titleKo": "온라인 게임 초대하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "inviting a friend to play an online game"
+    },
+    {
+      "id": "photo-album",
+      "emoji": "📷",
+      "icon": "AutoAwesome",
+      "titleKo": "사진 앨범 공유하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "sharing a photo album with family"
+    },
+    {
+      "id": "family-video-call",
+      "emoji": "👨‍👩‍👧",
+      "icon": "Call",
+      "titleKo": "가족 영상 통화하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "having a video call with family"
+    },
+    {
+      "id": "holiday-plan",
+      "emoji": "🎉",
+      "icon": "Event",
+      "titleKo": "명절 계획 이야기하기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "discussing plans for a holiday"
+    },
+    {
+      "id": "thank-you-note",
+      "emoji": "🙏",
+      "icon": "Send",
+      "titleKo": "감사 메시지 보내기",
+      "group": "daily",
+      "beginnerFriendly": false,
+      "promptSeed": "writing a short thank-you message"
+    },
+    {
+      "id": "visa-application",
+      "emoji": "🛂",
+      "icon": "Shield",
+      "titleKo": "비자 신청 문의하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about documents for a visa application"
+    },
+    {
+      "id": "travel-insurance",
+      "emoji": "🧾",
+      "icon": "Shield",
+      "titleKo": "여행자 보험 가입하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about travel insurance coverage"
+    },
+    {
+      "id": "airport-security",
+      "emoji": "🧳",
+      "icon": "Shield",
+      "titleKo": "공항 보안 검색 통과하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking what to do at airport security"
+    },
+    {
+      "id": "seat-change",
+      "emoji": "💺",
+      "icon": "Flight",
+      "titleKo": "항공 좌석 변경 요청",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "requesting a different seat on a flight"
+    },
+    {
+      "id": "inflight-meal",
+      "emoji": "🍽️",
+      "icon": "Restaurant",
+      "titleKo": "기내식 문의하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about meal choices on a flight"
+    },
+    {
+      "id": "missed-connection",
+      "emoji": "🔄",
+      "icon": "SyncProblem",
+      "titleKo": "연결편 놓쳤을 때 도움받기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking for help after missing a connecting flight"
+    },
+    {
+      "id": "airport-lounge",
+      "emoji": "🛋️",
+      "icon": "Hotel",
+      "titleKo": "공항 라운지 이용하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about airport lounge access"
+    },
+    {
+      "id": "arrival-transfer",
+      "emoji": "🚐",
+      "icon": "LocalTaxi",
+      "titleKo": "공항 이동편 예약하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "arranging an airport transfer to your hotel"
+    },
+    {
+      "id": "hotel-upgrade",
+      "emoji": "✨",
+      "icon": "Hotel",
+      "titleKo": "호텔 객실 업그레이드 문의",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking whether a hotel room upgrade is available"
+    },
+    {
+      "id": "hotel-luggage-storage",
+      "emoji": "🧳",
+      "icon": "Hotel",
+      "titleKo": "호텔 짐 보관 요청",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking a hotel to store luggage after checkout"
+    },
+    {
+      "id": "wake-up-call",
+      "emoji": "⏰",
+      "icon": "Schedule",
+      "titleKo": "모닝콜 요청하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "requesting a wake-up call from a hotel"
+    },
+    {
+      "id": "room-service",
+      "emoji": "🍔",
+      "icon": "Restaurant",
+      "titleKo": "룸서비스 주문하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "ordering food through hotel room service"
+    },
+    {
+      "id": "laundry-service",
+      "emoji": "👔",
+      "icon": "CleaningServices",
+      "titleKo": "호텔 세탁 서비스 문의",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about hotel laundry service"
+    },
+    {
+      "id": "concierge-recommendation",
+      "emoji": "🗺️",
+      "icon": "Info",
+      "titleKo": "컨시어지 추천받기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking a concierge for nearby recommendations"
+    },
+    {
+      "id": "accessible-travel",
+      "emoji": "♿",
+      "icon": "Directions",
+      "titleKo": "이동 편의시설 문의하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about accessibility at a travel site"
+    },
+    {
+      "id": "local-sim-card",
+      "emoji": "📱",
+      "icon": "Call",
+      "titleKo": "현지 유심 구매하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "buying a local SIM card and choosing data"
+    },
+    {
+      "id": "roaming-help",
+      "emoji": "📶",
+      "icon": "CloudSync",
+      "titleKo": "로밍 문제 해결하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking for help with mobile roaming"
+    },
+    {
+      "id": "public-wifi",
+      "emoji": "📡",
+      "icon": "CloudSync",
+      "titleKo": "공공 와이파이 연결하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking how to connect to public Wi-Fi"
+    },
+    {
+      "id": "metro-map",
+      "emoji": "🗺️",
+      "icon": "Directions",
+      "titleKo": "지하철 노선도 읽기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking how to read a metro map"
+    },
+    {
+      "id": "bus-stop",
+      "emoji": "🚏",
+      "icon": "Directions",
+      "titleKo": "버스 정류장 찾기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking where the correct bus stop is"
+    },
+    {
+      "id": "ferry-ticket",
+      "emoji": "⛴️",
+      "icon": "Directions",
+      "titleKo": "페리 표 구매하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "buying a ferry ticket and checking departure time"
+    },
+    {
+      "id": "bike-rental",
+      "emoji": "🚲",
+      "icon": "Directions",
+      "titleKo": "자전거 대여하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "renting a bicycle for sightseeing"
+    },
+    {
+      "id": "scooter-rental",
+      "emoji": "🛴",
+      "icon": "Directions",
+      "titleKo": "스쿠터 대여하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about renting an electric scooter"
+    },
+    {
+      "id": "toll-road",
+      "emoji": "🛣️",
+      "icon": "AccountBalance",
+      "titleKo": "톨게이트 요금 문의",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking how to pay a road toll"
+    },
+    {
+      "id": "parking-garage",
+      "emoji": "🅿️",
+      "icon": "Directions",
+      "titleKo": "주차장 이용하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking where to park near an attraction"
+    },
+    {
+      "id": "navigation-help",
+      "emoji": "🧭",
+      "icon": "Directions",
+      "titleKo": "길 안내 앱 도움받기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking for help with a navigation app"
+    },
+    {
+      "id": "walking-tour",
+      "emoji": "🚶",
+      "icon": "Directions",
+      "titleKo": "도보 투어 참여하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "joining a guided walking tour"
+    },
+    {
+      "id": "audio-guide",
+      "emoji": "🎧",
+      "icon": "GraphicEq",
+      "titleKo": "오디오 가이드 빌리기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking how to rent an audio guide"
+    },
+    {
+      "id": "historical-site",
+      "emoji": "🏛️",
+      "icon": "Description",
+      "titleKo": "유적지 안내 듣기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about rules at a historical site"
+    },
+    {
+      "id": "art-gallery",
+      "emoji": "🖌️",
+      "icon": "AutoAwesome",
+      "titleKo": "미술관 작품 문의하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about an artwork in a gallery"
+    },
+    {
+      "id": "theme-park",
+      "emoji": "🎢",
+      "icon": "Interests",
+      "titleKo": "테마파크 이용하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about rides and ticket options"
+    },
+    {
+      "id": "zoo-visit",
+      "emoji": "🦁",
+      "icon": "Info",
+      "titleKo": "동물원 관람하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about animal feeding times at a zoo"
+    },
+    {
+      "id": "hiking-trail",
+      "emoji": "🥾",
+      "icon": "Directions",
+      "titleKo": "하이킹 코스 묻기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking which hiking trail suits your level"
+    },
+    {
+      "id": "campground-checkin",
+      "emoji": "⛺",
+      "icon": "Hotel",
+      "titleKo": "캠핑장 체크인하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "checking in at a campground"
+    },
+    {
+      "id": "ski-rental",
+      "emoji": "⛷️",
+      "icon": "Interests",
+      "titleKo": "스키 장비 대여하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "renting ski equipment and asking about sizes"
+    },
+    {
+      "id": "weather-cancellation",
+      "emoji": "🌪️",
+      "icon": "PartlyCloudyDay",
+      "titleKo": "날씨로 투어 취소 문의",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about a tour cancellation due to weather"
+    },
+    {
+      "id": "restaurant-allergy",
+      "emoji": "🥜",
+      "icon": "Restaurant",
+      "titleKo": "여행지 식당 알레르기 알리기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "telling restaurant staff about a food allergy"
+    },
+    {
+      "id": "dietary-request",
+      "emoji": "🥗",
+      "icon": "Restaurant",
+      "titleKo": "식단 요청하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking for a vegetarian or special meal"
+    },
+    {
+      "id": "street-food",
+      "emoji": "🌮",
+      "icon": "Restaurant",
+      "titleKo": "길거리 음식 주문하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "ordering street food and asking what is in it"
+    },
+    {
+      "id": "tip-question",
+      "emoji": "💵",
+      "icon": "AccountBalance",
+      "titleKo": "팁 문화 묻기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about local tipping customs"
+    },
+    {
+      "id": "tax-refund",
+      "emoji": "🧾",
+      "icon": "AccountBalance",
+      "titleKo": "세금 환급 신청하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking how to claim a tourist tax refund"
+    },
+    {
+      "id": "local-etiquette",
+      "emoji": "🤝",
+      "icon": "Info",
+      "titleKo": "현지 예절 묻기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about local customs and etiquette"
+    },
+    {
+      "id": "lost-phone-travel",
+      "emoji": "📵",
+      "icon": "Error",
+      "titleKo": "여행 중 휴대폰 분실 신고",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "reporting a lost phone while traveling"
+    },
+    {
+      "id": "medical-travel",
+      "emoji": "🩹",
+      "icon": "LocalHospital",
+      "titleKo": "여행 중 진료받기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking for medical help while traveling"
+    },
+    {
+      "id": "embassy-contact",
+      "emoji": "🏛️",
+      "icon": "Shield",
+      "titleKo": "대사관 연락하기",
+      "group": "travel",
+      "beginnerFriendly": false,
+      "promptSeed": "asking how to contact your embassy"
+    },
+    {
+      "id": "team-introduction",
+      "emoji": "👋",
+      "icon": "WavingHand",
+      "titleKo": "팀에 새로 인사하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "introducing yourself to a new project team"
+    },
+    {
+      "id": "office-tour",
+      "emoji": "🏢",
+      "icon": "BusinessCenter",
+      "titleKo": "사무실 안내받기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "asking for an office tour on your first day"
+    },
+    {
+      "id": "desk-location",
+      "emoji": "🪑",
+      "icon": "Directions",
+      "titleKo": "자리 위치 묻기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "asking where your assigned desk is"
+    },
+    {
+      "id": "building-access",
+      "emoji": "🔐",
+      "icon": "Shield",
+      "titleKo": "사무실 출입 권한 요청",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "asking for help with building access"
+    },
+    {
+      "id": "expense-report",
+      "emoji": "🧾",
+      "icon": "Description",
+      "titleKo": "경비 보고서 작성하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "asking how to submit an expense report"
+    },
+    {
+      "id": "timesheet-question",
+      "emoji": "⏱️",
+      "icon": "Schedule",
+      "titleKo": "근무 시간표 문의하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "asking how to complete a timesheet"
+    },
+    {
+      "id": "payroll-question",
+      "emoji": "💰",
+      "icon": "AccountBalance",
+      "titleKo": "급여 명세서 문의하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "asking payroll about a deduction"
+    },
+    {
+      "id": "benefits-enrollment",
+      "emoji": "🩺",
+      "icon": "LocalHospital",
+      "titleKo": "복리후생 가입하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "asking how to enroll in employee benefits"
+    },
+    {
+      "id": "team-lunch",
+      "emoji": "🍜",
+      "icon": "Restaurant",
+      "titleKo": "팀 점심 약속 잡기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "organizing a team lunch"
+    },
+    {
+      "id": "coffee-break-work",
+      "emoji": "☕",
+      "icon": "LocalCafe",
+      "titleKo": "업무 중 커피 휴식 제안",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "inviting a coworker for a coffee break"
+    },
+    {
+      "id": "calendar-invite",
+      "emoji": "📆",
+      "icon": "Event",
+      "titleKo": "캘린더 초대 보내기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "sending a calendar invitation for a meeting"
+    },
+    {
+      "id": "reschedule-meeting",
+      "emoji": "🔄",
+      "icon": "Event",
+      "titleKo": "회의 시간 다시 잡기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "rescheduling a meeting with attendees"
+    },
+    {
+      "id": "video-call-setup",
+      "emoji": "🎥",
+      "icon": "Call",
+      "titleKo": "화상 회의 설정하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "setting up a video call for a meeting"
+    },
+    {
+      "id": "screen-share-help",
+      "emoji": "🖥️",
+      "icon": "CloudSync",
+      "titleKo": "화면 공유 도움 요청",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "asking for help sharing your screen"
+    },
+    {
+      "id": "meeting-introductions",
+      "emoji": "🗣️",
+      "icon": "Person",
+      "titleKo": "회의 참석자 소개하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "introducing participants at a meeting"
+    },
+    {
+      "id": "decision-summary",
+      "emoji": "✅",
+      "icon": "Notes",
+      "titleKo": "결정 사항 정리하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "summarizing decisions after a discussion"
+    },
+    {
+      "id": "action-items",
+      "emoji": "📌",
+      "icon": "Check",
+      "titleKo": "실행 항목 확인하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "confirming action items after a meeting"
+    },
+    {
+      "id": "status-blocker",
+      "emoji": "🚧",
+      "icon": "Error",
+      "titleKo": "업무 장애 요인 공유",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "explaining a blocker on your task"
+    },
+    {
+      "id": "risk-escalation",
+      "emoji": "⚠️",
+      "icon": "Error",
+      "titleKo": "프로젝트 위험 알리기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "raising a project risk with a manager"
+    },
+    {
+      "id": "handover-note",
+      "emoji": "🤲",
+      "icon": "Notes",
+      "titleKo": "업무 인수인계 작성",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "writing a handover note for a colleague"
+    },
+    {
+      "id": "document-review",
+      "emoji": "📄",
+      "icon": "Description",
+      "titleKo": "문서 검토 요청하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "asking someone to review a document"
+    },
+    {
+      "id": "contract-question",
+      "emoji": "📑",
+      "icon": "Description",
+      "titleKo": "계약서 조항 문의하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about a clause in a contract"
+    },
+    {
+      "id": "data-request",
+      "emoji": "📈",
+      "icon": "Hub",
+      "titleKo": "데이터 요청하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "requesting data from another team"
+    },
+    {
+      "id": "report-explanation",
+      "emoji": "📊",
+      "icon": "Notes",
+      "titleKo": "보고서 내용 설명하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "explaining key points in a report"
+    },
+    {
+      "id": "budget-discussion",
+      "emoji": "💼",
+      "icon": "AccountBalance",
+      "titleKo": "예산 논의하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "discussing a project budget"
+    },
+    {
+      "id": "purchase-approval",
+      "emoji": "🛒",
+      "icon": "ShoppingCart",
+      "titleKo": "구매 승인 요청하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "requesting approval for a work purchase"
+    },
+    {
+      "id": "vendor-followup",
+      "emoji": "📨",
+      "icon": "Send",
+      "titleKo": "협력사에 후속 연락하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "following up with a vendor by email"
+    },
+    {
+      "id": "customer-complaint",
+      "emoji": "😟",
+      "icon": "NavForum",
+      "titleKo": "고객 불만 대응하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "responding to a customer complaint"
+    },
+    {
+      "id": "support-ticket",
+      "emoji": "🎫",
+      "icon": "Description",
+      "titleKo": "지원 티켓 등록하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "creating a support ticket for an issue"
+    },
+    {
+      "id": "bug-report",
+      "emoji": "🐞",
+      "icon": "Error",
+      "titleKo": "버그 신고하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "reporting a software bug clearly"
+    },
+    {
+      "id": "release-announcement",
+      "emoji": "🚀",
+      "icon": "AutoAwesome",
+      "titleKo": "배포 공지하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "announcing a product release to colleagues"
+    },
+    {
+      "id": "training-session",
+      "emoji": "🧑‍🏫",
+      "icon": "Interests",
+      "titleKo": "사내 교육 참여하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about a workplace training session"
+    },
+    {
+      "id": "mentor-request",
+      "emoji": "🌱",
+      "icon": "Person",
+      "titleKo": "멘토링 요청하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "asking a senior colleague to be your mentor"
+    },
+    {
+      "id": "career-goals",
+      "emoji": "🎯",
+      "icon": "CheckCircle",
+      "titleKo": "경력 목표 이야기하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "discussing career goals with your manager"
+    },
+    {
+      "id": "promotion-discussion",
+      "emoji": "📈",
+      "icon": "CheckCircle",
+      "titleKo": "승진 관련 상담하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about promotion expectations"
+    },
+    {
+      "id": "salary-negotiation",
+      "emoji": "💬",
+      "icon": "AccountBalance",
+      "titleKo": "연봉 협상하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "negotiating salary during an offer discussion"
+    },
+    {
+      "id": "job-offer-response",
+      "emoji": "✉️",
+      "icon": "Send",
+      "titleKo": "채용 제안 답장하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "responding to a job offer professionally"
+    },
+    {
+      "id": "resignation-notice",
+      "emoji": "📝",
+      "icon": "Description",
+      "titleKo": "퇴사 의사 알리기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "giving notice that you plan to resign"
+    },
+    {
+      "id": "exit-interview",
+      "emoji": "🚪",
+      "icon": "NavForum",
+      "titleKo": "퇴사 면담하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "answering questions in an exit interview"
+    },
+    {
+      "id": "conference-registration",
+      "emoji": "🎟️",
+      "icon": "Event",
+      "titleKo": "컨퍼런스 등록하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "registering for a professional conference"
+    },
+    {
+      "id": "business-trip-plan",
+      "emoji": "🧳",
+      "icon": "Flight",
+      "titleKo": "출장 일정 계획하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "planning a business trip itinerary"
+    },
+    {
+      "id": "client-visit",
+      "emoji": "🤝",
+      "icon": "BusinessCenter",
+      "titleKo": "고객사 방문 준비하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "preparing for a client site visit"
+    },
+    {
+      "id": "phone-etiquette",
+      "emoji": "☎️",
+      "icon": "Call",
+      "titleKo": "업무 전화 예절 익히기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "practicing professional phone etiquette"
+    },
+    {
+      "id": "email-tone",
+      "emoji": "✍️",
+      "icon": "Send",
+      "titleKo": "업무 이메일 어조 다듬기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "choosing an appropriate tone for a work email"
+    },
+    {
+      "id": "work-anniversary",
+      "emoji": "🎂",
+      "icon": "AutoAwesome",
+      "titleKo": "근속 기념 축하하기",
+      "group": "work",
+      "beginnerFriendly": false,
+      "promptSeed": "congratulating a coworker on a work anniversary"
+    },
+    {
+      "id": "clinic-reception",
+      "emoji": "🏥",
+      "icon": "LocalHospital",
+      "titleKo": "병원 접수하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "checking in at a clinic reception desk"
+    },
+    {
+      "id": "doctor-followup",
+      "emoji": "🩺",
+      "icon": "LocalHospital",
+      "titleKo": "의사 진료 후 질문하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking follow-up questions after a doctor visit"
+    },
+    {
+      "id": "mental-health-support",
+      "emoji": "💙",
+      "icon": "SentimentSatisfied",
+      "titleKo": "마음 건강 상담 예약",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking how to book a mental health consultation"
+    },
+    {
+      "id": "physical-therapy",
+      "emoji": "🦵",
+      "icon": "LocalHospital",
+      "titleKo": "물리치료 예약하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "scheduling a physical therapy appointment"
+    },
+    {
+      "id": "vaccination-appointment",
+      "emoji": "💉",
+      "icon": "Medication",
+      "titleKo": "예방접종 예약하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "booking a vaccination appointment"
+    },
+    {
+      "id": "allergy-test",
+      "emoji": "🧪",
+      "icon": "Medication",
+      "titleKo": "알레르기 검사 문의하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about an allergy test"
+    },
+    {
+      "id": "medical-bill",
+      "emoji": "🧾",
+      "icon": "AccountBalance",
+      "titleKo": "의료비 청구서 문의",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about a medical bill"
+    },
+    {
+      "id": "emergency-room",
+      "emoji": "🚑",
+      "icon": "LocalHospital",
+      "titleKo": "응급실에서 도움받기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking for help at an emergency room"
+    },
+    {
+      "id": "health-records",
+      "emoji": "📋",
+      "icon": "Description",
+      "titleKo": "진료 기록 요청하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "requesting a copy of medical records"
+    },
+    {
+      "id": "insurance-claim",
+      "emoji": "📄",
+      "icon": "Shield",
+      "titleKo": "보험금 청구하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking how to file an insurance claim"
+    },
+    {
+      "id": "bank-appointment",
+      "emoji": "🏦",
+      "icon": "AccountBalance",
+      "titleKo": "은행 상담 예약하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "booking an appointment with a bank advisor"
+    },
+    {
+      "id": "cash-withdrawal",
+      "emoji": "💵",
+      "icon": "AccountBalance",
+      "titleKo": "현금 인출 문의하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking how to withdraw cash at a bank"
+    },
+    {
+      "id": "check-deposit",
+      "emoji": "🧾",
+      "icon": "AccountBalance",
+      "titleKo": "수표 입금하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "depositing a check at a bank"
+    },
+    {
+      "id": "card-payment-dispute",
+      "emoji": "💳",
+      "icon": "Error",
+      "titleKo": "카드 결제 이의 제기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "disputing an unfamiliar card charge"
+    },
+    {
+      "id": "mortgage-question",
+      "emoji": "🏠",
+      "icon": "AccountBalance",
+      "titleKo": "주택 대출 문의하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about a home loan application"
+    },
+    {
+      "id": "tax-office",
+      "emoji": "🏛️",
+      "icon": "Description",
+      "titleKo": "세무서 문의하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking a tax office about a filing deadline"
+    },
+    {
+      "id": "identity-document",
+      "emoji": "🪪",
+      "icon": "Description",
+      "titleKo": "신분증 발급 신청",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "applying for a replacement identity document"
+    },
+    {
+      "id": "drivers-license",
+      "emoji": "🪪",
+      "icon": "Directions",
+      "titleKo": "운전면허 갱신하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "renewing a driver's license"
+    },
+    {
+      "id": "vehicle-registration",
+      "emoji": "🚗",
+      "icon": "Description",
+      "titleKo": "자동차 등록하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "registering a vehicle with local authorities"
+    },
+    {
+      "id": "passport-renewal",
+      "emoji": "📘",
+      "icon": "Shield",
+      "titleKo": "여권 갱신 신청하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "applying to renew a passport"
+    },
+    {
+      "id": "moving-address",
+      "emoji": "📦",
+      "icon": "Send",
+      "titleKo": "주소 변경 신고하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "notifying an office about a change of address"
+    },
+    {
+      "id": "trash-collection",
+      "emoji": "🗑️",
+      "icon": "CleaningServices",
+      "titleKo": "쓰레기 수거 문의",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about the trash collection schedule"
+    },
+    {
+      "id": "water-bill",
+      "emoji": "🚰",
+      "icon": "Bolt",
+      "titleKo": "수도요금 문의하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking a utility provider about a water bill"
+    },
+    {
+      "id": "electricity-bill",
+      "emoji": "⚡",
+      "icon": "Bolt",
+      "titleKo": "전기요금 문의하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about an electricity bill"
+    },
+    {
+      "id": "gas-service",
+      "emoji": "🔥",
+      "icon": "Bolt",
+      "titleKo": "가스 서비스 신청하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "arranging a home gas service"
+    },
+    {
+      "id": "heating-repair",
+      "emoji": "🌡️",
+      "icon": "RestartAlt",
+      "titleKo": "난방 고장 신고",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "reporting a broken heating system"
+    },
+    {
+      "id": "appliance-repair",
+      "emoji": "🧺",
+      "icon": "RestartAlt",
+      "titleKo": "가전제품 수리 요청",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "requesting repair for a home appliance"
+    },
+    {
+      "id": "pest-control",
+      "emoji": "🐜",
+      "icon": "CleaningServices",
+      "titleKo": "해충 방제 요청",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "arranging pest control for your home"
+    },
+    {
+      "id": "plumber-visit",
+      "emoji": "🔧",
+      "icon": "RestartAlt",
+      "titleKo": "배관 수리 방문 예약",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "booking a plumber to fix a leak"
+    },
+    {
+      "id": "moving-company",
+      "emoji": "🚛",
+      "icon": "Hub",
+      "titleKo": "이사 업체 예약하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "booking a moving company"
+    },
+    {
+      "id": "storage-unit",
+      "emoji": "📦",
+      "icon": "Hub",
+      "titleKo": "보관 창고 이용하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about renting a storage unit"
+    },
+    {
+      "id": "internet-bill",
+      "emoji": "🌐",
+      "icon": "CloudSync",
+      "titleKo": "인터넷 요금 문의하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about an internet bill"
+    },
+    {
+      "id": "mobile-repair",
+      "emoji": "📱",
+      "icon": "Call",
+      "titleKo": "휴대폰 수리 맡기기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "explaining a phone problem at a repair shop"
+    },
+    {
+      "id": "computer-repair",
+      "emoji": "💻",
+      "icon": "CloudSync",
+      "titleKo": "컴퓨터 수리 문의",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about computer repair options"
+    },
+    {
+      "id": "consumer-complaint",
+      "emoji": "📣",
+      "icon": "NavForum",
+      "titleKo": "소비자 불만 접수",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "filing a consumer complaint"
+    },
+    {
+      "id": "warranty-claim",
+      "emoji": "🛠️",
+      "icon": "Shield",
+      "titleKo": "보증 수리 요청",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking for a repair under warranty"
+    },
+    {
+      "id": "court-summons",
+      "emoji": "⚖️",
+      "icon": "Description",
+      "titleKo": "법원 출석 통지 문의",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking what to do about a court summons"
+    },
+    {
+      "id": "notary-service",
+      "emoji": "✒️",
+      "icon": "Description",
+      "titleKo": "공증 서비스 이용하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about a notary service"
+    },
+    {
+      "id": "immigration-office",
+      "emoji": "🏢",
+      "icon": "Shield",
+      "titleKo": "이민 사무소 문의",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking an immigration office about an application"
+    },
+    {
+      "id": "school-enrollment",
+      "emoji": "🏫",
+      "icon": "AccountCircle",
+      "titleKo": "학교 등록하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "enrolling a child in school"
+    },
+    {
+      "id": "teacher-meeting",
+      "emoji": "👩‍🏫",
+      "icon": "AccountCircle",
+      "titleKo": "교사 면담 예약하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "scheduling a meeting with a teacher"
+    },
+    {
+      "id": "lost-child",
+      "emoji": "🧒",
+      "icon": "Error",
+      "titleKo": "아이를 잃어버렸을 때 도움 요청",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking for help after losing sight of a child"
+    },
+    {
+      "id": "senior-care",
+      "emoji": "👵",
+      "icon": "Person",
+      "titleKo": "어르신 돌봄 상담",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about care services for an older relative"
+    },
+    {
+      "id": "funeral-service",
+      "emoji": "🕊️",
+      "icon": "Person",
+      "titleKo": "장례 서비스 문의",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about arrangements for a funeral service"
+    },
+    {
+      "id": "community-center",
+      "emoji": "🏘️",
+      "icon": "Info",
+      "titleKo": "주민센터 이용하기",
+      "group": "life",
+      "beginnerFriendly": false,
+      "promptSeed": "asking about services at a community center"
+    }
+  ]
+}

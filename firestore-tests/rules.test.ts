@@ -265,7 +265,7 @@ describe("carve-out — 서버 전용 루트 컬렉션(클라 default-deny)", ()
   );
 });
 
-describe("config/topics (client READ-only)", () => {
+describe("config/topics (server-only legacy export)", () => {
   beforeEach(async () => {
     await seed("config/topics", { id: "cafe-order" });
   });
@@ -274,8 +274,8 @@ describe("config/topics (client READ-only)", () => {
     await assertFails(getDoc(doc(unauthDb(), "config/topics")));
   });
 
-  it("인증 읽기는 허용", async () => {
-    await assertSucceeds(getDoc(doc(aliceDb(), "config/topics")));
+  it("인증 읽기도 거부", async () => {
+    await assertFails(getDoc(doc(aliceDb(), "config/topics")));
   });
 
   it("인증 쓰기는 거부", async () => {

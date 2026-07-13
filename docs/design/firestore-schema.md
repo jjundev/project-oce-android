@@ -32,7 +32,7 @@ users/{uid}                      # 루트 문서: nickname, level, createdAt, up
   ├─ gamification/studytime      # client RW; {totalSeconds, today:{dayKey,seconds}, updatedAt}
   └─ usage/{yyyymmdd}            # Functions 전용; {sessionCount, updatedAt}
 config/
-  ├─ topics                      # client READ-only — 큐레이션 16개·7필드(promptSeed 포함), 시드 config-topics-seed.json
+  ├─ topics                      # 내보낸 카탈로그(서버/운영용); Android 클라이언트는 읽지 않음
   ├─ limits                      # 서버 전용 — dailyFreeSessions 등
   ├─ prompts                     # 서버 전용 — 프롬프트 버전/본문(B-1)
   ├─ models                      # 서버 전용 — task별 모델 ID(라이브 스왑) [backend-functions.md §6]
@@ -116,18 +116,9 @@ idempotency/{key}                # 서버 전용 — startIntent dedup → {sess
 
 > 날짜 키 파티션이라 일일 리셋은 자동(새 문서). 클라이언트 쓰기 불가([PRD.md](../../PRD.md) FR-27 / A3).
 
-### config/topics — 큐레이션 주제(client READ-only, 원격 갱신)
-| 필드 | 타입 | 비고 |
-|---|---|---|
-| `id` | string | 문서 id(kebab, 예: `cafe-order`) |
-| `emoji` | string | 카드 이모지(표시 전용) |
-| `titleKo` | string | 한국어 제목(표시 전용) |
-| `group` | `'daily'｜'travel'｜'work'｜'life'` | 일상·입문/여행/업무·커리어/생활·서비스 |
-| `beginnerFriendly` | bool | 온보딩 첫-픽 후보(16개 중 6개 true) |
-| `order` | number | 표시 순서 |
-| `promptSeed` | string | **영어 시나리오 한 줄** — 생성기 입력(예: `"ordering a drink at a café"`). titleKo/emoji/group은 LLM 미전달 |
+### config/topics — 카탈로그 내보내기(운영용)
 
-> 시드 16개: [config-topics-seed.json](config-topics-seed.json). 생성기 입력 = `promptSeed + level + length`; 출력(기존) = 대본 + opponent name/role/gender(→ TTS 2음성 매핑, [tts.md](tts.md)).
+`config/topics`는 운영·서버 소비자를 위한 선택적 내보내기다. Android 클라이언트는 이를 로드하지 않으며, 런타임 주제 정본은 `android/app/src/main/assets/topics.json` 하나다. 내보낼 때 Android 전용 `icon`은 제외한다. 필드와 온보딩·그룹 수량 규칙은 [topic-catalog.md](topic-catalog.md)를 따른다.
 
 ---
 
@@ -244,7 +235,8 @@ service cloud.firestore {
       match /usage/{day} { allow read: if owner(uid); allow write: if false; }
     }
 
-    match /config/topics { allow read: if request.auth != null; allow write: if false; }
+    // Android는 config/topics를 읽지 않는다. 런타임 주제 정본은 번들 topics.json이다.
+    match /config/topics { allow read: if false; allow write: if false; }
     // config/limits, config/prompts: 매치 없음 → 클라이언트 deny(서버 전용)
   }
 }

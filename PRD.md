@@ -128,7 +128,7 @@
 ### 8.2 핵심 루프 — 대화 학습 (대본형 롤플레이)
 
 **8.2.1 대본 생성**
-- 입력: 레벨(쉬움/보통/어려움) · 주제(큐레이션 12~20개 + 직접 입력) · 길이(5/10턴, 첫 세션 5턴 고정).
+- 입력: 레벨(쉬움/보통/어려움) · 주제(로컬 큐레이션 300개·4그룹 + 직접 입력) · 길이(5/10턴, 첫 세션 5턴 고정).
 - 백엔드가 Gemini로 **상대역(opponent)과 학습자(user)가 번갈아 말하는 대본**을 생성(상대역 이름·성별·역할 메타 포함).
 - **스트리밍(SSE):** 백엔드가 완성된 턴을 SSE 이벤트로 보내면 클라이언트는 **파싱 없이 즉시 렌더**한다(점진 파싱은 백엔드 책임 — §10.1 참조). 전체 응답 대기 없음.
 
@@ -183,7 +183,7 @@
 - **FR-4.** 이메일/비밀번호 로그인은 제공하지 않는다.
 
 ### 9.2 대화 학습
-- **FR-5.** 레벨·주제·길이를 선택해 대본 생성을 요청한다. 주제는 큐레이션 프리셋(12~20) + 직접 입력 + 추천 새로고침을 지원한다.
+- **FR-5.** 레벨·주제·길이를 선택해 대본 생성을 요청한다. 주제는 로컬 큐레이션 300개(4그룹, 온보딩 6개) + 직접 입력 + 추천 새로고침을 지원한다.
 - **FR-6.** 대본은 스트리밍으로 수신하며, 백엔드가 보낸 완성된 턴을 도착 즉시 렌더한다(클라이언트는 원시 JSON 파싱 안 함).
 - **FR-7.** 상대역 턴은 채팅 표시 + TTS 재생 후 자동 진행한다.
 - **FR-8.** 학습자 턴은 한국어 문장을 제시하고, 마이크 녹음(16kHz PCM) + 실시간 파형 + 무음 감지를 제공한다.
@@ -320,7 +320,7 @@ config/                (서버 소유: 주제 프리셋, 한도 값, 프롬프�
 - **R3. prosody 점수 신뢰도:** LLM의 유창성/자신감 점수가 불안정할 수 있음. → **v1은 음성/prosody 숫자 점수를 내지 않는다**(정성 "한 줄 격려"만) — 위험을 설계로 회피. 숫자는 텍스트 작문 점수만 제공.
 - **R4. 일일 한도(3) 적정선:** 비용 vs 학습 충분성. → 출시 후 데이터로 보정.
 - **OQ1.** ~~minSdk 확정~~ → **해결: minSdk 26 (Android 8.0) 확정** (NFR-9).
-- **OQ2.** ~~주제 큐레이션 셋(12~20개) 최종 선정~~ → **해결: 16개·4그룹·6 beginnerFriendly**, 시드 [docs/design/config-topics-seed.json](docs/design/config-topics-seed.json) (grill-review deep auto, 0B SHIP).
+- **OQ2.** ~~주제 큐레이션 셋(12~20개) 최종 선정~~ → **해결: 300개·4그룹(각 75개)·6 beginnerFriendly**, 로컬 에셋 [android/app/src/main/assets/topics.json](android/app/src/main/assets/topics.json) 및 [카탈로그 설계](docs/design/topic-catalog.md) (grill-review deep auto, 0B SHIP).
 - **OQ3.** ~~TTS 음성/로케일 기본값, 단말 TTS 폴백 범위~~ → **해결: [docs/design/tts.md](docs/design/tts.md)** (Gemini TTS·2음성 성별 매핑·en-US·1.0x·워치독 8초·조건부 단말 폴백, grill-review 0B SHIP).
 - **OQ4.** ~~Firestore 상세 스키마 & 보안 규칙 설계~~ → **해결: [docs/design/firestore-schema.md](docs/design/firestore-schema.md)** (grill-review deep auto로 경화, v3.1 SHIP — 게임화 값[XP 10/20/35·한도 3·streak 완주일+1일 유예]·완주 정의 확정 포함).
 
@@ -348,7 +348,7 @@ config/                (서버 소유: 주제 프리셋, 한도 값, 프롬프�
 | 14 | 성공 지표 | **D7 리텐션 20%(확정 게이트)** + 완주율(~70%) + 주당 세션(~3) |
 | 15 | 온보딩 | **초경량 2문항 + 보장된 승리 첫 세션(5턴)** |
 
-**가정(별도 그릴 없이 기본값 채택):** 레벨 자가선택(3단계, 플레이스먼트 없음) · 주제 12~20 큐레이션+직접입력 · 세션 5/10턴(첫 세션 5턴 고정) · Gemini TTS 기본 · 오프라인 열람만 · UI 한국어 전용 · 실용 AA · greenfield Firestore · Analytics 계측 · 위험지대 집중 테스트 · 게임화 간소화 · 점진 상태 디자인.
+**가정(별도 그릴 없이 기본값 채택):** 레벨 자가선택(3단계, 플레이스먼트 없음) · 주제 로컬 300개(4그룹·온보딩 6개)+직접입력 · 세션 5/10턴(첫 세션 5턴 고정) · Gemini TTS 기본 · 오프라인 열람만 · UI 한국어 전용 · 실용 AA · greenfield Firestore · Analytics 계측 · 위험지대 집중 테스트 · 게임화 간소화 · 점진 상태 디자인.
 
 ---
 
@@ -374,4 +374,4 @@ config/                (서버 소유: 주제 프리셋, 한도 값, 프롬프�
 
 ---
 
-*이 문서는 v1.0(Confirmed)다(인터뷰 초안 + 객관 리뷰 + OQ1~4 전부 해결 + 상세 설계 산출물 완비). 상세 설계는 [docs/design/](docs/design/)에 분리 확정: 데이터 스키마([firestore-schema.md](docs/design/firestore-schema.md))·TTS([tts.md](docs/design/tts.md))·프롬프트 시스템([prompt-system.md](docs/design/prompt-system.md) + [prompts/](docs/design/prompts/))·주제 시드([config-topics-seed.json](docs/design/config-topics-seed.json))·디자인 토큰([design-tokens.md](docs/design/design-tokens.md)). 남은 것은 출시 후 데이터로 검증할 제품 리스크(§15 R1~R4)뿐이며, 이는 문서 공백이 아니다.*
+*이 문서는 v1.0(Confirmed)다(인터뷰 초안 + 객관 리뷰 + OQ1~4 전부 해결 + 상세 설계 산출물 완비). 상세 설계는 [docs/design/](docs/design/)에 분리 확정: 데이터 스키마([firestore-schema.md](docs/design/firestore-schema.md))·TTS([tts.md](docs/design/tts.md))·프롬프트 시스템([prompt-system.md](docs/design/prompt-system.md) + [prompts/](docs/design/prompts/))·주제 카탈로그([topic-catalog.md](docs/design/topic-catalog.md))·디자인 토큰([design-tokens.md](docs/design/design-tokens.md)). 남은 것은 출시 후 데이터로 검증할 제품 리스크(§15 R1~R4)뿐이며, 이는 문서 공백이 아니다.*

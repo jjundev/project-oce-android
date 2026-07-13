@@ -3,7 +3,7 @@
 > 상태: Draft
 > 범위: 홈과 학습 진입의 UX 정책, 사용자 상태, 화면 흐름, 카피 방향, 예외 상태, 계측
 > 제외: 시각 값(컬러·타이포그래피 등 [design-tokens.md](../design/design_system_src/design-tokens.md)), 컴포넌트 외형·모션 세부([product-design-system.md](../design/design_system_src/product-design-system.md))
-> 근거: `PRD.md`, `docs/design/config-topics-seed.json`, `docs/design/firestore-schema.md`, `docs/design/backend-functions.md`, `$grill-yourself` + `$grill-review deep auto` + `$grill-me` 결정
+> 근거: `PRD.md`, `android/app/src/main/assets/topics.json`, `docs/design/topic-catalog.md`, `docs/design/firestore-schema.md`, `docs/design/backend-functions.md`, `$grill-yourself` + `$grill-review deep auto` + `$grill-me` 결정
 
 ---
 
@@ -150,7 +150,7 @@ snapshot 계약(확정):
 정책:
 - 추천 새로고침은 지원한다.
 - `오늘의 추천`으로 고정하지 않는다.
-- v1 알고리즘은 **단순 회전(결정적)** 으로 확정한다 — `config-topics-seed.json`(`docs/design/config-topics-seed.json`) 큐레이션 16개를 날짜/인덱스 기반으로 결정적 순환한다. 랜덤·서버 config 기반은 v1 미사용.
+- v1 알고리즘은 **단순 회전(결정적)** 으로 확정한다 — `topics.json`(`android/app/src/main/assets/topics.json`)의 300개 큐레이션 상황을 날짜/인덱스 기반으로 결정적 순환한다. 랜덤·서버 config 기반은 v1 미사용.
 
 주의:
 - 단순 회전은 백엔드 작업이 필요 없고 결정적이라 예측 가능하다(랜덤/서버 config는 v1.1 이후 리텐션 데이터로 재검토).

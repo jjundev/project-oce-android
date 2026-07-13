@@ -5,6 +5,8 @@ import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.google.firebase.FirebaseApp
+import com.jjundev.oneclickeng.feature.home.topic.TopicCatalog
+import com.jjundev.oneclickeng.feature.home.topic.TopicCatalogAssetRepository
 import com.jjundev.oneclickeng.feature.reminder.ReminderOrchestrator
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -31,6 +33,8 @@ class OceApp :
 
     @Inject lateinit var appScope: CoroutineScope
 
+    @Inject lateinit var topicCatalogAssetRepository: TopicCatalogAssetRepository
+
     override val workManagerConfiguration: Configuration
         get() =
             Configuration.Builder()
@@ -39,6 +43,8 @@ class OceApp :
 
     override fun onCreate() {
         super.onCreate()
+        // The selector and onboarding read synchronously; load the offline source before UI creation.
+        TopicCatalog.install(topicCatalogAssetRepository.load())
         Log.i(TAG, "Firebase initialized: ${FirebaseApp.getInstance().name}")
         appScope.launch {
             reminderOrchestrator.repairSchedule()
