@@ -14,7 +14,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -60,7 +59,7 @@ fun RecordsScreen(
 
 /**
  * 기록 콘텐츠(stateless) — VM 없이 [RecordsUiState] 로 렌더하는 스크린샷 seam. 롱프레스로 띄운
- * [OneClickDialog] 확인 시에만 [onDelete] 를 호출한다(`pendingDelete` 는 이 컴포저블 로컬 상태).
+ * [OneClickDialog] 확인 시에만 [onDelete] 를 호출한다(`pendingDeleteId` 는 회전에도 살아남는 로컬 상태).
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -73,7 +72,7 @@ internal fun RecordsContent(
     reduceMotion: Boolean = false,
 ) {
     var expandedId by rememberSaveable { mutableStateOf<String?>(null) }
-    var pendingDelete by remember { mutableStateOf<SavedCardEntry?>(null) }
+    var pendingDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
     val entrance = rememberScreenEntrance(reduceMotion)
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -115,23 +114,24 @@ internal fun RecordsContent(
                 state = state,
                 expandedId = expandedId,
                 onToggleExpand = { id -> expandedId = if (expandedId == id) null else id },
-                onRequestDelete = { entry -> pendingDelete = entry },
+                onRequestDelete = { entry -> pendingDeleteId = entry.cardId },
                 onLoadMore = onLoadMore,
                 entrance = entrance,
             )
         }
     }
 
-    pendingDelete?.let { entry ->
+    val pendingEntry = pendingDeleteId?.let { id -> state.cards.firstOrNull { it.cardId == id } }
+    pendingEntry?.let { entry ->
         OneClickDialog(
             title = "저장한 카드를 삭제할까요?",
             body = "이 작업은 되돌릴 수 없어요.",
             confirmLabel = "삭제",
             onConfirm = {
                 onDelete(entry)
-                pendingDelete = null
+                pendingDeleteId = null
             },
-            onDismiss = { pendingDelete = null },
+            onDismiss = { pendingDeleteId = null },
             variant = OneClickDialogVariant.Destructive,
         )
     }

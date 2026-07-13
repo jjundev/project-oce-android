@@ -24,8 +24,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * [RecordsViewModel] 삭제/undo 톰스톤 정합 + 탭 전환 계측 검증(M2-05). Firestore 없이 fake 읽기/쓰기 seam 으로
- * 낙관 로컬 변이(제거→undo 재삽입)와 톰스톤 write 호출을 반증가능하게 고정한다.
+ * [RecordsViewModel] 삭제(톰스톤 write + 낙관 로컬 제거) + 탭 전환 계측 검증(M2-05). Firestore 없이 fake 읽기/쓰기
+ * seam 으로 deleteCard 호출 시 카드 목록에서 즉시 사라지는 낙관 변이와 톰스톤 write, 삭제 계측 호출을
+ * 반증가능하게 고정한다(undo 없음 — 롱프레스→확인 다이얼로그로 확정된 삭제만 다룬다).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -40,7 +41,7 @@ class RecordsViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     // 탭↔카드 타입 정합: EXPRESSION 탭엔 Expression 카드, WORD 탭엔 Word 카드를 넣는다(운영에선 항상 일치 —
-    // ViewModel 은 카드의 cardType 으로 undo 복원/계측 타깃을 정하므로 fixture 도 정합해야 한다).
+    // ViewModel 은 카드의 cardType 으로 삭제 계측 타깃을 정하므로 fixture 도 정합해야 한다).
     private fun expr(id: String) =
         SavedCardEntry(
             id,
