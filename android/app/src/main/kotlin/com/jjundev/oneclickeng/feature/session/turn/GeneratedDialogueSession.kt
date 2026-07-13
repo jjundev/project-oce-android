@@ -1,7 +1,6 @@
 package com.jjundev.oneclickeng.feature.session.turn
 
 import android.os.Bundle
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -78,10 +77,6 @@ fun GeneratedDialogueSessionRoute(
     val deepState by viewModel.deepState.collectAsStateWithLifecycle()
     val bookmarkedLevels by viewModel.bookmarkedLevels.collectAsStateWithLifecycle()
 
-    // 대화 중 시스템 뒤로가기는 시트를 닫거나 턴을 전진시키지 않고 대화 자체를 나간다(요구). 시트가 떠 있을 땐
-    // 모달 자체 back 이 onDismiss(→onExit)로, 아닐 땐 이 핸들러가 처리해 뒤로가기는 항상 "대화 나가기"로 수렴한다.
-    BackHandler { onExit() }
-
     // 시작 플로우가 실어온 주제 정체성. 실값이면 VM 에 기억시켜 durable 스냅샷에 실린다(이어하기/복원 시 헤더 유지).
     val navIdentity =
         if (topicTitle.isNotBlank()) {
@@ -127,46 +122,48 @@ fun GeneratedDialogueSessionRoute(
         }
     }
 
-    GeneratedDialogueSessionContent(
-        state = state,
-        // 세션 완료(sessionPhase == Completed) 진입 시 콘텐츠가 자동 발화 — 완료 화면 없이 곧장 요약으로(M3-02
-        // 대화→요약 배선). 완주 후에만 도달하므로 sessionId 는 non-null 이나 방어적으로 orEmpty.
-        onViewSummary = { onViewSummary(viewModel.sessionId().orEmpty()) },
-        modifier = modifier,
-        header = header,
-        // 헤더 뒤로가기 화살표도 "대화 나가기"로 수렴(시스템 back·시트 dismiss 와 동일 출구).
-        onBack = onExit,
-        dock = { task ->
-            MicSessionDock(
-                task = task,
-                viewModel = viewModel,
-                reduceMotion = reduceMotion,
-            )
-        },
-        onReplay = { text -> viewModel.replayOpponent(text) },
-        // 상대 발화자 이름을 말풍선에 반영. 미배정(초기·sessionId 미도착)이면 "Emma" 폴백.
-        opponentSpeaker = viewModel.opponentSpeaker?.name ?: "Emma",
-        // 자기 녹음 재생: 어떤 학습자 말풍선에 버튼을 띄울지 + 탭 시 그 순번 클립 재생.
-        learnerClipIndices = viewModel.learnerClipIndices,
-        onPlayLearnerClip = { index -> viewModel.playLearnerClip(index) },
-    )
+    DialogueExitGuard(onExit = onExit) { onBackRequest ->
+        GeneratedDialogueSessionContent(
+            state = state,
+            // 세션 완료(sessionPhase == Completed) 진입 시 콘텐츠가 자동 발화 — 완료 화면 없이 곧장 요약으로(M3-02
+            // 대화→요약 배선). 완주 후에만 도달하므로 sessionId 는 non-null 이나 방어적으로 orEmpty.
+            onViewSummary = { onViewSummary(viewModel.sessionId().orEmpty()) },
+            modifier = modifier,
+            header = header,
+            // 헤더 뒤로가기 화살표는 시스템 back 과 동일하게 "대화 중단 시트"를 띄운다(가드가 소유).
+            onBack = onBackRequest,
+            dock = { task ->
+                MicSessionDock(
+                    task = task,
+                    viewModel = viewModel,
+                    reduceMotion = reduceMotion,
+                )
+            },
+            onReplay = { text -> viewModel.replayOpponent(text) },
+            // 상대 발화자 이름을 말풍선에 반영. 미배정(초기·sessionId 미도착)이면 "Emma" 폴백.
+            opponentSpeaker = viewModel.opponentSpeaker?.name ?: "Emma",
+            // 자기 녹음 재생: 어떤 학습자 말풍선에 버튼을 띄울지 + 탭 시 그 순번 클립 재생.
+            learnerClipIndices = viewModel.learnerClipIndices,
+            onPlayLearnerClip = { index -> viewModel.playLearnerClip(index) },
+        )
 
-    // 턴 피드백 시트는 드래그 없는 고정 오버레이라 대화 콘텐츠의 형제로 얹는다. Idle 이면 스스로 아무것도
-    // 렌더하지 않아(early return) 턴 사이엔 숨는다. 시트는 스와이프/탭으로 줄이거나 닫을 수 없고(요구),
-    // "다음"(onNext)으로 전진하거나 시스템 뒤로가기(위 BackHandler → onExit "대화 나가기")로만 벗어난다.
-    SlimFeedbackSheet(
-        state = feedbackState,
-        onRetry = viewModel::retryFeedback,
-        onSkip = viewModel::skipFeedback,
-        onNext = { viewModel.onAdvance() },
-        deepState = deepState,
-        deepExpanded = viewModel.deepExpanded,
-        onExpandDeep = viewModel::expandDeep,
-        onCollapseDeep = viewModel::collapseDeep,
-        onRetryDeep = viewModel::retryDeep,
-        bookmarkedLevels = bookmarkedLevels,
-        onToggleBookmark = viewModel::toggleBookmark,
-    )
+        // 턴 피드백 시트는 드래그 없는 고정 오버레이라 대화 콘텐츠의 형제로 얹는다. Idle 이면 스스로 아무것도
+        // 렌더하지 않아(early return) 턴 사이엔 숨는다. 시트는 스와이프/탭으로 줄이거나 닫을 수 없고,
+        // "다음"(onNext)으로 전진하거나 시스템 뒤로가기(가드 → 대화 중단 시트)로만 벗어난다.
+        SlimFeedbackSheet(
+            state = feedbackState,
+            onRetry = viewModel::retryFeedback,
+            onSkip = viewModel::skipFeedback,
+            onNext = { viewModel.onAdvance() },
+            deepState = deepState,
+            deepExpanded = viewModel.deepExpanded,
+            onExpandDeep = viewModel::expandDeep,
+            onCollapseDeep = viewModel::collapseDeep,
+            onRetryDeep = viewModel::retryDeep,
+            bookmarkedLevels = bookmarkedLevels,
+            onToggleBookmark = viewModel::toggleBookmark,
+        )
+    }
 }
 
 /**
