@@ -81,7 +81,7 @@ class FirestoreSavedCardRepository
                         ref.set(SavedCardPayload.create(card, FieldValue.serverTimestamp())).await()
                     }
                 } catch (e: Exception) {
-                    Log.d(TAG, "saved_card save skipped (offline/permission): ${e.message}")
+                    Log.w(TAG, "saved_card save skipped [${e::class.simpleName}]: ${e.message}")
                 }
             }
         }
@@ -101,7 +101,7 @@ class FirestoreSavedCardRepository
                     val deletedAt = if (deleted) FieldValue.serverTimestamp() else null
                     ref.set(SavedCardPayload.tombstone(cardType, deletedAt), SetOptions.merge()).await()
                 } catch (e: Exception) {
-                    Log.d(TAG, "saved_card setDeleted skipped (offline/permission): ${e.message}")
+                    Log.w(TAG, "saved_card setDeleted skipped [${e::class.simpleName}]: ${e.message}")
                 }
             }
         }

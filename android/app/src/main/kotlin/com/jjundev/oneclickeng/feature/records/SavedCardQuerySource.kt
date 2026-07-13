@@ -89,7 +89,9 @@ class FirestoreSavedCardQuerySource
                     endReached = docs.size < limit,
                 )
             } catch (e: Exception) {
-                Log.d(TAG, "saved_card page query failed (offline/permission/index): ${e.message}")
+                // 표시 전용 강등은 유지하되, 실기기 진단을 위해 예외 종류를 warn 으로 드러낸다
+                // (인덱스 미비=FAILED_PRECONDITION, 규칙/권한=PERMISSION_DENIED 를 logcat 기본 필터에서 식별).
+                Log.w(TAG, "saved_card page query failed [${e::class.simpleName}]: ${e.message}")
                 SavedCardPage(emptyList(), null, endReached = true)
             }
         }
