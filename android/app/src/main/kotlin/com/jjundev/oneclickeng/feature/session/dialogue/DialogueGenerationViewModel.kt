@@ -62,6 +62,14 @@ class DialogueGenerationViewModel
         private var lastStart: StartParams? = null
         private var preflightBlocked = false
 
+        init {
+            // 이 코디네이터는 process @Singleton 이라 직전 세션의 sticky Ready 가 남는다. 새 생성 VM 이 뜰 때
+            // 그 잔여 상태를 Idle 로 되돌려, 생성 화면이 stale Ready 를 읽고 대기 퀴즈를 건너뛰는 걸 막는다
+            // (온보딩=첫 생성이라 원래 Idle → 정상, 2번째+ 생성만 문제였음). start() 는 곧이어 Generating 으로
+            // 전이하므로 정상 <1s fast-ready 자동 스킵은 그대로 보존된다.
+            coordinator.reset()
+        }
+
         /** Begin generation and load the tier's quiz items (first session → easy). */
         fun start(
             level: String,
