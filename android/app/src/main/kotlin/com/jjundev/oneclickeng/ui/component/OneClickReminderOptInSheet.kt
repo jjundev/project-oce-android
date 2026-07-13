@@ -6,7 +6,6 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,7 +32,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -79,13 +77,6 @@ fun OneClickReminderOptInSheet(
     OneClickBottomSheet(
         onDismissRequest = onLater,
         modifier = modifier,
-        contentPadding = PaddingValues(
-            start = OceTheme.spacing.sheetPadding,
-            end = OceTheme.spacing.sheetPadding,
-            top = 0.dp,
-            bottom = 26.dp,
-        ),
-        dragHandle = { ReminderOptInDragHandle() },
     ) {
         OneClickReminderOptInSheetContent(
             onOptIn = onOptIn,
@@ -110,12 +101,12 @@ internal fun OneClickReminderOptInSheetContent(
         modifier =
             modifier
                 .fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = Alignment.Start,
     ) {
-        // ① 텍스트 클러스터 — 중앙정렬·타이트(간격은 각 자식 padding 단일 소스, 외곽 arrangement 없음).
+        // ① 텍스트 클러스터 — 좌측정렬·타이트(간격은 각 자식 padding 단일 소스, 외곽 arrangement 없음).
         Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = Alignment.Start,
         ) {
             // 프로토: 스트릭 틴트(radius16) 박스 안 🔥. 이모지 미사용(P16) — 스트릭 벡터로 동일 인상.
             Box(
@@ -137,7 +128,6 @@ internal fun OneClickReminderOptInSheetContent(
                 text = "내일도 이어가도록 살짝 알려드릴까요?",
                 style = OceTheme.typography.dialogHeader,
                 color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
                 modifier =
                     Modifier
                         .padding(top = OceTheme.spacing.sm)
@@ -148,7 +138,6 @@ internal fun OneClickReminderOptInSheetContent(
                 text = "부담 없이, 하루 한 번만 살짝 알려드려요.",
                 style = OceTheme.typography.body,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = OptInLabelGap),
             )
         }
@@ -181,24 +170,6 @@ internal fun OneClickReminderOptInSheetContent(
                 )
             }
         }
-    }
-}
-
-/** 프로토 정합 드래그 핸들 — 36×4 pill, 위 12dp(시트 top)·아래 16dp. M3 기본(32×4·내장 22dp)과 다름. */
-@Composable
-private fun ReminderOptInDragHandle() {
-    Box(
-        modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 16.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(width = 36.dp, height = 4.dp)
-                    .clip(OceTheme.shapes.pill)
-                    // proto `--border-strong` 정확 매핑. outlineVariant(hairline)은 더 옅어 사용 금지.
-                    .background(OceTheme.colors.borderStrong),
-        )
     }
 }
 
