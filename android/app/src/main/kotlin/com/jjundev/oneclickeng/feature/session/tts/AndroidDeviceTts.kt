@@ -38,6 +38,7 @@ class AndroidDeviceTts
             text: String,
             gender: String?,
             speechRate: Float,
+            onStart: () -> Unit,
         ): DeviceTtsResult {
             val initialized = ready.await()
             if (!initialized) return DeviceTtsResult.ERROR
@@ -51,10 +52,13 @@ class AndroidDeviceTts
             tts.setSpeechRate(speechRate)
 
             val utteranceId = "oce_tts_${utteranceSeq.incrementAndGet()}"
+            val notifyStarted = onStart
             return suspendCancellableCoroutine { cont ->
                 tts.setOnUtteranceProgressListener(
                     object : UtteranceProgressListener() {
-                        override fun onStart(id: String?) = Unit
+                        override fun onStart(id: String?) {
+                            if (id == utteranceId) notifyStarted()
+                        }
 
                         override fun onDone(id: String?) {
                             if (id == utteranceId && cont.isActive) cont.resume(DeviceTtsResult.COMPLETED)

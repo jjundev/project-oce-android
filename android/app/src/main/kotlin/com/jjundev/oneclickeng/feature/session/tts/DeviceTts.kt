@@ -8,12 +8,15 @@ interface DeviceTts {
     /**
      * Speak [text] with a gender-matched voice at [speechRate], suspending until the
      * utterance terminates. Never throws — every outcome maps to a [DeviceTtsResult] so
-     * the coordinator can branch exhaustively.
+     * the coordinator can branch exhaustively. [onStart] is invoked once when the
+     * utterance's audio actually begins (after engine init); it never fires for
+     * LANGUAGE_MISSING or an init error.
      */
     suspend fun speak(
         text: String,
         gender: String?,
         speechRate: Float,
+        onStart: () -> Unit = {},
     ): DeviceTtsResult
 
     /** Stop any in-flight utterance. */

@@ -262,4 +262,46 @@ class GeneratedDialogueStateTest {
         state.appendLearnerAnswer("A coffee, please.")
         assertNull(state.lastOpponentEnglish())
     }
+
+    @Test
+    fun `pendingOpponentEnglish exposes the staged line before and after reveal`() {
+        val state = GeneratedDialogueState()
+        state.accept(ready(listOf(model("Hello"))))
+
+        assertTrue(state.opponentTyping) // typing skeleton, not revealed
+        assertTrue(state.messages.isEmpty())
+        assertEquals("Hello", state.pendingOpponentEnglish())
+
+        state.commitReveal()
+        assertEquals("Hello", state.pendingOpponentEnglish()) // pending is retained after reveal
+    }
+
+    @Test
+    fun `revealOnAudioReady reveals the staged opponent line during an opponent turn`() {
+        val state = GeneratedDialogueState()
+        state.accept(ready(listOf(model("Hello"))))
+        var changes = 0
+        val progress = SessionTurnProgress(state) { changes++ }
+
+        progress.revealOnAudioReady()
+
+        assertFalse(state.opponentTyping)
+        assertEquals(DialogueMessage.Opponent("Hello"), state.messages.last())
+        assertEquals(1, changes)
+    }
+
+    @Test
+    fun `revealOnAudioReady is a no-op during a learner turn`() {
+        val state = GeneratedDialogueState()
+        state.accept(ready(listOf(model("Hello"))))
+        state.completeOpponentTurn()
+        state.accept(ready(listOf(model("Hello"), user("A coffee, please.", "커피 주세요."))))
+        assertEquals(TurnPhase.LearnerTurn, state.turnPhase)
+        var changes = 0
+        val progress = SessionTurnProgress(state) { changes++ }
+
+        progress.revealOnAudioReady()
+
+        assertEquals(0, changes) // guarded out — no reveal, no persist
+    }
 }

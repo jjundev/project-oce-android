@@ -48,6 +48,14 @@ class TtsPlaybackCoordinator
         private val _completions = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
         val completions: SharedFlow<Unit> = _completions.asSharedFlow()
 
+        /** emits once when the current turn's audio actually begins — the server PCM playback
+         *  start, or the device engine's onStart after init. The opponent bubble reveal is gated
+         *  on this so the "typing" skeleton stays up through synthesis / engine-init LOADING and
+         *  the bubble appears in sync with the first audible sound (not before). Consumers must
+         *  phase-guard — replay and self-clip playback also reach PLAYING. */
+        private val _audioReady = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+        val audioReady: SharedFlow<Unit> = _audioReady.asSharedFlow()
+
         // Monotonic guard: a late callback whose token != current is a stale session, ignored.
         @Volatile
         private var sessionToken = 0L
@@ -199,6 +207,7 @@ class TtsPlaybackCoordinator
         ) {
             if (token != sessionToken) return
             _state.value = PlaybackState.PLAYING
+            _audioReady.tryEmit(Unit)
             try {
                 player.play(pcm, sampleRate)
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -217,10 +226,12 @@ class TtsPlaybackCoordinator
             rate: Float,
         ) {
             if (token != sessionToken) return
-            _state.value = PlaybackState.PLAYING
+            // No premature PLAYING here: the device engine may still be initializing on the first
+            // utterance (the 1–2s first-audio load). PLAYING + audioReady fire from onStart, when
+            // audio actually begins, so the opponent skeleton stays up until then.
             val result =
                 withTimeoutOrNull(DEVICE_WATCHDOG_MS) {
-                    deviceTts.speak(text, gender, rate)
+                    deviceTts.speak(text, gender, rate) { onPlaybackStarted(token) }
                 }
             if (token != sessionToken) return
             when (result) {
@@ -230,6 +241,14 @@ class TtsPlaybackCoordinator
                     finish(token, PlaybackState.ERROR_TEXT_ONLY, advance = false) // retry, no advance
                 DeviceTtsResult.ERROR -> finish(token, PlaybackState.FAILED, advance = true)
             }
+        }
+
+        /** Device engine reported audio actually started — promote to PLAYING and signal reveal.
+         *  A stale token (a newer turn started) is ignored. */
+        private fun onPlaybackStarted(token: Long) {
+            if (token != sessionToken) return
+            _state.value = PlaybackState.PLAYING
+            _audioReady.tryEmit(Unit)
         }
 
         /** Set the terminal state and, if [advance], emit a completion so the turn progresses. */
