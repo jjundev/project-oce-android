@@ -74,6 +74,7 @@ import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickSwitch
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
+import com.jjundev.oneclickeng.ui.foundation.OceBottomNavDefaults
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.foundation.PinnedTabHeader
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
@@ -287,6 +288,7 @@ fun SettingsScreen(
         OneClickSnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter),
+            bottomInset = OceBottomNavDefaults.overlayContentBottomPadding,
         )
     }
 }
@@ -325,7 +327,11 @@ internal fun SettingsContent(
         PinnedTabHeader(titleRes = R.string.tab_settings)
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
-            contentPadding = PaddingValues(top = 8.dp, bottom = 104.dp),
+            contentPadding =
+                PaddingValues(
+                    top = 8.dp,
+                    bottom = OceBottomNavDefaults.overlayContentBottomPadding,
+                ),
             verticalArrangement = Arrangement.spacedBy(26.dp),
         ) {
             // 프로토 order:-1 = 게스트는 계정 카드(Google 저장)를 최상단으로 승격. LazyListScope 엔 CSS order 가

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -78,6 +79,7 @@ import com.jjundev.oneclickeng.ui.component.OneClickTimePickerDialog
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
+import com.jjundev.oneclickeng.ui.foundation.OceBottomNavDefaults
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.foundation.ScreenEntranceState
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
@@ -286,6 +288,8 @@ internal fun HomeContent(
             modifier
                 .fillMaxSize()
                 .padding(horizontal = OceTheme.spacing.xl),
+        contentPadding =
+            PaddingValues(bottom = OceBottomNavDefaults.overlayContentBottomPadding),
     ) {
         // 리마인더 켜짐 확인 배너(프로토 reminderBanner) — 홈 최상단 in-flow.
         if (showReminderBanner) {

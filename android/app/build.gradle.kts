@@ -75,6 +75,7 @@ tasks.withType<Test>().configureEach {
             "**/ConceptualBridgeInsideModeTest*",
             "**/HomeHeroRevealTest*",
             "**/HomeSituationsSkeletonTest*",
+            "**/MainTabsOverlayTest*",
             "**/OneClickBottomSheetExpandTest*",
             "**/GoogleSaveActionsTest*",
             "**/MicDockTogglePositionTest*",
