@@ -31,19 +31,26 @@ class SummaryScreenshotTest {
 
     @Test
     fun summary_light() {
-        capture("build/outputs/roborazzi/summary_light.png")
+        capture("build/outputs/roborazzi/summary_light.png", dark = false)
     }
+
+    @Test
+    fun summary_dark() = capture("build/outputs/roborazzi/summary_dark.png", dark = true)
 
     /** 전체 콘텐츠 한 프레임 캡처 — 세로로 긴 뷰포트라 스크롤 없이 하단 섹션(단어/코칭/북마크)까지 렌더된다. */
     @Test
     @Config(qualifiers = "+h2600dp")
     fun summary_full_light() {
-        capture("build/outputs/roborazzi/summary_full_light.png")
+        capture("build/outputs/roborazzi/summary_full_light.png", dark = false)
     }
 
-    private fun capture(path: String) {
+    @Test
+    @Config(qualifiers = "+h2600dp")
+    fun summary_full_dark() = capture("build/outputs/roborazzi/summary_full_dark.png", dark = true)
+
+    private fun capture(path: String, dark: Boolean) {
         composeRule.setContent {
-            OceTheme(darkTheme = false) {
+            OceTheme(darkTheme = dark) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     SummaryScreen(
                         state = richState(),

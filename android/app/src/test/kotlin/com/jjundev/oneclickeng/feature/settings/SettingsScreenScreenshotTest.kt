@@ -1,10 +1,13 @@
 package com.jjundev.oneclickeng.feature.settings
 
 import android.app.Application
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.jjundev.oneclickeng.ui.theme.OceTheme
@@ -79,6 +82,33 @@ class SettingsScreenScreenshotTest {
             blocked = false,
             name = "settings_dark_guest",
         )
+
+    @Test fun settings_dark_member() =
+        renderSettings(
+            SettingsUiState(loading = false, nickname = "준영", isGuest = false, reminderEnabled = true),
+            dark = true,
+            blocked = false,
+            name = "settings_dark_member",
+        )
+
+    @Test
+    fun settings_confirm_delete_dark() {
+        composeRule.setContent {
+            OceTheme(darkTheme = true) {
+                Surface(color = MaterialTheme.colorScheme.surface) {
+                    DialogButtonRow(
+                        modifier = Modifier.padding(24.dp),
+                        confirmLabel = "삭제",
+                        confirmColor = MaterialTheme.colorScheme.error,
+                        confirmEnabled = true,
+                        onConfirm = {},
+                        onDismiss = {},
+                    )
+                }
+            }
+        }
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/settings_confirm_delete_dark.png")
+    }
 
     @Test fun settings_notif_blocked() =
         renderSettings(

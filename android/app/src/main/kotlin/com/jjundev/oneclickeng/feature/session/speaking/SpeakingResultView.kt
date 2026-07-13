@@ -61,7 +61,7 @@ fun SpeakingResultView(
 @Composable
 private fun TranscriptBubble(transcript: String) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = MaterialTheme.colorScheme.surface,
         shape = MaterialTheme.shapes.medium,
         modifier = Modifier.fillMaxWidth(),
     ) {

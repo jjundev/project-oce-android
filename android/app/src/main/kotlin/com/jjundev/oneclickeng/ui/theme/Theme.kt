@@ -10,7 +10,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 
 // M3 ColorScheme 10슬롯 write(8 semantic 토큰 + 2 흰색 리터럴 onPrimary/onError). 나머지 ~38 슬롯은 M3 default.
 // 매핑 정본: docs/ui/01-foundations.md F2 rev.3 #3 · design-tokens.md 부록 B.1.
-private val LightColorScheme =
+internal val LightColorScheme =
     lightColorScheme(
         primary = BrandBlue,
         onPrimary = White,
@@ -24,7 +24,7 @@ private val LightColorScheme =
         onError = White,
     )
 
-private val DarkColorScheme =
+internal val DarkColorScheme =
     darkColorScheme(
         primary = BrandBlue,
         onPrimary = White,

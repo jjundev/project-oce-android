@@ -30,6 +30,15 @@ class RecordsScreenScreenshotTest {
 
     @Test
     fun records_light_expression() {
+        capture(name = "records_light_expression", dark = false)
+    }
+
+    @Test
+    fun records_dark_expression() {
+        capture(name = "records_dark_expression", dark = true)
+    }
+
+    private fun capture(name: String, dark: Boolean) {
         val state =
             RecordsUiState(
                 selected = CardType.EXPRESSION,
@@ -45,7 +54,7 @@ class RecordsScreenScreenshotTest {
                 animateCountUp = false,
             )
         composeRule.setContent {
-            OceTheme(darkTheme = false) {
+            OceTheme(darkTheme = dark) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     RecordsContent(
                         state = state,
@@ -57,7 +66,7 @@ class RecordsScreenScreenshotTest {
                 }
             }
         }
-        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/records_light_expression.png")
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/$name.png")
     }
 
     private fun entry(

@@ -4,12 +4,12 @@ import android.app.Application
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.jjundev.oneclickeng.ui.audio.MicState
-import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Rule
@@ -52,158 +52,137 @@ class DialogueTurnScreenshotTest {
 
     @Test
     fun session_opponent_light() {
-        composeRule.setContent {
-            OceTheme(darkTheme = false) {
-                Surface(color = MaterialTheme.colorScheme.background) {
-                    DialogueTurnContent(
-                        messages = opponentMessages,
-                        turnPhase = TurnPhase.OpponentTurn,
-                        sessionPhase = SessionPhase.InTurn,
-                        currentTask = null,
-                        listState = rememberLazyListState(),
-                        onSubmitStub = {},
-                        onViewSummary = {},
-                        header = header,
-                    )
-                }
-            }
-        }
-        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/session_opponent_light.png")
+        captureOpponent(name = "session_opponent_light", dark = false)
     }
+
+    @Test
+    fun session_opponent_dark() = captureOpponent(name = "session_opponent_dark", dark = true)
 
     @Test
     fun session_learner_light() {
-        composeRule.setContent {
-            OceTheme(darkTheme = false) {
-                Surface(color = MaterialTheme.colorScheme.background) {
-                    DialogueTurnContent(
-                        messages = opponentMessages,
-                        turnPhase = TurnPhase.LearnerTurn,
-                        sessionPhase = SessionPhase.InTurn,
-                        currentTask = ScaffoldTask("라떼 한 잔을 주문해보세요"),
-                        listState = rememberLazyListState(),
-                        onSubmitStub = {},
-                        onViewSummary = {},
-                        header = header,
-                        dock = { task ->
-                            MicDock(
-                                task = task,
-                                micState = MicState.Ready,
-                                waveform = MutableStateFlow(FloatArray(0)),
-                                textMode = false,
-                                textValue = "",
-                                retryHint = null,
-                                permanentlyDenied = false,
-                                reduceMotion = true,
-                                onMicTap = {},
-                                onAdvance = {},
-                                onToggleTextMode = {},
-                                onTextChange = {},
-                                onSubmitText = {},
-                            )
-                        },
-                    )
-                }
-            }
-        }
-        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/session_learner_light.png")
+        captureLearner(name = "session_learner_light", dark = false, textMode = false)
     }
 
     @Test
+    fun session_learner_dark() = captureLearner(name = "session_learner_dark", dark = true, textMode = false)
+
+    @Test
     fun session_textinput_light() {
-        composeRule.setContent {
-            OceTheme(darkTheme = false) {
-                Surface(color = MaterialTheme.colorScheme.background) {
-                    DialogueTurnContent(
-                        messages = opponentMessages,
-                        turnPhase = TurnPhase.LearnerTurn,
-                        sessionPhase = SessionPhase.InTurn,
-                        currentTask = ScaffoldTask("라떼 한 잔을 주문해보세요"),
-                        listState = rememberLazyListState(),
-                        onSubmitStub = {},
-                        onViewSummary = {},
-                        header = header,
-                        dock = { task ->
-                            MicDock(
-                                task = task,
-                                micState = MicState.Ready,
-                                waveform = MutableStateFlow(FloatArray(0)),
-                                textMode = true,
-                                textValue = "Can I get a latte",
-                                retryHint = null,
-                                permanentlyDenied = false,
-                                reduceMotion = true,
-                                onMicTap = {},
-                                onAdvance = {},
-                                onToggleTextMode = {},
-                                onTextChange = {},
-                                onSubmitText = {},
-                            )
-                        },
-                    )
-                }
-            }
-        }
-        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/session_textinput_light.png")
+        captureLearner(name = "session_textinput_light", dark = false, textMode = true)
     }
 
     @Test
     fun session_skeleton_light() {
-        composeRule.setContent {
-            OceTheme(darkTheme = false) {
-                Surface(color = MaterialTheme.colorScheme.background) {
-                    DialogueTurnContent(
-                        messages = emptyList(),
-                        turnPhase = TurnPhase.OpponentTurn,
-                        sessionPhase = SessionPhase.InTurn,
-                        currentTask = null,
-                        listState = rememberLazyListState(),
-                        onSubmitStub = {},
-                        onViewSummary = {},
-                        header = header,
-                        opponentTyping = true,
-                    )
-                }
-            }
+        capture(name = "session_skeleton_light", dark = false) {
+            DialogueTurnContent(
+                messages = emptyList(),
+                turnPhase = TurnPhase.OpponentTurn,
+                sessionPhase = SessionPhase.InTurn,
+                currentTask = null,
+                listState = rememberLazyListState(),
+                onSubmitStub = {},
+                onViewSummary = {},
+                header = header,
+                opponentTyping = true,
+            )
         }
-        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/session_skeleton_light.png")
     }
 
     @Test
     fun session_recording_light() {
-        composeRule.setContent {
-            OceTheme(darkTheme = false) {
-                Surface(color = MaterialTheme.colorScheme.background) {
-                    DialogueTurnContent(
-                        messages = opponentMessages,
-                        turnPhase = TurnPhase.LearnerTurn,
-                        sessionPhase = SessionPhase.InTurn,
-                        currentTask = ScaffoldTask("라떼 한 잔을 주문해보세요"),
-                        listState = rememberLazyListState(),
-                        onSubmitStub = {},
-                        onViewSummary = {},
-                        header = header,
-                        dock = { task ->
-                            MicDock(
-                                task = task,
-                                micState = MicState.Recording,
-                                waveform = MutableStateFlow(sampleWaveform),
-                                textMode = false,
-                                textValue = "",
-                                retryHint = null,
-                                permanentlyDenied = false,
-                                reduceMotion = true,
-                                onMicTap = {},
-                                onAdvance = {},
-                                onToggleTextMode = {},
-                                onTextChange = {},
-                                onSubmitText = {},
-                            )
-                        },
+        captureRecording(name = "session_recording_light", dark = false)
+    }
+
+    @Test
+    fun session_recording_dark() = captureRecording(name = "session_recording_dark", dark = true)
+
+    private fun captureOpponent(name: String, dark: Boolean) {
+        capture(name, dark) {
+            DialogueTurnContent(
+                messages = opponentMessages,
+                turnPhase = TurnPhase.OpponentTurn,
+                sessionPhase = SessionPhase.InTurn,
+                currentTask = null,
+                listState = rememberLazyListState(),
+                onSubmitStub = {},
+                onViewSummary = {},
+                header = header,
+            )
+        }
+    }
+
+    private fun captureLearner(name: String, dark: Boolean, textMode: Boolean) {
+        capture(name, dark) {
+            DialogueTurnContent(
+                messages = opponentMessages,
+                turnPhase = TurnPhase.LearnerTurn,
+                sessionPhase = SessionPhase.InTurn,
+                currentTask = ScaffoldTask("라떼 한 잔을 주문해보세요"),
+                listState = rememberLazyListState(),
+                onSubmitStub = {},
+                onViewSummary = {},
+                header = header,
+                dock = { task ->
+                    MicDock(
+                        task = task,
+                        micState = MicState.Ready,
+                        waveform = MutableStateFlow(FloatArray(0)),
+                        textMode = textMode,
+                        textValue = if (textMode) "Can I get a latte" else "",
+                        retryHint = null,
+                        permanentlyDenied = false,
+                        reduceMotion = true,
+                        onMicTap = {},
+                        onAdvance = {},
+                        onToggleTextMode = {},
+                        onTextChange = {},
+                        onSubmitText = {},
                     )
+                },
+            )
+        }
+    }
+
+    private fun captureRecording(name: String, dark: Boolean) {
+        capture(name, dark) {
+            DialogueTurnContent(
+                messages = opponentMessages,
+                turnPhase = TurnPhase.LearnerTurn,
+                sessionPhase = SessionPhase.InTurn,
+                currentTask = ScaffoldTask("라떼 한 잔을 주문해보세요"),
+                listState = rememberLazyListState(),
+                onSubmitStub = {},
+                onViewSummary = {},
+                header = header,
+                dock = { task ->
+                    MicDock(
+                        task = task,
+                        micState = MicState.Recording,
+                        waveform = MutableStateFlow(sampleWaveform),
+                        textMode = false,
+                        textValue = "",
+                        retryHint = null,
+                        permanentlyDenied = false,
+                        reduceMotion = true,
+                        onMicTap = {},
+                        onAdvance = {},
+                        onToggleTextMode = {},
+                        onTextChange = {},
+                        onSubmitText = {},
+                    )
+                },
+            )
+        }
+    }
+
+    private fun capture(name: String, dark: Boolean, content: @Composable () -> Unit) {
+        composeRule.setContent {
+            OceTheme(darkTheme = dark) {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    content()
                 }
             }
         }
-        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/session_recording_light.png")
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/$name.png")
     }
 }

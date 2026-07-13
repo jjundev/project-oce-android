@@ -169,9 +169,14 @@ class SessionFlowScreenshotTest {
         )
 
     @Test
-    fun flow_feedback_light() {
+    fun flow_feedback_light() = captureFeedback(name = "flow_feedback_light", dark = false)
+
+    @Test
+    fun flow_feedback_dark() = captureFeedback(name = "flow_feedback_dark", dark = true)
+
+    private fun captureFeedback(name: String, dark: Boolean) {
         composeRule.setContent {
-            OceTheme(darkTheme = false) {
+            OceTheme(darkTheme = dark) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         // 뒤 대화(딤). 학습자 답변까지 노출, 도크 없음(OpponentTurn).
@@ -223,7 +228,7 @@ class SessionFlowScreenshotTest {
                 }
             }
         }
-        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/flow_feedback_light.png")
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/$name.png")
     }
 
     private fun slimActive(): SlimFeedbackState.Active =

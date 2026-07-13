@@ -241,7 +241,7 @@ private fun QuizOption(
 ) {
     val revealCorrect = answered && isCorrect
     val background = if (revealCorrect) OceTheme.colors.feedbackNaturalBg else MaterialTheme.colorScheme.surface
-    // 프로토 옵션 보더: 기본 border-strong(#C9CDD2) → 전용 토큰(outline 은 이 테마에서 더 진함).
+    // 프로토 옵션 보더: 기본 border-strong → 전용 토큰(outline 은 이 테마에서 더 진함).
     val borderColor =
         when {
             revealCorrect -> OceTheme.colors.feedbackNaturalAccent

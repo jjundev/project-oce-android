@@ -25,15 +25,20 @@ class LevelQuestionScreenshotTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    @Test
-    fun onboarding_level_light() {
+    private fun capture(name: String, dark: Boolean) {
         composeRule.setContent {
-            OceTheme(darkTheme = false) {
+            OceTheme(darkTheme = dark) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     LevelQuestionContent(onLevelSelected = {}, reduceMotion = true)
                 }
             }
         }
-        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/onboarding_level_light.png")
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/$name.png")
     }
+
+    @Test
+    fun onboarding_level_light() = capture(name = "onboarding_level_light", dark = false)
+
+    @Test
+    fun onboarding_level_dark() = capture(name = "onboarding_level_dark", dark = true)
 }

@@ -27,9 +27,14 @@ class DialogueGeneratingScreenshotTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun limit_light() {
+    fun limit_light() = captureLimit(name = "limit_light", dark = false)
+
+    @Test
+    fun limit_dark() = captureLimit(name = "limit_dark", dark = true)
+
+    private fun captureLimit(name: String, dark: Boolean) {
         composeRule.setContent {
-            OceTheme(darkTheme = false) {
+            OceTheme(darkTheme = dark) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     DialogueGeneratingScreen(
                         state = DialogueGenState.QuotaBlocked(remaining = 0),
@@ -40,23 +45,36 @@ class DialogueGeneratingScreenshotTest {
                 }
             }
         }
-        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/limit_light.png")
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/$name.png")
     }
 
     /** 생성 중 + 게이트(1s) 통과 후 대기 퀴즈(프로토 "기다리는 동안 가볍게" 카드) 표면. */
     @Test
     fun generating_quiz_light() {
-        captureAfterGate(DialogueGenState.Generating, "generating_quiz_light")
+        captureAfterGate(DialogueGenState.Generating, name = "generating_quiz_light", dark = false)
     }
+
+    @Test
+    fun generating_quiz_dark() =
+        captureAfterGate(DialogueGenState.Generating, name = "generating_quiz_dark", dark = true)
 
     /** 준비 완료(첫 상대턴 수신) — 퀴즈 + "대화 시작하기" CTA(프로토 준비 배너+CTA) 표면. */
     @Test
     fun generating_ready_light() {
         captureAfterGate(
             DialogueGenState.Ready(sessionId = "s", remaining = 2, meta = null, turns = emptyList()),
-            "generating_ready_light",
+            name = "generating_ready_light",
+            dark = false,
         )
     }
+
+    @Test
+    fun generating_ready_dark() =
+        captureAfterGate(
+            DialogueGenState.Ready(sessionId = "s", remaining = 2, meta = null, turns = emptyList()),
+            name = "generating_ready_dark",
+            dark = true,
+        )
 
     /**
      * 1s 지연 게이트를 테스트 클록으로 넘긴 뒤 캡처(게이트 전엔 중립 로딩만 렌더).
@@ -69,10 +87,11 @@ class DialogueGeneratingScreenshotTest {
     private fun captureAfterGate(
         state: DialogueGenState,
         name: String,
+        dark: Boolean,
     ) {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
-            OceTheme(darkTheme = false) {
+            OceTheme(darkTheme = dark) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     DialogueGeneratingScreen(
                         state = state,

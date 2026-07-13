@@ -16,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
@@ -51,20 +50,44 @@ class ReminderScreenshotTest {
 
     @Test
     fun reminder_optin_light() {
-        captureSheet("reminder_optin_light") {
+        captureSheet("reminder_optin_light", dark = false) {
             OneClickReminderOptInSheetContent(onOptIn = {}, onLater = {})
         }
     }
 
     @Test
     fun reminder_priming_light() {
-        captureSheet("reminder_priming_light") {
+        captureSheet("reminder_priming_light", dark = false) {
             OneClickPermissionPrimingSheetContent(
                 icon = OceIcon.Notifications,
                 rationale =
                     "다음 화면에서 허용을 눌러주세요.\n" +
                         "매일 정한 시각에 학습 리마인더만 보내드려요.\n" +
                         "광고나 다른 알림은 없어요.",
+                emphasis = "허용",
+                onRequest = {},
+                onLater = {},
+                title = "알림을 보내도 될까요?",
+                requestLabel = "계속",
+                laterLabel = "다음에",
+                assurance = "거부해도 학습에는 아무 영향이 없어요.",
+            )
+        }
+    }
+
+    @Test
+    fun reminder_optin_dark() {
+        captureSheet("reminder_optin_dark", dark = true) {
+            OneClickReminderOptInSheetContent(onOptIn = {}, onLater = {})
+        }
+    }
+
+    @Test
+    fun reminder_priming_dark() {
+        captureSheet("reminder_priming_dark", dark = true) {
+            OneClickPermissionPrimingSheetContent(
+                icon = OceIcon.Notifications,
+                rationale = "다음 화면에서 허용을 눌러주세요.\n매일 정한 시각에 학습 리마인더만 보내드려요.\n광고나 다른 알림은 없어요.",
                 emphasis = "허용",
                 onRequest = {},
                 onLater = {},
@@ -97,6 +120,26 @@ class ReminderScreenshotTest {
         composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/home_light_reminder_banner.png")
     }
 
+    @Test
+    fun home_dark_reminder_banner() {
+        composeRule.setContent {
+            OceTheme(darkTheme = true) {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    HomeContent(
+                        state = sampleHomeState.copy(),
+                        onStartLearning = {},
+                        onResumeContinue = {},
+                        onResumeStartNew = {},
+                        onViewRecords = {},
+                        onOfflineBlocked = {},
+                        showReminderBanner = true,
+                    )
+                }
+            }
+        }
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/home_dark_reminder_banner.png")
+    }
+
     /**
      * 실제 앱처럼 **홈 화면 위에 딤 스크림 + 하단 시트**(상단 radius24 + 드래그 핸들 + 흰 서피스)를 얹어
      * [OneClickBottomSheet](ModalBottomSheet, 별도 윈도) 프레젠테이션을 근사 재현한다 — 시트 뒤로 딤된 홈이
@@ -104,10 +147,11 @@ class ReminderScreenshotTest {
      */
     private fun captureSheet(
         name: String,
+        dark: Boolean,
         content: @Composable () -> Unit,
     ) {
         composeRule.setContent {
-            OceTheme(darkTheme = false) {
+            OceTheme(darkTheme = dark) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     // 배경: 실제 홈(시트가 이 위에 뜬다).
                     Surface(color = MaterialTheme.colorScheme.background) {
@@ -120,8 +164,8 @@ class ReminderScreenshotTest {
                             onOfflineBlocked = {},
                         )
                     }
-                    // 딤 스크림(ModalBottomSheet 기본 스크림 근사).
-                    Box(modifier = Modifier.fillMaxSize().background(Color(SCRIM)))
+                    // 딤 스크림(프로덕션 오버레이와 같은 테마 토큰).
+                    Box(modifier = Modifier.fillMaxSize().background(OceTheme.colors.scrim))
                     // 하단 시트(상단 라운드 + 핸들 + 흰 서피스).
                     Surface(
                         modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
@@ -169,8 +213,4 @@ class ReminderScreenshotTest {
                     HomeSituation("hotel", "호텔 체크인하기", OceIcon.Hotel),
                 ),
         )
-
-    private companion object {
-        const val SCRIM = 0x66000000
-    }
 }

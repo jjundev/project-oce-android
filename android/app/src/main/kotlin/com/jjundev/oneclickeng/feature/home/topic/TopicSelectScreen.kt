@@ -242,7 +242,7 @@ private fun CustomTopicRow(
     onSubmit: () -> Unit,
 ) {
     if (!expanded) {
-        val dashColor = MaterialTheme.colorScheme.outline
+        val dashColor = OceTheme.colors.borderStrong
         Row(
             modifier =
                 Modifier

@@ -126,6 +126,23 @@ class TopicSelectScreenshotTest {
         }
         composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/topic_select_light.png")
     }
+
+    @Test
+    fun topic_select_dark() {
+        composeRule.setContent {
+            OceTheme(darkTheme = true) {
+                Surface(color = MaterialTheme.colorScheme.surface) {
+                    TopicSelectSheetContent(
+                        onTopicChosen = { _, _ -> },
+                        onDismiss = {},
+                        modifier = Modifier.fillMaxHeight(),
+                        selectedTopicId = "cafe",
+                    )
+                }
+            }
+        }
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/topic_select_dark.png")
+    }
 }
 
 private const val SCRIM_ALPHA = 0.32f
