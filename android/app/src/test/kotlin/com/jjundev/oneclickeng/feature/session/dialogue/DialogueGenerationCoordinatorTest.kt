@@ -364,7 +364,7 @@ class DialogueGenerationCoordinatorTest {
         }
 
     @Test
-    fun `a late turn from a superseded stream is ignored after reset`() =
+    fun `reset clears accumulators and a straggler event does not revive the state`() =
         runTest {
             val stream = FakeDialogueStream()
             val coordinator = DialogueGenerationCoordinator(stream, coordScope())
@@ -374,12 +374,14 @@ class DialogueGenerationCoordinatorTest {
             stream.push(DialogueEvent.Start("s1", remaining = 2))
             stream.push(DialogueEvent.Turn(turn("Hi")))
             runCurrent()
+            assertEquals("s1", coordinator.sessionId())
 
             coordinator.reset()
-            // A slow event from the now-superseded stream must not revive Ready.
+            // Accumulators are cleared (no sticky sessionId from the prior attempt) ...
+            assertEquals(null, coordinator.sessionId())
+            // ... and a late event from the now-superseded stream cannot revive Ready.
             stream.push(DialogueEvent.Turn(turn("late")))
             runCurrent()
-
             assertEquals(DialogueGenState.Idle, coordinator.state.value)
         }
 

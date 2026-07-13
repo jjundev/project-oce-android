@@ -138,12 +138,17 @@ class DialogueGenerationCoordinator
             currentJob?.cancel()
             watchdogJob?.cancel()
             lastRequest = null
+            clearAccumulators()
+            _state.value = DialogueGenState.Idle
+        }
+
+        /** Clear the per-attempt accumulators shared by [launchAttempt] and [reset]. */
+        private fun clearAccumulators() {
             sessionId = null
             remaining = null
             meta = null
             streamStatus = DialogueStreamStatus.Streaming
             turns.clear()
-            _state.value = DialogueGenState.Idle
         }
 
         private fun launchAttempt(request: DialogueRequest) {
@@ -151,11 +156,7 @@ class DialogueGenerationCoordinator
             currentJob?.cancel()
             watchdogJob?.cancel()
             lastRequest = request
-            sessionId = null
-            remaining = null
-            meta = null
-            streamStatus = DialogueStreamStatus.Streaming
-            turns.clear()
+            clearAccumulators()
             _state.value = DialogueGenState.Generating
             armWatchdog(token)
             currentJob =
