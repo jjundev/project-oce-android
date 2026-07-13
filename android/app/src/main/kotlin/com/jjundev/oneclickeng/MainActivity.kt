@@ -5,8 +5,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
 import com.jjundev.oneclickeng.ui.root.AppRoot
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -29,11 +33,16 @@ class MainActivity : ComponentActivity() {
         pendingNav.value = intent?.getStringExtra(EXTRA_NAV)
         setContent {
             OceTheme {
-                val nav by pendingNav
-                AppRoot(
-                    pendingNav = nav,
-                    onNavConsumed = { pendingNav.value = null },
-                )
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    val nav by pendingNav
+                    AppRoot(
+                        pendingNav = nav,
+                        onNavConsumed = { pendingNav.value = null },
+                    )
+                }
             }
         }
     }
