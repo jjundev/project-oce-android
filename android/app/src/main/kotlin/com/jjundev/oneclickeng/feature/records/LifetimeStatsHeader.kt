@@ -22,8 +22,9 @@ import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /**
- * ① 평생 통계 헤더(카드 아님, R1) — `누적 N XP · 총 N시간 N분 · N일 학습`. XP·학습일은 [OneClickCountUp] 시그니처
- * 카운트업(I3)을 통과시키고, 학습시간은 복합 표기라 정적 텍스트다.
+ * ① 평생 통계 헤더(카드 아님, R1) — `누적 N XP · 총 N시간 N분 · N일 학습`. XP·학습일·학습시간 모두
+ * [OneClickCountUp] 시그니처 카운트업(I3)을 통과한다. 학습시간은 총 분 단일값을 굴리고 프레임마다
+ * [formatStudyTime] 로 "N시간 N분" 을 재도출해 60분 경계에서 분→시간 롤오버가 자연히 나타난다.
  *
  * [lifetime] 이 null 이면(M3-05 배선 전 스텁) 0 지표를 **정적**으로 렌더한다 — [animate] 와 무관하게 스냅해
  * 0→0 죽은 애니메이션을 막는다. 실데이터가 붙고([lifetime] 비-null) 세션 최초 진입일 때만 [animate] 로 롤업한다.
@@ -37,8 +38,6 @@ fun LifetimeStatsHeader(
 ) {
     val stats = lifetime ?: LifetimeStats(xp = 0, studyMinutes = 0, studyDays = 0)
     val static = lifetime == null || !animate
-    val hours = stats.studyMinutes / MINUTES_PER_HOUR
-    val minutes = stats.studyMinutes % MINUTES_PER_HOUR
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -64,7 +63,8 @@ fun LifetimeStatsHeader(
             Dot()
             TimeMetric(
                 iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                text = "${hours}시간 ${minutes}분",
+                totalMinutes = stats.studyMinutes,
+                static = static,
             )
             Dot()
             Metric(
@@ -109,7 +109,8 @@ private fun Metric(
 @Composable
 private fun TimeMetric(
     iconTint: Color,
-    text: String,
+    totalMinutes: Int,
+    static: Boolean,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -121,8 +122,11 @@ private fun TimeMetric(
             tint = iconTint,
             size = OceIconSize.FeedbackInline,
         )
-        Text(
-            text = text,
+        OneClickCountUp(
+            target = totalMinutes,
+            from = 0,
+            format = ::formatStudyTime,
+            static = static,
             style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -139,6 +143,10 @@ private fun Dot() {
 }
 
 private const val MINUTES_PER_HOUR = 60
+
+/** 총 학습 분 → "N시간 N분" 복합 표기(시간 0이어도 유지 — 기존 정적 렌더와 동일). 카운트업 프레임 포매터. */
+internal fun formatStudyTime(totalMinutes: Int): String =
+    "${totalMinutes / MINUTES_PER_HOUR}시간 ${totalMinutes % MINUTES_PER_HOUR}분"
 
 @Suppress("UnusedPrivateMember")
 @Preview(showBackground = true, widthDp = 360)
