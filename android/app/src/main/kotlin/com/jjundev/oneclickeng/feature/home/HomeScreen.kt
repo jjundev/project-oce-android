@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -267,7 +268,19 @@ internal fun HomeContent(
     onChangeReminderTime: () -> Unit = {},
 ) {
     val entrance = rememberScreenEntrance(reduceMotion)
+    val listState = rememberLazyListState()
+    val scrollScope = rememberCoroutineScope()
+    // 추천 상황 탭 = 히어로에 선택만 반영(프로토 pickTopic). 추천 리스트는 히어로보다 아래라, 반영이 화면
+    // 밖에서 일어나 "아무 일도 안 난 것"처럼 보인다 → 반영 직후 상단(히어로)으로 스크롤해 결과를 보이고
+    // ▶ CTA 로 학습을 이어가게 한다. reduce-motion 이면 애니 없이 즉시 점프.
+    val onSituationTap: (HomeSituation) -> Unit = { situation ->
+        onSituationSelected(situation)
+        scrollScope.launch {
+            if (reduceMotion) listState.scrollToItem(0) else listState.animateScrollToItem(0)
+        }
+    }
     LazyColumn(
+        state = listState,
         modifier =
             modifier
                 .fillMaxSize()
@@ -365,7 +378,7 @@ internal fun HomeContent(
             if (situationsSkeleton) {
                 situationsSkeletonItems(state.situations.size, gridMode, reduceMotion)
             } else {
-                situationsCardItems(state.situations, gridMode, entrance, onSituationSelected)
+                situationsCardItems(state.situations, gridMode, entrance, onSituationTap)
             }
             item(key = "more_situations") {
                 MoreSituationsButton(
