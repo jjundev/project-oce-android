@@ -32,7 +32,7 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
  * 상태([expanded])가 구동한다.
  *
  * 타입별 collapsed/expanded(R3·§4): WORD 굵은 영단어+보조색 뜻→+예문, EXPRESSION `koreanPrompt/before→after`→
- * +설명, SENTENCE 굵은 영문+한글 번역→+연습 안내. 복사는 영문+한글(결정 #19).
+ * +설명, SENTENCE 굵은 영문→+한글 번역. 복사는 영문+한글(결정 #19).
  */
 @Composable
 fun SavedCardRow(
@@ -94,7 +94,6 @@ private fun Collapsed(card: SavedCard) {
         }
         is SavedCard.Sentence -> {
             PrimaryText(card.english, bold = true)
-            if (card.korean.isNotBlank()) HelperText(card.korean)
         }
     }
 }
@@ -111,8 +110,7 @@ private fun Expanded(card: SavedCard) {
             if (card.explanation.isNotBlank()) HelperText(card.explanation)
         }
         is SavedCard.Sentence -> {
-            // 한글 번역은 접힘 상태로 이동 → 펼침은 프로토타입의 연습 안내 문구로 채운다(빈 펼침 방지).
-            HelperText("이 문장을 복사해서 연습에 활용해 보세요.")
+            if (card.korean.isNotBlank()) HelperText(card.korean)
         }
     }
 }

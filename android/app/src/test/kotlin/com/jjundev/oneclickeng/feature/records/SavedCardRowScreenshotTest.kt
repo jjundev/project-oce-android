@@ -26,7 +26,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * 단어/문장 저장 카드([SavedCardRow])의 접힘·펼침 렌더 대조(프로토타입 정합 파일럿). 표현 카드는
  * [RecordsScreenScreenshotTest] 가 커버하므로, 여기선 프로토타입과 정합시킨 WORD(굵은 영단어+보조색 뜻)·
- * SENTENCE(굵은 영문+한글 접힘 노출) 두 타입을 접힘/펼침 4상태로 고정 렌더한다.
+ * SENTENCE(굵은 영문, 한글은 펼침에서 노출) 두 타입을 접힘/펼침 4상태로 고정 렌더한다.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
