@@ -129,6 +129,16 @@ private fun levelLabel(level: String): String =
     }
 
 /**
+ * 히어로 리빌 재생 여부. 최초 컴포지션이 아니고([primed]) 새 대화 모드([resumeTopic]==null)일 때만 재생한다.
+ * 새 대화 모드 내 주제 변경과 "이어하기 → 새 대화" 전환("+ 새 대화 시작", resumeTopic non-null→null)이 모두
+ * 이 경우로 수렴한다. 최초 컴포지션(진입 플래시 방지)·이어하기 히어로(resumeTopic!=null)에서는 재생하지 않는다.
+ */
+internal fun shouldPlayHeroReveal(
+    primed: Boolean,
+    resumeTopic: String?,
+): Boolean = primed && resumeTopic == null
+
+/**
  * 학습(홈) 탭 — "학습 시작 허브"(M3-08, 프로토 홈 허브 완전 정합). 맥락 H1 → 인라인 지표 → 히어로 CTA
  * (선택 상황·길이·레벨 메타 + mic/▶ 배지) → 설정 변경 인라인 패널(레벨·길이) → 추천 상황 리스트 →
  * 다른 상황 고르기(상황 시트) → at-limit 보조 고지.
@@ -558,13 +568,13 @@ private fun HeroCta(
     val reveal = remember { Animatable(0f) }
     var primed by remember { mutableStateOf(false) }
 
-    // 주제(라벨) 변경 시 1회 리빌. 최초 컴포지션(기본 선택)·이어하기 히어로·reduce-motion 에서는 재생하지 않는다.
+    // 히어로 리빌: 주제(라벨) 변경뿐 아니라 "이어하기 → 새 대화" 전환("+ 새 대화 시작", resumeTopic non-null→null)
+    // 에서도 1회 재생한다([shouldPlayHeroReveal]). 매 실행에서 primed 를 세우되 이번이 첫 실행이었는지(wasPrimed)를
+    // 잡아, 최초 컴포지션(진입 플래시)·이어하기 히어로·reduce-motion 에서는 재생하지 않는다.
     LaunchedEffect(situationLabel, resumeTopic) {
-        if (resumeTopic != null) return@LaunchedEffect
-        if (!primed) {
-            primed = true
-            return@LaunchedEffect
-        }
+        val wasPrimed = primed
+        primed = true
+        if (!shouldPlayHeroReveal(wasPrimed, resumeTopic)) return@LaunchedEffect
         if (reduceMotion) return@LaunchedEffect
         reveal.snapTo(0f)
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
