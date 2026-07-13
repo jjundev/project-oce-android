@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.Velocity
  * 알려진 한계: 시트 Surface 최하단의 시스템 제스처 인셋 스트립은 이 Box 바깥(M3 프리미티브 레벨)이라 덮지 못한다.
  */
 @Composable
-fun Modifier.blockSheetDrag(): Modifier {
+internal fun Modifier.blockSheetDrag(): Modifier {
     val consumeLeftover =
         remember {
             object : NestedScrollConnection {

@@ -5,13 +5,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -28,7 +26,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,7 +34,6 @@ import com.jjundev.oneclickeng.R
 import com.jjundev.oneclickeng.ui.component.SheetPrimaryHeight
 import com.jjundev.oneclickeng.ui.component.OneClickSegmentedControl
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickBottomSheet
-import com.jjundev.oneclickeng.ui.component.primitive.blockSheetDrag
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 private enum class Period { AM, PM }
@@ -74,60 +70,9 @@ fun ReminderTimeSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    OneClickBottomSheet(
-        onDismissRequest = onDismiss,
-        modifier = modifier,
-        // M3 드래그 핸들 슬롯은 비운다(그건 시트 Surface 의 드래그 어포던스라 드래그를 되살린다). 대신 아래
-        // 드래그 차단 컨테이너 안에 장식용 그래버를 둬, 보이되 잡아끌 수는 없게 한다.
-        dragHandle = null,
-        // 여백을 시트 내부로 이관 → 드래그 차단 모디파이어가 좌우/상하 여백까지 덮는다.
-        contentPadding = PaddingValues(0.dp),
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    // 드래그로 시트를 줄이거나 늘리는 것을 막는다(그래버·본문·휠 오버스크롤 모두 차단).
-                    .blockSheetDrag()
-                    .padding(
-                        start = OceTheme.spacing.sheetPadding,
-                        end = OceTheme.spacing.sheetPadding,
-                        // 상단 여백은 그래버(top 12 / bottom 16)가 제공한다.
-                        top = 0.dp,
-                        bottom = OceTheme.spacing.sheetContentBottom,
-                    ),
-        ) {
-            SheetGrabber()
-            ReminderTimeSheetContent(initialHour = initialHour, initialMinute = initialMinute, onConfirm = onConfirm)
-        }
-    }
-}
-
-/** 그래버 바 노드 태그(테스트에서 존재 검증). */
-internal const val GRABBER_TEST_TAG = "reminderTimeSheetGrabber"
-
-/**
- * 시트 상단 장식용 그래버 바(프로토 36×4 pill). 순수 시각 어포던스이며 실제 드래그는 [blockSheetDrag] 로
- * 막혀 있다 — M3 `dragHandle` 슬롯(시트 Surface 밖)과 달리 드래그 차단 컨테이너 안에 있어 잡아끌 수 없다.
- */
-@Composable
-private fun SheetGrabber(modifier: Modifier = Modifier) {
-    Box(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp, bottom = 16.dp)
-                .testTag(GRABBER_TEST_TAG),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(width = 36.dp, height = 4.dp)
-                    .clip(OceTheme.shapes.pill)
-                    // 프로토 --border-strong 정확 매핑(outlineVariant 는 hairline 이라 더 옅음).
-                    .background(OceTheme.colors.borderStrong),
-        )
+    // draggable=false: 드래그로 시트를 줄이거나 늘릴 수 없다. 기본 핸들·여백은 설정 정리 시트와 동일한 룩.
+    OneClickBottomSheet(onDismissRequest = onDismiss, modifier = modifier, draggable = false) {
+        ReminderTimeSheetContent(initialHour = initialHour, initialMinute = initialMinute, onConfirm = onConfirm)
     }
 }
 

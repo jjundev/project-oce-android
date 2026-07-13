@@ -3,9 +3,7 @@ package com.jjundev.oneclickeng.feature.home.topic
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,7 +39,6 @@ import com.jjundev.oneclickeng.ui.component.OneClickSegmentedControl
 import com.jjundev.oneclickeng.ui.component.SheetPrimaryHeight
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickBottomSheet
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
-import com.jjundev.oneclickeng.ui.component.primitive.blockSheetDrag
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
@@ -69,35 +66,19 @@ fun TopicSelectSheet(
 ) {
     // 프로토 정합: 전체 높이가 아니라 화면 ~70%만 올라오게 콘텐츠 높이를 제한한다(중간 detent 없이 곧장 노출).
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // draggable=false: 드래그로 시트를 줄이거나 늘릴 수 없다. 기본 핸들·여백은 설정 정리 시트와 동일한 룩.
     OneClickBottomSheet(
         onDismissRequest = onDismiss,
         modifier = modifier,
         sheetState = sheetState,
-        // 드래그 핸들 제거 — 핸들은 시트 Surface 의 드래그 어포던스다.
-        dragHandle = null,
-        // 여백을 시트 내부 Box 로 이관 → 아래 드래그 차단 모디파이어가 좌우/상하 여백까지 덮는다.
-        contentPadding = PaddingValues(0.dp),
+        draggable = false,
     ) {
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    // 드래그로 시트를 줄이거나 늘리는 것을 막는다(핸들·본문·리스트 오버스크롤 모두 차단).
-                    .blockSheetDrag()
-                    .padding(
-                        start = OceTheme.spacing.sheetPadding,
-                        end = OceTheme.spacing.sheetPadding,
-                        top = OceTheme.spacing.sheetPadding,
-                        bottom = OceTheme.spacing.sheetContentBottom,
-                    ),
-        ) {
-            TopicSelectSheetContent(
-                onTopicChosen = onTopicChosen,
-                onDismiss = onDismiss,
-                modifier = Modifier.fillMaxHeight(SHEET_HEIGHT_FRACTION),
-                selectedTopicId = selectedTopicId,
-            )
-        }
+        TopicSelectSheetContent(
+            onTopicChosen = onTopicChosen,
+            onDismiss = onDismiss,
+            modifier = Modifier.fillMaxHeight(SHEET_HEIGHT_FRACTION),
+            selectedTopicId = selectedTopicId,
+        )
     }
 }
 

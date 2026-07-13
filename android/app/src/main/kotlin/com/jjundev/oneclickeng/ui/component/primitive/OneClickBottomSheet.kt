@@ -2,6 +2,7 @@
 
 package com.jjundev.oneclickeng.ui.component.primitive
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,6 +16,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
@@ -43,6 +45,10 @@ object OceSheetDefaults {
  * content 는 [OceSheetDefaults.contentPadding] + `navigationBarsPadding()` 을 두른 [Column] 안에 렌더돼
  * 모든 시트가 동일 세로 리듬을 갖는다. 특수 시트는 [contentPadding] 를 넘겨 오버라이드할 수 있다.
  * C13(권한 프라이밍)·C19(리마인더)·주제 선택·Google 저장·설정 정리 시트가 이 프리미티브를 재사용한다.
+ *
+ * [draggable]=false 면 드래그로 시트를 줄이거나 늘릴 수 없다. **외형(기본 핸들·여백 리듬)은 그대로**이고
+ * 핸들·콘텐츠를 [blockSheetDrag] 컨테이너 안에서 슬롯 레이아웃 그대로 재현해 드래그만 막는다(스크림 탭·
+ * 뒤로가기 닫기는 유지). 리마인더 시간·주제 선택 시트가 이 모드를 쓴다(설정 정리 시트와 룩 동일).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,6 +61,7 @@ fun OneClickBottomSheet(
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     contentPadding: PaddingValues = OceSheetDefaults.contentPadding,
     dragHandle: @Composable (() -> Unit)? = { BottomSheetDefaults.DragHandle() },
+    draggable: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     ModalBottomSheet(
@@ -63,15 +70,37 @@ fun OneClickBottomSheet(
         sheetState = sheetState,
         shape = OceTheme.shapes.radius24,
         containerColor = MaterialTheme.colorScheme.surface,
-        dragHandle = dragHandle,
+        // 비드래그 시트는 M3 슬롯 핸들을 비운다(슬롯 핸들 영역은 시트 Surface 드래그 대상이라). 핸들은
+        // 아래 blockSheetDrag 컨테이너 안에서 장식용으로 재현한다.
+        dragHandle = if (draggable) dragHandle else null,
     ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(contentPadding),
-            content = content,
-        )
+        if (draggable) {
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(contentPadding),
+                content = content,
+            )
+        } else {
+            // 드래그 차단: 핸들+콘텐츠를 한 컨테이너로 감싸 blockSheetDrag 로 시트 이동을 막는다. 슬롯 핸들
+            // 레이아웃(핸들 → contentPadding 콘텐츠)을 그대로 재현해 드래그 가능 시트와 외형이 동일하다.
+            Column(modifier = Modifier.fillMaxWidth().blockSheetDrag()) {
+                if (dragHandle != null) {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                        dragHandle()
+                    }
+                }
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(contentPadding),
+                    content = content,
+                )
+            }
+        }
     }
 }
