@@ -7,6 +7,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
@@ -63,12 +64,19 @@ class ReminderTimeSheetDragHandleTest {
         composeRule.onNodeWithText("설정").assertIsDisplayed()
     }
 
-    // 보조: 드래그 핸들 부재 → 핸들이 부여하는 Dismiss 시맨틱이 없다.
+    // 보조: 기능적 M3 드래그 핸들 부재 → Dismiss 시맨틱이 없다(상단 장식용 그래버는 시맨틱을 안 부여함).
     @Test
-    fun sheet_has_no_drag_handle_dismiss_action() {
+    fun sheet_has_no_functional_drag_handle_dismiss_action() {
         setSheet()
         composeRule
             .onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsActions.Dismiss))
             .assertCountEquals(0)
+    }
+
+    // 상단 장식용 그래버 바가 표시된다(비기능적 — 드래그는 여전히 막힘).
+    @Test
+    fun sheet_shows_a_decorative_grabber_handle() {
+        setSheet()
+        composeRule.onNodeWithTag(GRABBER_TEST_TAG).assertIsDisplayed()
     }
 }
