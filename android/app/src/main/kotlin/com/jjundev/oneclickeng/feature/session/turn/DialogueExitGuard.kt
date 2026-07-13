@@ -8,9 +8,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.jjundev.oneclickeng.ui.component.OneClickConfirmSheet
 
-/** 프로토 대화 중단 시트 [C] 카피(변경 금지 — realization-SoT `prototype/Prototype Flow` 정합). */
+// 대화 중단 시트 카피. 제목은 프로토(`prototype/Prototype Flow`) 정합이나, 본문은 프로토와 **의도적으로 다르다**:
+// 이 앱은 미완 대화를 durable 스냅샷(SessionSnapshotStore)으로 이어하기 저장하므로(홈 "이어서 대화하기"),
+// 프로토의 "저장되지 않아요"는 사실과 반대다. 실제 동작(나가도 저장·이어하기 가능)을 반영해 문구를 바로잡았다.
 private const val ABORT_TITLE = "대화를 그만할까요?"
-private const val ABORT_MESSAGE = "지금 나가면 이 대화는 저장되지 않아요. 상황은 다시 고를 수 있어요."
+private const val ABORT_MESSAGE = "지금 나가도 학습 내용은 저장되어요. 언제든지 이어서 진행할 수 있어요."
 private const val ABORT_STAY = "계속 이어하기"
 private const val ABORT_LEAVE = "그만하기"
 
