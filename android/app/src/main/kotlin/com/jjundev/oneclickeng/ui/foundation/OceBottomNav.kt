@@ -18,6 +18,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -28,6 +30,15 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /** 활성 탭 pill 하이라이트 배경 알파(브랜드색 위 연한 톤). */
 private const val NAV_INDICATOR_ALPHA = 0.12f
+
+/**
+ * Permanent-tab floating-navigation dimensions derived from Prototype Flow.
+ * Scroll surfaces use this trailing clearance so their final item can move above
+ * the bar even though the bar itself overlays the viewport.
+ */
+object OceBottomNavDefaults {
+    val overlayContentBottomPadding: Dp = 104.dp
+}
 
 /**
  * 하단 3탭 내비게이션 — **플로팅 라운드 바**(realization-SoT `prototype/Prototype Flow` 홈 하단, ADR-0006 시각

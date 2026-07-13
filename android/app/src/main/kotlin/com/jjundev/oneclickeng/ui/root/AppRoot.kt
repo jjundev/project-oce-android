@@ -2,16 +2,21 @@ package com.jjundev.oneclickeng.ui.root
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -136,7 +141,8 @@ private fun BootSplash() {
 }
 
 /**
- * 3탭 셸(F8). 전역 [Scaffold] 골격이 하단 3탭([OceBottomNav])과 3탭 그래프([OceNavHost])를 소유한다.
+ * 3탭 셸(F8). [MainTabsOverlay]가 플로팅 오버레이를 소유하고 [OceNavHost]는 탭 뷰포트를 채우며,
+ * [OceBottomNav]는 그 하단 가장자리 위에 정렬된다.
  * 탭 선택 지속은 자체 [rememberNavController] 백스택이 담당한다(회전/복귀 시 상태 유지).
  *
  * [isOnline]=false 면 상단에 글로벌 오프라인 배너(C4)를 노출한다(M3-08 A4). [onStartSession]/[onResume] 는
@@ -162,17 +168,44 @@ private fun MainTabsScaffold(
             onNavConsumed()
         }
     }
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        bottomBar = { OceBottomNav(navController) },
-    ) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding)) {
+    MainTabsOverlay(
+        navController = navController,
+        isOnline = isOnline,
+    ) { contentModifier ->
+        OceNavHost(
+            navController = navController,
+            onStartSession = onStartSession,
+            onResume = onResume,
+            modifier = contentModifier,
+        )
+    }
+}
+
+@Composable
+internal fun MainTabsOverlay(
+    navController: NavHostController,
+    isOnline: Boolean,
+    modifier: Modifier = Modifier,
+    contentTopInset: Dp = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
+    content: @Composable (Modifier) -> Unit,
+) {
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(top = contentTopInset),
+        ) {
             OneClickOfflineBanner(visible = !isOnline)
-            OceNavHost(
-                navController = navController,
-                onStartSession = onStartSession,
-                onResume = onResume,
+            content(
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
             )
         }
+        OceBottomNav(
+            navController = navController,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
     }
 }
