@@ -2,13 +2,18 @@ package com.jjundev.oneclickeng.ui.root
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -181,10 +186,16 @@ internal fun MainTabsOverlay(
     navController: NavHostController,
     isOnline: Boolean,
     modifier: Modifier = Modifier,
+    contentTopInset: Dp = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
     content: @Composable (Modifier) -> Unit,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(top = contentTopInset),
+        ) {
             OneClickOfflineBanner(visible = !isOnline)
             content(
                 Modifier

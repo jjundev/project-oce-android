@@ -13,9 +13,11 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.jjundev.oneclickeng.ui.theme.OceTheme
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -62,5 +64,32 @@ class MainTabsOverlayTest {
                 "contentBottom=${contentBottom}, navLabelTop=${navLabelTop}",
             navLabelTop < contentBottom,
         )
+    }
+
+    @Test
+    fun tab_content_preserves_status_bar_top_inset() {
+        composeRule.setContent {
+            OceTheme(darkTheme = false) {
+                val navController = rememberNavController()
+                MainTabsOverlay(
+                    navController = navController,
+                    isOnline = true,
+                    contentTopInset = 24.dp,
+                ) { contentModifier ->
+                    Box(
+                        modifier =
+                            contentModifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.background)
+                                .testTag(MAIN_TABS_CONTENT_TAG),
+                    )
+                }
+            }
+        }
+
+        val contentTop =
+            composeRule.onNodeWithTag(MAIN_TABS_CONTENT_TAG).getUnclippedBoundsInRoot().top
+
+        assertEquals(24f, contentTop.value, 0.5f)
     }
 }
