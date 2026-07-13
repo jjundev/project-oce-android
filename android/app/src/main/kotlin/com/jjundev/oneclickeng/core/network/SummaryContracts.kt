@@ -23,36 +23,50 @@ data class SummaryRequest(
 )
 
 /**
- * summary payload — the whole session's client-buffered turn data plus the client-computed
- * `totalScore` (mean of per-turn slim writingScores, dialogue-learning-flow.md:216) that drives the
- * expression filter's strictness (summary-expressions.md:5).
+ * summary payload — the client PROJECTS its whole-session turn buffer into these already-shaped fields
+ * before sending (buffer→sub-call input projection is the client's job, prompt-system.md:71). Field
+ * names/shape mirror the backend contract `functions/src/types/summary.ts` exactly: the expressions
+ * sub-call reads [expressionCandidates], the words sub-call reads [words]/[sentences]/[userOriginalSentences],
+ * coaching reads [turns]. Omitting an empty array is fine — the backend defaults absent arrays to [].
  *
- * [retrySections] — backend-dependent assumption (M2-02 plan v3, #10): on a partial-failure retry the
- * client names ONLY the failed sections so the backend regenerates those and reuses the cached success
- * sections (backend-functions.md:117 states the *behavior* but does not yet pin the wire field). Until
- * M2-01 confirms the field, `null` (the initial-call value) round-trips as "run all three" and a retry
- * that sends every still-failed section is behaviourally a full re-request — the M1-07 fallback.
+ * [sections] — retry filter (backend-functions.md §10): run ONLY these sections and report only them in
+ * `done.sections`. `null`(초기 호출) 은 wire 에서 생략돼 "세 섹션 전부"를 뜻한다. 값이 있으면 백엔드 PLURAL
+ * 키(`expressions`/`words`/`coaching`)의 비어있지 않은 부분집합이어야 한다(빈/미지 키는 400).
  */
 @Serializable
 data class SummaryPayload(
     val totalScore: Int,
-    val turns: List<SummaryTurnDto>,
-    val retrySections: List<String>? = null,
+    val turns: List<SummaryTurnDto> = emptyList(),
+    val expressionCandidates: List<SummaryExpressionCandidateDto> = emptyList(),
+    val words: List<String> = emptyList(),
+    val sentences: List<String> = emptyList(),
+    val userOriginalSentences: List<String> = emptyList(),
+    val sections: List<String>? = null,
 )
 
 /**
- * One turn's buffer for the summary pipeline (dialogue-learning-flow.md:183). Mirrors
- * [com.jjundev.oneclickeng.feature.session.feedback.TurnFeedbackBuffer] plus the prompt/user echo:
- * skipped or failed feedback leaves the derived keys null (§9.1), which the backend treats as low
- * confidence.
+ * One before/after candidate feeding the expressions filter (backend `ExpressionCandidate`). [type] 은
+ * 클라의 힌트(`natural`|`accurate`)이며 백엔드 프롬프트가 최종 재분류한다. [explanation] 은 선택(백엔드가 채움).
+ */
+@Serializable
+data class SummaryExpressionCandidateDto(
+    val type: String,
+    val koreanPrompt: String,
+    val before: String,
+    val after: String,
+    val explanation: String? = null,
+)
+
+/**
+ * One turn feeding coaching (backend `SummaryTurn`): [before]=사용자 원문, [after]=교정/자연스러운 개선문,
+ * [score]=slim writingScore. 스킵/실패 턴은 after/score 가 null 로 들어가 백엔드가 낮은 신뢰도로 처리한다.
  */
 @Serializable
 data class SummaryTurnDto(
     val koreanPrompt: String,
-    val userText: String,
-    val correctedText: String? = null,
-    val naturalExpression: String? = null,
-    val slimScore: Int? = null,
+    val before: String,
+    val after: String? = null,
+    val score: Int? = null,
 )
 
 /**

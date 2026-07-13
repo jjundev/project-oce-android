@@ -406,8 +406,9 @@ private fun ParaphraseCard(
                 color = MaterialTheme.colorScheme.onSurface,
             )
         }
+        // 저장(북마크)=프로토타입 정합 골드(gameSaveGold, SummaryScreen 저장 표식과 동일), 미저장=중립 textTertiary.
         val bookmarkTint =
-            if (bookmarked) MaterialTheme.colorScheme.primary else OceTheme.colors.textTertiary
+            if (bookmarked) OceTheme.colors.gameSaveGold else OceTheme.colors.textTertiary
         IconToggleButton(
             checked = bookmarked,
             onCheckedChange = { onToggle() },

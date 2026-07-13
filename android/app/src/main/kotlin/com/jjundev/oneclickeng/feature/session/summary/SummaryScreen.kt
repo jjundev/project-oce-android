@@ -54,13 +54,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.jjundev.oneclickeng.feature.session.feedback.FeedbackLoadingSkeleton
 import com.jjundev.oneclickeng.ui.component.InlineErrorMode
 import com.jjundev.oneclickeng.ui.component.OneClickConfettiBurst
 import com.jjundev.oneclickeng.ui.component.OneClickCountUp
 import com.jjundev.oneclickeng.ui.component.OneClickEmptyState
 import com.jjundev.oneclickeng.ui.component.OneClickInlineError
-import com.jjundev.oneclickeng.ui.component.OneClickSkeleton
-import com.jjundev.oneclickeng.ui.component.SkeletonShape
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
@@ -526,16 +525,13 @@ private fun SseBundle(
 ) {
     when (bundle) {
         is SectionBundle.BundleLoading ->
+            // 턴 피드백 시트 스켈레톤과 동일: 섹션 제목은 즉시 노출하고 본문만 시머([FeedbackLoadingSkeleton]).
             Column(
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sectionGap),
             ) {
-                Text(
-                    text = "요약을 준비하고 있어요",
-                    style = OceTheme.typography.sectionLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                OneClickSkeleton(shape = SkeletonShape.Section)
+                SectionScaffold(title = "자연스러운 표현") { FeedbackLoadingSkeleton() }
+                SectionScaffold(title = "새 단어") { FeedbackLoadingSkeleton() }
             }
 
         is SectionBundle.QuotaBlocked ->
@@ -566,8 +562,11 @@ private fun CoachingArea(
     bundle: SectionBundle,
     onRetry: (SummarySection) -> Unit,
 ) {
-    if (bundle is SectionBundle.Sectioned) {
-        CoachingSection(bundle.coaching, onRetry)
+    when (bundle) {
+        is SectionBundle.Sectioned -> CoachingSection(bundle.coaching, onRetry)
+        // 로딩 중에도 코칭 제목은 즉시 노출 + 본문 시머(피드백 시트 정합). QuotaBlocked 는 상단 문구가 대표.
+        is SectionBundle.BundleLoading -> SectionScaffold(title = "코칭") { FeedbackLoadingSkeleton() }
+        is SectionBundle.QuotaBlocked -> Unit
     }
 }
 
@@ -638,7 +637,7 @@ private fun CoachingSection(
 ) {
     SectionScaffold(title = "코칭") {
         when (stateOf) {
-            is SummarySectionState.Loading -> OneClickSkeleton(shape = SkeletonShape.Section)
+            is SummarySectionState.Loading -> FeedbackLoadingSkeleton()
             is SummarySectionState.Failed ->
                 RetryRow(SummarySection.Coaching, stateOf.canRetry, onRetry)
             is SummarySectionState.Ready ->
@@ -781,7 +780,7 @@ private fun <T> SectionBody(
     ready: @Composable (List<T>) -> Unit,
 ) {
     when (stateOf) {
-        is SummarySectionState.Loading -> OneClickSkeleton(shape = SkeletonShape.Section)
+        is SummarySectionState.Loading -> FeedbackLoadingSkeleton()
         is SummarySectionState.Failed -> RetryRow(section, stateOf.canRetry, onRetry)
         is SummarySectionState.Ready ->
             if (stateOf.value.isEmpty()) {

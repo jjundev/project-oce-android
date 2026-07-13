@@ -48,12 +48,26 @@ class SummaryScreenshotTest {
     @Config(qualifiers = "+h2600dp")
     fun summary_full_dark() = capture("build/outputs/roborazzi/summary_full_dark.png", dark = true)
 
-    private fun capture(path: String, dark: Boolean) {
+    /**
+     * 로딩(BundleLoading) 스켈레톤 정합 — 하이라이트는 즉시 렌더, 표현/단어/코칭 섹션은 **제목 즉시 노출 + 본문만
+     * 시머**([FeedbackLoadingSkeleton], 턴 피드백 시트 스켈레톤과 동일 anatomy).
+     */
+    @Test
+    @Config(qualifiers = "+h2600dp")
+    fun summary_loading_light() {
+        capture("build/outputs/roborazzi/summary_loading_light.png", dark = false, state = loadingState())
+    }
+
+    private fun capture(
+        path: String,
+        dark: Boolean,
+        state: SummaryState = richState(),
+    ) {
         composeRule.setContent {
             OceTheme(darkTheme = dark) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     SummaryScreen(
-                        state = richState(),
+                        state = state,
                         onRetry = {},
                         onToggleSaveWord = {},
                         onToggleSaveExpression = {},
@@ -65,6 +79,16 @@ class SummaryScreenshotTest {
         }
         composeRule.onRoot().captureRoboImage(path)
     }
+
+    /** 로딩 상태 픽스처 — 로컬 즉시 블록(점수·하이라이트)은 채우고 SSE 번들은 [SectionBundle.BundleLoading]. */
+    private fun loadingState() =
+        SummaryState(
+            totalScore = 87,
+            highlight = HighlightTurn("커피 주세요", "Could I get a latte?", 92),
+            bookmarks = emptyList(),
+            accrual = AccrualStrip(streakDays = 1, xp = 20),
+            bundle = SectionBundle.BundleLoading,
+        )
 
     private fun richBundle(): SectionBundle.Sectioned =
         SectionBundle.Sectioned(
