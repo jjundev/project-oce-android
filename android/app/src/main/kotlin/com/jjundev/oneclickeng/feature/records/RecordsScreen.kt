@@ -39,6 +39,7 @@ import com.jjundev.oneclickeng.ui.component.OneClickEmptyState
 import com.jjundev.oneclickeng.ui.component.OneClickSegmentedControl
 import com.jjundev.oneclickeng.ui.component.OneClickSnackbarHost
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
+import com.jjundev.oneclickeng.ui.foundation.OceBottomNavDefaults
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.foundation.ScreenEntranceState
 import com.jjundev.oneclickeng.ui.foundation.TabScreenScaffold
@@ -50,8 +51,8 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
 /**
  * 기록 탭(M2-05). 공유 [TabScreenScaffold] 골격을 유지하고 그 [LazyListScope] 안에 평생통계 헤더(item) →
  * 세그먼트(stickyHeader) → 카드 리스트(items) / 빈 상태를 채운다. undo 스낵바는 스캐폴드를 감싸는 overlay
- * [Box] 에 [OneClickSnackbarHost] 로 얹는다(BottomNav 인셋은 AppRoot Scaffold 가 이미 흡수 — 별도 bottomInset
- * 미주입).
+ * [Box] 에 [OneClickSnackbarHost] 로 얹는다. 플로팅 BottomNav 가 뷰포트를 덮으므로 스낵바는
+ * [OceBottomNavDefaults.overlayContentBottomPadding] 만큼 위로 띄운다.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -154,6 +155,7 @@ internal fun RecordsContent(
         OneClickSnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter),
+            bottomInset = OceBottomNavDefaults.overlayContentBottomPadding,
         )
     }
 }

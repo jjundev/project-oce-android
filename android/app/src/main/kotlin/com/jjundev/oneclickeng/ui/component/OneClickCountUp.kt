@@ -45,6 +45,7 @@ fun OneClickCountUp(
     modifier: Modifier = Modifier,
     from: Int = 0,
     unit: String = "",
+    format: (Int) -> String = { "$it$unit" },
     static: Boolean = false,
     reduceMotion: Boolean = rememberReduceMotion(),
     style: TextStyle = OceTheme.typography.turnScore,
@@ -54,7 +55,7 @@ fun OneClickCountUp(
     val motion = OceTheme.motion
     val value = remember { Animatable(if (snap) target.toFloat() else from.toFloat()) }
     val scale = remember { Animatable(if (snap) motion.slotMachineSnapTo else motion.slotMachineSnapFrom) }
-    val finalLabel = "$target$unit"
+    val finalLabel = format(target)
 
     LaunchedEffect(target, from, snap) {
         if (snap) {
@@ -87,7 +88,7 @@ fun OneClickCountUp(
     }
 
     Text(
-        text = "${value.value.roundToInt()}$unit",
+        text = format(value.value.roundToInt()),
         style = style,
         color = color,
         modifier =

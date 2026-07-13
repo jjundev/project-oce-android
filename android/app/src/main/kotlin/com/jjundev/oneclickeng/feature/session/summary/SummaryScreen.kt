@@ -98,6 +98,8 @@ fun SummaryScreen(
     onDone: (() -> Unit)? = null,
     doneLabel: String = "완료",
     onScrollEndReached: (() -> Unit)? = null,
+    // 진입 폭죽 발사 게이트 — 화면 전환 슬라이드가 끝난 뒤 true 로 넘어온다(요구). 기본 true(전환 없는 진입·프리뷰·테스트).
+    startConfetti: Boolean = true,
 ) {
     // "더 보기" 접힘 상태(#15): 섹션별 독립, 초기 접힘. 기본 표시 [COLLAPSED_PREVIEW]개.
     val expanded = remember { mutableStateMapOf<SummarySection, Boolean>() }
@@ -176,7 +178,7 @@ fun SummaryScreen(
         }
         // 진입 폭죽(프로토 fireConfetti) — 점수 있을 때만, 장식 오버레이(입력 미차단·reduce-motion 미발사).
         if (state.totalScore != null) {
-            OneClickConfettiBurst(modifier = Modifier.matchParentSize())
+            OneClickConfettiBurst(modifier = Modifier.matchParentSize(), start = startConfetti)
         }
     }
 }

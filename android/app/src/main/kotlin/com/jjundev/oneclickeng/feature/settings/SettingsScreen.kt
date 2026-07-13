@@ -47,8 +47,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
@@ -76,7 +74,9 @@ import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickSwitch
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
+import com.jjundev.oneclickeng.ui.foundation.OceBottomNavDefaults
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
+import com.jjundev.oneclickeng.ui.foundation.PinnedTabHeader
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.foundation.rememberScreenEntrance
 import com.jjundev.oneclickeng.ui.foundation.staggerReveal
@@ -288,6 +288,7 @@ fun SettingsScreen(
         OneClickSnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter),
+            bottomInset = OceBottomNavDefaults.overlayContentBottomPadding,
         )
     }
 }
@@ -323,21 +324,14 @@ internal fun SettingsContent(
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         val entrance = rememberScreenEntrance(reduceMotion)
-        // 48px 고정 중앙 헤더(프로토 정합).
-        Box(
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = stringResource(R.string.tab_settings),
-                style = OceTheme.typography.summaryHeadline.copy(fontWeight = FontWeight.ExtraBold, fontSize = 18.sp),
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.semantics { heading() },
-            )
-        }
+        PinnedTabHeader(titleRes = R.string.tab_settings)
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
-            contentPadding = PaddingValues(top = 8.dp, bottom = 104.dp),
+            contentPadding =
+                PaddingValues(
+                    top = 8.dp,
+                    bottom = OceBottomNavDefaults.overlayContentBottomPadding,
+                ),
             verticalArrangement = Arrangement.spacedBy(26.dp),
         ) {
             // 프로토 order:-1 = 게스트는 계정 카드(Google 저장)를 최상단으로 승격. LazyListScope 엔 CSS order 가

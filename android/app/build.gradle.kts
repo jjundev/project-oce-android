@@ -75,6 +75,7 @@ tasks.withType<Test>().configureEach {
             "**/ConceptualBridgeInsideModeTest*",
             "**/HomeHeroRevealTest*",
             "**/HomeSituationsSkeletonTest*",
+            "**/MainTabsOverlayTest*",
             "**/OneClickBottomSheetExpandTest*",
             "**/ReminderTimeSheetDragHandleTest*",
             "**/TopicSelectDragBlockTest*",
@@ -83,6 +84,12 @@ tasks.withType<Test>().configureEach {
             "**/DeepFeedbackRegionTest*",
             "**/SummaryScrollEndGateTest*",
             "**/SummaryScrollFabTest*",
+            "**/SummaryHandoffDelayTest*",
+            "**/HomeSettingsChipTest*",
+            "**/HomeSituationTapTest*",
+            "**/HomeStatsStripTest*",
+            "**/OneClickCountUpFormatTest*",
+            "**/RecordsTitleBarTest*",
         )
     }
 }

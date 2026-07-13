@@ -92,7 +92,7 @@ class HomeViewModel
                 sessionSetup,
             ) { online, resume, remaining, gami, setup ->
                 HomeUiState(
-                    studyTimeLabel = gami?.studyTimeLabel,
+                    studyMinutes = gami?.studyMinutes,
                     streak = gami?.streak ?: 0,
                     isOnline = online,
                     hasResume = resume != null,
@@ -114,7 +114,7 @@ class HomeViewModel
                 val snapshot = studytimeStore.snapshot()
                 gamification.value =
                     Gamification(
-                        studyTimeLabel = GamificationTime.studyTimeLabel(snapshot.todaySeconds),
+                        studyMinutes = (snapshot.todaySeconds / 60).toInt(),
                         streak = snapshot.streak,
                     )
             }
@@ -169,7 +169,7 @@ class HomeViewModel
         }
 
         private data class Gamification(
-            val studyTimeLabel: String,
+            val studyMinutes: Int,
             val streak: Int,
         )
 

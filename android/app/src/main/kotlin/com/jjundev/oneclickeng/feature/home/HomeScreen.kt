@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -31,6 +32,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -70,12 +72,14 @@ import com.jjundev.oneclickeng.feature.reminder.ui.HomeReminderHost
 import com.jjundev.oneclickeng.feature.reminder.ui.HomeReminderViewModel
 import com.jjundev.oneclickeng.feature.settings.ReminderTimeSheet
 import com.jjundev.oneclickeng.ui.component.OneClickAtLimitNotice
+import com.jjundev.oneclickeng.ui.component.OneClickCountUp
 import com.jjundev.oneclickeng.ui.component.OneClickReminderEnabledBanner
 import com.jjundev.oneclickeng.ui.component.OneClickSegmentedControl
 import com.jjundev.oneclickeng.ui.component.OneClickShimmerPiece
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
+import com.jjundev.oneclickeng.ui.foundation.OceBottomNavDefaults
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.foundation.ScreenEntranceState
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
@@ -130,7 +134,8 @@ private fun levelLabel(level: String): String =
  * 다른 상황 고르기(상황 시트) → at-limit 보조 고지.
  *
  * 프로토 플로우 정합: 히어로 탭 = **바로 대화 생성**([onStartSession] — 세션 설정 화면 없음), 추천 행 탭 =
- * 선택 갱신 + 즉시 시작(startTopic), 시트 = 선택만 하고 닫힘(pickTopic — 홈 히어로 갱신).
+ * 선택만 갱신해 히어로에 반영(시트 pickTopic 과 동일), 시트 = 선택만 하고 닫힘(홈 히어로 갱신).
+ * 시작은 두 경로 모두 히어로 CTA 가 소유한다.
  * [HomeReminderHost] 는 M3-07 리마인더 opt-in 오버레이(스캐폴드 밖 최상위 합성).
  */
 @Composable
@@ -185,11 +190,8 @@ fun HomeScreen(
         onOfflineBlocked = viewModel::onOfflineBlocked,
         modifier = modifier,
         onSituationSelected = { situation ->
-            // 프로토 startTopic — 선택 갱신 + 즉시 시작.
+            // 추천 행 탭 = 선택만 갱신해 히어로에 반영(시트 pickTopic 과 동일). 시작은 히어로 CTA 가 소유한다.
             viewModel.selectSituationById(situation.id)
-            startWithCurrentSetup(
-                SelectedSituation(situation.id, situation.labelKo, situation.promptSeed),
-            )
         },
         onRefreshSituations = {
             flashSituationsSkeleton(SITUATIONS_REFRESH_SKELETON_MS)
@@ -269,11 +271,25 @@ internal fun HomeContent(
     onChangeReminderTime: () -> Unit = {},
 ) {
     val entrance = rememberScreenEntrance(reduceMotion)
+    val listState = rememberLazyListState()
+    val scrollScope = rememberCoroutineScope()
+    // 추천 상황 탭 = 히어로에 선택만 반영(프로토 pickTopic). 추천 리스트는 히어로보다 아래라, 반영이 화면
+    // 밖에서 일어나 "아무 일도 안 난 것"처럼 보인다 → 반영 직후 상단(히어로)으로 스크롤해 결과를 보이고
+    // ▶ CTA 로 학습을 이어가게 한다. reduce-motion 이면 애니 없이 즉시 점프.
+    val onSituationTap: (HomeSituation) -> Unit = { situation ->
+        onSituationSelected(situation)
+        scrollScope.launch {
+            if (reduceMotion) listState.scrollToItem(0) else listState.animateScrollToItem(0)
+        }
+    }
     LazyColumn(
+        state = listState,
         modifier =
             modifier
                 .fillMaxSize()
                 .padding(horizontal = OceTheme.spacing.xl),
+        contentPadding =
+            PaddingValues(bottom = OceBottomNavDefaults.overlayContentBottomPadding),
     ) {
         // 리마인더 켜짐 확인 배너(프로토 reminderBanner) — 홈 최상단 in-flow.
         if (showReminderBanner) {
@@ -314,8 +330,9 @@ internal fun HomeContent(
 
         item(key = "stats") {
             StatsStrip(
-                studyTimeLabel = state.studyTimeLabel,
+                studyMinutes = state.studyMinutes,
                 streak = state.streak,
+                reduceMotion = reduceMotion,
                 modifier = Modifier.staggerReveal(2, entrance).padding(top = OceTheme.spacing.md),
             )
         }
@@ -367,7 +384,7 @@ internal fun HomeContent(
             if (situationsSkeleton) {
                 situationsSkeletonItems(state.situations.size, gridMode, reduceMotion)
             } else {
-                situationsCardItems(state.situations, gridMode, entrance, onSituationSelected)
+                situationsCardItems(state.situations, gridMode, entrance, onSituationTap)
             }
             item(key = "more_situations") {
                 MoreSituationsButton(
@@ -736,9 +753,7 @@ private fun SettingsInline(
                 size = OceIconSize.FeedbackInline,
             )
             Text(
-                text =
-                    level?.let { "설정 변경 · ${levelLabel(it)} · ${length}턴" }
-                        ?: "설정 변경 · 불러오는 중",
+                text = "설정 변경",
                 style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -800,31 +815,35 @@ private fun SettingLabel(text: String) {
  */
 @Composable
 private fun StatsStrip(
-    studyTimeLabel: String?,
+    studyMinutes: Int?,
     streak: Int,
     modifier: Modifier = Modifier,
+    reduceMotion: Boolean = false,
 ) {
-    if (studyTimeLabel == null && streak <= 0) return
+    if (studyMinutes == null && streak <= 0) return
     val statStyle = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold)
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
     ) {
-        if (studyTimeLabel != null) {
+        if (studyMinutes != null) {
             OneClickIcon(
                 icon = OceIcon.Schedule,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 size = OceIconSize.FeedbackInline,
             )
-            Text(
-                text = studyTimeLabel,
+            // 프로토 "오늘 N분"(gamification-emphasis.md:131) — 슬롯머신 카운트업으로 0→오늘 분 롤업.
+            OneClickCountUp(
+                target = studyMinutes,
+                format = { "오늘 ${it}분" },
+                reduceMotion = reduceMotion,
                 style = statStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (studyTimeLabel != null && streak > 0) {
+        if (studyMinutes != null && streak > 0) {
             Text(
                 text = "·",
                 style = statStyle,
@@ -838,8 +857,11 @@ private fun StatsStrip(
                 tint = OceTheme.colors.gameStreak,
                 size = OceIconSize.FeedbackInline,
             )
-            Text(
-                text = "${streak}일 연속",
+            // 연속 학습일도 카운트업으로 0→N 롤업(프로토 "N일 연속").
+            OneClickCountUp(
+                target = streak,
+                format = { "${it}일 연속" },
+                reduceMotion = reduceMotion,
                 style = statStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -925,7 +947,7 @@ private fun SituationsHeader(
     }
 }
 
-/** 추천 상황 1행 — 카드(선행 아이콘 + 라벨 + chevron). 탭 = 선택 갱신 + 즉시 시작(프로토 startTopic). */
+/** 추천 상황 1행 — 카드(선행 아이콘 + 라벨 + chevron). 탭 = 선택만 갱신해 히어로에 반영(시작은 히어로 CTA). */
 @Composable
 private fun SituationRow(
     situation: HomeSituation,
@@ -972,7 +994,7 @@ private fun SituationRow(
     }
 }
 
-/** 그리드 셀 — 컴팩트 카드(상단 아이콘 박스 + 라벨 최대 2줄, chevron 없음). 탭 = 선택 갱신 + 즉시 시작. */
+/** 그리드 셀 — 컴팩트 카드(상단 아이콘 박스 + 라벨 최대 2줄, chevron 없음). 탭 = 선택만 갱신해 히어로에 반영. */
 @Composable
 private fun SituationCell(
     situation: HomeSituation,

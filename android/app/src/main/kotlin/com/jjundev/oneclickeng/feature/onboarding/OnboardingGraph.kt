@@ -27,6 +27,8 @@ import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGeneratingRoute
 import com.jjundev.oneclickeng.feature.session.summary.AccrualStrip
 import com.jjundev.oneclickeng.feature.session.summary.SummaryRoute
 import com.jjundev.oneclickeng.feature.session.turn.GeneratedDialogueSessionRoute
+import com.jjundev.oneclickeng.ui.navigation.sessionExitFor
+import com.jjundev.oneclickeng.ui.navigation.summaryEnterFor
 import com.jjundev.oneclickeng.ui.root.MAIN_TABS_ROUTE
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
@@ -41,13 +43,13 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
  *
  * @param navController outer NavHost 컨트롤러(목적지 전이·홈 이탈에 사용).
  */
-fun NavGraphBuilder.onboardingGraph(navController: NavHostController) {
+fun NavGraphBuilder.onboardingGraph(navController: NavHostController, reduceMotion: Boolean) {
     navigation(startDestination = ONBOARDING_LEVEL_ROUTE, route = ONBOARDING_ROUTE) {
         levelDestination(navController)
         topicDestination(navController)
         generatingDestination(navController)
-        sessionDestination(navController)
-        summaryDestination(navController)
+        sessionDestination(navController, reduceMotion)
+        summaryDestination(navController, reduceMotion)
     }
 }
 
@@ -146,7 +148,7 @@ private fun NavGraphBuilder.generatingDestination(navController: NavHostControll
     }
 }
 
-private fun NavGraphBuilder.sessionDestination(navController: NavHostController) {
+private fun NavGraphBuilder.sessionDestination(navController: NavHostController, reduceMotion: Boolean) {
     composable(
         route = ONBOARDING_SESSION_ROUTE,
         arguments =
@@ -157,6 +159,8 @@ private fun NavGraphBuilder.sessionDestination(navController: NavHostController)
                 navArgument(ARG_TOPIC_LABEL) { type = NavType.StringType; defaultValue = "" },
                 navArgument(ARG_TOPIC_EMOJI) { type = NavType.StringType; defaultValue = "" },
             ),
+        // 요약 핸드오프에서만 왼쪽 슬라이드 퇴장. 대화 나가기(홈-이동 navigate(MAIN_TABS))는 무전환으로 남긴다.
+        exitTransition = { sessionExitFor(targetState.destination.route, ONBOARDING_SUMMARY_ROUTE, reduceMotion) },
     ) { entry ->
         val args = entry.arguments
         val level = args?.getString(ARG_LEVEL) ?: FIRST_SESSION_LEVEL
@@ -185,7 +189,7 @@ private fun NavGraphBuilder.sessionDestination(navController: NavHostController)
     }
 }
 
-private fun NavGraphBuilder.summaryDestination(navController: NavHostController) {
+private fun NavGraphBuilder.summaryDestination(navController: NavHostController, reduceMotion: Boolean) {
     composable(
         route = ONBOARDING_SUMMARY_ROUTE,
         arguments =
@@ -194,15 +198,20 @@ private fun NavGraphBuilder.summaryDestination(navController: NavHostController)
                 navArgument(ARG_LEVEL) { type = NavType.StringType; defaultValue = FIRST_SESSION_LEVEL },
                 navArgument(ARG_FIRST) { type = NavType.BoolType; defaultValue = true },
             ),
+        // 대화(ONBOARDING_SESSION_ROUTE)에서 진입할 때만 오른쪽에서 슬라이드 진입.
+        enterTransition = { summaryEnterFor(initialState.destination.route, ONBOARDING_SESSION_ROUTE, reduceMotion) },
     ) { entry ->
         val args = entry.arguments
         val sessionId = args?.getString(ARG_SESSION_ID).orEmpty()
         val level = args?.getString(ARG_LEVEL) ?: FIRST_SESSION_LEVEL
         val first = args?.getBoolean(ARG_FIRST) ?: true
+        // 진입 슬라이드가 완전히 끝난 뒤에만 폭죽을 발사한다(요구): 전환이 목표 상태(Visible)에 정착하면 true.
+        val slideSettled = transition.currentState == transition.targetState
         OnboardingSummaryDestination(
             sessionId = sessionId,
             userLevel = level,
             isFirstSession = first,
+            startConfetti = slideSettled,
             // 연결/이관 성공(FR-3a/3b) 시 홈으로. 실제 linkWithCredential·mergeGuestData 는 시트가 소유(M3-03).
             onLinked = { navController.exitOnboardingToHome() },
             onOneMore = { navController.navigate(onboardingTopicRoute(level = level, first = false)) },
@@ -221,6 +230,7 @@ private fun OnboardingSummaryDestination(
     sessionId: String,
     userLevel: String,
     isFirstSession: Boolean,
+    startConfetti: Boolean,
     onLinked: () -> Unit,
     onOneMore: () -> Unit,
     onExitToHome: () -> Unit,
@@ -242,6 +252,7 @@ private fun OnboardingSummaryDestination(
             isFirstSession = isFirstSession,
             onDone = if (isFirstSession) null else onExitToHome,
             onScrollEndReached = onScrollEndReached,
+            startConfetti = startConfetti,
         )
         if (
             shouldShowGoogleSavePrompt(
