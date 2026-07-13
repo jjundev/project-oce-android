@@ -9,10 +9,22 @@ import org.junit.Test
 /** M3-08 주제 카탈로그 + 결정적 추천 회전(A3) 검증 — 순수 함수라 클럭/DI 없이 단언한다. */
 class TopicCatalogTest {
     @Test
-    fun `catalog holds 16 topics and 4 groups partition them`() {
-        assertEquals(16, TopicCatalog.ALL.size)
-        val grouped = TopicGroup.entries.sumOf { TopicCatalog.inGroup(it).size }
-        assertEquals(16, grouped)
+    fun `catalog holds 120 topics with 30 in every group`() {
+        assertEquals(120, TopicCatalog.ALL.size)
+        TopicGroup.entries.forEach { group ->
+            assertEquals(30, TopicCatalog.inGroup(group).size)
+        }
+        assertEquals(120, TopicGroup.entries.sumOf { TopicCatalog.inGroup(it).size })
+    }
+
+    @Test
+    fun `every bundled topic has stable complete presentation and generation data`() {
+        val topics = TopicCatalog.ALL
+        assertEquals(topics.size, topics.map { it.id }.toSet().size)
+        assertTrue(topics.all { it.id.matches(Regex("[a-z0-9]+(?:-[a-z0-9]+)*")) })
+        assertTrue(topics.all { it.titleKo.isNotBlank() })
+        assertTrue(topics.all { it.emoji.isNotBlank() })
+        assertTrue(topics.all { it.promptSeed.isNotBlank() && '\n' !in it.promptSeed })
     }
 
     @Test
