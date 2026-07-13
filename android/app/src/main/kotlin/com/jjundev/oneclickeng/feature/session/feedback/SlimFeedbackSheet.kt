@@ -63,9 +63,6 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
 /** 턴 피드백 시트 높이 상한(화면 대비). 시트는 콘텐츠에 맞춰 커지되 이 비율을 넘지 않는다(넘으면 내부 스크롤). */
 private const val SHEET_HEIGHT_FRACTION = 0.7f
 
-/** 시트 뒤 대화를 어둡게 하는 스크림 불투명도(M3 기본 scrim 정합). */
-private const val SCRIM_ALPHA = 0.32f
-
 /** 정적 드래그 핸들 바 불투명도(M3 DragHandle 정합 — 장식용, 시트는 드래그 불가). */
 private const val HANDLE_ALPHA = 0.4f
 
@@ -134,7 +131,7 @@ fun SlimFeedbackSheet(
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = SCRIM_ALPHA))
+                        .background(OceTheme.colors.scrim)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,

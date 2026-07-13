@@ -120,7 +120,7 @@ internal fun DialogButtonRow(
             Text(
                 text = confirmLabel,
                 style = OceTheme.typography.sectionLabel.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onPrimary,
             )
         }
     }
