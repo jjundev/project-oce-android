@@ -144,9 +144,15 @@ private fun Dot() {
 
 private const val MINUTES_PER_HOUR = 60
 
-/** 총 학습 분 → "N시간 N분" 복합 표기(시간 0이어도 유지 — 기존 정적 렌더와 동일). 카운트업 프레임 포매터. */
-internal fun formatStudyTime(totalMinutes: Int): String =
-    "${totalMinutes / MINUTES_PER_HOUR}시간 ${totalMinutes % MINUTES_PER_HOUR}분"
+/**
+ * 총 학습 분 → 표기 문자열. 시간이 0이면 "N분"만(0시간 라벨 숨김), 1시간 이상이면 "N시간 N분".
+ * 카운트업 프레임 포매터 — 60분 경계에서 "59분"→"1시간 0분" 롤오버가 자연히 나타난다.
+ */
+internal fun formatStudyTime(totalMinutes: Int): String {
+    val hours = totalMinutes / MINUTES_PER_HOUR
+    val minutes = totalMinutes % MINUTES_PER_HOUR
+    return if (hours == 0) "${minutes}분" else "${hours}시간 ${minutes}분"
+}
 
 @Suppress("UnusedPrivateMember")
 @Preview(showBackground = true, widthDp = 360)
