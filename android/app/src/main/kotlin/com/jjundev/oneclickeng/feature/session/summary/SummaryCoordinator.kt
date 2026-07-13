@@ -21,10 +21,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** 재시도/재요청이 지정하는 요약 SSE 섹션. [wireKey] 는 `summaryCard.data.kind` / `retrySections` 값. */
-enum class SummarySection(val wireKey: String) {
-    Expression("expression"),
-    Word("word"),
+/** 재시도 필터가 지정하는 요약 SSE 섹션. [sectionKey] 는 백엔드 PLURAL 키(`done.sections`/`payload.sections`). */
+enum class SummarySection(val sectionKey: String) {
+    Expression("expressions"),
+    Word("words"),
     Coaching("coaching"),
 }
 
@@ -40,10 +40,9 @@ enum class SummarySection(val wireKey: String) {
  * (dialogue-learning-flow.md §9). 로컬 4블록은 어느 상태에서도 즉시 렌더된다(스켈레톤 없음).
  *
  * **부분 실패/재시도(#9/#10):** `done{expressions,words,coaching: ok|failed}` 로 섹션별 성패를 가른다.
- * [retry] 는 실패 섹션(들)을 [SummaryPayload.retrySections] 에 실어 재요청한다(백엔드가 성공 섹션 캐시 재사용
- * — backend-functions.md:117; 필드 계약은 M2-01 확정 대기, 미확정 시 전 섹션 재요청이 M1-07 폴백). 재요청
- * 중 추가 실패 섹션 재시도 탭은 pending retrySections(=현재 Loading 섹션 집합)에 병합된다 — 단일 공유 SSE 라
- * 동시 다중 호출을 만들지 않는다.
+ * [retry] 는 실패 섹션(들)을 [SummaryPayload.sections](백엔드 PLURAL 키)에 실어 재요청한다(백엔드가 성공
+ * 섹션 캐시 재사용 — backend-functions.md:117). 재요청 중 추가 실패 섹션 재시도 탭은 pending sections(=현재
+ * Loading 섹션 집합)에 병합된다 — 단일 공유 SSE 라 동시 다중 호출을 만들지 않는다.
  *
  * **Stale-guard/워치독:** 각 [start]/[retry] 는 [sessionToken] 을 bump 하고 이전 collect Job 을 취소한다
  * (늦은 이벤트는 토큰 불일치로 드롭). 워치독은 번들이 아직 확정되지 않았거나(초기) 재시도 섹션이 Loading 인
@@ -80,8 +79,7 @@ class SummaryCoordinator
 
         // The request inputs of the current summary, retained so retry() re-issues the same call.
         private var sessionId: String? = null
-        private var payloadTurns = emptyList<com.jjundev.oneclickeng.core.network.SummaryTurnDto>()
-        private var payloadScore = 0
+        private var basePayload: SummaryPayload = SummaryPayload(totalScore = 0)
 
         // Local-immediate blocks (set once at start; bookmarks fill async).
         private var totalScore: Int? = null
@@ -128,8 +126,7 @@ class SummaryCoordinator
             bookmarks = emptyList()
             savedWordIndices = emptySet()
             savedExprIndices = emptySet()
-            payloadTurns = turnBuffer.turns()
-            payloadScore = totalScore ?: 0
+            basePayload = SummaryPayloadProjector.project(turnBuffer.bufferedTurns(), totalScore ?: 0)
             expression = SummarySectionState.Loading
             word = SummarySectionState.Loading
             coaching = SummarySectionState.Loading
@@ -147,14 +144,14 @@ class SummaryCoordinator
             loadBookmarks(sessionId)
 
             emit()
-            launchAttempt(retrySections = null)
+            launchAttempt(sections = null)
         }
 
         /**
          * Retry one failed SSE section (#10). Sets it back to Loading and re-issues the call naming all
-         * currently-Loading sections in [SummaryPayload.retrySections] (merges a concurrent retry). No-op
-         * unless the bundle is [SectionBundle.Sectioned], the section is [SummarySectionState.Failed] and
-         * retries remain.
+         * currently-Loading sections in [SummaryPayload.sections] (plural backend keys; merges a
+         * concurrent retry). No-op unless the bundle is [SectionBundle.Sectioned], the section is
+         * [SummarySectionState.Failed] and retries remain.
          */
         @Suppress("ReturnCount") // 세 개의 조기 no-op 가드(미확정/캡/재시도 불가)는 평평하게 읽는 게 낫다.
         fun retry(section: SummarySection) {
@@ -163,7 +160,7 @@ class SummaryCoordinator
             if (!failed.canRetry) return
             setSection(section, SummarySectionState.Loading)
             emit()
-            launchAttempt(retrySections = loadingSectionKeys())
+            launchAttempt(sections = loadingSectionKeys())
         }
 
         /** Cancel any in-flight request and reset to the empty state (e.g. screen left). */
@@ -256,19 +253,14 @@ class SummaryCoordinator
             }
         }
 
-        private fun launchAttempt(retrySections: List<String>?) {
+        private fun launchAttempt(sections: List<String>?) {
             val id = sessionId ?: return
             val token = ++sessionToken
             currentJob?.cancel()
             val request =
                 SummaryRequest(
                     sessionId = id,
-                    payload =
-                        SummaryPayload(
-                            totalScore = payloadScore,
-                            turns = payloadTurns,
-                            retrySections = retrySections,
-                        ),
+                    payload = basePayload.copy(sections = sections),
                 )
             armWatchdog(token)
             currentJob =
@@ -417,7 +409,7 @@ class SummaryCoordinator
         private fun loadingSectionKeys(): List<String> =
             SummarySection.entries
                 .filter { sectionState(it) is SummarySectionState.Loading }
-                .map { it.wireKey }
+                .map { it.sectionKey }
 
         /** Re-snapshot into [SummaryState]. Bundle = QuotaBlocked > (sectioned ? Sectioned : BundleLoading). */
         private fun emit() {

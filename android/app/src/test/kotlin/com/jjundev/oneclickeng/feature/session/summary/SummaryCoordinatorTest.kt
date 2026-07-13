@@ -317,9 +317,9 @@ class SummaryCoordinatorTest {
             coordinator.retry(SummarySection.Word)
             runCurrent()
             assertTrue(sectioned(coordinator).word is SummarySectionState.Loading)
-            // Initial call sent retrySections=null; the retry names only the failed section.
-            assertNull(stream.requests[0].payload.retrySections)
-            assertEquals(listOf("word"), stream.requests[1].payload.retrySections)
+            // Initial call sent sections=null; the retry names only the failed section.
+            assertNull(stream.requests[0].payload.sections)
+            assertEquals(listOf("words"), stream.requests[1].payload.sections)
 
             stream.push(wordCard())
             stream.push(done())
@@ -394,6 +394,21 @@ class SummaryCoordinatorTest {
             runCurrent()
 
             assertEquals(1, coordinator.state.value.bookmarks.size)
+        }
+
+    @Test
+    fun `initial request projects expression candidates and sentences from the buffer`() =
+        runTest {
+            val stream = FakeSummaryStream()
+            val coordinator = coordinator(coordScope(), stream)
+            coordinator.begin()
+            runCurrent()
+            val payload = stream.requests.first().payload
+            // store() seeds two turns with correctedText/naturalExpression → non-empty candidates + sentences.
+            assertTrue("expected projected expression candidates", payload.expressionCandidates.isNotEmpty())
+            assertTrue("expected projected sentences", payload.sentences.isNotEmpty())
+            assertEquals(listOf("One coffee", "Where station"), payload.userOriginalSentences)
+            assertNull(payload.sections)
         }
 
     @Test
@@ -481,6 +496,6 @@ class SummaryCoordinatorTest {
             coordinator.retry(SummarySection.Word) // merges → re-request naming [expression, word]
             runCurrent()
 
-            assertEquals(listOf("expression", "word"), stream.requests.last().payload.retrySections)
+            assertEquals(listOf("expressions", "words"), stream.requests.last().payload.sections)
         }
 }
