@@ -31,8 +31,8 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
  * 저장 카드 1행 = [OneClickCard] + 탭 시 인라인 펼침(타입별 여분 필드) + 복사 IconButton. 펼침/접힘은 화면 로컬
  * 상태([expanded])가 구동한다.
  *
- * 타입별 collapsed/expanded(R3·§4): WORD `english/korean`→+예문, EXPRESSION `koreanPrompt/before→after`→+설명,
- * SENTENCE `english`→+`korean`. 복사는 영문+한글(결정 #19).
+ * 타입별 collapsed/expanded(R3·§4): WORD 굵은 영단어+보조색 뜻→+예문, EXPRESSION `koreanPrompt/before→after`→
+ * +설명, SENTENCE 굵은 영문+한글 번역→+연습 안내. 복사는 영문+한글(결정 #19).
  */
 @Composable
 fun SavedCardRow(
@@ -84,7 +84,7 @@ fun SavedCardRow(
 private fun Collapsed(card: SavedCard) {
     when (card) {
         is SavedCard.Word -> {
-            PrimaryText("${card.english} · ${card.korean}")
+            WordTermLine(english = card.english, korean = card.korean)
         }
         is SavedCard.Expression -> {
             CategoryBadge(card)
@@ -93,7 +93,8 @@ private fun Collapsed(card: SavedCard) {
             AfterLine(card.after)
         }
         is SavedCard.Sentence -> {
-            PrimaryText(card.english)
+            PrimaryText(card.english, bold = true)
+            if (card.korean.isNotBlank()) HelperText(card.korean)
         }
     }
 }
@@ -110,7 +111,8 @@ private fun Expanded(card: SavedCard) {
             if (card.explanation.isNotBlank()) HelperText(card.explanation)
         }
         is SavedCard.Sentence -> {
-            if (card.korean.isNotBlank()) HelperText(card.korean)
+            // 한글 번역은 접힘 상태로 이동 → 펼침은 프로토타입의 연습 안내 문구로 채운다(빈 펼침 방지).
+            HelperText("이 문장을 복사해서 연습에 활용해 보세요.")
         }
     }
 }
@@ -144,8 +146,33 @@ private fun AfterLine(text: String) {
 }
 
 @Composable
-private fun PrimaryText(text: String) {
-    Text(text = text, style = OceTheme.typography.body, color = MaterialTheme.colorScheme.onSurface)
+private fun PrimaryText(text: String, bold: Boolean = false) {
+    Text(
+        text = text,
+        style = if (bold) OceTheme.typography.body.copy(fontWeight = FontWeight.Bold) else OceTheme.typography.body,
+        color = MaterialTheme.colorScheme.onSurface,
+    )
+}
+
+/** 단어 접힘 = 굵은 영단어(강조) + 보조색 한글 뜻, baseline 정렬(가운뎃점 없음, 프로토타입 정합). */
+@Composable
+private fun WordTermLine(english: String, korean: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
+        Text(
+            text = english,
+            style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.alignByBaseline(),
+        )
+        if (korean.isNotBlank()) {
+            Text(
+                text = korean,
+                style = OceTheme.typography.helper,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.alignByBaseline(),
+            )
+        }
+    }
 }
 
 @Composable
