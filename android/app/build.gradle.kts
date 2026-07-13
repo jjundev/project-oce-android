@@ -77,6 +77,7 @@ tasks.withType<Test>().configureEach {
             "**/HomeSituationsSkeletonTest*",
             "**/MainTabsOverlayTest*",
             "**/OneClickBottomSheetExpandTest*",
+            "**/OneClickConfirmSheetTest*",
             "**/ReminderTimeSheetDragHandleTest*",
             "**/TopicSelectDragBlockTest*",
             "**/GoogleSaveActionsTest*",
