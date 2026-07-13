@@ -2,9 +2,11 @@
 
 package com.jjundev.oneclickeng.feature.session.summary
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,9 +29,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -37,7 +41,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -63,6 +69,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.launch
 
 /**
  * 화면 05 — 세션 요약(M2-02). 정본: 04-screen-05-summary.md · gamification-emphasis.md §4 ·
@@ -123,33 +130,45 @@ fun SummaryScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-            // 스크롤 콘텐츠(위) — weight 로 남은 높이를 채우고, 완료 풋터는 하단 고정(프로토 flex:none 풋터).
-            Column(
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .verticalScroll(scrollState)
-                        .testTag(SUMMARY_SCROLL_CONTENT_TAG)
-                        .padding(OceTheme.spacing.sheetPadding),
-                verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sectionGap),
-            ) {
-                SummaryTitleBar()
-                ScoreHero(state.totalScore, state.isFirstSession)
-                AccrualCard(state.accrual)
-                StreakCaption(state.accrual.streakDays)
-                state.highlight?.let { HighlightSection(it) }
-                SseBundle(
-                    bundle = state.bundle,
-                    expanded = expanded,
-                    onRetry = onRetry,
-                    savedWordIndices = state.savedWordIndices,
-                    savedExprIndices = state.savedExprIndices,
-                    onToggleSaveWord = onToggleSaveWord,
-                    onToggleSaveExpression = onToggleSaveExpression,
-                )
-                BookmarkSection(state.bookmarks)
-                CoachingArea(bundle = state.bundle, onRetry = onRetry)
+            // 스크롤 영역 — weight 로 남은 높이를 채운다. 스크롤 콘텐츠 위에 스크롤 보조 FAB 를 오버레이하고,
+            // 완료 풋터는 이 Box 아래 형제로 두어 FAB 가 풋터 바로 위에 뜨도록 한다(프로토 summaryFab 정합).
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .verticalScroll(scrollState)
+                            .testTag(SUMMARY_SCROLL_CONTENT_TAG)
+                            .padding(OceTheme.spacing.sheetPadding),
+                    verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sectionGap),
+                ) {
+                    SummaryTitleBar()
+                    ScoreHero(state.totalScore, state.isFirstSession)
+                    AccrualCard(state.accrual)
+                    StreakCaption(state.accrual.streakDays)
+                    state.highlight?.let { HighlightSection(it) }
+                    SseBundle(
+                        bundle = state.bundle,
+                        expanded = expanded,
+                        onRetry = onRetry,
+                        savedWordIndices = state.savedWordIndices,
+                        savedExprIndices = state.savedExprIndices,
+                        onToggleSaveWord = onToggleSaveWord,
+                        onToggleSaveExpression = onToggleSaveExpression,
+                    )
+                    BookmarkSection(state.bookmarks)
+                    CoachingArea(bundle = state.bundle, onRetry = onRetry)
+                }
+                // 스크롤 보조 FAB — 완료 풋터가 있을 때만(온보딩 GoogleSavePromptSheet 오버레이 케이스 제외).
+                if (onDone != null) {
+                    SummaryScrollFab(
+                        scrollState = scrollState,
+                        modifier =
+                            Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = SummaryFabBottomGap),
+                    )
+                }
             }
             // 완료 풋터 — 항상 화면 하단에 고정(스크롤과 무관, 프로토 정합). [onDone] null(온보딩 첫 세션의
             // GoogleSavePromptSheet 오버레이 케이스)이면 미표시.
@@ -192,6 +211,52 @@ private fun SummaryDoneFooter(
         ) {
             Text(text = label, style = OceTheme.typography.sectionLabel)
         }
+    }
+}
+
+/**
+ * 스크롤 보조 FAB(프로토 summaryFab) — 완료 풋터 바로 위에 떠 있는 원형 버튼. 끝에 닿기 전엔 아래 chevron
+ * (탭 = 뷰포트 [SUMMARY_FAB_PAGE_FRACTION] 만큼 page-down), 끝에 닿으면 위 chevron(탭 = 맨 위로). 시각은
+ * [MoreChevron] 원형 버튼(흰 서피스 + hairline)과 동일 규칙에 그림자만 더한다. 스크롤이 불가능하면
+ * (내용이 뷰포트에 다 들어와 [ScrollState.maxValue] == 0) 죽은 어포던스가 되므로 렌더하지 않는다.
+ */
+@Composable
+private fun SummaryScrollFab(
+    scrollState: ScrollState,
+    modifier: Modifier = Modifier,
+) {
+    if (scrollState.maxValue <= 0) return
+    val scope = rememberCoroutineScope()
+    val tolerancePx = with(LocalDensity.current) { SummaryFabAtEndTolerance.roundToPx() }
+    val atEnd by remember(tolerancePx) {
+        derivedStateOf { scrollState.value >= scrollState.maxValue - tolerancePx }
+    }
+    Box(
+        modifier =
+            modifier
+                .size(SummaryFabSize)
+                .shadow(SummaryFabElevation, CircleShape)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                .clickable {
+                    scope.launch {
+                        if (atEnd) {
+                            scrollState.animateScrollTo(0)
+                        } else {
+                            scrollState.animateScrollBy(scrollState.viewportSize * SUMMARY_FAB_PAGE_FRACTION)
+                        }
+                    }
+                },
+        contentAlignment = Alignment.Center,
+    ) {
+        OneClickIcon(
+            icon = OceIcon.ExpandMore,
+            contentDescription = if (atEnd) "맨 위로" else "아래로 스크롤",
+            tint = MaterialTheme.colorScheme.primary,
+            size = SummaryFabIconSize,
+            modifier = Modifier.rotate(if (atEnd) 180f else 0f),
+        )
     }
 }
 
@@ -1020,6 +1085,24 @@ private val StreakCaptionIconSize = 16.dp
 
 /** "더 보기" 원형 chevron 버튼 크기. */
 private val MoreChevronSize = 40.dp
+
+/** 스크롤 보조 FAB 지름(프로토 summaryFab 48px 원형). */
+private val SummaryFabSize = 48.dp
+
+/** 스크롤 보조 FAB chevron 아이콘 크기(프로토 26px). */
+private val SummaryFabIconSize = 26.dp
+
+/** 스크롤 보조 FAB 그림자 높이(프로토 soft box-shadow 근사). */
+private val SummaryFabElevation = 6.dp
+
+/** 스크롤 보조 FAB 와 완료 풋터 사이 간격(프로토 FAB bottom:104 ≈ 풋터 높이 + 16). */
+private val SummaryFabBottomGap = 16.dp
+
+/** "끝 도달" 판정 허용 오차(프로토 scrollHeight − 8). */
+private val SummaryFabAtEndTolerance = 8.dp
+
+/** FAB 한 번 탭 시 내려가는 뷰포트 비율(프로토 clientHeight * 0.82). */
+private const val SUMMARY_FAB_PAGE_FRACTION = 0.82f
 
 /** 하이라이트 배지 pill 배경 브랜드색 알파(연한 톤 — OceBottomNav 활성 pill 선례와 정합). */
 private const val HIGHLIGHT_BADGE_ALPHA = 0.12f

@@ -80,6 +80,7 @@ tasks.withType<Test>().configureEach {
             "**/MicDockTogglePositionTest*",
             "**/DeepFeedbackRegionTest*",
             "**/SummaryScrollEndGateTest*",
+            "**/SummaryScrollFabTest*",
             "**/SummaryHandoffDelayTest*",
         )
     }
