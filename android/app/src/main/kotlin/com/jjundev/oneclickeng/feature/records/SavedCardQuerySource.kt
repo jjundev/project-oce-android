@@ -11,6 +11,14 @@ import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * 기록 탭 읽기용 uid 해석. currentUid 가 이미 있으면(재실행·정상 경로) 그대로 쓰고, 없으면(첫 실행에서
+ * 익명 사인인이 아직 진행 중) [AuthRepository.ensureSignedIn] 으로 대기한다(멱등·single-flight). 사인인이
+ * 실패하면(오프라인 첫 실행 등) null 로 강등해 호출부가 빈 페이지로 degrade 하게 한다 — 표시 전용.
+ */
+internal suspend fun AuthRepository.uidForSavedCardRead(): String? =
+    currentUid ?: runCatching { ensureSignedIn() }.getOrNull()
+
 /** 기록 탭이 다루는 저장 카드 1건 = 문서 id([cardId]) + 타입별 도메인 content([card]). */
 data class SavedCardEntry(
     val cardId: String,
@@ -69,7 +77,8 @@ class FirestoreSavedCardQuerySource
             after: DocumentSnapshot?,
             limit: Int,
         ): SavedCardPage {
-            val uid = authRepository.currentUid ?: return SavedCardPage(emptyList(), null, endReached = true)
+            val uid = authRepository.uidForSavedCardRead()
+                ?: return SavedCardPage(emptyList(), null, endReached = true)
             return try {
                 var query: Query =
                     firestore
