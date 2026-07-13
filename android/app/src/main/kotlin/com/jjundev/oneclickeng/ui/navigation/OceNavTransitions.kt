@@ -20,8 +20,8 @@ val oceScreenEnter: EnterTransition = EnterTransition.None
  */
 val oceScreenExit: ExitTransition = ExitTransition.None
 
-/** 세션 요약 핸드오프 슬라이드 길이(ms). 전체 화면 전환이라 입력 독 슬라이드업(340ms)과 동일 박자. */
-private const val SUMMARY_HANDOFF_SLIDE_MS = 340
+/** 세션 요약 핸드오프 슬라이드 길이(ms). 전체 화면 전환이라 느긋한 박자로 밀어 넣는다(요구: 속도 추가 완화). */
+private const val SUMMARY_HANDOFF_SLIDE_MS = 700
 
 /**
  * 대화학습 종료 → 세션 요약 진입 전환: 요약이 **오른쪽에서** 밀려 들어온다(`+fullWidth → 0`). reduce-motion 이면

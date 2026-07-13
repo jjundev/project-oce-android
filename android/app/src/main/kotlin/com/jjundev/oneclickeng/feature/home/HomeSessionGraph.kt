@@ -163,6 +163,9 @@ private fun NavGraphBuilder.summaryDestination(navController: NavHostController,
         val sessionId = args?.getString(H_ARG_SESSION_ID).orEmpty()
         val difficulty =
             args?.getString(H_ARG_LEVEL)?.ifBlank { DISPLAY_DIFFICULTY_DEFAULT } ?: DISPLAY_DIFFICULTY_DEFAULT
+        // 진입 슬라이드가 완전히 끝난 뒤에만 폭죽을 발사한다(요구): 전환이 목표 상태(Visible)에 정착하면 true.
+        // 전환이 없으면(reduce-motion·비-세션 진입) 즉시 정착 → 사실상 바로 발사.
+        val slideSettled = transition.currentState == transition.targetState
         SummaryRoute(
             sessionId = sessionId,
             difficulty = difficulty,
@@ -171,6 +174,7 @@ private fun NavGraphBuilder.summaryDestination(navController: NavHostController,
             accrual = AccrualStrip(streakDays = 0, xp = 0),
             // 완료 버튼은 요약 화면이 고정 풋터로 소유(항상 노출, 프로토 정합).
             onDone = { navController.exitToTabs() },
+            startConfetti = slideSettled,
         )
     }
 }

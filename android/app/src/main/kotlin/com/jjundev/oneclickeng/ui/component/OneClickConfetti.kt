@@ -30,11 +30,14 @@ import kotlin.random.Random
 fun OneClickConfettiBurst(
     modifier: Modifier = Modifier,
     reduceMotion: Boolean = rememberReduceMotion(),
+    // 화면 전환 슬라이드가 끝난 뒤에만 발사한다(요구). false 면 대기하고, true 로 바뀌는 순간 1회 버스트.
+    // 기본 true — 프리뷰·기존 호출부(전환 없이 바로 뜨는 경우)의 동작을 그대로 유지한다.
+    start: Boolean = true,
 ) {
     if (reduceMotion) return
     val progress = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
-        progress.animateTo(1f, tween(durationMillis = DURATION_MS, easing = LinearEasing))
+    LaunchedEffect(start) {
+        if (start) progress.animateTo(1f, tween(durationMillis = DURATION_MS, easing = LinearEasing))
     }
     val palette =
         listOf(
@@ -58,7 +61,7 @@ fun OneClickConfettiBurst(
             }
         }
     val t = progress.value
-    if (t >= 1f) return
+    if (!start || t >= 1f) return
     Canvas(modifier = modifier) {
         val origin = Offset(size.width / 2f, size.height * ORIGIN_Y_RATIO)
         val reach = size.width * REACH_RATIO

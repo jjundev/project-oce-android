@@ -205,10 +205,13 @@ private fun NavGraphBuilder.summaryDestination(navController: NavHostController,
         val sessionId = args?.getString(ARG_SESSION_ID).orEmpty()
         val level = args?.getString(ARG_LEVEL) ?: FIRST_SESSION_LEVEL
         val first = args?.getBoolean(ARG_FIRST) ?: true
+        // 진입 슬라이드가 완전히 끝난 뒤에만 폭죽을 발사한다(요구): 전환이 목표 상태(Visible)에 정착하면 true.
+        val slideSettled = transition.currentState == transition.targetState
         OnboardingSummaryDestination(
             sessionId = sessionId,
             userLevel = level,
             isFirstSession = first,
+            startConfetti = slideSettled,
             // 연결/이관 성공(FR-3a/3b) 시 홈으로. 실제 linkWithCredential·mergeGuestData 는 시트가 소유(M3-03).
             onLinked = { navController.exitOnboardingToHome() },
             onOneMore = { navController.navigate(onboardingTopicRoute(level = level, first = false)) },
@@ -227,6 +230,7 @@ private fun OnboardingSummaryDestination(
     sessionId: String,
     userLevel: String,
     isFirstSession: Boolean,
+    startConfetti: Boolean,
     onLinked: () -> Unit,
     onOneMore: () -> Unit,
     onExitToHome: () -> Unit,
@@ -248,6 +252,7 @@ private fun OnboardingSummaryDestination(
             isFirstSession = isFirstSession,
             onDone = if (isFirstSession) null else onExitToHome,
             onScrollEndReached = onScrollEndReached,
+            startConfetti = startConfetti,
         )
         if (
             shouldShowGoogleSavePrompt(

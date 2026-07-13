@@ -74,6 +74,8 @@ fun SummaryRoute(
     onDone: (() -> Unit)? = null,
     doneLabel: String = "완료",
     onScrollEndReached: (() -> Unit)? = null,
+    // 진입 폭죽 발사 게이트 — 화면 전환 슬라이드 완료 시 true. 기본 true(전환 없는 진입·프리뷰·테스트).
+    startConfetti: Boolean = true,
     viewModel: SummaryViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(sessionId) {
@@ -95,5 +97,6 @@ fun SummaryRoute(
         onDone = onDone,
         doneLabel = doneLabel,
         onScrollEndReached = onScrollEndReached,
+        startConfetti = startConfetti,
     )
 }
