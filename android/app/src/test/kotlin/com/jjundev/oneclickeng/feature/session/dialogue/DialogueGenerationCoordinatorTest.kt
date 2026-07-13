@@ -345,6 +345,44 @@ class DialogueGenerationCoordinatorTest {
             assertEquals(DialogueGenState.OfflineBlocked, coordinator.state.value)
         }
 
+    @Test
+    fun `reset returns to Idle and drops a prior Ready`() =
+        runTest {
+            val stream = FakeDialogueStream()
+            val coordinator = DialogueGenerationCoordinator(stream, coordScope())
+
+            coordinator.start("easy", "coffee", 5, firstSession = true)
+            runCurrent()
+            stream.push(DialogueEvent.Start("s1", remaining = 2))
+            stream.push(DialogueEvent.Turn(turn("Hi")))
+            runCurrent()
+            assertTrue(coordinator.state.value is DialogueGenState.Ready)
+
+            coordinator.reset()
+
+            assertEquals(DialogueGenState.Idle, coordinator.state.value)
+        }
+
+    @Test
+    fun `a late turn from a superseded stream is ignored after reset`() =
+        runTest {
+            val stream = FakeDialogueStream()
+            val coordinator = DialogueGenerationCoordinator(stream, coordScope())
+
+            coordinator.start("easy", "coffee", 5, firstSession = true)
+            runCurrent()
+            stream.push(DialogueEvent.Start("s1", remaining = 2))
+            stream.push(DialogueEvent.Turn(turn("Hi")))
+            runCurrent()
+
+            coordinator.reset()
+            // A slow event from the now-superseded stream must not revive Ready.
+            stream.push(DialogueEvent.Turn(turn("late")))
+            runCurrent()
+
+            assertEquals(DialogueGenState.Idle, coordinator.state.value)
+        }
+
     /** Coordinator scope on an unconfined dispatcher tied to the test scheduler (see speaking test). */
     private fun TestScope.coordScope(): CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
 }
