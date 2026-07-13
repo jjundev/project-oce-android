@@ -2,10 +2,11 @@ package com.jjundev.oneclickeng.feature.home
 
 import android.app.Application
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
@@ -106,7 +107,7 @@ class HomeScreenScreenshotTest {
         composeRule.setContent {
             OceTheme(darkTheme = false) {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    Column(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.fillMaxSize()) {
                         HomeContent(
                             state =
                                 HomeUiState(
@@ -126,9 +127,12 @@ class HomeScreenScreenshotTest {
                             onOfflineBlocked = {},
                             gridMode = true,
                             reduceMotion = true,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.fillMaxSize(),
                         )
-                        OceBottomNav(rememberNavController())
+                        OceBottomNav(
+                            navController = rememberNavController(),
+                            modifier = Modifier.align(Alignment.BottomCenter),
+                        )
                     }
                 }
             }
@@ -142,11 +146,11 @@ class HomeScreenScreenshotTest {
         composeRule.setContent {
             OceTheme(darkTheme = false) {
                 val nav = rememberNavController()
-                Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                     NavHost(
                         navController = nav,
                         startDestination = "home",
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxSize(),
                     ) {
                         composable("home") {
                             HomeContent(
@@ -170,7 +174,10 @@ class HomeScreenScreenshotTest {
                             )
                         }
                     }
-                    OceBottomNav(nav)
+                    OceBottomNav(
+                        navController = nav,
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
                 }
             }
         }
@@ -190,7 +197,7 @@ class HomeScreenScreenshotTest {
 
     /**
      * 홈 캡처 — 프로덕션 셸(3탭 [OceBottomNav])을 포함해 프로토 전체 화면과 대조한다(하단 네비 바가 캡처에
-     * 나오도록, 사용자 요청). [HomeContent] 는 weight 로 남은 높이를 채우고 네비 바가 하단에 고정된다.
+     * 나오도록, 사용자 요청). [HomeContent] 는 전체 뷰포트를 채우고 네비 바가 하단에 오버레이된다.
      */
     private fun capture(
         state: HomeUiState,
@@ -200,7 +207,7 @@ class HomeScreenScreenshotTest {
             OceTheme(darkTheme = false) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     val nav = rememberNavController()
-                    Column(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.fillMaxSize()) {
                         HomeContent(
                             state = state,
                             onStartLearning = {},
@@ -209,9 +216,12 @@ class HomeScreenScreenshotTest {
                             onViewRecords = {},
                             onOfflineBlocked = {},
                             reduceMotion = true,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.fillMaxSize(),
                         )
-                        OceBottomNav(nav)
+                        OceBottomNav(
+                            navController = nav,
+                            modifier = Modifier.align(Alignment.BottomCenter),
+                        )
                     }
                 }
             }
