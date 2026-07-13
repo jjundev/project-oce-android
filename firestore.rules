@@ -40,7 +40,8 @@ service cloud.firestore {
       match /usage/{day} { allow read: if owner(uid); allow write: if false; }
     }
 
-    match /config/topics { allow read: if request.auth != null; allow write: if false; }
+    // Android's runtime catalog is bundled in assets/topics.json; this legacy export is server-only.
+    match /config/topics { allow read, write: if false; }
     // config/limits, config/prompts: 매치 없음 → 클라이언트 deny(서버 전용)
     // config/models, config/cache, sessions/*, idempotency/*: 매치 없음 → default-deny(서버 전용, backend-functions.md §11)
   }
