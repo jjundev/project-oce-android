@@ -98,6 +98,25 @@ class HomeScreenScreenshotTest {
                 situations = sampleSituations,
             ),
             "home_light_newsession",
+            dark = false,
+        )
+    }
+
+    @Test
+    fun home_dark_newsession() {
+        capture(
+            HomeUiState(
+                studyMinutes = 8,
+                streak = 7,
+                isOnline = true,
+                hasResume = false,
+                level = "easy",
+                length = 5,
+                selectedSituation = sampleSelected,
+                situations = sampleSituations,
+            ),
+            "home_dark_newsession",
+            dark = true,
         )
     }
 
@@ -202,9 +221,10 @@ class HomeScreenScreenshotTest {
     private fun capture(
         state: HomeUiState,
         name: String,
+        dark: Boolean = false,
     ) {
         composeRule.setContent {
-            OceTheme(darkTheme = false) {
+            OceTheme(darkTheme = dark) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     val nav = rememberNavController()
                     Box(modifier = Modifier.fillMaxSize()) {

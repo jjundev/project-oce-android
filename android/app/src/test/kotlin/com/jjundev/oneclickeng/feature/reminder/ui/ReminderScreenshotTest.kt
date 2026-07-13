@@ -120,6 +120,26 @@ class ReminderScreenshotTest {
         composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/home_light_reminder_banner.png")
     }
 
+    @Test
+    fun home_dark_reminder_banner() {
+        composeRule.setContent {
+            OceTheme(darkTheme = true) {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    HomeContent(
+                        state = sampleHomeState.copy(),
+                        onStartLearning = {},
+                        onResumeContinue = {},
+                        onResumeStartNew = {},
+                        onViewRecords = {},
+                        onOfflineBlocked = {},
+                        showReminderBanner = true,
+                    )
+                }
+            }
+        }
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/home_dark_reminder_banner.png")
+    }
+
     /**
      * 실제 앱처럼 **홈 화면 위에 딤 스크림 + 하단 시트**(상단 radius24 + 드래그 핸들 + 흰 서피스)를 얹어
      * [OneClickBottomSheet](ModalBottomSheet, 별도 윈도) 프레젠테이션을 근사 재현한다 — 시트 뒤로 딤된 홈이

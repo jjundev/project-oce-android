@@ -25,15 +25,20 @@ class TopicQuestionScreenshotTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    @Test
-    fun onboarding_topic_light() {
+    private fun capture(name: String, dark: Boolean) {
         composeRule.setContent {
-            OceTheme(darkTheme = false) {
+            OceTheme(darkTheme = dark) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     TopicQuestionContent(onTopicSelected = {}, onBack = {}, reduceMotion = true)
                 }
             }
         }
-        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/onboarding_topic_light.png")
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/$name.png")
     }
+
+    @Test
+    fun onboarding_topic_light() = capture(name = "onboarding_topic_light", dark = false)
+
+    @Test
+    fun onboarding_topic_dark() = capture(name = "onboarding_topic_dark", dark = true)
 }
