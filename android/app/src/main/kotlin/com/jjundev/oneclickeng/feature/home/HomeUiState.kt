@@ -5,7 +5,7 @@ import com.jjundev.oneclickeng.ui.foundation.OceIcon
 /**
  * 홈 탭 표시 상태(M3-08). 학습 시작 허브 — CTA 위계를 깨지 않는 낮은 비중의 상태 보조들.
  *
- * @property studyTimeLabel 오늘 학습시간 라벨(`오늘 N분`), null=미로딩(게임화 스토어 suspend 읽기 전).
+ * @property studyMinutes 오늘 학습 분(카운트업 타깃, 표기 `오늘 N분`), null=미로딩(게임화 스토어 suspend 읽기 전).
  * @property streak 연속 학습일. 0 이면 홈에서 숨긴다(초대 카피 대체, gamification §6).
  * @property isOnline 오프라인이면 CTA 비활성 + 헬퍼 + 글로벌 배너(H7/P8).
  * @property hasResume 로컬 recoverable 스냅샷 존재 → 이어하기 프롬프트 노출(C17, §2.5).
@@ -16,7 +16,7 @@ import com.jjundev.oneclickeng.ui.foundation.OceIcon
  * @property selectedSituation 히어로 CTA 에 실리는 현재 선택 상황. null=카탈로그 기본 미해소(초기 프레임).
  */
 data class HomeUiState(
-    val studyTimeLabel: String? = null,
+    val studyMinutes: Int? = null,
     val streak: Int = 0,
     val isOnline: Boolean = true,
     val hasResume: Boolean = false,

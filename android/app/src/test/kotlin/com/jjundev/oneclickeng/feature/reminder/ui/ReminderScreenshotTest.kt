@@ -155,7 +155,7 @@ class ReminderScreenshotTest {
 
     private val sampleHomeState =
         HomeUiState(
-            studyTimeLabel = "오늘 8분",
+            studyMinutes = 8,
             streak = 7,
             isOnline = true,
             level = "easy",

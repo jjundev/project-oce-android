@@ -44,7 +44,7 @@ class HomeScreenScreenshotTest {
     fun home_light_default() {
         capture(
             HomeUiState(
-                studyTimeLabel = "오늘 5분",
+                studyMinutes = 5,
                 streak = 3,
                 isOnline = true,
                 level = "easy",
@@ -58,7 +58,7 @@ class HomeScreenScreenshotTest {
     fun home_light_resume() {
         capture(
             HomeUiState(
-                studyTimeLabel = "오늘 0분",
+                studyMinutes = 0,
                 streak = 7,
                 isOnline = true,
                 hasResume = true,
@@ -75,7 +75,7 @@ class HomeScreenScreenshotTest {
     fun home_light_offline() {
         capture(
             HomeUiState(
-                studyTimeLabel = "오늘 5분",
+                studyMinutes = 5,
                 streak = 3,
                 isOnline = false,
             ),
@@ -88,7 +88,7 @@ class HomeScreenScreenshotTest {
     fun home_light_newsession() {
         capture(
             HomeUiState(
-                studyTimeLabel = "오늘 8분",
+                studyMinutes = 8,
                 streak = 7,
                 isOnline = true,
                 hasResume = false,
@@ -111,7 +111,7 @@ class HomeScreenScreenshotTest {
                         HomeContent(
                             state =
                                 HomeUiState(
-                                    studyTimeLabel = "오늘 8분",
+                                    studyMinutes = 8,
                                     streak = 7,
                                     isOnline = true,
                                     hasResume = false,
@@ -156,7 +156,7 @@ class HomeScreenScreenshotTest {
                             HomeContent(
                                 state =
                                     HomeUiState(
-                                        studyTimeLabel = "오늘 0분",
+                                        studyMinutes = 0,
                                         streak = 7,
                                         isOnline = true,
                                         hasResume = true,
