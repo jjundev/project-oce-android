@@ -1,5 +1,6 @@
 package com.jjundev.oneclickeng.ui.root
 
+import android.app.Activity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -13,12 +14,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.jjundev.oneclickeng.MainActivity
 import com.jjundev.oneclickeng.feature.home.HOME_SESSION_GRAPH_ROUTE
@@ -159,6 +162,11 @@ private fun MainTabsScaffold(
     onNavConsumed: () -> Unit,
 ) {
     val navController = rememberNavController()
+    // 뒤로가기 종료 시트는 시작 목적지(홈 탭)에서만 뜬다. 기록/설정 탭 뒤로가기는 NavHost 기본 동작대로
+    // 홈 탭으로 복귀한다(가드 BackHandler 는 그때 비활성).
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val onHomeTab = backStackEntry?.destination?.route == OceTab.Home.route
+    val activity = LocalContext.current as? Activity
     LaunchedEffect(pendingNav) {
         if (pendingNav == MainActivity.NAV_HOME) {
             navController.navigate(OceTab.Home.route) {
@@ -168,16 +176,21 @@ private fun MainTabsScaffold(
             onNavConsumed()
         }
     }
-    MainTabsOverlay(
-        navController = navController,
-        isOnline = isOnline,
-    ) { contentModifier ->
-        OceNavHost(
+    AppExitGuard(
+        enabled = onHomeTab,
+        onExitApp = { activity?.finish() },
+    ) {
+        MainTabsOverlay(
             navController = navController,
-            onStartSession = onStartSession,
-            onResume = onResume,
-            modifier = contentModifier,
-        )
+            isOnline = isOnline,
+        ) { contentModifier ->
+            OceNavHost(
+                navController = navController,
+                onStartSession = onStartSession,
+                onResume = onResume,
+                modifier = contentModifier,
+            )
+        }
     }
 }
 
