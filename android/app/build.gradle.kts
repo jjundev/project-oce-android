@@ -51,6 +51,12 @@ android {
             isIncludeAndroidResources = true
         }
     }
+
+    sourceSets {
+        getByName("test") {
+            resources.srcDir("src/main/assets")
+        }
+    }
 }
 
 // 로컬 JDK 가 21 이어도 JDK 17 타깃으로 컴파일한다(툴체인은 settings 의 foojay-resolver 가 프로비저닝).

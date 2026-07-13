@@ -320,7 +320,7 @@ config/                (서버 소유: 주제 프리셋, 한도 값, 프롬프�
 - **R3. prosody 점수 신뢰도:** LLM의 유창성/자신감 점수가 불안정할 수 있음. → **v1은 음성/prosody 숫자 점수를 내지 않는다**(정성 "한 줄 격려"만) — 위험을 설계로 회피. 숫자는 텍스트 작문 점수만 제공.
 - **R4. 일일 한도(3) 적정선:** 비용 vs 학습 충분성. → 출시 후 데이터로 보정.
 - **OQ1.** ~~minSdk 확정~~ → **해결: minSdk 26 (Android 8.0) 확정** (NFR-9).
-- **OQ2.** ~~주제 큐레이션 셋(12~20개) 최종 선정~~ → **해결: 16개·4그룹·6 beginnerFriendly**, 시드 [docs/design/config-topics-seed.json](docs/design/config-topics-seed.json) (grill-review deep auto, 0B SHIP).
+- **OQ2.** ~~주제 큐레이션 셋(12~20개) 최종 선정~~ → **해결: 300개·4그룹(각 75개)·6 beginnerFriendly**, 로컬 에셋 [android/app/src/main/assets/topics.json](android/app/src/main/assets/topics.json) 및 [카탈로그 설계](docs/design/topic-catalog.md) (grill-review deep auto, 0B SHIP).
 - **OQ3.** ~~TTS 음성/로케일 기본값, 단말 TTS 폴백 범위~~ → **해결: [docs/design/tts.md](docs/design/tts.md)** (Gemini TTS·2음성 성별 매핑·en-US·1.0x·워치독 8초·조건부 단말 폴백, grill-review 0B SHIP).
 - **OQ4.** ~~Firestore 상세 스키마 & 보안 규칙 설계~~ → **해결: [docs/design/firestore-schema.md](docs/design/firestore-schema.md)** (grill-review deep auto로 경화, v3.1 SHIP — 게임화 값[XP 10/20/35·한도 3·streak 완주일+1일 유예]·완주 정의 확정 포함).
 
@@ -374,4 +374,4 @@ config/                (서버 소유: 주제 프리셋, 한도 값, 프롬프�
 
 ---
 
-*이 문서는 v1.0(Confirmed)다(인터뷰 초안 + 객관 리뷰 + OQ1~4 전부 해결 + 상세 설계 산출물 완비). 상세 설계는 [docs/design/](docs/design/)에 분리 확정: 데이터 스키마([firestore-schema.md](docs/design/firestore-schema.md))·TTS([tts.md](docs/design/tts.md))·프롬프트 시스템([prompt-system.md](docs/design/prompt-system.md) + [prompts/](docs/design/prompts/))·주제 시드([config-topics-seed.json](docs/design/config-topics-seed.json))·디자인 토큰([design-tokens.md](docs/design/design-tokens.md)). 남은 것은 출시 후 데이터로 검증할 제품 리스크(§15 R1~R4)뿐이며, 이는 문서 공백이 아니다.*
+*이 문서는 v1.0(Confirmed)다(인터뷰 초안 + 객관 리뷰 + OQ1~4 전부 해결 + 상세 설계 산출물 완비). 상세 설계는 [docs/design/](docs/design/)에 분리 확정: 데이터 스키마([firestore-schema.md](docs/design/firestore-schema.md))·TTS([tts.md](docs/design/tts.md))·프롬프트 시스템([prompt-system.md](docs/design/prompt-system.md) + [prompts/](docs/design/prompts/))·주제 카탈로그([topic-catalog.md](docs/design/topic-catalog.md))·디자인 토큰([design-tokens.md](docs/design/design-tokens.md)). 남은 것은 출시 후 데이터로 검증할 제품 리스크(§15 R1~R4)뿐이며, 이는 문서 공백이 아니다.*

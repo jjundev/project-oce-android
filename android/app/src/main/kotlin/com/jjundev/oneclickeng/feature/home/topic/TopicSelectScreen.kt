@@ -63,6 +63,7 @@ fun TopicSelectSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     selectedTopicId: String? = null,
+    topics: List<Topic> = TopicCatalog.ALL,
 ) {
     // 프로토 정합: 전체 높이가 아니라 화면 ~70%만 올라오게 콘텐츠 높이를 제한한다(중간 detent 없이 곧장 노출).
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -74,6 +75,7 @@ fun TopicSelectSheet(
         draggable = false,
     ) {
         TopicSelectSheetContent(
+            topics = topics,
             onTopicChosen = onTopicChosen,
             onDismiss = onDismiss,
             modifier = Modifier.fillMaxHeight(SHEET_HEIGHT_FRACTION),
@@ -88,6 +90,7 @@ private const val SHEET_HEIGHT_FRACTION = 0.7f
 /** 시트 콘텐츠(stateless) — ModalBottomSheet 래핑 없이 렌더하는 스크린샷·프리뷰 seam. 프로덕션은 [TopicSelectSheet]. */
 @Composable
 internal fun TopicSelectSheetContent(
+    topics: List<Topic>,
     onTopicChosen: (promptSeed: String, topicId: String?) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -100,9 +103,9 @@ internal fun TopicSelectSheetContent(
 
     val visibleTopics =
         if (query.isBlank()) {
-            TopicCatalog.inGroup(selectedGroup)
+            topics.filter { it.group == selectedGroup }
         } else {
-            TopicCatalog.ALL.filter { it.titleKo.contains(query, ignoreCase = true) }
+            topics.filter { it.titleKo.contains(query, ignoreCase = true) }
         }
 
     Column(

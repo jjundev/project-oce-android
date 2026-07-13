@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
+import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import org.junit.Rule
 import org.junit.Test
@@ -39,6 +40,7 @@ class TopicSelectDragBlockTest {
                 TopicSelectSheet(
                     onTopicChosen = { _, _ -> },
                     onDismiss = {},
+                    topics = testTopics,
                 )
             }
         }
@@ -68,3 +70,16 @@ class TopicSelectDragBlockTest {
             .assertCountEquals(0)
     }
 }
+
+private val testTopics =
+    listOf(
+        Topic(
+            id = "cafe-order",
+            emoji = "☕",
+            titleKo = "카페에서 주문하기",
+            group = TopicGroup.Daily,
+            beginnerFriendly = true,
+            promptSeed = "ordering at a café",
+            icon = OceIcon.LocalCafe,
+        ),
+    )

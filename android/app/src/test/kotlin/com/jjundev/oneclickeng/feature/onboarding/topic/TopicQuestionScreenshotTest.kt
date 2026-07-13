@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.jjundev.oneclickeng.ui.theme.OceTheme
+import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -29,7 +30,12 @@ class TopicQuestionScreenshotTest {
         composeRule.setContent {
             OceTheme(darkTheme = dark) {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    TopicQuestionContent(onTopicSelected = {}, onBack = {}, reduceMotion = true)
+                    TopicQuestionContent(
+                        topics = screenshotTopics,
+                        onTopicSelected = {},
+                        onBack = {},
+                        reduceMotion = true,
+                    )
                 }
             }
         }
@@ -42,3 +48,10 @@ class TopicQuestionScreenshotTest {
     @Test
     fun onboarding_topic_dark() = capture(name = "onboarding_topic_dark", dark = true)
 }
+
+private val screenshotTopics =
+    listOf(
+        OnboardingTopic("cafe-order", "카페에서 주문하기", "ordering at a café", OceIcon.LocalCafe, "☕"),
+        OnboardingTopic("weather-smalltalk", "날씨로 스몰토크", "weather small talk", OceIcon.PartlyCloudyDay, "🌤️"),
+        OnboardingTopic("hotel-checkin", "호텔 체크인", "checking in", OceIcon.Hotel, "🏨"),
+    )

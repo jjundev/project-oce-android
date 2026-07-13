@@ -111,6 +111,7 @@ class TopicSelectScreenshotTest {
                                 )
                             }
                             TopicSelectSheetContent(
+                                topics = screenshotTopics,
                                 onTopicChosen = { _, _ -> },
                                 onDismiss = {},
                                 modifier =
@@ -133,6 +134,7 @@ class TopicSelectScreenshotTest {
             OceTheme(darkTheme = true) {
                 Surface(color = MaterialTheme.colorScheme.surface) {
                     TopicSelectSheetContent(
+                        topics = screenshotTopics,
                         onTopicChosen = { _, _ -> },
                         onDismiss = {},
                         modifier = Modifier.fillMaxHeight(),
@@ -144,5 +146,36 @@ class TopicSelectScreenshotTest {
         composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/topic_select_dark.png")
     }
 }
+
+private val screenshotTopics =
+    listOf(
+        Topic(
+            id = "cafe-order",
+            emoji = "☕",
+            titleKo = "카페에서 주문하기",
+            group = TopicGroup.Daily,
+            beginnerFriendly = true,
+            promptSeed = "ordering at a café",
+            icon = OceIcon.LocalCafe,
+        ),
+        Topic(
+            id = "weather-smalltalk",
+            emoji = "🌤️",
+            titleKo = "날씨로 스몰토크",
+            group = TopicGroup.Daily,
+            beginnerFriendly = true,
+            promptSeed = "weather small talk",
+            icon = OceIcon.PartlyCloudyDay,
+        ),
+        Topic(
+            id = "hotel-checkin",
+            emoji = "🏨",
+            titleKo = "호텔 체크인",
+            group = TopicGroup.Travel,
+            beginnerFriendly = true,
+            promptSeed = "checking in",
+            icon = OceIcon.Hotel,
+        ),
+    )
 
 private const val SCRIM_ALPHA = 0.32f

@@ -1,6 +1,9 @@
 package com.jjundev.oneclickeng.feature.home.topic
 
 import com.jjundev.oneclickeng.feature.onboarding.topic.ONBOARDING_TOPICS
+import com.jjundev.oneclickeng.ui.foundation.OceIcon
+import kotlinx.serialization.json.Json
+import org.junit.Before
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -8,13 +11,18 @@ import org.junit.Test
 
 /** M3-08 주제 카탈로그 + 결정적 추천 회전(A3) 검증 — 순수 함수라 클럭/DI 없이 단언한다. */
 class TopicCatalogTest {
+    @Before
+    fun installBundledCatalog() {
+        TopicCatalog.install(TopicCatalogAssetParser.parse(TEST_JSON, bundledAsset()))
+    }
+
     @Test
-    fun `catalog holds 120 topics with 30 in every group`() {
-        assertEquals(120, TopicCatalog.ALL.size)
+    fun `catalog holds 300 topics with 75 in every group`() {
+        assertEquals(300, TopicCatalog.ALL.size)
         TopicGroup.entries.forEach { group ->
-            assertEquals(30, TopicCatalog.inGroup(group).size)
+            assertEquals(75, TopicCatalog.inGroup(group).size)
         }
-        assertEquals(120, TopicGroup.entries.sumOf { TopicCatalog.inGroup(it).size })
+        assertEquals(300, TopicGroup.entries.sumOf { TopicCatalog.inGroup(it).size })
     }
 
     @Test
@@ -25,6 +33,16 @@ class TopicCatalogTest {
         assertTrue(topics.all { it.titleKo.isNotBlank() })
         assertTrue(topics.all { it.emoji.isNotBlank() })
         assertTrue(topics.all { it.promptSeed.isNotBlank() && '\n' !in it.promptSeed })
+    }
+
+    @Test
+    fun `new topics expose a situation-specific blue preview icon`() {
+        val iconById = TopicCatalog.ALL.associate { it.id to it.icon }
+
+        assertEquals(OceIcon.WavingHand, iconById.getValue("greeting-neighbor"))
+        assertEquals(OceIcon.Hub, iconById.getValue("baggage-claim"))
+        assertEquals(OceIcon.Send, iconById.getValue("email-followup"))
+        assertEquals(OceIcon.Call, iconById.getValue("emergency-call"))
     }
 
     @Test
@@ -62,12 +80,24 @@ class TopicCatalogTest {
     }
 
     @Test
-    fun `recommended always fills the window even across the 16 to 6 wraparound`() {
-        // 16 은 6 의 배수가 아니라 창이 경계를 감는다 — 항상 6개(순환 모듈로), 음수 인덱스 없음.
-        for (day in listOf(0L, 1L, 2L, 15L, 16L, 99999L)) {
+    fun `recommended always fills the window across catalog boundaries`() {
+        for (day in listOf(0L, 1L, 2L, 74L, 75L, 99999L)) {
             val picks = TopicCatalog.recommended(dayIndex = day)
             assertEquals(6, picks.size)
             assertTrue(picks.all { it in TopicCatalog.ALL })
         }
     }
+
+    private companion object {
+        val TEST_JSON = Json { ignoreUnknownKeys = true }
+    }
 }
+
+private fun bundledAsset(): String =
+    checkNotNull(TopicCatalogTest::class.java.classLoader)
+        .getResourceAsStream("topics.json")
+        ?.bufferedReader()
+        ?.use { it.readText() }
+        ?: error(
+        "topics.json is not available on the JVM test classpath"
+    )

@@ -54,6 +54,7 @@ fun TopicQuestionScreen(
     viewModel: OnboardingViewModel = hiltViewModel(),
 ) {
     TopicQuestionContent(
+        topics = ONBOARDING_TOPICS,
         onTopicSelected = { topic ->
             viewModel.onTopicSelected(topic.id)
             onTopicSelected(topic)
@@ -67,6 +68,7 @@ fun TopicQuestionScreen(
 /** VM/분석 없는 렌더 심(seam) — 프로토타입 대조 스크린샷·프리뷰용. 프로덕션 진입점은 [TopicQuestionScreen]. */
 @Composable
 internal fun TopicQuestionContent(
+    topics: List<OnboardingTopic>,
     onTopicSelected: (topic: OnboardingTopic) -> Unit,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
@@ -101,7 +103,7 @@ internal fun TopicQuestionContent(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.staggerReveal(2, entrance).padding(bottom = OceTheme.spacing.md),
         )
-        ONBOARDING_TOPICS.forEachIndexed { index, topic ->
+        topics.forEachIndexed { index, topic ->
             Box(modifier = Modifier.staggerReveal(index + TOPIC_CARD_STAGGER_OFFSET, entrance)) {
                 TopicCard(
                     topic = topic,
@@ -173,6 +175,16 @@ private const val ICON_BG_ALPHA = 0.12f
 @Composable
 private fun TopicQuestionPreview() {
     OceTheme {
-        TopicQuestionContent(onTopicSelected = {}, onBack = {})
+        TopicQuestionContent(
+            topics = previewTopics,
+            onTopicSelected = {},
+            onBack = {},
+        )
     }
 }
+
+private val previewTopics =
+    listOf(
+        OnboardingTopic("cafe-order", "카페에서 주문하기", "ordering at a café", OceIcon.LocalCafe, "☕"),
+        OnboardingTopic("hotel-checkin", "호텔 체크인", "checking in at a hotel", OceIcon.Hotel, "🏨"),
+    )
