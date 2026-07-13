@@ -2,9 +2,13 @@ package com.jjundev.oneclickeng.feature.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,8 +30,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jjundev.oneclickeng.R
@@ -70,8 +79,35 @@ fun ReminderTimeSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    OneClickBottomSheet(onDismissRequest = onDismiss, modifier = modifier) {
-        ReminderTimeSheetContent(initialHour = initialHour, initialMinute = initialMinute, onConfirm = onConfirm)
+    OneClickBottomSheet(
+        onDismissRequest = onDismiss,
+        modifier = modifier,
+        // 드래그 핸들 제거 — 핸들은 시트 Surface 의 드래그 어포던스다(신형 시트만).
+        dragHandle = null,
+        // 여백을 시트 내부 Box 로 이관 → 아래 드래그 차단 모디파이어가 좌우/상하 여백까지 덮는다.
+        contentPadding = PaddingValues(0.dp),
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    // 휠 경계 오버스크롤/플링이 상위 시트로 새어 시트를 끄는 것을 post 단계에서 전량 소비.
+                    .nestedScroll(rememberBlockSheetDragScrollConnection())
+                    // 세로 직접 드래그를 소비만 하고 아무 동작 안 함 → 상위 Surface 의 .draggable 로 전파 차단.
+                    // (시/분 휠은 더 깊은 노드라 자체 스크롤 유지, 버튼/세그먼트 탭도 영향 없음.)
+                    .draggable(
+                        state = rememberDraggableState { /* no-op: 시트 이동 없음 */ },
+                        orientation = Orientation.Vertical,
+                    )
+                    .padding(
+                        start = OceTheme.spacing.sheetPadding,
+                        end = OceTheme.spacing.sheetPadding,
+                        top = OceTheme.spacing.sheetPadding,
+                        bottom = OceTheme.spacing.sheetContentBottom,
+                    ),
+        ) {
+            ReminderTimeSheetContent(initialHour = initialHour, initialMinute = initialMinute, onConfirm = onConfirm)
+        }
     }
 }
 
@@ -193,3 +229,19 @@ private fun WheelColumn(
 
 // mutableStateOf helper typed to the private enum (avoids importing setValue delegate ambiguity).
 private fun mutableStateOfPeriod(initial: Period) = androidx.compose.runtime.mutableStateOf(initial)
+
+/**
+ * 휠(내부 스크롤러)이 스크롤 경계를 넘길 때 남는 델타·플링이 상위 시트의 nestedScroll 로 새어나가
+ * 시트를 드래그하는 것을 막는다. post 단계(자식→부모, innermost-first)에서 leftover 를 전량 소비한다.
+ * pre 단계는 시트가 완전 펼침(content-hug)이라 위로 여유가 없어 시트 스스로 0 만 소비하므로 손대지 않는다.
+ */
+@Composable
+private fun rememberBlockSheetDragScrollConnection(): NestedScrollConnection =
+    remember {
+        object : NestedScrollConnection {
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset =
+                available
+
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity = available
+        }
+    }
