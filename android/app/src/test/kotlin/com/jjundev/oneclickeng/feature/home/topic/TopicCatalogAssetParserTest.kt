@@ -58,10 +58,24 @@ class TopicCatalogAssetParserTest {
     fun `catalog installation is idempotent only for an equal snapshot`() {
         val snapshot = parse(validAsset())
         TopicCatalog.install(snapshot)
-        TopicCatalog.install(snapshot.copy(all = snapshot.all.toList()))
+        TopicCatalog.install(TopicCatalogSnapshot(snapshot.all))
 
-        val distinct = snapshot.copy(all = snapshot.all.dropLast(1) + snapshot.all.last().copy(titleKo = "다른 제목"))
+        val distinct =
+            TopicCatalogSnapshot(
+                snapshot.all.dropLast(1) + snapshot.all.last().copy(titleKo = "다른 제목"),
+            )
         assertThrows(IllegalStateException::class.java) { TopicCatalog.install(distinct) }
+    }
+
+    @Test
+    fun `snapshot is isolated from mutation of its input list`() {
+        val input = parse(validAsset()).all.toMutableList()
+        val snapshot = TopicCatalogSnapshot(input)
+
+        input.clear()
+
+        assertEquals(300, snapshot.all.size)
+        assertEquals(75, snapshot.inGroup(TopicGroup.Daily).size)
     }
 
     private fun parse(text: String): TopicCatalogSnapshot = TopicCatalogAssetParser.parse(json, text)

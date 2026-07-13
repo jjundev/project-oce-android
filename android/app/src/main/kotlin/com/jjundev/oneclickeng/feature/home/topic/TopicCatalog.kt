@@ -1,6 +1,7 @@
 package com.jjundev.oneclickeng.feature.home.topic
 
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
+import java.util.Collections
 
 /** One locally bundled learning situation. [icon] is the primary-tinted preview vector. */
 data class Topic(
@@ -22,17 +23,27 @@ enum class TopicGroup(val labelKo: String) {
 }
 
 /** Immutable, validated result of loading the bundled topic asset. */
-data class TopicCatalogSnapshot(
-    val all: List<Topic>,
+class TopicCatalogSnapshot(
+    all: List<Topic>,
 ) {
     init {
         require(all.isNotEmpty()) { "Topic catalog cannot be empty" }
     }
 
-    val beginnerFriendly: List<Topic> = all.filter { it.beginnerFriendly }
-    private val byGroup: Map<TopicGroup, List<Topic>> = all.groupBy { it.group }
+    /** Copy and wrap the parser-owned list so later input-list mutations cannot alter the catalog. */
+    val all: List<Topic> = Collections.unmodifiableList(all.toList())
+    val beginnerFriendly: List<Topic> =
+        Collections.unmodifiableList(this.all.filter { it.beginnerFriendly })
+    private val byGroup: Map<TopicGroup, List<Topic>> =
+        TopicGroup.entries.associateWith { group ->
+            Collections.unmodifiableList(this.all.filter { it.group == group })
+        }
 
     fun inGroup(group: TopicGroup): List<Topic> = byGroup[group].orEmpty()
+
+    override fun equals(other: Any?): Boolean = other is TopicCatalogSnapshot && all == other.all
+
+    override fun hashCode(): Int = all.hashCode()
 }
 
 /**

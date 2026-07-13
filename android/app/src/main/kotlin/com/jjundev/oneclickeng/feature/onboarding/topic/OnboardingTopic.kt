@@ -4,7 +4,7 @@ import com.jjundev.oneclickeng.feature.home.topic.TopicCatalog
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 
 /**
- * 온보딩 첫 상황 선택 후보(M3-02, O2). `beginnerFriendly=true` 6개(16 중)를 노출한다.
+ * 온보딩 첫 상황 선택 후보(M3-02, O2). 300개 로컬 카탈로그 중 `beginnerFriendly=true` 6개를 노출한다.
  *
  * **소스 통합(M3-08):** 예전엔 seed JSON 을 온보딩 전용 로컬 상수로 중복 보관했으나, M3-08 이 전체 300개
  * 카탈로그([TopicCatalog])를 세우면서 이 목록을 그쪽 `beginnerFriendly` 파생으로 폐기했다(원 KDoc 이 예고한
