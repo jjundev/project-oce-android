@@ -130,7 +130,8 @@ private fun levelLabel(level: String): String =
  * 다른 상황 고르기(상황 시트) → at-limit 보조 고지.
  *
  * 프로토 플로우 정합: 히어로 탭 = **바로 대화 생성**([onStartSession] — 세션 설정 화면 없음), 추천 행 탭 =
- * 선택 갱신 + 즉시 시작(startTopic), 시트 = 선택만 하고 닫힘(pickTopic — 홈 히어로 갱신).
+ * 선택만 갱신해 히어로에 반영(시트 pickTopic 과 동일), 시트 = 선택만 하고 닫힘(홈 히어로 갱신).
+ * 시작은 두 경로 모두 히어로 CTA 가 소유한다.
  * [HomeReminderHost] 는 M3-07 리마인더 opt-in 오버레이(스캐폴드 밖 최상위 합성).
  */
 @Composable
@@ -185,11 +186,8 @@ fun HomeScreen(
         onOfflineBlocked = viewModel::onOfflineBlocked,
         modifier = modifier,
         onSituationSelected = { situation ->
-            // 프로토 startTopic — 선택 갱신 + 즉시 시작.
+            // 추천 행 탭 = 선택만 갱신해 히어로에 반영(시트 pickTopic 과 동일). 시작은 히어로 CTA 가 소유한다.
             viewModel.selectSituationById(situation.id)
-            startWithCurrentSetup(
-                SelectedSituation(situation.id, situation.labelKo, situation.promptSeed),
-            )
         },
         onRefreshSituations = {
             flashSituationsSkeleton(SITUATIONS_REFRESH_SKELETON_MS)
@@ -923,7 +921,7 @@ private fun SituationsHeader(
     }
 }
 
-/** 추천 상황 1행 — 카드(선행 아이콘 + 라벨 + chevron). 탭 = 선택 갱신 + 즉시 시작(프로토 startTopic). */
+/** 추천 상황 1행 — 카드(선행 아이콘 + 라벨 + chevron). 탭 = 선택만 갱신해 히어로에 반영(시작은 히어로 CTA). */
 @Composable
 private fun SituationRow(
     situation: HomeSituation,
@@ -970,7 +968,7 @@ private fun SituationRow(
     }
 }
 
-/** 그리드 셀 — 컴팩트 카드(상단 아이콘 박스 + 라벨 최대 2줄, chevron 없음). 탭 = 선택 갱신 + 즉시 시작. */
+/** 그리드 셀 — 컴팩트 카드(상단 아이콘 박스 + 라벨 최대 2줄, chevron 없음). 탭 = 선택만 갱신해 히어로에 반영. */
 @Composable
 private fun SituationCell(
     situation: HomeSituation,
