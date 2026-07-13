@@ -14,6 +14,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -142,19 +143,37 @@ fun OneClickWaitQuiz(
                     if (sel != null) {
                         val revealCopy =
                             if (sel == item.correctIndex) item.revealCopyCorrect else item.revealCopyWrong
-                        Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
+                        // 프로토 정합: 리빌 노트(좌, text-secondary=onSurfaceVariant 중립)와 "다음"(우)을 한 줄
+                        // Row(space-between)로. 정답/오답 구분은 색이 아니라 카피 톤으로만(비처벌) — 오답도
+                        // correct-accent 초록으로 칠하지 않는다(loading-quiz-interstitial.md, ADR-0005).
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = REVEAL_ROW_TOP_PADDING),
+                            horizontalArrangement = Arrangement.spacedBy(REVEAL_ROW_GAP),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             Text(
                                 text = revealCopy,
-                                style = OceTheme.typography.body,
-                                color = OceTheme.colors.feedbackCorrectAccent,
-                                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                                style =
+                                    OceTheme.typography.helper.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 13.5.sp,
+                                    ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier =
+                                    Modifier
+                                        .weight(1f)
+                                        .semantics { liveRegion = LiveRegionMode.Polite },
                             )
                             TextButton(
                                 onClick = {
                                     index = if (items.isEmpty()) 0 else (index + 1) % items.size
                                     revealed = null
                                 },
-                                modifier = Modifier.align(Alignment.End),
+                                contentPadding =
+                                    PaddingValues(
+                                        horizontal = OceTheme.spacing.xs,
+                                        vertical = OceTheme.spacing.xs,
+                                    ),
                             ) {
                                 Text(
                                     text = "다음",
@@ -297,6 +316,10 @@ private val RING_WIDTH = 2.dp
 private const val RING_ROTATION_MS = 1_100
 private const val RING_PEAK_START = 70f / 360f
 private const val RING_PEAK_END = 150f / 360f
+
+/** 리빌 행(프로토): 노트↔"다음" 간격 gap:12px · 상단 여백 padding-top:2px. */
+private val REVEAL_ROW_GAP = 12.dp
+private val REVEAL_ROW_TOP_PADDING = 2.dp
 
 /**
  * 회전 그라디언트 테두리 링(프로토 quizRingBg 정합). 외곽 radius24 clip → drawBehind(오버사이즈 스윕 필을
