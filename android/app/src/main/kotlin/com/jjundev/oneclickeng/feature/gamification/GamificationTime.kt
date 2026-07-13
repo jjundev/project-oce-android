@@ -64,7 +64,4 @@ object GamificationTime {
                     else -> 1 // ≥2-day gap: reset
                 }
         }
-
-    /** Display label for the accrual strip's study-time slot (gamification-emphasis.md:131 "오늘 N분"). */
-    fun studyTimeLabel(todaySeconds: Long): String = "오늘 ${todaySeconds / 60}분"
 }

@@ -51,11 +51,4 @@ class GamificationTimeTest {
         // 2026-07-03T14:00:00Z = 2026-07-03 23:00 KST
         assertEquals("2026-07-03", dayKeyOf("2026-07-03T14:00:00Z"))
     }
-
-    @Test
-    fun `studyTimeLabel renders whole minutes`() {
-        assertEquals("오늘 0분", GamificationTime.studyTimeLabel(30))
-        assertEquals("오늘 1분", GamificationTime.studyTimeLabel(90))
-        assertEquals("오늘 10분", GamificationTime.studyTimeLabel(600))
-    }
 }

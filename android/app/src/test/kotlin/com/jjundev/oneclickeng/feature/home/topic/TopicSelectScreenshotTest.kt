@@ -48,7 +48,7 @@ class TopicSelectScreenshotTest {
 
     private val homeState =
         HomeUiState(
-            studyTimeLabel = "오늘 0분",
+            studyMinutes = 0,
             streak = 7,
             isOnline = true,
             hasResume = true,

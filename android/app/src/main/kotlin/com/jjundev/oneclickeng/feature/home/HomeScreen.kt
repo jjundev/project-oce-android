@@ -70,6 +70,7 @@ import com.jjundev.oneclickeng.feature.home.topic.TopicSelectSheet
 import com.jjundev.oneclickeng.feature.reminder.ui.HomeReminderHost
 import com.jjundev.oneclickeng.feature.reminder.ui.HomeReminderViewModel
 import com.jjundev.oneclickeng.ui.component.OneClickAtLimitNotice
+import com.jjundev.oneclickeng.ui.component.OneClickCountUp
 import com.jjundev.oneclickeng.ui.component.OneClickReminderEnabledBanner
 import com.jjundev.oneclickeng.ui.component.OneClickSegmentedControl
 import com.jjundev.oneclickeng.ui.component.OneClickShimmerPiece
@@ -325,8 +326,9 @@ internal fun HomeContent(
 
         item(key = "stats") {
             StatsStrip(
-                studyTimeLabel = state.studyTimeLabel,
+                studyMinutes = state.studyMinutes,
                 streak = state.streak,
+                reduceMotion = reduceMotion,
                 modifier = Modifier.staggerReveal(2, entrance).padding(top = OceTheme.spacing.md),
             )
         }
@@ -809,31 +811,35 @@ private fun SettingLabel(text: String) {
  */
 @Composable
 private fun StatsStrip(
-    studyTimeLabel: String?,
+    studyMinutes: Int?,
     streak: Int,
     modifier: Modifier = Modifier,
+    reduceMotion: Boolean = false,
 ) {
-    if (studyTimeLabel == null && streak <= 0) return
+    if (studyMinutes == null && streak <= 0) return
     val statStyle = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold)
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
     ) {
-        if (studyTimeLabel != null) {
+        if (studyMinutes != null) {
             OneClickIcon(
                 icon = OceIcon.Schedule,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 size = OceIconSize.FeedbackInline,
             )
-            Text(
-                text = studyTimeLabel,
+            // 프로토 "오늘 N분"(gamification-emphasis.md:131) — 슬롯머신 카운트업으로 0→오늘 분 롤업.
+            OneClickCountUp(
+                target = studyMinutes,
+                format = { "오늘 ${it}분" },
+                reduceMotion = reduceMotion,
                 style = statStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (studyTimeLabel != null && streak > 0) {
+        if (studyMinutes != null && streak > 0) {
             Text(
                 text = "·",
                 style = statStyle,
@@ -847,8 +853,11 @@ private fun StatsStrip(
                 tint = OceTheme.colors.gameStreak,
                 size = OceIconSize.FeedbackInline,
             )
-            Text(
-                text = "${streak}일 연속",
+            // 연속 학습일도 카운트업으로 0→N 롤업(프로토 "N일 연속").
+            OneClickCountUp(
+                target = streak,
+                format = { "${it}일 연속" },
+                reduceMotion = reduceMotion,
                 style = statStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
