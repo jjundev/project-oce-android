@@ -63,13 +63,13 @@ class SavedCardRowScreenshotTest {
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         StateLabel("단어 · 접힘")
-                        SavedCardRow(entry = word, expanded = false, onToggleExpand = {})
+                        SavedCardRow(entry = word, expanded = false, onToggleExpand = {}, onLongPress = {})
                         StateLabel("단어 · 펼침")
-                        SavedCardRow(entry = word, expanded = true, onToggleExpand = {})
+                        SavedCardRow(entry = word, expanded = true, onToggleExpand = {}, onLongPress = {})
                         StateLabel("문장 · 접힘")
-                        SavedCardRow(entry = sentence, expanded = false, onToggleExpand = {})
+                        SavedCardRow(entry = sentence, expanded = false, onToggleExpand = {}, onLongPress = {})
                         StateLabel("문장 · 펼침")
-                        SavedCardRow(entry = sentence, expanded = true, onToggleExpand = {})
+                        SavedCardRow(entry = sentence, expanded = true, onToggleExpand = {}, onLongPress = {})
                     }
                 }
             }

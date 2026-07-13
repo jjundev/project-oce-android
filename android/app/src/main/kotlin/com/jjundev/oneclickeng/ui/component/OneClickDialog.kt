@@ -57,6 +57,10 @@ fun OneClickDialog(
                         .focusRequester(headerFocus)
                         .focusable(),
             )
+            // AlertDialog 의 title 슬롯은 다이얼로그 자체의 별도 윈도우(서브컴포지션)에서 컴포즈된다. 이 effect 를
+            // 바깥(호출부) 컴포지션에 두면 그 윈도우가 focusRequester 노드를 붙이기 전에 실행되어
+            // "FocusRequester is not initialized" 로 죽을 수 있다(레이스) — 같은 서브컴포지션에 둬서 순서를 보장.
+            LaunchedEffect(Unit) { headerFocus.requestFocus() }
         },
         text = {
             Text(
@@ -84,8 +88,6 @@ fun OneClickDialog(
             }
         },
     )
-
-    LaunchedEffect(Unit) { headerFocus.requestFocus() }
 }
 
 /** C1 확인 다이얼로그 변형 축. Destructive 는 위험 액션(삭제·초기화·중단)에만 쓴다. */

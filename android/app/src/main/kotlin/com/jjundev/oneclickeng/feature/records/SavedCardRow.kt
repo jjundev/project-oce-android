@@ -2,8 +2,9 @@ package com.jjundev.oneclickeng.feature.records
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +18,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
@@ -34,11 +38,13 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
  * 타입별 collapsed/expanded(R3·§4): WORD 굵은 영단어+보조색 뜻→+예문, EXPRESSION `koreanPrompt/before→after`→
  * +설명, SENTENCE 굵은 영문→+한글 번역.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SavedCardRow(
     entry: SavedCardEntry,
     expanded: Boolean,
     onToggleExpand: () -> Unit,
+    onLongPress: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     OneClickCard(modifier = modifier.fillMaxWidth()) {
@@ -46,7 +52,10 @@ fun SavedCardRow(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = onToggleExpand)
+                    .combinedClickable(onClick = onToggleExpand, onLongClick = onLongPress)
+                    .semantics {
+                        customActions = listOf(CustomAccessibilityAction("삭제") { onLongPress(); true })
+                    }
                     .padding(OceTheme.spacing.lg),
             verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
         ) {
@@ -219,6 +228,7 @@ private fun SavedCardRowPreview() {
                 ),
             expanded = true,
             onToggleExpand = {},
+            onLongPress = {},
             modifier = Modifier.padding(OceTheme.spacing.xl),
         )
     }

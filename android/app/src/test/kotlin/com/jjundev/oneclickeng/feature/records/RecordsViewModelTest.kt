@@ -81,24 +81,7 @@ class RecordsViewModelTest {
         }
 
     @Test
-    fun `swipe delete tombstones and optimistically removes, showing undo bar`() =
-        runTest(dispatcher) {
-            val query = FakeQuerySource(mapOf(CardType.EXPRESSION to listOf(expr("a"), expr("b"), expr("c"))))
-            val repo = FakeSavedCardRepository()
-            val viewModel = vm(query = query, repo = repo)
-            advanceUntilIdle()
-
-            viewModel.onSwipeDelete(expr("b"))
-
-            assertEquals(listOf("a", "c"), viewModel.uiState.value.cards.map { it.cardId })
-            assertEquals(1, repo.deletes.size)
-            assertEquals("b" to true, repo.deletes.first().cardId to repo.deletes.first().deleted)
-            assertEquals("b", viewModel.uiState.value.undoBar?.entry?.cardId)
-            assertEquals(1, viewModel.uiState.value.undoBar?.index)
-        }
-
-    @Test
-    fun `undo revives and re-inserts at original index preserving order`() =
+    fun `deleteCard tombstones, optimistically removes, and logs delete`() =
         runTest(dispatcher) {
             val query = FakeQuerySource(mapOf(CardType.EXPRESSION to listOf(expr("a"), expr("b"), expr("c"))))
             val repo = FakeSavedCardRepository()
@@ -106,30 +89,12 @@ class RecordsViewModelTest {
             val viewModel = vm(query = query, repo = repo, analytics = analytics)
             advanceUntilIdle()
 
-            viewModel.onSwipeDelete(expr("b"))
-            viewModel.undoDelete()
+            viewModel.deleteCard(expr("b"))
 
-            assertEquals(listOf("a", "b", "c"), viewModel.uiState.value.cards.map { it.cardId })
-            // 마지막 write 는 revive(deletedAt=null).
-            assertEquals("b" to false, repo.deletes.last().cardId to repo.deletes.last().deleted)
-            assertEquals(listOf(CardType.EXPRESSION to true), analytics.deletes)
-            assertNull(viewModel.uiState.value.undoBar)
-        }
-
-    @Test
-    fun `commit delete logs undone=false and keeps card removed`() =
-        runTest(dispatcher) {
-            val query = FakeQuerySource(mapOf(CardType.EXPRESSION to listOf(expr("a"), expr("b"))))
-            val analytics = RecordingHistoryAnalytics()
-            val viewModel = vm(query = query, analytics = analytics)
-            advanceUntilIdle()
-
-            viewModel.onSwipeDelete(expr("a"))
-            viewModel.commitDelete()
-
-            assertEquals(listOf("b"), viewModel.uiState.value.cards.map { it.cardId })
+            assertEquals(listOf("a", "c"), viewModel.uiState.value.cards.map { it.cardId })
+            assertEquals(1, repo.deletes.size)
+            assertEquals("b" to true, repo.deletes.first().cardId to repo.deletes.first().deleted)
             assertEquals(listOf(CardType.EXPRESSION to false), analytics.deletes)
-            assertNull(viewModel.uiState.value.undoBar)
         }
 
     @Test
