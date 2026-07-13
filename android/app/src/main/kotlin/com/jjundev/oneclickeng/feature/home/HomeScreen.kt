@@ -70,12 +70,12 @@ import com.jjundev.oneclickeng.feature.home.topic.TopicCatalog
 import com.jjundev.oneclickeng.feature.home.topic.TopicSelectSheet
 import com.jjundev.oneclickeng.feature.reminder.ui.HomeReminderHost
 import com.jjundev.oneclickeng.feature.reminder.ui.HomeReminderViewModel
+import com.jjundev.oneclickeng.feature.settings.ReminderTimeSheet
 import com.jjundev.oneclickeng.ui.component.OneClickAtLimitNotice
 import com.jjundev.oneclickeng.ui.component.OneClickCountUp
 import com.jjundev.oneclickeng.ui.component.OneClickReminderEnabledBanner
 import com.jjundev.oneclickeng.ui.component.OneClickSegmentedControl
 import com.jjundev.oneclickeng.ui.component.OneClickShimmerPiece
-import com.jjundev.oneclickeng.ui.component.OneClickTimePickerDialog
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
@@ -150,7 +150,7 @@ fun HomeScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val reminderState by reminderViewModel.uiState.collectAsStateWithLifecycle()
     var topicSheetVisible by remember { mutableStateOf(false) }
-    var timePickerVisible by remember { mutableStateOf(false) }
+    var timeSheetVisible by remember { mutableStateOf(false) }
     var gridMode by remember { mutableStateOf(false) }
 
     // 추천 상황 스켈레톤 플래시(프로토 `_flashRecSkel`): 새로고침·그리드 전환 시 지정 시간 동안 시머 자리표시자
@@ -211,17 +211,17 @@ fun HomeScreen(
         reminderHour = reminderState.hour,
         reminderMinute = reminderState.minute,
         onDismissReminderBanner = reminderViewModel::dismissEnabledBanner,
-        onChangeReminderTime = { timePickerVisible = true },
+        onChangeReminderTime = { timeSheetVisible = true },
     )
-    if (timePickerVisible) {
-        OneClickTimePickerDialog(
+    if (timeSheetVisible) {
+        ReminderTimeSheet(
             initialHour = reminderState.hour,
             initialMinute = reminderState.minute,
             onConfirm = { h, m ->
                 reminderViewModel.setReminderTime(h, m)
-                timePickerVisible = false
+                timeSheetVisible = false
             },
-            onDismiss = { timePickerVisible = false },
+            onDismiss = { timeSheetVisible = false },
         )
     }
     if (topicSheetVisible) {

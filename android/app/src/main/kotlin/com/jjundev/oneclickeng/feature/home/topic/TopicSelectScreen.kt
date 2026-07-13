@@ -66,7 +66,13 @@ fun TopicSelectSheet(
 ) {
     // 프로토 정합: 전체 높이가 아니라 화면 ~70%만 올라오게 콘텐츠 높이를 제한한다(중간 detent 없이 곧장 노출).
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    OneClickBottomSheet(onDismissRequest = onDismiss, modifier = modifier, sheetState = sheetState) {
+    // draggable=false: 드래그로 시트를 줄이거나 늘릴 수 없다. 기본 핸들·여백은 설정 정리 시트와 동일한 룩.
+    OneClickBottomSheet(
+        onDismissRequest = onDismiss,
+        modifier = modifier,
+        sheetState = sheetState,
+        draggable = false,
+    ) {
         TopicSelectSheetContent(
             onTopicChosen = onTopicChosen,
             onDismiss = onDismiss,

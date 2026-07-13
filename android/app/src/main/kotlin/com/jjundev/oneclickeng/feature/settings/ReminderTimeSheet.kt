@@ -58,8 +58,8 @@ private fun to24(period: Period, h12: Int): Int =
     }
 
 /**
- * C19 리마인더 시간 피커(프로토 정합) — 오전/오후 세그먼트 + 시(1-12)·분(5단위) 휠 + 라이브 라벨 + "설정". M3 시계
- * 다이얼(OneClickTimePickerDialog) 대체. 임시 선택은 시트 내부 상태로만 소유하고 [onConfirm] 에서 24h로 환산한다.
+ * C19 리마인더 시간 피커(프로토 정합) — 오전/오후 세그먼트 + 시(1-12)·분(5단위) 휠 + 라이브 라벨 + "설정".
+ * 구형 M3 시계 다이얼 대체. 임시 선택은 시트 내부 상태로만 소유하고 [onConfirm] 에서 24h로 환산한다.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,7 +70,8 @@ fun ReminderTimeSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    OneClickBottomSheet(onDismissRequest = onDismiss, modifier = modifier) {
+    // draggable=false: 드래그로 시트를 줄이거나 늘릴 수 없다. 기본 핸들·여백은 설정 정리 시트와 동일한 룩.
+    OneClickBottomSheet(onDismissRequest = onDismiss, modifier = modifier, draggable = false) {
         ReminderTimeSheetContent(initialHour = initialHour, initialMinute = initialMinute, onConfirm = onConfirm)
     }
 }
