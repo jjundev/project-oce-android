@@ -4,7 +4,6 @@ import com.jjundev.oneclickeng.core.auth.AuthRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertFalse
 import org.junit.Test
 
 /**

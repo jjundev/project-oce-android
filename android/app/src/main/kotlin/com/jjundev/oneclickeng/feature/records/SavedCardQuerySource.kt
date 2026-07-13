@@ -46,7 +46,8 @@ data class SavedCardPage(
 interface SavedCardQuerySource {
     /**
      * [cardType] 의 다음 페이지를 최신순([FIELD_CREATED_AT] desc)으로 읽는다. [after] 가 null 이면 첫 페이지.
-     * 미인증(currentUid null)이면 빈 종단 페이지로 강등한다(표시 전용 — 실패를 화면에 노출하지 않음).
+     * currentUid 가 null 이면 익명 사인인([AuthRepository.ensureSignedIn])을 먼저 대기하며,
+     * 사인인이 실패하면 빈 종단 페이지로 강등한다(표시 전용 — 실패를 화면에 노출하지 않음).
      */
     suspend fun page(
         cardType: CardType,
