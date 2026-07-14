@@ -125,16 +125,38 @@ class DialogueGenerationCoordinator
             _state.value = DialogueGenState.OfflineBlocked
         }
 
-        private fun launchAttempt(request: DialogueRequest) {
-            val token = ++sessionToken
+        /**
+         * Return to [DialogueGenState.Idle], dropping any prior attempt's sticky Ready/terminal state.
+         * Called when a new generation surface mounts ([DialogueGenerationViewModel] init) so a previous
+         * session's state — retained because this coordinator is a process [Singleton] — cannot leak into
+         * the newly mounted generating screen and auto-skip the wait quiz (loading-quiz-interstitial.md §5).
+         * Bumps [sessionToken] so any late event from a superseded stream is dropped, and cancels in-flight
+         * jobs defensively. Does not open a stream or consume quota.
+         */
+        fun reset() {
+            ++sessionToken
             currentJob?.cancel()
             watchdogJob?.cancel()
-            lastRequest = request
+            lastRequest = null
+            clearAccumulators()
+            _state.value = DialogueGenState.Idle
+        }
+
+        /** Clear the per-attempt accumulators shared by [launchAttempt] and [reset]. */
+        private fun clearAccumulators() {
             sessionId = null
             remaining = null
             meta = null
             streamStatus = DialogueStreamStatus.Streaming
             turns.clear()
+        }
+
+        private fun launchAttempt(request: DialogueRequest) {
+            val token = ++sessionToken
+            currentJob?.cancel()
+            watchdogJob?.cancel()
+            lastRequest = request
+            clearAccumulators()
             _state.value = DialogueGenState.Generating
             armWatchdog(token)
             currentJob =

@@ -4,6 +4,7 @@ import com.jjundev.oneclickeng.core.connectivity.ConnectivityObserver
 import com.jjundev.oneclickeng.core.connectivity.OfflineAnalytics
 import com.jjundev.oneclickeng.core.network.DialogueEvent
 import com.jjundev.oneclickeng.core.network.DialogueRequest
+import com.jjundev.oneclickeng.core.network.DialogueTurn
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
@@ -228,6 +229,39 @@ class DialogueGenerationViewModelTest {
 
             assertEquals(DialogueGenState.Generating, vm.state.value)
             assertEquals(1, stream.opened) // 이제 스트림 기동
+        }
+
+    @Test
+    fun `a prior generation's sticky Ready does not leak into a newly created generation VM`() =
+        runTest {
+            val stream = FakeStream()
+            val scope: CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
+            val coordinator =
+                DialogueGenerationCoordinator(stream, scope, FakeConnectivity(offline = false))
+
+            // A prior generation completed → the process-singleton coordinator holds a sticky Ready.
+            coordinator.start("easy", "t", 5, firstSession = true)
+            runCurrent()
+            stream.push(DialogueEvent.Start(sessionId = "s1", remaining = 3))
+            stream.push(DialogueEvent.Turn(DialogueTurn(ko = "안녕", en = "Hi", role = "model")))
+            runCurrent()
+            assertTrue(coordinator.state.value is DialogueGenState.Ready)
+
+            // A new generating screen mounts → a fresh VM is created sharing that singleton coordinator.
+            val vm =
+                DialogueGenerationViewModel(
+                    coordinator,
+                    bank,
+                    RecordingAnalytics(),
+                    RecordingLimitAnalytics(),
+                    SessionSnapshotStore(inMemoryPrefsDataStore()),
+                    scope,
+                    RecordingOfflineAnalytics(),
+                    FakeConfig(true),
+                )
+
+            // init must reset the leftover Ready so the generating screen sees Idle (→ quiz, not auto-skip).
+            assertEquals(DialogueGenState.Idle, vm.state.value)
         }
 
     @Suppress("LongParameterList") // 테스트 팩토리 — seam 별 fake 를 명시 주입한다(운영 코드 아님).

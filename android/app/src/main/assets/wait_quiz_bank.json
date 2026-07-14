@@ -88,5 +88,1415 @@
     "correctIndex": 1,
     "revealCopyCorrect": "훌륭해요! 더 구체적이고 강해요.",
     "revealCopyWrong": "괜찮아요. \"exceeded expectations\" 가 더 또렷해요."
+  },
+  {
+    "id": "easy-4",
+    "tier": "easy",
+    "prompt": "이름을 소개할 때, 더 자연스러운 표현은?",
+    "optionA": "My name is Tom.",
+    "optionB": "My name Tom.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! 소개 잘했어요.",
+    "revealCopyWrong": "괜찮아요. \"My name is Tom.\" 처럼 is를 써요."
+  },
+  {
+    "id": "easy-5",
+    "tier": "easy",
+    "prompt": "상대방 이름을 물을 때, 알맞은 표현은?",
+    "optionA": "What your name?",
+    "optionB": "What's your name?",
+    "correctIndex": 1,
+    "revealCopyCorrect": "정확해요! 자연스러운 질문이에요.",
+    "revealCopyWrong": "괜찮아요. \"What's your name?\" 처럼 be동사를 넣어요."
+  },
+  {
+    "id": "easy-6",
+    "tier": "easy",
+    "prompt": "사과 한 개가 있다고 말할 때, 올바른 표현은?",
+    "optionA": "I have an apple.",
+    "optionB": "I have a apple.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "좋아요! 모음 앞엔 an이에요.",
+    "revealCopyWrong": "괜찮아요. apple처럼 모음으로 시작하면 \"an\"을 써요."
+  },
+  {
+    "id": "easy-7",
+    "tier": "easy",
+    "prompt": "책 두 권이 있다고 말할 때, 올바른 표현은?",
+    "optionA": "I have two book.",
+    "optionB": "I have two books.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! 복수형 s를 잘 붙였어요.",
+    "revealCopyWrong": "괜찮아요. 두 개 이상이면 \"books\"처럼 s를 붙여요."
+  },
+  {
+    "id": "easy-8",
+    "tier": "easy",
+    "prompt": "고마움을 표현할 때, 자연스러운 표현은?",
+    "optionA": "Thanks you.",
+    "optionB": "Thank you.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "훌륭해요! 딱 맞는 인사예요.",
+    "revealCopyWrong": "괜찮아요. \"Thank you\" 또는 \"Thanks\"라고만 해요."
+  },
+  {
+    "id": "easy-9",
+    "tier": "easy",
+    "prompt": "지나가도 되는지 양해를 구할 때, 알맞은 표현은?",
+    "optionA": "Excuse me.",
+    "optionB": "Excuse.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! 정중한 표현이에요.",
+    "revealCopyWrong": "괜찮아요. \"Excuse me\"처럼 me를 붙여요."
+  },
+  {
+    "id": "easy-10",
+    "tier": "easy",
+    "prompt": "저녁에 만났을 때, 알맞은 인사는?",
+    "optionA": "Good evenings!",
+    "optionB": "Good evening!",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! 저녁 인사예요.",
+    "revealCopyWrong": "괜찮아요. 인사말은 \"Good evening\"처럼 단수로 써요."
+  },
+  {
+    "id": "easy-11",
+    "tier": "easy",
+    "prompt": "나이를 물을 때, 올바른 어순은?",
+    "optionA": "How old are you?",
+    "optionB": "How old you are?",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! 어순이 완벽해요.",
+    "revealCopyWrong": "괜찮아요. \"How old are you?\"처럼 동사가 먼저 와요."
+  },
+  {
+    "id": "easy-12",
+    "tier": "easy",
+    "prompt": "직업을 소개할 때, 올바른 표현은?",
+    "optionA": "I am a teacher.",
+    "optionB": "I am teacher.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! 관사 a를 잘 챙겼어요.",
+    "revealCopyWrong": "괜찮아요. 직업 앞엔 \"a teacher\"처럼 관사를 붙여요."
+  },
+  {
+    "id": "easy-13",
+    "tier": "easy",
+    "prompt": "고양이가 상자 안에 있다고 말할 때, 알맞은 표현은?",
+    "optionA": "The cat is on the box.",
+    "optionB": "The cat is in the box.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! 안에 있을 땐 in이에요.",
+    "revealCopyWrong": "괜찮아요. 상자 안에 있을 땐 \"in the box\"라고 해요."
+  },
+  {
+    "id": "easy-14",
+    "tier": "easy",
+    "prompt": "책이 탁자 위에 있다고 말할 때, 알맞은 표현은?",
+    "optionA": "The book is on the table.",
+    "optionB": "The book is at the table.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! 표면 위에는 on이에요.",
+    "revealCopyWrong": "괜찮아요. 표면 위에 있을 땐 \"on the table\"이라고 해요."
+  },
+  {
+    "id": "easy-15",
+    "tier": "easy",
+    "prompt": "손에 든 가까운 펜을 가리키며 말할 때, 알맞은 표현은?",
+    "optionA": "That is my pen.",
+    "optionB": "This is my pen.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "정확해요! 가까운 건 this예요.",
+    "revealCopyWrong": "괜찮아요. 가까이 있는 건 \"This\"라고 해요."
+  },
+  {
+    "id": "easy-16",
+    "tier": "easy",
+    "prompt": "멀리 보이는 집을 가리키며 말할 때, 알맞은 표현은?",
+    "optionA": "That is your house.",
+    "optionB": "This is your house.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! 멀리 있는 건 that예요.",
+    "revealCopyWrong": "괜찮아요. 멀리 있는 건 \"That\"라고 해요."
+  },
+  {
+    "id": "easy-17",
+    "tier": "easy",
+    "prompt": "화장실 위치를 물을 때, 올바른 어순은?",
+    "optionA": "Where the bathroom is?",
+    "optionB": "Where is the bathroom?",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! 의문문 어순이 정확해요.",
+    "revealCopyWrong": "괜찮아요. \"Where is the bathroom?\"처럼 is가 먼저 와요."
+  },
+  {
+    "id": "easy-18",
+    "tier": "easy",
+    "prompt": "시간을 물을 때, 올바른 표현은?",
+    "optionA": "What time it is?",
+    "optionB": "What time is it?",
+    "correctIndex": 1,
+    "revealCopyCorrect": "훌륭해요! 자연스러운 질문이에요.",
+    "revealCopyWrong": "괜찮아요. \"What time is it?\"처럼 is가 앞에 와요."
+  },
+  {
+    "id": "easy-19",
+    "tier": "easy",
+    "prompt": "물을 달라고 요청할 때, 알맞은 표현은?",
+    "optionA": "Can I have some water?",
+    "optionB": "Can I have a water?",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! water는 some과 잘 어울려요.",
+    "revealCopyWrong": "괜찮아요. water는 \"a\" 대신 \"some water\"라고 해요."
+  },
+  {
+    "id": "easy-20",
+    "tier": "easy",
+    "prompt": "피자를 좋아한다고 말할 때, 자연스러운 표현은?",
+    "optionA": "I like a pizza.",
+    "optionB": "I like pizza.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! 음식 전체를 말할 땐 관사 없이 써요.",
+    "revealCopyWrong": "괜찮아요. 음식 종류를 말할 땐 \"pizza\"처럼 관사 없이 써요."
+  },
+  {
+    "id": "easy-21",
+    "tier": "easy",
+    "prompt": "사는 도시를 말할 때, 알맞은 전치사는?",
+    "optionA": "I live in Seoul.",
+    "optionB": "I live at Seoul.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! 도시엔 in을 써요.",
+    "revealCopyWrong": "괜찮아요. 도시 이름 앞엔 \"in Seoul\"처럼 in을 써요."
+  },
+  {
+    "id": "easy-22",
+    "tier": "easy",
+    "prompt": "정중하게 도움을 요청할 때, 알맞은 표현은?",
+    "optionA": "Could you help me, please?",
+    "optionB": "You help me please?",
+    "correctIndex": 0,
+    "revealCopyCorrect": "훌륭해요! 정중한 요청이에요.",
+    "revealCopyWrong": "괜찮아요. \"Could you help me, please?\"처럼 물어보듯 말해요."
+  },
+  {
+    "id": "easy-23",
+    "tier": "easy",
+    "prompt": "처음 만난 사람에게 하는 인사로 알맞은 것은?",
+    "optionA": "Nice to meeting you.",
+    "optionB": "Nice to meet you.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! 처음 만났을 때 인사예요.",
+    "revealCopyWrong": "괜찮아요. \"Nice to meet you.\"처럼 동사원형을 써요."
+  },
+  {
+    "id": "easy-24",
+    "tier": "easy",
+    "prompt": "사과가 세 개 있다고 말할 때, 올바른 표현은?",
+    "optionA": "There are three apples.",
+    "optionB": "There is three apples.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "좋아요! 복수엔 are를 써요.",
+    "revealCopyWrong": "괜찮아요. 여러 개일 땐 \"There are\"라고 해요."
+  },
+  {
+    "id": "easy-25",
+    "tier": "easy",
+    "prompt": "직업을 물을 때, 올바른 표현은?",
+    "optionA": "What you do?",
+    "optionB": "What do you do?",
+    "correctIndex": 1,
+    "revealCopyCorrect": "정확해요! 자연스러운 질문이에요.",
+    "revealCopyWrong": "괜찮아요. \"What do you do?\"처럼 do를 넣어요."
+  },
+  {
+    "id": "easy-26",
+    "tier": "easy",
+    "prompt": "직업을 소개하는 문장으로 알맞은 것은?",
+    "optionA": "She is a doctor.",
+    "optionB": "She a doctor is.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! 어순이 자연스러워요.",
+    "revealCopyWrong": "괜찮아요. \"She is a doctor.\"처럼 be동사가 먼저 와요."
+  },
+  {
+    "id": "easy-27",
+    "tier": "easy",
+    "prompt": "고양이가 한 마리 있다고 말할 때, 알맞은 표현은?",
+    "optionA": "It has a cat.",
+    "optionB": "There is a cat.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! 존재를 말할 땐 There is예요.",
+    "revealCopyWrong": "괜찮아요. 존재를 말할 땐 \"There is a cat.\"이라고 해요."
+  },
+  {
+    "id": "easy-28",
+    "tier": "easy",
+    "prompt": "좋아하는 색을 말할 때, 올바른 어순은?",
+    "optionA": "My favorite color blue is.",
+    "optionB": "My favorite color is blue.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "훌륭해요! 어순이 정확해요.",
+    "revealCopyWrong": "괜찮아요. \"My favorite color is blue.\"처럼 is가 색 앞에 와요."
+  },
+  {
+    "id": "easy-29",
+    "tier": "easy",
+    "prompt": "식당에서 계산서를 요청할 때, 알맞은 표현은?",
+    "optionA": "Can I get the bill, please?",
+    "optionB": "Give me bill.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! 정중한 요청이에요.",
+    "revealCopyWrong": "괜찮아요. \"Can I get the bill, please?\"처럼 부드럽게 물어봐요."
+  },
+  {
+    "id": "easy-30",
+    "tier": "easy",
+    "prompt": "화장실 사용 허락을 구할 때, 알맞은 표현은?",
+    "optionA": "I use restroom?",
+    "optionB": "May I use the restroom?",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! 허락을 구하는 표현이에요.",
+    "revealCopyWrong": "괜찮아요. \"May I use the restroom?\"처럼 May I로 시작해요."
+  },
+  {
+    "id": "easy-31",
+    "tier": "easy",
+    "prompt": "시간이 3시라고 답할 때, 올바른 표현은?",
+    "optionA": "It's three o'clock.",
+    "optionB": "It three o'clock.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! be동사를 잘 챙겼어요.",
+    "revealCopyWrong": "괜찮아요. \"It's three o'clock.\"처럼 It's를 써요."
+  },
+  {
+    "id": "easy-32",
+    "tier": "easy",
+    "prompt": "오늘 비가 온다고 말할 때, 올바른 표현은?",
+    "optionA": "It's raining today.",
+    "optionB": "It raining today.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! 진행형에 be동사가 들어갔어요.",
+    "revealCopyWrong": "괜찮아요. \"It's raining\"처럼 is를 넣어요."
+  },
+  {
+    "id": "easy-33",
+    "tier": "easy",
+    "prompt": "안부 인사에 답할 때, 올바른 표현은?",
+    "optionA": "I'm fine, thanks you.",
+    "optionB": "I'm fine, thank you.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! 자연스러운 답이에요.",
+    "revealCopyWrong": "괜찮아요. \"thank you\"라고만 하거나 \"thanks\"라고 해요."
+  },
+  {
+    "id": "easy-34",
+    "tier": "easy",
+    "prompt": "사과가 몇 개 있는지 물을 때, 올바른 표현은?",
+    "optionA": "How many apples do you have?",
+    "optionB": "How many apple do you have?",
+    "correctIndex": 0,
+    "revealCopyCorrect": "훌륭해요! 복수형을 잘 썼어요.",
+    "revealCopyWrong": "괜찮아요. how many 뒤엔 \"apples\"처럼 복수형을 써요."
+  },
+  {
+    "id": "easy-35",
+    "tier": "easy",
+    "prompt": "커피를 안 좋아한다고 말할 때, 올바른 표현은?",
+    "optionA": "I no like coffee.",
+    "optionB": "I don't like coffee.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! 부정문 형태가 정확해요.",
+    "revealCopyWrong": "괜찮아요. \"I don't like\"처럼 don't를 써요."
+  },
+  {
+    "id": "easy-36",
+    "tier": "easy",
+    "prompt": "지금 책을 읽고 있다고 말할 때, 올바른 표현은?",
+    "optionA": "I am reading a book.",
+    "optionB": "I reading a book.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! 진행형에 am이 들어갔어요.",
+    "revealCopyWrong": "괜찮아요. \"I am reading\"처럼 am을 넣어요."
+  },
+  {
+    "id": "easy-37",
+    "tier": "easy",
+    "prompt": "집에 있다고 말할 때, 알맞은 전치사는?",
+    "optionA": "I am in home.",
+    "optionB": "I am at home.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! home 앞엔 at을 써요.",
+    "revealCopyWrong": "괜찮아요. \"at home\"처럼 at을 써요."
+  },
+  {
+    "id": "easy-38",
+    "tier": "easy",
+    "prompt": "월요일에 수업이 있다고 말할 때, 알맞은 전치사는?",
+    "optionA": "I have class in Monday.",
+    "optionB": "I have class on Monday.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! 요일 앞엔 on을 써요.",
+    "revealCopyWrong": "괜찮아요. 요일 앞엔 \"on Monday\"처럼 on을 써요."
+  },
+  {
+    "id": "easy-39",
+    "tier": "easy",
+    "prompt": "회의가 3시에 있다고 말할 때, 알맞은 전치사는?",
+    "optionA": "The meeting is at 3 PM.",
+    "optionB": "The meeting is on 3 PM.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! 정확한 시각엔 at을 써요.",
+    "revealCopyWrong": "괜찮아요. 정확한 시각 앞엔 \"at 3 PM\"처럼 at을 써요."
+  },
+  {
+    "id": "easy-40",
+    "tier": "easy",
+    "prompt": "생일이 7월이라고 말할 때, 알맞은 전치사는?",
+    "optionA": "My birthday is on July.",
+    "optionB": "My birthday is in July.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! 월 앞엔 in을 써요.",
+    "revealCopyWrong": "괜찮아요. 월 앞엔 \"in July\"처럼 in을 써요."
+  },
+  {
+    "id": "easy-41",
+    "tier": "easy",
+    "prompt": "앉으라고 부드럽게 요청할 때, 올바른 표현은?",
+    "optionA": "Please sit down.",
+    "optionB": "Please sitting down.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! 동사원형을 잘 썼어요.",
+    "revealCopyWrong": "괜찮아요. \"Please sit down.\"처럼 동사원형을 써요."
+  },
+  {
+    "id": "easy-42",
+    "tier": "easy",
+    "prompt": "다시 말해달라고 정중하게 부탁할 때, 올바른 표현은?",
+    "optionA": "Could you repeat that, please?",
+    "optionB": "Repeat that you, please?",
+    "correctIndex": 0,
+    "revealCopyCorrect": "훌륭해요! 정중한 표현이에요.",
+    "revealCopyWrong": "괜찮아요. \"Could you repeat that, please?\"처럼 물어보듯 말해요."
+  },
+  {
+    "id": "easy-43",
+    "tier": "easy",
+    "prompt": "그녀의 책이라고 말할 때, 올바른 표현은?",
+    "optionA": "This is she book.",
+    "optionB": "This is her book.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! 소유격 her를 잘 썼어요.",
+    "revealCopyWrong": "괜찮아요. 소유를 말할 땐 \"her book\"처럼 her를 써요."
+  },
+  {
+    "id": "easy-44",
+    "tier": "easy",
+    "prompt": "아이가 둘 있다고 말할 때, 올바른 표현은?",
+    "optionA": "I have two children.",
+    "optionB": "I have two childs.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! 불규칙 복수형을 잘 알아요.",
+    "revealCopyWrong": "괜찮아요. child의 복수형은 \"children\"이에요."
+  },
+  {
+    "id": "easy-45",
+    "tier": "easy",
+    "prompt": "정보가 필요하다고 말할 때, 올바른 표현은?",
+    "optionA": "I need some informations.",
+    "optionB": "I need some information.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! information은 항상 단수예요.",
+    "revealCopyWrong": "괜찮아요. information은 셀 수 없어서 \"information\"이라고만 해요."
+  },
+  {
+    "id": "easy-46",
+    "tier": "easy",
+    "prompt": "그녀가 차를 좋아하는지 물을 때, 올바른 표현은?",
+    "optionA": "Does she like tea?",
+    "optionB": "Is she like tea?",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! 일반동사엔 does를 써요.",
+    "revealCopyWrong": "괜찮아요. 일반동사 질문엔 \"Does she like\"처럼 does를 써요."
+  },
+  {
+    "id": "easy-47",
+    "tier": "easy",
+    "prompt": "사람이 많다고 말할 때, 올바른 표현은?",
+    "optionA": "There is many people here.",
+    "optionB": "There are many people here.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "정확해요! people은 복수 취급해요.",
+    "revealCopyWrong": "괜찮아요. people은 복수라서 \"There are\"를 써요."
+  },
+  {
+    "id": "easy-48",
+    "tier": "easy",
+    "prompt": "자기소개를 시작할 때, 올바른 표현은?",
+    "optionA": "Let me introduce me.",
+    "optionB": "Let me introduce myself.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! 재귀대명사를 잘 썼어요.",
+    "revealCopyWrong": "괜찮아요. 자기 자신을 말할 땐 \"myself\"를 써요."
+  },
+  {
+    "id": "easy-49",
+    "tier": "easy",
+    "prompt": "고맙다는 말에 답할 때, 올바른 표현은?",
+    "optionA": "You're welcome.",
+    "optionB": "You are welcome you.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "훌륭해요! 자연스러운 대답이에요.",
+    "revealCopyWrong": "괜찮아요. \"You're welcome.\"까지만 말하면 돼요."
+  },
+  {
+    "id": "easy-50",
+    "tier": "easy",
+    "prompt": "헤어질 때 하는 인사로 알맞은 것은?",
+    "optionA": "Good-bye you!",
+    "optionB": "Goodbye!",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! 작별 인사로 딱 맞아요.",
+    "revealCopyWrong": "괜찮아요. 작별 인사는 \"Goodbye!\"라고만 해요."
+  },
+  {
+    "id": "normal-4",
+    "tier": "normal",
+    "prompt": "저녁을 먹었다고 말할 때, 올바른 표현은?",
+    "optionA": "I ate dinner already.",
+    "optionB": "I eated dinner already.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! eat 의 과거형은 ate 예요.",
+    "revealCopyWrong": "괜찮아요. eat 은 불규칙 동사라 ate 가 맞아요."
+  },
+  {
+    "id": "normal-5",
+    "tier": "normal",
+    "prompt": "완료된 이동을 말할 때, 문법적으로 올바른 표현은?",
+    "optionA": "She has already went home.",
+    "optionB": "She has already gone home.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! go 의 과거분사는 gone 이에요.",
+    "revealCopyWrong": "괜찮아요. have 뒤에는 went 대신 과거분사 gone 을 써요."
+  },
+  {
+    "id": "normal-6",
+    "tier": "normal",
+    "prompt": "정중하게 요청할 때, 문법적으로 올바른 표현은?",
+    "optionA": "Would you mind to open the window?",
+    "optionB": "Would you mind opening the window?",
+    "correctIndex": 1,
+    "revealCopyCorrect": "훌륭해요! mind 뒤에는 동명사가 와요.",
+    "revealCopyWrong": "괜찮아요. \"mind\" 다음엔 to부정사 대신 동명사를 써요."
+  },
+  {
+    "id": "normal-7",
+    "tier": "normal",
+    "prompt": "펜을 빌리고 싶을 때, 올바른 표현은?",
+    "optionA": "Can I borrow your pen for a second?",
+    "optionB": "Can I lend your pen for a second?",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! 내가 빌려올 땐 borrow 를 써요.",
+    "revealCopyWrong": "괜찮아요. 내가 빌리는 건 borrow, 빌려주는 건 lend 예요."
+  },
+  {
+    "id": "normal-8",
+    "tier": "normal",
+    "prompt": "진실을 말했다고 할 때, 올바른 표현은?",
+    "optionA": "She said me the truth.",
+    "optionB": "She told me the truth.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "정확해요! tell 은 사람 목적어를 바로 받아요.",
+    "revealCopyWrong": "괜찮아요. say 뒤엔 사람이 바로 오지 않고 tell 을 써요."
+  },
+  {
+    "id": "normal-9",
+    "tier": "normal",
+    "prompt": "숙제를 해야 한다고 할 때, 올바른 표현은?",
+    "optionA": "I need to do my homework.",
+    "optionB": "I need to make my homework.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "좋아요! 숙제는 do homework 예요.",
+    "revealCopyWrong": "괜찮아요. homework 앞에는 make 대신 do 를 써요."
+  },
+  {
+    "id": "normal-10",
+    "tier": "normal",
+    "prompt": "물의 양을 물어볼 때, 올바른 표현은?",
+    "optionA": "How many water do you need?",
+    "optionB": "How much water do you need?",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! water 는 셀 수 없어서 much 를 써요.",
+    "revealCopyWrong": "괜찮아요. water 는 불가산명사라 many 대신 much 를 써요."
+  },
+  {
+    "id": "normal-11",
+    "tier": "normal",
+    "prompt": "책을 비교할 때, 문법적으로 올바른 표현은?",
+    "optionA": "This book is more interesting than that one.",
+    "optionB": "This book is interesting than that one.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "훌륭해요! 3음절 이상 형용사는 more 를 붙여요.",
+    "revealCopyWrong": "괜찮아요. interesting 앞에는 more 가 필요해요."
+  },
+  {
+    "id": "normal-12",
+    "tier": "normal",
+    "prompt": "이메일 참조를 부탁할 때, 더 자연스러운 표현은?",
+    "optionA": "Could you cc me in that email?",
+    "optionB": "Could you cc me on that email?",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! cc me on 이 자연스러운 표현이에요.",
+    "revealCopyWrong": "괜찮아요. \"cc me on\" 이 관용적으로 맞는 표현이에요."
+  },
+  {
+    "id": "normal-13",
+    "tier": "normal",
+    "prompt": "기대를 표현할 때, 올바른 표현은?",
+    "optionA": "I'm looking forward the trip.",
+    "optionB": "I'm looking forward to the trip.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! look forward to 로 써야 해요.",
+    "revealCopyWrong": "괜찮아요. forward 다음엔 to 가 빠지면 안 돼요."
+  },
+  {
+    "id": "normal-14",
+    "tier": "normal",
+    "prompt": "비가 많이 온다는 관용 표현으로 올바른 것은?",
+    "optionA": "It's raining cats and dogs.",
+    "optionB": "It's raining cats and dog.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! 관용구는 cats and dogs 예요.",
+    "revealCopyWrong": "괜찮아요. 관용 표현은 복수형 dogs 를 써요."
+  },
+  {
+    "id": "normal-15",
+    "tier": "normal",
+    "prompt": "취미를 말할 때, 문법적으로 올바른 표현은?",
+    "optionA": "I enjoy to read books.",
+    "optionB": "I enjoy reading books.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! enjoy 뒤에는 동명사가 와요.",
+    "revealCopyWrong": "괜찮아요. enjoy 다음엔 to부정사 대신 동명사를 써요."
+  },
+  {
+    "id": "normal-16",
+    "tier": "normal",
+    "prompt": "꽃병을 깨뜨렸다고 할 때, 올바른 표현은?",
+    "optionA": "She breaked the vase.",
+    "optionB": "She broke the vase.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! break 의 과거형은 broke 예요.",
+    "revealCopyWrong": "괜찮아요. break 는 불규칙 동사라 broke 가 맞아요."
+  },
+  {
+    "id": "normal-17",
+    "tier": "normal",
+    "prompt": "since 와 함께 쓸 때, 문법적으로 올바른 표현은?",
+    "optionA": "I have lived here since 2010.",
+    "optionB": "I live here since 2010.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "훌륭해요! since 는 현재완료와 함께 써요.",
+    "revealCopyWrong": "괜찮아요. since 가 있을 땐 live 대신 have lived 를 써요."
+  },
+  {
+    "id": "normal-18",
+    "tier": "normal",
+    "prompt": "구체적인 시각을 말할 때, 올바른 전치사는?",
+    "optionA": "See you on 5 pm.",
+    "optionB": "See you at 5 pm.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! 시각 앞에는 at 을 써요.",
+    "revealCopyWrong": "괜찮아요. 시각 앞에는 on 대신 at 을 써요."
+  },
+  {
+    "id": "normal-19",
+    "tier": "normal",
+    "prompt": "서랍 안에 있다고 할 때, 올바른 전치사는?",
+    "optionA": "The keys are in the drawer.",
+    "optionB": "The keys are at the drawer.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! 서랍처럼 안이 있는 공간엔 in 을 써요.",
+    "revealCopyWrong": "괜찮아요. 서랍 안이라면 at 대신 in 을 써요."
+  },
+  {
+    "id": "normal-20",
+    "tier": "normal",
+    "prompt": "돈을 빌려달라고 부탁할 때, 올바른 표현은?",
+    "optionA": "Could you lend me some money?",
+    "optionB": "Could you borrow me some money?",
+    "correctIndex": 0,
+    "revealCopyCorrect": "좋아요! 빌려주는 건 lend 예요.",
+    "revealCopyWrong": "괜찮아요. 상대가 빌려주는 거라면 borrow 대신 lend 를 써요."
+  },
+  {
+    "id": "normal-21",
+    "tier": "normal",
+    "prompt": "소식을 전해달라고 할 때, 올바른 표현은?",
+    "optionA": "Please say them the news.",
+    "optionB": "Please tell them the news.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "정확해요! tell 은 사람 목적어와 바로 써요.",
+    "revealCopyWrong": "괜찮아요. them 앞에는 say 대신 tell 을 써요."
+  },
+  {
+    "id": "normal-22",
+    "tier": "normal",
+    "prompt": "결정을 내린다고 할 때, 올바른 표현은?",
+    "optionA": "Let's do a decision.",
+    "optionB": "Let's make a decision.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! decision 은 make 와 함께 써요.",
+    "revealCopyWrong": "괜찮아요. decision 앞에는 do 대신 make 를 써요."
+  },
+  {
+    "id": "normal-23",
+    "tier": "normal",
+    "prompt": "정보가 별로 없다고 할 때, 올바른 표현은?",
+    "optionA": "There isn't much information.",
+    "optionB": "There isn't many information.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "좋아요! information 은 불가산명사라 much 를 써요.",
+    "revealCopyWrong": "괜찮아요. information 은 셀 수 없어서 many 대신 much 를 써요."
+  },
+  {
+    "id": "normal-24",
+    "tier": "normal",
+    "prompt": "날씨가 좋아진다고 할 때, 올바른 표현은?",
+    "optionA": "The weather is getting better.",
+    "optionB": "The weather is getting more good.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "훌륭해요! good 의 비교급은 better 예요.",
+    "revealCopyWrong": "괜찮아요. good 의 비교급은 more good 이 아니라 better 예요."
+  },
+  {
+    "id": "normal-25",
+    "tier": "normal",
+    "prompt": "나중에 다시 연락한다고 할 때, 올바른 표현은?",
+    "optionA": "I'll follow up with you.",
+    "optionB": "I'll follow up you.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! follow up with 가 자연스러운 표현이에요.",
+    "revealCopyWrong": "괜찮아요. follow up 뒤에는 with 를 붙여야 자연스러워요."
+  },
+  {
+    "id": "normal-26",
+    "tier": "normal",
+    "prompt": "비행 출발 시각을 말할 때, 올바른 전치사는?",
+    "optionA": "The flight departs at 9 am.",
+    "optionB": "The flight departs on 9 am.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! 시각을 말할 때는 at 을 써요.",
+    "revealCopyWrong": "괜찮아요. 시각 표현엔 on 이 아니라 at 을 써요."
+  },
+  {
+    "id": "normal-27",
+    "tier": "normal",
+    "prompt": "공연 전 행운을 빌 때, 올바른 관용 표현은?",
+    "optionA": "Break a leg before the show!",
+    "optionB": "Break your leg before the show!",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! \"break a leg\" 가 행운을 비는 관용구예요.",
+    "revealCopyWrong": "괜찮아요. 관용구는 your leg 가 아니라 a leg 예요."
+  },
+  {
+    "id": "normal-28",
+    "tier": "normal",
+    "prompt": "일찍 떠나기로 결정했다고 할 때, 올바른 표현은?",
+    "optionA": "I decided leaving early.",
+    "optionB": "I decided to leave early.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! decide 뒤에는 to부정사가 와요.",
+    "revealCopyWrong": "괜찮아요. decide 다음엔 동명사 대신 to부정사를 써요."
+  },
+  {
+    "id": "normal-29",
+    "tier": "normal",
+    "prompt": "편지를 썼다고 할 때, 올바른 표현은?",
+    "optionA": "He writed a letter.",
+    "optionB": "He wrote a letter.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! write 의 과거형은 wrote 예요.",
+    "revealCopyWrong": "괜찮아요. write 는 불규칙 동사라 wrote 가 맞아요."
+  },
+  {
+    "id": "normal-30",
+    "tier": "normal",
+    "prompt": "방금 일을 끝냈다고 할 때, 올바른 표현은?",
+    "optionA": "I have just finished my work.",
+    "optionB": "I have just finish my work.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "훌륭해요! have 뒤에는 과거분사가 와요.",
+    "revealCopyWrong": "괜찮아요. have just 다음엔 finish 대신 finished 를 써요."
+  },
+  {
+    "id": "normal-31",
+    "tier": "normal",
+    "prompt": "문을 닫아달라고 정중히 부탁할 때, 올바른 표현은?",
+    "optionA": "Would you mind to close the door?",
+    "optionB": "Would you mind closing the door?",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! mind 뒤에는 동명사가 와요.",
+    "revealCopyWrong": "괜찮아요. mind 다음엔 to부정사 대신 동명사를 써요."
+  },
+  {
+    "id": "normal-32",
+    "tier": "normal",
+    "prompt": "아침에 만나자고 할 때, 올바른 전치사는?",
+    "optionA": "I'll meet you at the morning.",
+    "optionB": "I'll meet you in the morning.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! morning 앞에는 in 을 써요.",
+    "revealCopyWrong": "괜찮아요. morning 앞에는 at 대신 in 을 써요."
+  },
+  {
+    "id": "normal-33",
+    "tier": "normal",
+    "prompt": "그가 주말 동안 차를 빌렸다고 할 때, 올바른 표현은?",
+    "optionA": "He borrowed my car for the weekend.",
+    "optionB": "He lent my car for the weekend.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! 그가 빌려 쓴 거라면 borrowed 가 맞아요.",
+    "revealCopyWrong": "괜찮아요. 빌려 쓴 사람 입장이면 lent 대신 borrowed 를 써요."
+  },
+  {
+    "id": "normal-34",
+    "tier": "normal",
+    "prompt": "시간을 물어볼 때, 올바른 표현은?",
+    "optionA": "Can you tell me the time?",
+    "optionB": "Can you say me the time?",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! tell 뒤에는 목적어가 바로 와요.",
+    "revealCopyWrong": "괜찮아요. me 앞에는 say 대신 tell 을 써요."
+  },
+  {
+    "id": "normal-35",
+    "tier": "normal",
+    "prompt": "실수를 했다고 할 때, 올바른 표현은?",
+    "optionA": "She did a mistake.",
+    "optionB": "She made a mistake.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! mistake 는 make 와 함께 써요.",
+    "revealCopyWrong": "괜찮아요. mistake 앞에는 do 대신 make 를 써요."
+  },
+  {
+    "id": "normal-36",
+    "tier": "normal",
+    "prompt": "몇 명이 왔는지 물어볼 때, 올바른 표현은?",
+    "optionA": "How many people came?",
+    "optionB": "How much people came?",
+    "correctIndex": 0,
+    "revealCopyCorrect": "훌륭해요! people 은 셀 수 있어서 many 를 써요.",
+    "revealCopyWrong": "괜찮아요. people 은 셀 수 있는 명사라 much 대신 many 를 써요."
+  },
+  {
+    "id": "normal-37",
+    "tier": "normal",
+    "prompt": "키를 비교할 때, 올바른 표현은?",
+    "optionA": "He is more tall than his brother.",
+    "optionB": "He is taller than his brother.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! 짧은 형용사는 -er 을 붙여요.",
+    "revealCopyWrong": "괜찮아요. tall 은 more tall 이 아니라 taller 로 써요."
+  },
+  {
+    "id": "normal-38",
+    "tier": "normal",
+    "prompt": "연락을 기다린다고 할 때, 올바른 표현은?",
+    "optionA": "I'm looking forward to hearing from you.",
+    "optionB": "I'm looking forward to hear from you.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "좋아요! forward to 뒤에는 동명사가 와요.",
+    "revealCopyWrong": "괜찮아요. forward to 다음엔 동사원형 대신 동명사를 써요."
+  },
+  {
+    "id": "normal-39",
+    "tier": "normal",
+    "prompt": "가장 가까운 지하철역을 물어볼 때, 올바른 표현은?",
+    "optionA": "Where is the nearest subway station?",
+    "optionB": "Where is the nearest station of subway?",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! subway station 처럼 명사를 앞에 붙여요.",
+    "revealCopyWrong": "괜찮아요. station of subway 대신 subway station 이 자연스러워요."
+  },
+  {
+    "id": "normal-40",
+    "tier": "normal",
+    "prompt": "아주 쉬운 일이라고 할 때, 올바른 관용 표현은?",
+    "optionA": "It's a piece of cake!",
+    "optionB": "It's a piece of cakes!",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! 관용구는 단수 cake 를 써요.",
+    "revealCopyWrong": "괜찮아요. 관용 표현은 cakes 가 아니라 단수 cake 예요."
+  },
+  {
+    "id": "normal-41",
+    "tier": "normal",
+    "prompt": "영어 실력을 늘리고 싶다고 할 때, 올바른 표현은?",
+    "optionA": "I want improving my English.",
+    "optionB": "I want to improve my English.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! want 뒤에는 to부정사가 와요.",
+    "revealCopyWrong": "괜찮아요. want 다음엔 동명사 대신 to부정사를 써요."
+  },
+  {
+    "id": "normal-42",
+    "tier": "normal",
+    "prompt": "택시를 탔다고 할 때, 올바른 표현은?",
+    "optionA": "They took a taxi.",
+    "optionB": "They taked a taxi.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "훌륭해요! take 의 과거형은 took 이에요.",
+    "revealCopyWrong": "괜찮아요. take 는 불규칙 동사라 took 이 맞아요."
+  },
+  {
+    "id": "normal-43",
+    "tier": "normal",
+    "prompt": "since 와 함께 쓸 때, 문법적으로 올바른 또 다른 표현은?",
+    "optionA": "I knew her since college.",
+    "optionB": "I have known her since college.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! since 는 현재완료와 어울려요.",
+    "revealCopyWrong": "괜찮아요. since 가 있을 땐 knew 대신 have known 을 써요."
+  },
+  {
+    "id": "normal-44",
+    "tier": "normal",
+    "prompt": "여기 앉아도 되는지 물어볼 때, 올바른 표현은?",
+    "optionA": "Do you mind if I will sit here?",
+    "optionB": "Do you mind if I sit here?",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! if 절에는 현재시제를 써요.",
+    "revealCopyWrong": "괜찮아요. if I sit 처럼 will 없이 현재시제를 써요."
+  },
+  {
+    "id": "normal-45",
+    "tier": "normal",
+    "prompt": "공항에 도착했다고 할 때, 올바른 전치사는?",
+    "optionA": "She arrived at the airport early.",
+    "optionB": "She arrived to the airport early.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! arrive 뒤에는 at 을 써요.",
+    "revealCopyWrong": "괜찮아요. arrive 다음엔 to 대신 at 을 써요."
+  },
+  {
+    "id": "normal-46",
+    "tier": "normal",
+    "prompt": "우산을 빌려달라고 할 때, 올바른 표현은?",
+    "optionA": "Can you borrow me your umbrella?",
+    "optionB": "Can you lend me your umbrella?",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! 상대에게 빌려줄 때는 lend 를 써요.",
+    "revealCopyWrong": "괜찮아요. 내가 아니라 상대가 빌려주는 거라 lend 가 맞아요."
+  },
+  {
+    "id": "normal-47",
+    "tier": "normal",
+    "prompt": "모두에게 인사했다고 할 때, 올바른 표현은?",
+    "optionA": "He said hello to everyone.",
+    "optionB": "He told hello to everyone.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "좋아요! hello 는 say 와 함께 써요.",
+    "revealCopyWrong": "괜찮아요. hello 앞에는 told 대신 said 를 써요."
+  },
+  {
+    "id": "normal-48",
+    "tier": "normal",
+    "prompt": "설거지를 해야 한다고 할 때, 올바른 표현은?",
+    "optionA": "I have to make the dishes.",
+    "optionB": "I have to do the dishes.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "훌륭해요! dishes 는 do 와 함께 써요.",
+    "revealCopyWrong": "괜찮아요. dishes 앞에는 make 대신 do 를 써요."
+  },
+  {
+    "id": "normal-49",
+    "tier": "normal",
+    "prompt": "시간이 별로 없다고 할 때, 올바른 표현은?",
+    "optionA": "I don't have much time.",
+    "optionB": "I don't have many time.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! time 은 불가산명사라 much 를 써요.",
+    "revealCopyWrong": "괜찮아요. time 은 셀 수 없어서 many 대신 much 를 써요."
+  },
+  {
+    "id": "normal-50",
+    "tier": "normal",
+    "prompt": "최상급을 쓸 때, 올바른 표현은?",
+    "optionA": "This is the beautifulest place I've seen.",
+    "optionB": "This is the most beautiful place I've seen.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "정확해요! 긴 형용사의 최상급은 most 를 붙여요.",
+    "revealCopyWrong": "괜찮아요. beautiful 은 beautifulest 가 아니라 most beautiful 로 써요."
+  },
+  {
+    "id": "hard-4",
+    "tier": "hard",
+    "prompt": "avoid 뒤에 오는 동사 형태로 올바른 문장은?",
+    "optionA": "I avoided to answer the question.",
+    "optionB": "I avoided answering the question.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! avoid는 뒤에 -ing를 써요.",
+    "revealCopyWrong": "괜찮아요. avoid 뒤에는 to부정사가 아니라 -ing를 써요."
+  },
+  {
+    "id": "hard-5",
+    "tier": "hard",
+    "prompt": "capable 뒤에 쓰는 전치사가 올바른 문장은?",
+    "optionA": "She is capable of handling the project alone.",
+    "optionB": "She is capable to handle the project alone.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! capable of + -ing 형태예요.",
+    "revealCopyWrong": "괜찮아요. capable 뒤에는 to가 아니라 of를 써요."
+  },
+  {
+    "id": "hard-6",
+    "tier": "hard",
+    "prompt": "interested 뒤에 쓰는 전치사가 올바른 문장은?",
+    "optionA": "I'm interested to learning more about this role.",
+    "optionB": "I'm interested in learning more about this role.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! interested in + -ing 가 맞아요.",
+    "revealCopyWrong": "괜찮아요. interested 뒤에는 to가 아니라 in을 써요."
+  },
+  {
+    "id": "hard-7",
+    "tier": "hard",
+    "prompt": "과거 상황에 대한 가정법으로 올바른 문장은?",
+    "optionA": "If I had known earlier, I would have told you.",
+    "optionB": "If I would have known earlier, I would have told you.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "훌륭해요! 과거 사실의 반대를 가정하는 가정법 과거완료는 if + had p.p.예요.",
+    "revealCopyWrong": "괜찮아요. if절에는 would have가 아니라 had p.p.를 써요."
+  },
+  {
+    "id": "hard-8",
+    "tier": "hard",
+    "prompt": "현재 상황에 대한 가정법으로 올바른 문장은?",
+    "optionA": "If I was you, I would accept the offer.",
+    "optionB": "If I were you, I would accept the offer.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! 가정법에서는 were를 써요.",
+    "revealCopyWrong": "괜찮아요. 가정법에서는 was 대신 were를 써요."
+  },
+  {
+    "id": "hard-9",
+    "tier": "hard",
+    "prompt": "회의를 미룰 때 알맞은 표현은?",
+    "optionA": "Let's put off the meeting until next week.",
+    "optionB": "Let's put on the meeting until next week.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! put off가 '연기하다'예요.",
+    "revealCopyWrong": "괜찮아요. '연기하다'는 put on이 아니라 put off예요."
+  },
+  {
+    "id": "hard-10",
+    "tier": "hard",
+    "prompt": "회의에서 새 안건을 꺼낼 때 알맞은 표현은?",
+    "optionA": "I'd like to bring on a concern.",
+    "optionB": "I'd like to bring up a concern.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! bring up이 '화제를 꺼내다'예요.",
+    "revealCopyWrong": "괜찮아요. '화제를 꺼내다'는 bring on이 아니라 bring up이에요."
+  },
+  {
+    "id": "hard-11",
+    "tier": "hard",
+    "prompt": "동료에게 참석을 제안하는 격식체 문장으로 맞는 것은?",
+    "optionA": "I suggest that he attend the meeting.",
+    "optionB": "I suggest that he attends the meeting.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! suggest 뒤 that절은 동사원형을 써요.",
+    "revealCopyWrong": "괜찮아요. suggest that 뒤에는 attends가 아니라 attend를 써요."
+  },
+  {
+    "id": "hard-12",
+    "tier": "hard",
+    "prompt": "보고서 제출을 강조하는 격식체 문장으로 맞는 것은?",
+    "optionA": "It is essential that the report is submitted on time.",
+    "optionB": "It is essential that the report be submitted on time.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "훌륭해요! essential that 뒤에는 동사원형을 써요.",
+    "revealCopyWrong": "괜찮아요. is 대신 be를 쓰는 게 격식에 맞아요."
+  },
+  {
+    "id": "hard-13",
+    "tier": "hard",
+    "prompt": "'결정하다'라는 뜻의 연어로 올바른 것은?",
+    "optionA": "We need to make a decision soon.",
+    "optionB": "We need to do a decision soon.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! decision은 make와 함께 써요.",
+    "revealCopyWrong": "괜찮아요. decision 앞에는 do가 아니라 make를 써요."
+  },
+  {
+    "id": "hard-14",
+    "tier": "hard",
+    "prompt": "'책임지다'라는 뜻의 연어로 올바른 것은?",
+    "optionA": "She made responsibility for the mistake.",
+    "optionB": "She took responsibility for the mistake.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! responsibility는 take와 함께 써요.",
+    "revealCopyWrong": "괜찮아요. responsibility 앞에는 make가 아니라 take를 써요."
+  },
+  {
+    "id": "hard-15",
+    "tier": "hard",
+    "prompt": "관사 사용이 자연스러운 문장은?",
+    "optionA": "He has a good grasp of the subject.",
+    "optionB": "He has good grasp of the subject.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! grasp 앞에는 관사 a가 필요해요.",
+    "revealCopyWrong": "괜찮아요. grasp 앞에는 a를 붙여야 자연스러워요."
+  },
+  {
+    "id": "hard-16",
+    "tier": "hard",
+    "prompt": "'전반적으로'라는 뜻의 관용 표현으로 올바른 것은?",
+    "optionA": "On whole, the project was a success.",
+    "optionB": "On the whole, the project was a success.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "정확해요! on the whole이 맞는 표현이에요.",
+    "revealCopyWrong": "괜찮아요. whole 앞에는 the를 붙여요."
+  },
+  {
+    "id": "hard-17",
+    "tier": "hard",
+    "prompt": "'영향을 주다'라는 뜻의 동사로 올바른 문장은?",
+    "optionA": "The delay will affect our schedule.",
+    "optionB": "The delay will effect our schedule.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! 동사로는 affect를 써요.",
+    "revealCopyWrong": "괜찮아요. 동사 자리에는 effect가 아니라 affect를 써요."
+  },
+  {
+    "id": "hard-18",
+    "tier": "hard",
+    "prompt": "'경제적인'이라는 뜻으로 문맥에 맞는 단어가 쓰인 문장은?",
+    "optionA": "This is a very economic way to travel.",
+    "optionB": "This is a very economical way to travel.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! '경제적인, 절약되는'은 economical이에요.",
+    "revealCopyWrong": "괜찮아요. '절약되는'이라는 뜻은 economic이 아니라 economical이에요."
+  },
+  {
+    "id": "hard-19",
+    "tier": "hard",
+    "prompt": "정중한 이메일 요청으로 더 알맞은 문장은?",
+    "optionA": "I was wondering if you could send the file.",
+    "optionB": "I want you send the file.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "훌륭해요! 정중하고 자연스러운 요청이에요.",
+    "revealCopyWrong": "괜찮아요. \"I was wondering if...\"가 더 자연스럽고 정중해요."
+  },
+  {
+    "id": "hard-20",
+    "tier": "hard",
+    "prompt": "'아이디어를 생각해내다'라는 뜻의 표현으로 올바른 것은?",
+    "optionA": "We need to come up to a solution.",
+    "optionB": "We need to come up with a solution.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! come up with이 '생각해내다'예요.",
+    "revealCopyWrong": "괜찮아요. '생각해내다'는 come up to가 아니라 come up with예요."
+  },
+  {
+    "id": "hard-21",
+    "tier": "hard",
+    "prompt": "consider 뒤에 오는 동사 형태로 올바른 문장은?",
+    "optionA": "Please consider joining our team.",
+    "optionB": "Please consider to join our team.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! consider 뒤에는 -ing를 써요.",
+    "revealCopyWrong": "괜찮아요. consider 뒤에는 to부정사 대신 -ing를 써요."
+  },
+  {
+    "id": "hard-22",
+    "tier": "hard",
+    "prompt": "decide 뒤에 오는 동사 형태로 올바른 문장은?",
+    "optionA": "They decided postponing the launch.",
+    "optionB": "They decided to postpone the launch.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! decide 뒤에는 to부정사를 써요.",
+    "revealCopyWrong": "괜찮아요. decide 뒤에는 -ing 대신 to부정사를 써요."
+  },
+  {
+    "id": "hard-23",
+    "tier": "hard",
+    "prompt": "'~에 익숙해지다'라는 뜻으로 올바른 문장은?",
+    "optionA": "I'm getting used to working remotely.",
+    "optionB": "I'm getting used to work remotely.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "좋아요! be used to 뒤에는 -ing를 써요.",
+    "revealCopyWrong": "괜찮아요. '익숙해지다'는 be/get used to + -ing예요. (과거 습관 뜻의 used to + 동사원형과는 다른 표현이에요.)"
+  },
+  {
+    "id": "hard-24",
+    "tier": "hard",
+    "prompt": "despite 뒤에 오는 형태로 올바른 문장은?",
+    "optionA": "Despite it rained, we went hiking.",
+    "optionB": "Despite the rain, we went hiking.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! despite 뒤에는 명사(구)가 와요.",
+    "revealCopyWrong": "괜찮아요. despite 뒤에는 절이 아니라 명사를 써요. 절 앞에는 although를 써요."
+  },
+  {
+    "id": "hard-25",
+    "tier": "hard",
+    "prompt": "in spite of 뒤에 오는 형태로 올바른 문장은?",
+    "optionA": "In spite of feeling tired, she finished the report.",
+    "optionB": "In spite of she felt tired, she finished the report.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! in spite of 뒤에는 -ing나 명사가 와요.",
+    "revealCopyWrong": "괜찮아요. in spite of 뒤에는 절이 아니라 -ing를 써요."
+  },
+  {
+    "id": "hard-26",
+    "tier": "hard",
+    "prompt": "더 정중한 요청 표현은?",
+    "optionA": "Can you review this by Friday now?",
+    "optionB": "Could you possibly review this by Friday?",
+    "correctIndex": 1,
+    "revealCopyCorrect": "훌륭해요! possibly를 더하면 더 정중해요.",
+    "revealCopyWrong": "괜찮아요. \"Could you possibly...\"가 더 격식있고 부드러워요."
+  },
+  {
+    "id": "hard-27",
+    "tier": "hard",
+    "prompt": "격식 있는 감사·요청 표현으로 올바른 문장은?",
+    "optionA": "I would appreciate it if you could confirm the date.",
+    "optionB": "I would appreciate if you could confirm the date.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! appreciate 뒤에는 it을 넣어야 자연스러워요.",
+    "revealCopyWrong": "괜찮아요. \"appreciate it if\"처럼 it을 꼭 넣어야 해요."
+  },
+  {
+    "id": "hard-28",
+    "tier": "hard",
+    "prompt": "셀 수 있는 명사와 함께 쓰는 표현으로 올바른 문장은?",
+    "optionA": "We received less complaints this month.",
+    "optionB": "We received fewer complaints this month.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "정확해요! 셀 수 있는 명사에는 fewer를 써요.",
+    "revealCopyWrong": "괜찮아요. complaints처럼 셀 수 있는 명사에는 less 대신 fewer를 써요."
+  },
+  {
+    "id": "hard-29",
+    "tier": "hard",
+    "prompt": "셋 이상을 나눌 때 쓰는 전치사로 올바른 문장은?",
+    "optionA": "The budget was split among the three teams.",
+    "optionB": "The budget was split between the three teams.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "좋아요! 셋 이상일 땐 among을 써요.",
+    "revealCopyWrong": "괜찮아요. 셋 이상일 때는 between 대신 among을 써요."
+  },
+  {
+    "id": "hard-30",
+    "tier": "hard",
+    "prompt": "'빌려주다'라는 뜻으로 문맥에 맞는 단어가 쓰인 문장은?",
+    "optionA": "Could you borrow me your laptop for the demo?",
+    "optionB": "Could you lend me your laptop for the demo?",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! 빌려주는 건 lend예요.",
+    "revealCopyWrong": "괜찮아요. 상대가 나에게 빌려줄 때는 borrow가 아니라 lend를 써요."
+  },
+  {
+    "id": "hard-31",
+    "tier": "hard",
+    "prompt": "'오르다'라는 뜻의 동사 활용으로 올바른 문장은?",
+    "optionA": "Sales rose sharply last quarter.",
+    "optionB": "Sales raised sharply last quarter.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! 자동사 자리에는 rise의 과거형 rose를 써요.",
+    "revealCopyWrong": "괜찮아요. 자동사 자리에는 raised가 아니라 rose를 써요."
+  },
+  {
+    "id": "hard-32",
+    "tier": "hard",
+    "prompt": "'영향'이라는 뜻의 명사로 올바른 문장은?",
+    "optionA": "The policy had a positive affect on morale.",
+    "optionB": "The policy had a positive effect on morale.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! 명사 자리에는 effect를 써요.",
+    "revealCopyWrong": "괜찮아요. 명사 자리에는 affect가 아니라 effect를 써요."
+  },
+  {
+    "id": "hard-33",
+    "tier": "hard",
+    "prompt": "would rather 뒤에 오는 동사 형태로 올바른 문장은?",
+    "optionA": "I would rather work from home today.",
+    "optionB": "I would rather to work from home today.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "좋아요! would rather 뒤에는 동사원형을 써요.",
+    "revealCopyWrong": "괜찮아요. would rather 뒤에는 to 없이 동사원형을 써요."
+  },
+  {
+    "id": "hard-34",
+    "tier": "hard",
+    "prompt": "had better 뒤에 오는 동사 형태로 올바른 문장은?",
+    "optionA": "You had better to double-check the numbers.",
+    "optionB": "You had better double-check the numbers.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "정확해요! had better 뒤에는 동사원형을 써요.",
+    "revealCopyWrong": "괜찮아요. had better 뒤에는 to 없이 동사원형이 와요."
+  },
+  {
+    "id": "hard-35",
+    "tier": "hard",
+    "prompt": "'약간의 시간이 있다'는 긍정적 의미로 알맞은 문장은?",
+    "optionA": "We have a few minutes before the call.",
+    "optionB": "We have few minutes before the call.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! 'a few'는 긍정적으로 '조금 있다'는 뜻이에요.",
+    "revealCopyWrong": "괜찮아요. few만 쓰면 '거의 없다'는 부정적 의미가 돼요. a few를 쓰세요."
+  },
+  {
+    "id": "hard-36",
+    "tier": "hard",
+    "prompt": "'세부사항을 해결하다'라는 뜻의 표현으로 올바른 것은?",
+    "optionA": "Let's iron up the details before we sign.",
+    "optionB": "Let's iron out the details before we sign.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "훌륭해요! iron out이 '세부사항을 해결하다'예요.",
+    "revealCopyWrong": "괜찮아요. '해결하다'는 iron up이 아니라 iron out이에요."
+  },
+  {
+    "id": "hard-37",
+    "tier": "hard",
+    "prompt": "'~할 시간을 내다'라는 뜻의 표현으로 올바른 것은?",
+    "optionA": "I finally got around to answering your email.",
+    "optionB": "I finally got around answering your email.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! get around to 뒤에는 -ing가 와요.",
+    "revealCopyWrong": "괜찮아요. get around 뒤에는 to를 빼면 안 돼요."
+  },
+  {
+    "id": "hard-38",
+    "tier": "hard",
+    "prompt": "'~을 담당하다'라는 뜻으로 전치사가 올바른 문장은?",
+    "optionA": "She is in charge for the marketing team.",
+    "optionB": "She is in charge of the marketing team.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "정확해요! in charge 뒤에는 of를 써요.",
+    "revealCopyWrong": "괜찮아요. in charge 뒤에는 for가 아니라 of를 써요."
+  },
+  {
+    "id": "hard-39",
+    "tier": "hard",
+    "prompt": "'~에 능숙하다'라는 뜻으로 전치사가 올바른 문장은?",
+    "optionA": "He is good at negotiating deals.",
+    "optionB": "He is good in negotiating deals.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "맞아요! good 뒤에는 at을 써요.",
+    "revealCopyWrong": "괜찮아요. good 뒤에는 in이 아니라 at을 써요."
+  },
+  {
+    "id": "hard-40",
+    "tier": "hard",
+    "prompt": "비즈니스 이메일에 더 알맞은 문장은?",
+    "optionA": "I'm gonna finish the draft by tomorrow.",
+    "optionB": "I am going to finish the draft by tomorrow.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "좋아요! 이메일에는 격식체가 더 알맞아요.",
+    "revealCopyWrong": "괜찮아요. \"gonna\"는 구어체라 이메일에는 \"going to\"가 더 알맞아요."
+  },
+  {
+    "id": "hard-41",
+    "tier": "hard",
+    "prompt": "'~와 상관없이'라는 뜻으로 전치사가 빠지지 않은 문장은?",
+    "optionA": "We will proceed regardless of the weather.",
+    "optionB": "We will proceed regardless the weather.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! regardless 뒤에는 of가 필요해요.",
+    "revealCopyWrong": "괜찮아요. regardless 뒤에는 of를 빼면 안 돼요."
+  },
+  {
+    "id": "hard-42",
+    "tier": "hard",
+    "prompt": "대조를 나타낼 때 알맞은 표현은?",
+    "optionA": "We prefer email as opposed with phone calls.",
+    "optionB": "We prefer email as opposed to phone calls.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! as opposed to가 맞는 표현이에요.",
+    "revealCopyWrong": "괜찮아요. opposed 뒤에는 with가 아니라 to를 써요."
+  },
+  {
+    "id": "hard-43",
+    "tier": "hard",
+    "prompt": "'~를 대신하여'라는 뜻으로 올바른 표현은?",
+    "optionA": "I'm writing on behalf of my manager.",
+    "optionB": "I'm writing in behalf of my manager.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! on behalf of가 표준 표현이에요.",
+    "revealCopyWrong": "괜찮아요. behalf 앞에는 in이 아니라 on을 써요."
+  },
+  {
+    "id": "hard-44",
+    "tier": "hard",
+    "prompt": "'말하다'라는 동사 선택이 올바른 문장은?",
+    "optionA": "She said me the deadline was moved.",
+    "optionB": "She told me the deadline was moved.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! 목적어가 바로 오면 tell을 써요.",
+    "revealCopyWrong": "괜찮아요. say 뒤에는 사람 목적어를 바로 못 써요. tell을 쓰세요."
+  },
+  {
+    "id": "hard-45",
+    "tier": "hard",
+    "prompt": "insist 뒤에 오는 전치사와 동사 형태가 올바른 문장은?",
+    "optionA": "He insisted on reviewing the contract again.",
+    "optionB": "He insisted to review the contract again.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "훌륭해요! insist 뒤에는 on + -ing를 써요.",
+    "revealCopyWrong": "괜찮아요. insist 뒤에는 to부정사 대신 on + -ing를 써요."
+  },
+  {
+    "id": "hard-46",
+    "tier": "hard",
+    "prompt": "succeed 뒤에 오는 전치사와 동사 형태가 올바른 문장은?",
+    "optionA": "They succeeded to close the deal.",
+    "optionB": "They succeeded in closing the deal.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! succeed 뒤에는 in + -ing를 써요.",
+    "revealCopyWrong": "괜찮아요. succeed 뒤에는 to부정사가 아니라 in + -ing를 써요."
+  },
+  {
+    "id": "hard-47",
+    "tier": "hard",
+    "prompt": "prevent 뒤에 오는 전치사와 동사 형태가 올바른 문장은?",
+    "optionA": "The delay prevented us from launching on time.",
+    "optionB": "The delay prevented us to launch on time.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "정확해요! prevent 뒤에는 from + -ing를 써요.",
+    "revealCopyWrong": "괜찮아요. prevent 뒤에는 to부정사 대신 from + -ing를 써요."
+  },
+  {
+    "id": "hard-48",
+    "tier": "hard",
+    "prompt": "accuse 뒤에 오는 전치사가 올바른 문장은?",
+    "optionA": "They accused him for leaking the data.",
+    "optionB": "They accused him of leaking the data.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! accuse 뒤에는 of를 써요.",
+    "revealCopyWrong": "괜찮아요. accuse 뒤에는 for가 아니라 of를 써요."
+  },
+  {
+    "id": "hard-49",
+    "tier": "hard",
+    "prompt": "apologize 뒤에 오는 전치사로 더 표준적인 문장은?",
+    "optionA": "I apologize for the delay in replying.",
+    "optionB": "I apologize about the delay in replying.",
+    "correctIndex": 0,
+    "revealCopyCorrect": "좋아요! apologize 뒤에는 for를 써요.",
+    "revealCopyWrong": "괜찮아요. apologize 뒤에는 about보다 for가 더 표준적이에요."
+  },
+  {
+    "id": "hard-50",
+    "tier": "hard",
+    "prompt": "'연락하다'라는 뜻으로 올바른 표현은?",
+    "optionA": "Feel free to reach to me anytime.",
+    "optionB": "Feel free to reach out to me anytime.",
+    "correctIndex": 1,
+    "revealCopyCorrect": "맞아요! '연락하다'는 reach out to예요.",
+    "revealCopyWrong": "괜찮아요. reach 뒤에는 out to를 붙여야 자연스러워요."
   }
 ]
