@@ -65,7 +65,13 @@ class RecordsViewModelTest {
         repo: FakeSavedCardRepository = FakeSavedCardRepository(),
         analytics: RecordingHistoryAnalytics = RecordingHistoryAnalytics(),
         lifetime: LifetimeStats? = null,
-    ) = RecordsViewModel(query, repo, FakeLifetimeStatsSource(lifetime), analytics, HistoryCountUpGate())
+        reviewSource: com.jjundev.oneclickeng.feature.review.FakeReviewSource =
+            com.jjundev.oneclickeng.feature.review.FakeReviewSource(),
+    ) = RecordsViewModel(
+        query, repo, FakeLifetimeStatsSource(lifetime), analytics, HistoryCountUpGate(),
+        reviewSource,
+        object : com.jjundev.oneclickeng.feature.review.data.ReviewClock { override fun nowMs() = 0L },
+    )
 
     @Test
     fun `init loads first page of default tab and logs tab_view`() =
@@ -149,6 +155,15 @@ class RecordsViewModelTest {
             advanceUntilIdle()
 
             assertTrue(viewModel.uiState.value.animateCountUp)
+        }
+
+    @Test
+    fun `exposes due count from review source`() =
+        runTest(dispatcher) {
+            val reviewSource = com.jjundev.oneclickeng.feature.review.FakeReviewSource(due = 7)
+            val viewModel = vm(reviewSource = reviewSource)
+            advanceUntilIdle()
+            assertEquals(7, viewModel.uiState.value.dueCount)
         }
 }
 
