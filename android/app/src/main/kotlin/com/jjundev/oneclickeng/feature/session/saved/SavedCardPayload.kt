@@ -50,6 +50,7 @@ internal object SavedCardPayload {
      * SRS 스케줄 업데이트(평면 필드 merge write). cardType(update 규칙) 동봉. content/createdAt/deletedAt
      * 미포함 — 반드시 기존 문서에만 쓴다(SavedCardRepository.updateSrs 의 exists 가드).
      */
+    @Suppress("LongParameterList")
     fun srs(
         cardType: CardType,
         box: Int,

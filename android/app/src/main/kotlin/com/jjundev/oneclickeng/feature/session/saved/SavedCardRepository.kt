@@ -42,6 +42,7 @@ interface SavedCardRepository {
         deleted: Boolean,
     )
 
+    @Suppress("LongParameterList")
     fun updateSrs(
         cardId: String,
         cardType: CardType,
