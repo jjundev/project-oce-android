@@ -776,7 +776,7 @@ internal fun SettingsInline(
         ) {
             OneClickCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(OceTheme.spacing.lg),
+                    modifier = Modifier.fillMaxWidth().padding(OceTheme.spacing.xl),
                     verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.lg),
                 ) {
                     // 레벨: 5-스톱 슬라이더(인덱스 0..4) + 선택 라벨/설명(우측 정렬, CEFR 미노출).
@@ -788,7 +788,10 @@ internal fun SettingsInline(
                             verticalAlignment = Alignment.Top,
                         ) {
                             SettingLabel("난이도")
-                            Column(horizontalAlignment = Alignment.End) {
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+                            ) {
                                 Text(
                                     text = current.labelKo,
                                     style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold),
@@ -814,19 +817,30 @@ internal fun SettingsInline(
                             showValueLabel = false,
                         )
                     }
-                    // 길이: 짝수 6..20 슬라이더 + "N턴".
+                    // 길이: 짝수 6..20 슬라이더 + "N턴"/설명(우측 정렬, 레벨 컨트롤과 동일 레이아웃).
                     Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
+                            verticalAlignment = Alignment.Top,
                         ) {
                             SettingLabel("대화 길이")
-                            Text(
-                                text = "${length}턴",
-                                style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+                            ) {
+                                Text(
+                                    text = "${length}턴",
+                                    style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    text = lengthDescKo(length),
+                                    style = OceTheme.typography.helper,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.End,
+                                )
+                            }
                         }
                         OneClickSlider(
                             value = length.toFloat(),
@@ -855,6 +869,15 @@ private fun SettingLabel(text: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
+
+/** 대화 길이(짝수 6..20) 구간별 짧은 설명 — 레벨 설명과 대칭되는 우측 정렬 보조 문구. */
+private fun lengthDescKo(length: Int): String =
+    when {
+        length <= 8 -> "짧고 가볍게 대화해요"
+        length <= 12 -> "적당한 길이로 대화해요"
+        length <= 16 -> "여유 있게 대화해요"
+        else -> "길고 깊이 있게 대화해요"
+    }
 
 /**
  * 게임화 요약 스트립(H2) — 인라인 `🕐 오늘 N분 · 🔥 N일 연속`(프로토타입 정합, pill 아님). streak 0 은 숨긴다.
