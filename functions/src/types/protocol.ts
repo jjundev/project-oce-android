@@ -24,7 +24,8 @@ export type ResponseMode = "sse" | "json";
  * `task=dialogue` request payload — M1-02. Generation inputs; `sessionId` is NOT sent by the
  * client (the server mints it in the start-gate transaction and returns it via `event:meta`,
  * backend-functions.md §7). `firstSession:true` forces `easy`/`length=5` server-side regardless
- * of the supplied values (dialogue-generate.md:39). `length` (turn count, 5|10) also becomes
+ * of the supplied values (dialogue-generate.md:39). `length` (turn count) is an even integer
+ * 6..20 for non-first sessions (first session is server-coerced to 5) and also becomes
  * `sessions/{id}.turnCount` — the per-session call-cap divisor (session-cap.ts:75).
  */
 export interface DialoguePayload {

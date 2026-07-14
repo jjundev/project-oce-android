@@ -72,8 +72,26 @@ class FirestoreCompletionLedger
                         ).await()
                 } catch (e: FirebaseFirestoreException) {
                     if (e.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
-                        // 규칙 거부(예: 5티어 이관 창에서 신토큰 미허용) — XP 미적립으로 이어지므로 가시화.
-                        Log.w(TAG, "point_ledger create denied — XP not accrued: ${e.message}")
+                        // PERMISSION_DENIED 는 두 경우를 구분 못 한다: (a) 문서가 이미 존재해 규칙이 이를
+                        // update 로 평가·거부(무해한 재진입 — create-only 불변 문서라 멱등), (b) 문서가
+                        // 없는데도 create 자체가 거부(진짜 규칙 거부, 예: 5티어 이관 창에서 신토큰 미허용).
+                        // 소유자는 자신의 원장을 읽을 수 있으므로(rules: allow read: if owner(uid)) 후속
+                        // 읽기로 존재 여부를 확인해 로그 레벨을 분기한다. 읽기 실패는 광범위 catch 로 삼켜
+                        // fire-and-forget 코루틴이 죽지 않게 한다.
+                        val alreadyExists =
+                            runCatching {
+                                firestore
+                                    .collection(USERS).document(uid)
+                                    .collection(POINT_LEDGER).document(sessionId)
+                                    .get()
+                                    .await()
+                                    .exists()
+                            }.getOrDefault(false)
+                        if (alreadyExists) {
+                            Log.d(TAG, "point_ledger already awarded (idempotent replay): ${e.message}")
+                        } else {
+                            Log.w(TAG, "point_ledger create denied — XP not accrued: ${e.message}")
+                        }
                     } else {
                         Log.d(TAG, "point_ledger create skipped (idempotent/offline): ${e.message}")
                     }

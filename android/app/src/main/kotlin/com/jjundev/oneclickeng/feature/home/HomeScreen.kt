@@ -729,9 +729,10 @@ private fun HeroBadge(icon: OceIcon) {
 }
 
 /**
- * 설정 변경 인라인(프로토 settingsOpenHome) — "⚙ 설정 변경 · 쉬움 · 5턴 ⌄" 행 탭 시 홈 안에서 레벨·길이
- * 세그먼트 패널이 펼쳐진다(별도 화면 없음). [level] null(=profile.level 미해소, #6) 동안은 요약을 로딩
- * 문구로 대체하고 펼침을 막는다.
+ * 설정 변경 인라인(프로토 settingsOpenHome) — "⚙ 설정 변경 ⌄" 행 탭 시 홈 안에서 레벨·길이 슬라이더
+ * 패널이 펼쳐진다(별도 화면 없음). 레벨은 5-스톱 슬라이더(라벨+설명 우측 정렬), 길이는 짝수 6..20
+ * 슬라이더(기본 10턴)다. [level] null(=profile.level 미해소, #6) 동안은 요약을 로딩 문구로 대체하고
+ * 펼침을 막는다.
  */
 @Composable
 internal fun SettingsInline(
