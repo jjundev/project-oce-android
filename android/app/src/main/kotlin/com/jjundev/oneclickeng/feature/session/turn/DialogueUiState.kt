@@ -42,8 +42,8 @@ data class ScaffoldTask(val koreanPrompt: String)
 sealed interface DialogueMessage {
     val english: String
 
-    /** 상대역 말풍선(좌측, `surface.card`). */
-    data class Opponent(override val english: String) : DialogueMessage
+    /** 상대역 말풍선(좌측, `surface.card`). [korean] 은 `해석 보기` 토글용 한국어 번역(없으면 빈 문자열). */
+    data class Opponent(override val english: String, val korean: String = "") : DialogueMessage
 
     /**
      * 학습자 말풍선(우측, `brand.primary`). M1-03 에서는 [DialogueTurn.referenceEnglish] 목표 문장을

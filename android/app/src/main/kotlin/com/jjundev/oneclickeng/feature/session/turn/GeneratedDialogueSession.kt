@@ -977,7 +977,7 @@ internal class GeneratedDialogueState {
             return
         }
         if (turn.role == ROLE_MODEL) {
-            val next = PendingOpponent(opponentEnglish = turn.en)
+            val next = PendingOpponent(opponentEnglish = turn.en, opponentKorean = turn.ko)
             if (pending.opponentEnglish == null) {
                 displayOpponent(next)
             } else {
@@ -1012,7 +1012,9 @@ internal class GeneratedDialogueState {
         if (!awaitingReveal) return
         val english = pending.opponentEnglish
         awaitingReveal = false
-        if (english != null) messages = messages + DialogueMessage.Opponent(english)
+        if (english != null) {
+            messages = messages + DialogueMessage.Opponent(english, pending.opponentKorean.orEmpty())
+        }
         recomputeTyping()
     }
 
@@ -1091,7 +1093,14 @@ internal class GeneratedDialogueState {
             level = level,
             // messages는 실제로 렌더된 말풍선만 보존한다. 표시 대기 상대역 대사는 pending에 남겨 복원 시
             // 스켈레톤을 다시 거친다. 따라서 홈의 resumeInfo가 messages를 렌더 사실로 사용할 수 있다.
-            messages = messages.map { MessageData(it is DialogueMessage.Learner, it.english) },
+            messages =
+                messages.map {
+                    MessageData(
+                        isLearner = it is DialogueMessage.Learner,
+                        english = it.english,
+                        korean = (it as? DialogueMessage.Opponent)?.korean.orEmpty(),
+                    )
+                },
             turnPhase = turnPhase.name,
             sessionPhase = sessionPhase.name,
             currentTaskKo = currentTask?.koreanPrompt,
@@ -1109,7 +1118,11 @@ internal class GeneratedDialogueState {
     fun restoreFrom(snapshot: SessionTurnSnapshot) {
         messages =
             snapshot.messages.map {
-                if (it.isLearner) DialogueMessage.Learner(it.english) else DialogueMessage.Opponent(it.english)
+                if (it.isLearner) {
+                    DialogueMessage.Learner(it.english)
+                } else {
+                    DialogueMessage.Opponent(it.english, it.korean)
+                }
             }
         turnPhase = runCatching { TurnPhase.valueOf(snapshot.turnPhase) }.getOrDefault(TurnPhase.OpponentTurn)
         sessionPhase = runCatching { SessionPhase.valueOf(snapshot.sessionPhase) }.getOrDefault(SessionPhase.InTurn)
@@ -1130,13 +1143,14 @@ internal class GeneratedDialogueState {
         awaitingReveal =
             turnPhase == TurnPhase.OpponentTurn &&
                 pendingOpponent != null &&
-                messages.lastOrNull() != DialogueMessage.Opponent(pendingOpponent)
+                (messages.lastOrNull() as? DialogueMessage.Opponent)?.english != pendingOpponent
         recomputeTyping()
     }
 
     private fun PendingOpponent.toData(): PendingData =
         PendingData(
             opponentEnglish = opponentEnglish,
+            opponentKorean = opponentKorean,
             taskKo = task?.koreanPrompt,
             referenceEnglish = referenceEnglish,
             opponentComplete = opponentComplete,
@@ -1145,6 +1159,7 @@ internal class GeneratedDialogueState {
     private fun PendingData.toPending(): PendingOpponent =
         PendingOpponent(
             opponentEnglish = opponentEnglish,
+            opponentKorean = opponentKorean,
             task = taskKo?.let { ScaffoldTask(it) },
             referenceEnglish = referenceEnglish,
             opponentComplete = opponentComplete,
@@ -1152,6 +1167,7 @@ internal class GeneratedDialogueState {
 
     private data class PendingOpponent(
         var opponentEnglish: String? = null,
+        var opponentKorean: String? = null,
         var task: ScaffoldTask? = null,
         var referenceEnglish: String? = null,
         var opponentComplete: Boolean = false,
