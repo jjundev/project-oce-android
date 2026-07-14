@@ -99,6 +99,7 @@ tasks.withType<Test>().configureEach {
             "**/OneClickCountUpFormatTest*",
             "**/RecordsTitleBarTest*",
             "**/DialogueExitGuardTest*",
+            "**/DialogueHeaderProgressTest*",
             "**/AppExitGuardTest*",
             "**/RecordsDeleteDialogTest*",
         )
