@@ -21,6 +21,7 @@ import com.jjundev.oneclickeng.core.audio.AudioCaptureException
 import com.jjundev.oneclickeng.core.audio.RecordingController
 import com.jjundev.oneclickeng.core.audio.RecordingResult
 import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
+import com.jjundev.oneclickeng.core.session.SessionLevel
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenState
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenerationCoordinator
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueStreamStatus
@@ -793,22 +794,19 @@ internal fun GeneratedDialogueSessionContent(
 }
 
 /**
- * 세션 헤더 레벨 라벨(홈 히어로 문구 정합) — `<레벨 한글> · <N>턴`. 레벨 문자열은 홈 설정과 동일 매핑
- * (easy=쉬움/normal=보통/hard=어려움), 미해소/빈 값이면 턴 수만 남긴다.
+ * 세션 헤더 레벨 라벨(홈 히어로 문구 정합) — `<레벨 한글> · <N>턴`. 레벨 문자열은 [SessionLevel] SoT 로
+ * 매핑(5티어: 매우 쉬움/쉬움/중간/어려움/매우 어려움), 미지 토큰은 SessionLevel.fromToken 폴백(NORMAL)을 따른다.
  */
 private fun dialogueLevelLabel(
     level: String,
     totalTurns: Int,
-): String {
-    val levelKo =
-        when (level) {
-            "easy" -> "쉬움"
-            "normal" -> "보통"
-            "hard" -> "어려움"
-            else -> null
-        }
-    return listOfNotNull(levelKo, "${totalTurns}턴").joinToString(" · ")
-}
+): String = "${SessionLevel.fromToken(level).labelKo} · ${totalTurns}턴"
+
+/** 테스트 전용 노출(순수 매핑 검증용). */
+internal fun dialogueLevelLabelForTest(
+    level: String,
+    totalTurns: Int,
+): String = dialogueLevelLabel(level, totalTurns)
 
 /**
  * Couples timer-driven opponent-state mutations to their durable-state notification. Keeping this
