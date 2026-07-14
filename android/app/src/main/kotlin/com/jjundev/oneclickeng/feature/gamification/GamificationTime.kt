@@ -19,7 +19,13 @@ object GamificationTime {
     val KST: ZoneId = ZoneId.of("Asia/Seoul")
 
     /** Client copy of the server XP map (firestore-schema.md:198). Server is authoritative; this is display-only. */
-    val XP_BY_DIFFICULTY: Map<String, Int> = mapOf("easy" to 10, "normal" to 20, "hard" to 35)
+    val XP_BY_DIFFICULTY: Map<String, Int> = mapOf(
+        "starter" to 5,
+        "easy" to 10,
+        "normal" to 20,
+        "hard" to 35,
+        "expert" to 55,
+    )
 
     /** Per-session study-time cap in seconds — user-confirmed product cap (30 min), guards absurd elapsed values. */
     const val STUDYTIME_SESSION_CAP_SECONDS: Long = 1800
