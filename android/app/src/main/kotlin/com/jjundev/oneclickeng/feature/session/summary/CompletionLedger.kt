@@ -3,6 +3,7 @@ package com.jjundev.oneclickeng.feature.session.summary
 import android.util.Log
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.jjundev.oneclickeng.core.auth.AuthRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -69,6 +70,13 @@ class FirestoreCompletionLedger
                                 FIELD_AWARDED_AT to FieldValue.serverTimestamp(),
                             ),
                         ).await()
+                } catch (e: FirebaseFirestoreException) {
+                    if (e.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        // 규칙 거부(예: 5티어 이관 창에서 신토큰 미허용) — XP 미적립으로 이어지므로 가시화.
+                        Log.w(TAG, "point_ledger create denied — XP not accrued: ${e.message}")
+                    } else {
+                        Log.d(TAG, "point_ledger create skipped (idempotent/offline): ${e.message}")
+                    }
                 } catch (e: Exception) {
                     // create-only 불변: 재진입 시 이미 존재하면 update 로 간주돼 규칙이 거부한다. 오프라인·
                     // 미인증도 동일하게 비치명적 — 적립은 다음 진입/트리거에서 자연 복구된다(멱등).
