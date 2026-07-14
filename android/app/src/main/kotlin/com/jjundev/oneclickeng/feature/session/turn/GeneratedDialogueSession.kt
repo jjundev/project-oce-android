@@ -93,7 +93,9 @@ fun GeneratedDialogueSessionRoute(
     LaunchedEffect(navIdentity) { navIdentity?.let(viewModel::rememberHeaderIdentity) }
 
     // 헤더 재료: 시작 플로우 nav-arg 우선, 빈 재진입(이어하기/프로세스킬)은 VM 이 durable 스냅샷에서 복원한
-    // 정체성으로 폴백한다(둘 다 없으면 header=null → 미표시). 진행 점은 학습자 말풍선 수로 채운다.
+    // 정체성으로 폴백한다(둘 다 없으면 header=null → 미표시). 진행 점/수치는 [totalTurns](상대+학습자
+    // 합산 스크립트 길이)와 같은 단위로 맞춰 누적 말풍선 총수로 채운다(학습자 말풍선만 세면 완주해도
+    // totalTurns 의 절반에서 멈춘다 — 상대·학습자가 교대로 한 줄씩 쌓이므로).
     val identity = navIdentity ?: viewModel.headerIdentity
     val header =
         identity?.let {
@@ -102,7 +104,7 @@ fun GeneratedDialogueSessionRoute(
                 title = it.topicTitle,
                 levelLabel = dialogueLevelLabel(it.level, it.totalTurns),
                 totalTurns = it.totalTurns,
-                completedTurns = state.messages.count { m -> m is DialogueMessage.Learner },
+                completedTurns = state.messages.size,
             )
         }
 

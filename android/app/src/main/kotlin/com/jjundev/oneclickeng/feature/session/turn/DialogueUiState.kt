@@ -19,7 +19,7 @@ enum class TurnPhase { OpponentTurn, LearnerTurn }
  * [DialogueHeader] 가 소비한다.
  *
  * @param topicEmoji 주제 아바타 이모지(프로토타입 ☕ 정합 — 헤더 아바타는 이모지 그대로 렌더).
- * @param completedTurns 진행 점 채움 개수(0 = 첫 턴 진행 전, 전부 비움).
+ * @param completedTurns 누적 말풍선 총수(상대+학습자 합산, [totalTurns]와 동일 단위) — 0 = 첫 턴 진행 전.
  */
 data class DialogueHeaderState(
     val topicEmoji: String,
