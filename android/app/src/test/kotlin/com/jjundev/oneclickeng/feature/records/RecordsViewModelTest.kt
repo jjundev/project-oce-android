@@ -24,8 +24,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * [RecordsViewModel] 삭제/undo 톰스톤 정합 + 탭 전환 계측 검증(M2-05). Firestore 없이 fake 읽기/쓰기 seam 으로
- * 낙관 로컬 변이(제거→undo 재삽입)와 톰스톤 write 호출을 반증가능하게 고정한다.
+ * [RecordsViewModel] 삭제(톰스톤 write + 낙관 로컬 제거) + 탭 전환 계측 검증(M2-05). Firestore 없이 fake 읽기/쓰기
+ * seam 으로 deleteCard 호출 시 카드 목록에서 즉시 사라지는 낙관 변이와 톰스톤 write, 삭제 계측 호출을
+ * 반증가능하게 고정한다(undo 없음 — 롱프레스→확인 다이얼로그로 확정된 삭제만 다룬다).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -40,7 +41,7 @@ class RecordsViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     // 탭↔카드 타입 정합: EXPRESSION 탭엔 Expression 카드, WORD 탭엔 Word 카드를 넣는다(운영에선 항상 일치 —
-    // ViewModel 은 카드의 cardType 으로 undo 복원/계측 타깃을 정하므로 fixture 도 정합해야 한다).
+    // ViewModel 은 카드의 cardType 으로 삭제 계측 타깃을 정하므로 fixture 도 정합해야 한다).
     private fun expr(id: String) =
         SavedCardEntry(
             id,
@@ -81,24 +82,7 @@ class RecordsViewModelTest {
         }
 
     @Test
-    fun `swipe delete tombstones and optimistically removes, showing undo bar`() =
-        runTest(dispatcher) {
-            val query = FakeQuerySource(mapOf(CardType.EXPRESSION to listOf(expr("a"), expr("b"), expr("c"))))
-            val repo = FakeSavedCardRepository()
-            val viewModel = vm(query = query, repo = repo)
-            advanceUntilIdle()
-
-            viewModel.onSwipeDelete(expr("b"))
-
-            assertEquals(listOf("a", "c"), viewModel.uiState.value.cards.map { it.cardId })
-            assertEquals(1, repo.deletes.size)
-            assertEquals("b" to true, repo.deletes.first().cardId to repo.deletes.first().deleted)
-            assertEquals("b", viewModel.uiState.value.undoBar?.entry?.cardId)
-            assertEquals(1, viewModel.uiState.value.undoBar?.index)
-        }
-
-    @Test
-    fun `undo revives and re-inserts at original index preserving order`() =
+    fun `deleteCard tombstones, optimistically removes, and logs delete`() =
         runTest(dispatcher) {
             val query = FakeQuerySource(mapOf(CardType.EXPRESSION to listOf(expr("a"), expr("b"), expr("c"))))
             val repo = FakeSavedCardRepository()
@@ -106,30 +90,12 @@ class RecordsViewModelTest {
             val viewModel = vm(query = query, repo = repo, analytics = analytics)
             advanceUntilIdle()
 
-            viewModel.onSwipeDelete(expr("b"))
-            viewModel.undoDelete()
+            viewModel.deleteCard(expr("b"))
 
-            assertEquals(listOf("a", "b", "c"), viewModel.uiState.value.cards.map { it.cardId })
-            // 마지막 write 는 revive(deletedAt=null).
-            assertEquals("b" to false, repo.deletes.last().cardId to repo.deletes.last().deleted)
-            assertEquals(listOf(CardType.EXPRESSION to true), analytics.deletes)
-            assertNull(viewModel.uiState.value.undoBar)
-        }
-
-    @Test
-    fun `commit delete logs undone=false and keeps card removed`() =
-        runTest(dispatcher) {
-            val query = FakeQuerySource(mapOf(CardType.EXPRESSION to listOf(expr("a"), expr("b"))))
-            val analytics = RecordingHistoryAnalytics()
-            val viewModel = vm(query = query, analytics = analytics)
-            advanceUntilIdle()
-
-            viewModel.onSwipeDelete(expr("a"))
-            viewModel.commitDelete()
-
-            assertEquals(listOf("b"), viewModel.uiState.value.cards.map { it.cardId })
+            assertEquals(listOf("a", "c"), viewModel.uiState.value.cards.map { it.cardId })
+            assertEquals(1, repo.deletes.size)
+            assertEquals("b" to true, repo.deletes.first().cardId to repo.deletes.first().deleted)
             assertEquals(listOf(CardType.EXPRESSION to false), analytics.deletes)
-            assertNull(viewModel.uiState.value.undoBar)
         }
 
     @Test

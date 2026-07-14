@@ -2,97 +2,74 @@ package com.jjundev.oneclickeng.feature.records
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.CustomAccessibilityAction
-import androidx.compose.ui.semantics.customActions
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jjundev.oneclickeng.R
 import com.jjundev.oneclickeng.feature.session.saved.CardType
 import com.jjundev.oneclickeng.ui.component.EmptyStateCtaStrength
+import com.jjundev.oneclickeng.ui.component.OneClickDialog
+import com.jjundev.oneclickeng.ui.component.OneClickDialogVariant
 import com.jjundev.oneclickeng.ui.component.OneClickEmptyState
+import com.jjundev.oneclickeng.ui.component.OneClickScrollFab
 import com.jjundev.oneclickeng.ui.component.OneClickSegmentedControl
-import com.jjundev.oneclickeng.ui.component.OneClickSnackbarHost
-import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceBottomNavDefaults
-import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
+import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.ScreenEntranceState
 import com.jjundev.oneclickeng.ui.foundation.TabScreenScaffold
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.foundation.rememberScreenEntrance
 import com.jjundev.oneclickeng.ui.foundation.staggerReveal
 import com.jjundev.oneclickeng.ui.theme.OceTheme
+import kotlinx.coroutines.launch
 
 /**
  * 기록 탭(M2-05). 공유 [TabScreenScaffold] 골격을 유지하고 그 [LazyListScope] 안에 평생통계 헤더(item) →
- * 세그먼트(stickyHeader) → 카드 리스트(items) / 빈 상태를 채운다. undo 스낵바는 스캐폴드를 감싸는 overlay
- * [Box] 에 [OneClickSnackbarHost] 로 얹는다. 플로팅 BottomNav 가 뷰포트를 덮으므로 스낵바는
- * [OceBottomNavDefaults.overlayContentBottomPadding] 만큼 위로 띄운다.
+ * 세그먼트(stickyHeader) → 카드 리스트(items) / 빈 상태를 채운다. 삭제는 카드 롱프레스 → [OneClickDialog]
+ * (Destructive) 확인 후에만 실행된다(undo 없음 — 다이얼로그가 안전장치).
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RecordsScreen(
     modifier: Modifier = Modifier,
     viewModel: RecordsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    // 삭제 → undo 스낵바(6초, Indefinite 로 띄워 OneClickSnackbar 의 자동 소멸 타이머를 발동). 액션=undo,
-    // 소멸=커밋. undoBar 가 갱신되면(연속 삭제) 이전 스낵바는 취소되고 최신 삭제만 되돌릴 수 있다.
-    LaunchedEffect(state.undoBar) {
-        if (state.undoBar == null) return@LaunchedEffect
-        val result =
-            snackbarHostState.showSnackbar(
-                message = "카드를 삭제했어요.",
-                actionLabel = "실행취소",
-                duration = SnackbarDuration.Indefinite,
-            )
-        when (result) {
-            SnackbarResult.ActionPerformed -> viewModel.undoDelete()
-            SnackbarResult.Dismissed -> viewModel.commitDelete()
-        }
-    }
 
     RecordsContent(
         state = state,
         onSelectTab = viewModel::selectTab,
-        onDelete = viewModel::onSwipeDelete,
+        onDelete = viewModel::deleteCard,
         onLoadMore = viewModel::loadMore,
-        snackbarHostState = snackbarHostState,
         reduceMotion = rememberReduceMotion(),
         modifier = modifier,
     )
 }
 
 /**
- * 기록 콘텐츠(stateless) — VM 없이 [RecordsUiState] 로 렌더하는 스크린샷 seam. undo 스낵바 트리거
- * (LaunchedEffect(undoBar))는 상태 소유자([RecordsScreen])에 남고, 여기선 호스트만 얹는다.
+ * 기록 콘텐츠(stateless) — VM 없이 [RecordsUiState] 로 렌더하는 스크린샷 seam. 롱프레스로 띄운
+ * [OneClickDialog] 확인 시에만 [onDelete] 를 호출한다(`pendingDeleteId` 는 회전에도 살아남는 로컬 상태).
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -102,14 +79,16 @@ internal fun RecordsContent(
     onDelete: (SavedCardEntry) -> Unit,
     onLoadMore: () -> Unit,
     modifier: Modifier = Modifier,
-    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     reduceMotion: Boolean = false,
 ) {
     var expandedId by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
     val entrance = rememberScreenEntrance(reduceMotion)
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
 
     Box(modifier = modifier.fillMaxSize()) {
-        TabScreenScaffold(titleRes = R.string.tab_records) {
+        TabScreenScaffold(titleRes = R.string.tab_records, listState = listState) {
             item(key = "lifetime") {
                 LifetimeStatsHeader(
                     lifetime = state.lifetime,
@@ -147,15 +126,51 @@ internal fun RecordsContent(
                 state = state,
                 expandedId = expandedId,
                 onToggleExpand = { id -> expandedId = if (expandedId == id) null else id },
-                onDelete = onDelete,
+                onRequestDelete = { entry -> pendingDeleteId = entry.cardId },
                 onLoadMore = onLoadMore,
                 entrance = entrance,
             )
         }
-        OneClickSnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter),
-            bottomInset = OceBottomNavDefaults.overlayContentBottomPadding,
+
+        // 스크롤 보조 FAB(세션 요약 화면과 동일) — 스크롤 가능할 때만 뜨고, 끝 이전엔 아래(page-down),
+        // 끝에선 위(맨 위로) chevron. 플로팅 하단 내비 바로 위에 띄운다.
+        val canScroll by remember {
+            derivedStateOf { listState.canScrollForward || listState.canScrollBackward }
+        }
+        val atEnd by remember { derivedStateOf { !listState.canScrollForward } }
+        if (canScroll) {
+            OneClickScrollFab(
+                atEnd = atEnd,
+                onClick = {
+                    scope.launch {
+                        if (atEnd) {
+                            listState.animateScrollToItem(0)
+                        } else {
+                            val viewportHeight = listState.layoutInfo.viewportSize.height
+                            listState.animateScrollBy(viewportHeight * RECORDS_FAB_PAGE_FRACTION)
+                        }
+                    }
+                },
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = OceBottomNavDefaults.overlayContentBottomPadding + RecordsFabBottomGap),
+            )
+        }
+    }
+
+    val pendingEntry = pendingDeleteId?.let { id -> state.cards.firstOrNull { it.cardId == id } }
+    pendingEntry?.let { entry ->
+        OneClickDialog(
+            title = "저장한 카드를 삭제할까요?",
+            body = "이 작업은 되돌릴 수 없어요.",
+            confirmLabel = "삭제",
+            onConfirm = {
+                onDelete(entry)
+                pendingDeleteId = null
+            },
+            onDismiss = { pendingDeleteId = null },
+            variant = OneClickDialogVariant.Destructive,
         )
     }
 }
@@ -165,7 +180,7 @@ private fun LazyListScope.cardList(
     state: RecordsUiState,
     expandedId: String?,
     onToggleExpand: (String) -> Unit,
-    onDelete: (SavedCardEntry) -> Unit,
+    onRequestDelete: (SavedCardEntry) -> Unit,
     onLoadMore: () -> Unit,
     entrance: ScreenEntranceState,
 ) {
@@ -182,11 +197,11 @@ private fun LazyListScope.cardList(
 
     items(state.cards.size, key = { state.cards[it].cardId }) { index ->
         val entry = state.cards[index]
-        SwipeableCard(
+        SavedCardRow(
             entry = entry,
             expanded = expandedId == entry.cardId,
             onToggleExpand = { onToggleExpand(entry.cardId) },
-            onDelete = { onDelete(entry) },
+            onLongPress = { onRequestDelete(entry) },
             modifier = Modifier.staggerReveal(2 + index, entrance).padding(bottom = OceTheme.spacing.md),
         )
     }
@@ -195,57 +210,6 @@ private fun LazyListScope.cardList(
         item(key = "load_more") {
             LaunchedEffect(state.cards.size) { onLoadMore() }
         }
-    }
-}
-
-@Composable
-private fun SwipeableCard(
-    entry: SavedCardEntry,
-    expanded: Boolean,
-    onToggleExpand: () -> Unit,
-    onDelete: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val dismissState =
-        rememberSwipeToDismissBoxState(
-            confirmValueChange = { value ->
-                if (value == SwipeToDismissBoxValue.EndToStart) {
-                    onDelete()
-                    true
-                } else {
-                    false
-                }
-            },
-        )
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromStartToEnd = false,
-        backgroundContent = { DeleteBackground() },
-        modifier =
-            modifier.semantics {
-                customActions = listOf(CustomAccessibilityAction("삭제") { onDelete(); true })
-            },
-    ) {
-        SavedCardRow(entry = entry, expanded = expanded, onToggleExpand = onToggleExpand)
-    }
-}
-
-@Composable
-private fun DeleteBackground() {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.error, OceTheme.shapes.radius16)
-                .padding(horizontal = OceTheme.spacing.xl),
-        horizontalArrangement = Arrangement.End,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        OneClickIcon(
-            icon = OceIcon.Delete,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onError,
-        )
     }
 }
 
@@ -274,6 +238,12 @@ private fun tabLabel(cardType: CardType): String =
         CardType.WORD -> "단어"
         CardType.SENTENCE -> "문장"
     }
+
+/** 스크롤 보조 FAB 와 플로팅 하단 내비 사이 간격(요약 화면 SummaryFabBottomGap 선례와 정합). */
+private val RecordsFabBottomGap = 16.dp
+
+/** FAB 한 번 탭 시 내려가는 뷰포트 비율(요약 화면 SUMMARY_FAB_PAGE_FRACTION 선례와 정합). */
+private const val RECORDS_FAB_PAGE_FRACTION = 0.82f
 
 @Suppress("UnusedPrivateMember")
 @Preview(showBackground = true, widthDp = 360)

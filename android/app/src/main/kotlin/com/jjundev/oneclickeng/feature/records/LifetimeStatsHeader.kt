@@ -22,7 +22,7 @@ import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /**
- * ① 평생 통계 헤더(카드 아님, R1) — `누적 N XP · 총 N시간 N분 · N일 학습`. XP·학습일·학습시간 모두
+ * ① 누적 통계 헤더(카드 아님, R1) — `누적 N XP · 총 N시간 N분 · N일 학습`. XP·학습일·학습시간 모두
  * [OneClickCountUp] 시그니처 카운트업(I3)을 통과한다. 학습시간은 총 분 단일값을 굴리고 프레임마다
  * [formatStudyTime] 로 "N시간 N분" 을 재도출해 60분 경계에서 분→시간 롤오버가 자연히 나타난다.
  *
@@ -44,7 +44,7 @@ fun LifetimeStatsHeader(
         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
     ) {
         Text(
-            text = "평생 통계",
+            text = "누적 통계",
             style = OceTheme.typography.sectionLabel,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

@@ -14,8 +14,6 @@ data class RecordsUiState(
     val lifetime: LifetimeStats? = null,
     /** 헤더 카운트업 애니메이션 여부. 스텁이거나 세션 최초 진입이 아니면 false(정적 스냅). */
     val animateCountUp: Boolean = false,
-    /** 스와이프 삭제 후 undo 대기 대상. null 이면 스낵바 미표시. */
-    val undoBar: UndoTarget? = null,
 ) {
     /** 기록 탭 3종 세그먼트 순서(R2). */
     val tabs: List<CardType> get() = TABS
@@ -24,9 +22,3 @@ data class RecordsUiState(
         val TABS = listOf(CardType.EXPRESSION, CardType.WORD, CardType.SENTENCE)
     }
 }
-
-/** undo 스낵바 1회분. 원래 리스트 위치([index])를 실어 undo 시 정렬(createdAt desc)을 보존 복원한다. */
-data class UndoTarget(
-    val entry: SavedCardEntry,
-    val index: Int,
-)

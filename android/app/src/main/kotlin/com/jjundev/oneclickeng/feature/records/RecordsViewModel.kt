@@ -13,11 +13,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * 기록 탭 상태 소유자(M2-05). 읽기는 [SavedCardQuerySource] 커서 페이지네이션(탭별 누적 유지), 삭제/undo 는
+ * 기록 탭 상태 소유자(M2-05). 읽기는 [SavedCardQuerySource] 커서 페이지네이션(탭별 누적 유지), 삭제는
  * M2-04 [SavedCardRepository.setDeleted] 톰스톤 위에 **명시적 낙관 로컬 변이**를 얹는다:
- *  - 스와이프 → 즉시 `setDeleted(true)`(톰스톤) + 인메모리 리스트에서 제거 + undo 대기.
- *  - undo → `setDeleted(false)`(revive, createdAt 보존) + 원래 인덱스 복원.
- *  - 스낵바 소멸(커밋) → 이미 제거된 상태 유지.
+ *  - [deleteCard](확인 다이얼로그 이후 호출) → 즉시 `setDeleted(true)`(톰스톤) + 인메모리 리스트에서 제거.
+ *  undo 는 없다 — 다이얼로그가 안전장치이므로 되돌릴 필요가 없다.
  *
  * 읽기가 1회성 get 이라 리스너 재전달에 의존하지 않으므로, 삭제 후 리스트 반영은 이 낙관 변이가 단일하게 소유한다.
  */
@@ -43,7 +42,6 @@ class RecordsViewModel
         private var selected: CardType = RecordsUiState.TABS.first()
         private var lifetime: LifetimeStats? = null
         private var animateCountUp: Boolean = false
-        private var undoBar: UndoTarget? = null
 
         private val _uiState = MutableStateFlow(RecordsUiState())
         val uiState: StateFlow<RecordsUiState> = _uiState.asStateFlow()
@@ -78,38 +76,13 @@ class RecordsViewModel
             loadPage(selected, after = state.cursor)
         }
 
-        /** 스와이프 삭제 = 즉시 톰스톤 + 낙관 제거 + undo 대기. */
-        fun onSwipeDelete(entry: SavedCardEntry) {
+        /** 삭제(확인 다이얼로그 이후) = 톰스톤 + 낙관 제거. undo 없음(다이얼로그가 안전장치). */
+        fun deleteCard(entry: SavedCardEntry) {
             val state = typeStates.getValue(selected)
-            val index = state.cards.indexOfFirst { it.cardId == entry.cardId }
-            if (index < 0) return
+            if (state.cards.none { it.cardId == entry.cardId }) return
             savedCardRepository.setDeleted(entry.cardId, entry.card.cardType, deleted = true)
             typeStates[selected] = state.copy(cards = state.cards.filterNot { it.cardId == entry.cardId })
-            undoBar = UndoTarget(entry, index)
-            publish()
-        }
-
-        /** undo = revive(deletedAt=null) + 원래 인덱스 복원(정렬 보존). */
-        fun undoDelete() {
-            val target = undoBar ?: return
-            savedCardRepository.setDeleted(target.entry.cardId, target.entry.card.cardType, deleted = false)
-            val cardType = target.entry.card.cardType
-            val state = typeStates.getValue(cardType)
-            if (state.cards.none { it.cardId == target.entry.cardId }) {
-                val restored = state.cards.toMutableList()
-                restored.add(target.index.coerceIn(0, restored.size), target.entry)
-                typeStates[cardType] = state.copy(cards = restored)
-            }
-            analytics.deleteCard(cardType, undone = true)
-            undoBar = null
-            publish()
-        }
-
-        /** 스낵바가 액션 없이 소멸 = 삭제 확정(리스트는 이미 제거됨). */
-        fun commitDelete() {
-            val target = undoBar ?: return
-            analytics.deleteCard(target.entry.card.cardType, undone = false)
-            undoBar = null
+            analytics.deleteCard(entry.card.cardType, undone = false)
             publish()
         }
 
@@ -149,7 +122,6 @@ class RecordsViewModel
                     endReached = state.endReached,
                     lifetime = lifetime,
                     animateCountUp = animateCountUp,
-                    undoBar = undoBar,
                 )
         }
     }

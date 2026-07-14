@@ -5,7 +5,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * 평생 통계 헤더 카운트업의 "세션당 1회" 게이트(I3, 04-screen-06-history.md R1). 앱 프로세스 수명 동안 최초
+ * 누적 통계 헤더 카운트업의 "세션당 1회" 게이트(I3, 04-screen-06-history.md R1). 앱 프로세스 수명 동안 최초
  * 기록 탭 진입에서만 `true` 를 한 번 내주고 이후엔 `false`(정적 스냅). `@Singleton` 이라 탭 재진입·회전·탭 전환에
  * 걸쳐 상태를 공유한다.
  *
