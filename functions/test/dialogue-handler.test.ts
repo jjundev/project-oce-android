@@ -3,6 +3,7 @@ import { StartGate, StartResult } from "../src/llm/start-gate";
 import { DailyLimitError } from "../src/llm/start-gate";
 import { LlmProvider, RawChunk } from "../src/providers/LlmProvider";
 import { ErrorCode } from "../src/types/protocol";
+import { parseDialoguePayload, InvalidDialoguePayloadError } from "../src/llm/dialogue";
 
 // Offline, deterministic — mock auth like the other pipeline tests.
 jest.mock("../src/llm/auth", () => ({
@@ -130,7 +131,7 @@ describe("handle task=dialogue", () => {
     const res = recorder();
     const { gate } = fakeGate({});
     await handle(
-      req({ task: "dialogue", payload: { level: "easy", topic: "t", length: 5, firstSession: false } }),
+      req({ task: "dialogue", payload: { level: "easy", topic: "t", length: 10, firstSession: false } }),
       res,
       { startGate: gate, provider: streamProvider([]) }
     );
@@ -146,7 +147,7 @@ describe("handle task=dialogue", () => {
       req({
         task: "dialogue",
         idempotencyKey: "k1",
-        payload: { level: "easy", topic: "t", length: 5, firstSession: false },
+        payload: { level: "easy", topic: "t", length: 10, firstSession: false },
       }),
       res,
       { startGate: gate, provider: streamProvider([]) }
@@ -193,7 +194,7 @@ describe("handle task=dialogue", () => {
       req({
         task: "dialogue",
         idempotencyKey: "k1",
-        payload: { level: "easy", topic: "t", length: 5, firstSession: false },
+        payload: { level: "easy", topic: "t", length: 10, firstSession: false },
       }),
       res,
       { startGate: gate, provider: streamProvider([], true) }
@@ -213,7 +214,7 @@ describe("handle task=dialogue", () => {
       req({
         task: "dialogue",
         idempotencyKey: "k1",
-        payload: { level: "easy", topic: "t", length: 5, firstSession: false },
+        payload: { level: "easy", topic: "t", length: 10, firstSession: false },
       }),
       res,
       { startGate: gate, provider: streamProvider([], true) }
@@ -230,5 +231,22 @@ describe("handle task=dialogue", () => {
     );
     const events = parseEvents(res.writes);
     expect(events).toContainEqual({ event: "error", data: { code: ErrorCode.NOT_IMPLEMENTED } });
+  });
+});
+
+describe("parseDialoguePayload 5-tier + even length", () => {
+  it("accepts the two new level tokens", () => {
+    expect(parseDialoguePayload({ level: "starter", topic: "t", length: 6 }).level).toBe("starter");
+    expect(parseDialoguePayload({ level: "expert", topic: "t", length: 20 }).level).toBe("expert");
+  });
+  it("rejects odd or out-of-range length for non-first sessions", () => {
+    expect(() => parseDialoguePayload({ level: "normal", topic: "t", length: 5 }))
+      .toThrow(InvalidDialoguePayloadError);
+    expect(() => parseDialoguePayload({ level: "normal", topic: "t", length: 22 }))
+      .toThrow(InvalidDialoguePayloadError);
+  });
+  it("still coerces first session to easy/5 regardless of input", () => {
+    const p = parseDialoguePayload({ level: "expert", topic: "t", length: 20, firstSession: true });
+    expect(p).toEqual({ level: "easy", topic: "t", length: 5, firstSession: true });
   });
 });

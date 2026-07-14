@@ -17,6 +17,7 @@
  * (mirrors summaryCard.data.kind, backend-functions.md:55).
  */
 import { modelFor } from "../config/models";
+import { LEVEL_TOKENS } from "../config/levels";
 import { cacheKey } from "./cacheKey";
 import { SseWritable, writeEvent } from "./sse";
 import {
@@ -30,7 +31,7 @@ import { FeedbackSection } from "../types/sse";
 /** thrown when the feedback payload is malformed — mapped to 400 INVALID_PAYLOAD. */
 export class InvalidFeedbackPayloadError extends Error {}
 
-const VALID_LEVELS = new Set<string>(["easy", "normal", "hard"]);
+const VALID_LEVELS = new Set<string>(LEVEL_TOKENS);
 
 /** the three slim sections in their fixed render/emit order (feedback-slim.md:2). */
 const FEEDBACK_SECTIONS: readonly FeedbackSection[] = [

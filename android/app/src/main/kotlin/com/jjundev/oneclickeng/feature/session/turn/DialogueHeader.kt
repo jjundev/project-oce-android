@@ -32,6 +32,9 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
 private val ProgressDotSize = 7.dp
 private val ProgressDotGap = 6.dp
 
+/** 진행 점 최대 개수 — 초과 시 48dp 헤더 폭 보호를 위해 "n / N" 수치 표기로 전환. */
+private const val MAX_PROGRESS_DOTS = 8
+
 /** 뒤로가기 아이콘 ↔ 주제 아바타 간격(프로토타입 rect 정합, 스케일 스냅 밖 값). */
 private val BackToAvatarGap = 14.dp
 
@@ -81,22 +84,30 @@ internal fun DialogueHeader(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(ProgressDotGap)) {
-            repeat(state.totalTurns) { index ->
-                val color =
-                    if (index < state.completedTurns) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.outlineVariant
-                    }
-                Box(
-                    modifier =
-                        Modifier
-                            .size(ProgressDotSize)
-                            .clip(CircleShape)
-                            .background(color),
-                )
+        if (state.totalTurns <= MAX_PROGRESS_DOTS) {
+            Row(horizontalArrangement = Arrangement.spacedBy(ProgressDotGap)) {
+                repeat(state.totalTurns) { index ->
+                    val color =
+                        if (index < state.completedTurns) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.outlineVariant
+                        }
+                    Box(
+                        modifier =
+                            Modifier
+                                .size(ProgressDotSize)
+                                .clip(CircleShape)
+                                .background(color),
+                    )
+                }
             }
+        } else {
+            Text(
+                text = "${state.completedTurns} / ${state.totalTurns}",
+                style = OceTheme.typography.accrualLabel.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }

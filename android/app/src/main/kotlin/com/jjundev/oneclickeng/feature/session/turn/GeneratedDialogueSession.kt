@@ -21,6 +21,7 @@ import com.jjundev.oneclickeng.core.audio.AudioCaptureException
 import com.jjundev.oneclickeng.core.audio.RecordingController
 import com.jjundev.oneclickeng.core.audio.RecordingResult
 import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
+import com.jjundev.oneclickeng.core.session.SessionLevel
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenState
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenerationCoordinator
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueStreamStatus
@@ -93,7 +94,9 @@ fun GeneratedDialogueSessionRoute(
     LaunchedEffect(navIdentity) { navIdentity?.let(viewModel::rememberHeaderIdentity) }
 
     // 헤더 재료: 시작 플로우 nav-arg 우선, 빈 재진입(이어하기/프로세스킬)은 VM 이 durable 스냅샷에서 복원한
-    // 정체성으로 폴백한다(둘 다 없으면 header=null → 미표시). 진행 점은 학습자 말풍선 수로 채운다.
+    // 정체성으로 폴백한다(둘 다 없으면 header=null → 미표시). 진행 점/수치는 [totalTurns](상대+학습자
+    // 합산 스크립트 길이)와 같은 단위로 맞춰 누적 말풍선 총수로 채운다(학습자 말풍선만 세면 완주해도
+    // totalTurns 의 절반에서 멈춘다 — 상대·학습자가 교대로 한 줄씩 쌓이므로).
     val identity = navIdentity ?: viewModel.headerIdentity
     val header =
         identity?.let {
@@ -102,7 +105,7 @@ fun GeneratedDialogueSessionRoute(
                 title = it.topicTitle,
                 levelLabel = dialogueLevelLabel(it.level, it.totalTurns),
                 totalTurns = it.totalTurns,
-                completedTurns = state.messages.count { m -> m is DialogueMessage.Learner },
+                completedTurns = state.messages.size,
             )
         }
 
@@ -800,22 +803,19 @@ internal fun GeneratedDialogueSessionContent(
 }
 
 /**
- * 세션 헤더 레벨 라벨(홈 히어로 문구 정합) — `<레벨 한글> · <N>턴`. 레벨 문자열은 홈 설정과 동일 매핑
- * (easy=쉬움/normal=보통/hard=어려움), 미해소/빈 값이면 턴 수만 남긴다.
+ * 세션 헤더 레벨 라벨(홈 히어로 문구 정합) — `<레벨 한글> · <N>턴`. 레벨 문자열은 [SessionLevel] SoT 로
+ * 매핑(5티어: 매우 쉬움/쉬움/중간/어려움/매우 어려움), 미지 토큰은 SessionLevel.fromToken 폴백(NORMAL)을 따른다.
  */
 private fun dialogueLevelLabel(
     level: String,
     totalTurns: Int,
-): String {
-    val levelKo =
-        when (level) {
-            "easy" -> "쉬움"
-            "normal" -> "보통"
-            "hard" -> "어려움"
-            else -> null
-        }
-    return listOfNotNull(levelKo, "${totalTurns}턴").joinToString(" · ")
-}
+): String = "${SessionLevel.fromToken(level).labelKo} · ${totalTurns}턴"
+
+/** 테스트 전용 노출(순수 매핑 검증용). */
+internal fun dialogueLevelLabelForTest(
+    level: String,
+    totalTurns: Int,
+): String = dialogueLevelLabel(level, totalTurns)
 
 /**
  * Couples timer-driven opponent-state mutations to their durable-state notification. Keeping this

@@ -220,5 +220,5 @@ private const val H_ARG_TOPIC_EMOJI = "topicEmoji"
 private const val H_ARG_SESSION_ID = "sessionId"
 
 private const val DEFAULT_LEVEL = "easy"
-private const val DEFAULT_LENGTH = 5
+private const val DEFAULT_LENGTH = 10
 private const val DISPLAY_DIFFICULTY_DEFAULT = "normal"

@@ -24,7 +24,7 @@ describe("parseFeedbackPayload", () => {
 
   it("allows empty referenceEnglish and defaults an out-of-range level to normal", () => {
     expect(
-      parseFeedbackPayload({ koreanPrompt: "안녕", userEnglish: "Hi", level: "expert" })
+      parseFeedbackPayload({ koreanPrompt: "안녕", userEnglish: "Hi", level: "legendary" })
     ).toEqual({ koreanPrompt: "안녕", userEnglish: "Hi", referenceEnglish: "", level: "normal" });
   });
 
@@ -38,6 +38,17 @@ describe("parseFeedbackPayload", () => {
     expect(() =>
       parseFeedbackPayload({ koreanPrompt: "안녕", userEnglish: "" })
     ).toThrow(InvalidFeedbackPayloadError);
+  });
+});
+
+describe("parseFeedbackPayload 5-tier level", () => {
+  const base = { koreanPrompt: "안녕", userEnglish: "hi", referenceEnglish: "" };
+  it("passes through the two new tokens", () => {
+    expect(parseFeedbackPayload({ ...base, level: "starter" }).level).toBe("starter");
+    expect(parseFeedbackPayload({ ...base, level: "expert" }).level).toBe("expert");
+  });
+  it("still defaults unknown level to normal", () => {
+    expect(parseFeedbackPayload({ ...base, level: "A2" }).level).toBe("normal");
   });
 });
 

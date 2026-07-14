@@ -27,7 +27,7 @@ interface HomeAnalytics {
         custom: Boolean,
     )
 
-    /** 접힌 세션 설정 변경. [level] ∈ {easy,normal,hard}, [length] ∈ {5,10}. */
+    /** 접힌 세션 설정 변경. [level] ∈ {starter,easy,normal,hard,expert}, [length] ∈ 짝수 6..20. */
     fun sessionSettingChanged(
         level: String,
         length: Int,
