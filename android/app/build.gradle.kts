@@ -93,6 +93,7 @@ tasks.withType<Test>().configureEach {
             "**/SummaryScrollFabTest*",
             "**/SummaryHandoffDelayTest*",
             "**/HomeSettingsChipTest*",
+            "**/HomeSettingsSliderTest*",
             "**/HomeSituationTapTest*",
             "**/HomeStatsStripTest*",
             "**/OneClickCountUpFormatTest*",
