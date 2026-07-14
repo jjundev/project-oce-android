@@ -580,7 +580,7 @@ private fun HeroCta(
         if (resumeTopic != null) {
             "$resumeTopic · $resumeTurn / ${resumeTotalTurns}턴"
         } else {
-            listOfNotNull(situationLabel, "${length}턴", level?.let { SessionLevel.fromToken(it).labelKo })
+            listOfNotNull(situationLabel, level?.let { SessionLevel.fromToken(it).labelKo }, "${length}턴")
                 .joinToString(" · ")
         }
 
