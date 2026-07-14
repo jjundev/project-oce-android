@@ -63,6 +63,14 @@ const val DEFAULT_OPPONENT_ADVANCE_DELAY_MS: Int = 1200
 const val DEFAULT_OPPONENT_SKELETON_DELAY_MS: Int = 700
 
 /**
+ * 라이브 세션(GeneratedDialogueSession) 상대역 말풍선 reveal 전 **최소 스켈레톤 노출 dwell(ms)**. 대사
+ * 합성/발화 시작([GeneratedDialogueSessionContent] 의 onSpeakOpponent)을 이만큼 미뤄, 오디오 엔진이 warm
+ * 이거나 음성없음(ERROR_TEXT_ONLY)으로 즉시 폴백해도 "타이핑 중" 스켈레톤이 최소 시간 보이게 한다. 프로토타입
+ * oppSkeleton dwell(950ms) 정합에 가까운 값. reduceMotion 과 무관하게 적용한다(페이싱 게이트이지 모션 아님).
+ */
+const val DEFAULT_OPPONENT_SKELETON_FLOOR_MS: Long = 900L
+
+/**
  * M1-03 대화 턴 화면의 상태 홀더. **신규 도입** 화면 스코프 홀더로, 리포에 `remember*State` 홀더 선례는
  * 없다(루트 `AppViewModel` 만 존재). "ViewModel 은 콘텐츠 이슈에서 도입"(HomeScreen.kt:12) 규약을 따라
  * 실 데이터(SSE) 배선 전까지는 ViewModel 없이 이 홀더가 스텁 대본을 구동한다.
