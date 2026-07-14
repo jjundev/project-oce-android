@@ -43,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -135,9 +136,8 @@ internal fun DialogueTurnContent(
     header: DialogueHeaderState? = null,
     // 헤더 뒤로가기 화살표 콜백(대화 나가기). 미주입이면 no-op(스텁·프리뷰·테스트 호환).
     onBack: () -> Unit = {},
-    // 상대역 말풍선 TTS(M1-05)·해석 토글 콜백. 현재는 시각 셸 seam 으로 기본 no-op.
+    // 상대역 말풍선 TTS(M1-05) 콜백. 현재는 시각 셸 seam 으로 기본 no-op.
     onReplay: (String) -> Unit = {},
-    onToggleTranslation: () -> Unit = {},
     // 입력 독 slot(M1-08). 미주입(스텁 라우트·프리뷰)이면 기존 [ScaffoldDock] 로 폴백해 M1-03 화면을 유지한다.
     dock: (@Composable (ScaffoldTask) -> Unit)? = null,
     // 상대역 발화 append 직전 타이핑 스켈레톤 국면(프로토타입 정합). 기본 false 라 프리뷰·스크린샷 테스트·
@@ -154,6 +154,9 @@ internal fun DialogueTurnContent(
     // reduceMotion 게이트(스켈레톤 진입 페이드·입력 독 슬라이드업). 무상태 렌더도 시스템 설정을 읽지만,
     // 슬라이드업은 초기 visible=true 시 애니메이션이 없고 스켈레톤은 opponentTyping=false 라 프리뷰/테스트는 정적.
     val reduceMotion = rememberReduceMotion()
+    // 상대역 말풍선 per-메시지 `해석 보기` 토글 상태(프로토타입 showTrans[i] 정합). 메시지 index 키.
+    // append-only 라 index 는 안정적이며, 생성 재시작(리셋)으로 재정렬돼도 저低빈도라 index 키잉을 수용한다.
+    val shownTranslations = remember { mutableStateMapOf<Int, Boolean>() }
     // 세션이 완료되면(마지막 턴 전진) 완료 화면 없이 곧장 요약으로 이동한다(완료 바텀시트 삭제 요구). 마지막 턴
     // 피드백 "다음"이 recordTurn→advanceTurn 순서라 요약이 읽을 턴 버퍼는 Completed 시점에 이미 정착돼 있다.
     // sessionPhase 전이는 단방향(Completed 도달 후 유지)이라 이 LaunchedEffect 는 정확히 한 번만 발화한다.
@@ -198,8 +201,12 @@ internal fun DialogueTurnContent(
                             OpponentTurn(
                                 text = message.english,
                                 speaker = opponentSpeaker,
+                                korean = message.korean,
+                                translationShown = shownTranslations[index] == true,
                                 onReplay = { onReplay(message.english) },
-                                onToggleTranslation = onToggleTranslation,
+                                onToggleTranslation = {
+                                    shownTranslations[index] = !(shownTranslations[index] ?: false)
+                                },
                             )
                         is DialogueMessage.Learner -> {
                             val ordinal = learnerOrdinalAt(messages, index)
