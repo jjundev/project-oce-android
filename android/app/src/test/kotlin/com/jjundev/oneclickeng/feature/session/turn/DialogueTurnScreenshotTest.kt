@@ -64,7 +64,8 @@ class DialogueTurnScreenshotTest {
     fun session_opponent_translated_light() {
         composeRule.setContent {
             OceTheme(darkTheme = false) {
-                Surface {
+                // 형제 opponent 캡처(capture 헬퍼)와 동일한 배경색으로 맞춰 육안 대조 시 tint 차이를 없앤다.
+                Surface(color = MaterialTheme.colorScheme.background) {
                     DialogueTurnContent(
                         messages = opponentMessages,
                         turnPhase = TurnPhase.OpponentTurn,

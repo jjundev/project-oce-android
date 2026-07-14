@@ -772,6 +772,10 @@ internal fun GeneratedDialogueSessionContent(
     LaunchedEffect(state.opponentTurnSerial) {
         if (state.turnPhase == TurnPhase.OpponentTurn && state.sessionPhase == SessionPhase.InTurn) {
             delay(minSkeletonMs)
+            // 가드는 delay 전 1회만 평가한다. dwell 중 OpponentTurn/InTurn 을 벗어나지 않음에 의존한다 —
+            // 이 조합은 completeOpponentTurn 으로만 벗어나고, 그건 speak 개시 후 TTS 신호(audioReady/completions/
+            // ERROR_TEXT_ONLY) 하류에서만 발화하므로 speak 전 전이는 없다(새 displayOpponent 는 serial 재키잉→취소).
+            // dwell 전에 전이를 유발하는 코드를 추가하면 이 불변식이 깨지니 함께 재검토할 것.
             state.pendingOpponentEnglish()?.let(onSpeakOpponent)
         }
     }
