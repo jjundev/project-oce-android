@@ -18,8 +18,8 @@ function input(difficulty: "easy" | "normal" | "hard", dayKey: string, awardedAt
 }
 
 describe("XP map (single source of truth)", () => {
-  it("is exactly 10/20/35", () => {
-    expect(XP_BY_DIFFICULTY).toEqual({ easy: 10, normal: 20, hard: 35 });
+  it("is exactly 5/10/20/35/55", () => {
+    expect(XP_BY_DIFFICULTY).toEqual({ starter: 5, easy: 10, normal: 20, hard: 35, expert: 55 });
   });
 });
 
@@ -31,6 +31,18 @@ describe("isDifficulty", () => {
     expect(isDifficulty("EASY")).toBe(false);
     expect(isDifficulty(undefined)).toBe(false);
     expect(isDifficulty(10)).toBe(false);
+  });
+});
+
+describe("XP table 5 tiers", () => {
+  it("awards the ratified XP per tier", () => {
+    expect(XP_BY_DIFFICULTY).toEqual({ starter: 5, easy: 10, normal: 20, hard: 35, expert: 55 });
+  });
+  it("recognizes all 5 tokens as difficulty", () => {
+    for (const t of ["starter", "easy", "normal", "hard", "expert"]) {
+      expect(isDifficulty(t)).toBe(true);
+    }
+    expect(isDifficulty("legendary")).toBe(false);
   });
 });
 
