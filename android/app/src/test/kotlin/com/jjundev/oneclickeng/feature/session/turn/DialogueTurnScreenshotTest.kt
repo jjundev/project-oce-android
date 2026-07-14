@@ -6,7 +6,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.jjundev.oneclickeng.ui.audio.MicState
@@ -32,7 +34,7 @@ class DialogueTurnScreenshotTest {
     val composeRule = createComposeRule()
 
     private val opponentMessages =
-        listOf(DialogueMessage.Opponent("Hi! What can I get for you?"))
+        listOf(DialogueMessage.Opponent("Hi! What can I get for you?", "안녕하세요! 무엇을 드릴까요?"))
 
     // 40바 음성형 파형(녹음 상태 시각 검증용) — 중앙이 높고 양끝이 낮은 발화 엔벨로프.
     private val sampleWaveform =
@@ -57,6 +59,30 @@ class DialogueTurnScreenshotTest {
 
     @Test
     fun session_opponent_dark() = captureOpponent(name = "session_opponent_dark", dark = true)
+
+    @Test
+    fun session_opponent_translated_light() {
+        composeRule.setContent {
+            OceTheme(darkTheme = false) {
+                Surface {
+                    DialogueTurnContent(
+                        messages = opponentMessages,
+                        turnPhase = TurnPhase.OpponentTurn,
+                        sessionPhase = SessionPhase.InTurn,
+                        currentTask = null,
+                        listState = rememberLazyListState(),
+                        onSubmitStub = {},
+                        onViewSummary = {},
+                        header = header,
+                    )
+                }
+            }
+        }
+        composeRule.onNodeWithText("해석 보기").performClick()
+        composeRule.onRoot().captureRoboImage(
+            "build/outputs/roborazzi/session_opponent_translated_light.png",
+        )
+    }
 
     @Test
     fun session_learner_light() {

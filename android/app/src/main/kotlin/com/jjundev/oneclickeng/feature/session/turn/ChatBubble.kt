@@ -310,7 +310,7 @@ private fun ChatBubblePreviewBody(darkTheme: Boolean) {
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            OpponentTurn(text = "Hi! What can I get for you?")
+            OpponentTurn(text = "Hi! What can I get for you?", korean = "안녕하세요! 무엇을 드릴까요?")
             // 여러 줄 래핑 케이스 — 볼륨 아이콘이 첫 줄 중앙에 고정되는지(밀리지 않는지) 확인용.
             OpponentTurn(
                 text = "Sure! Would you like it iced or hot, and what size would you prefer today?",

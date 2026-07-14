@@ -520,13 +520,13 @@ private fun DialoguePreviewBody(
 }
 
 private val previewOpponentMessages =
-    listOf(DialogueMessage.Opponent("Hi! Welcome. What can I get for you?"))
+    listOf(DialogueMessage.Opponent("Hi! Welcome. What can I get for you?", "안녕하세요! 무엇을 드릴까요?"))
 
 private val previewCompletedMessages =
     listOf(
-        DialogueMessage.Opponent("Great. Anything else?"),
+        DialogueMessage.Opponent("Great. Anything else?", "좋아요. 더 필요하신 게 있나요?"),
         DialogueMessage.Learner("No, that's all. Thank you."),
-        DialogueMessage.Opponent("Perfect. Have a nice day!"),
+        DialogueMessage.Opponent("Perfect. Have a nice day!", "좋습니다. 좋은 하루 보내세요!"),
     )
 
 @Suppress("UnusedPrivateMember")
