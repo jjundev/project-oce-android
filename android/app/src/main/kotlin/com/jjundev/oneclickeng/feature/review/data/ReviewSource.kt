@@ -1,5 +1,6 @@
 package com.jjundev.oneclickeng.feature.review.data
 
+import android.util.Log
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -45,9 +46,13 @@ class FirestoreReviewSource
             target: Int,
         ): List<ReviewItem> {
             val uid = authRepository.uidForSavedCardRead() ?: return emptyList()
-            val due = runCatching { dueItems(uid, nowMs, target) }.getOrDefault(emptyList())
+            val due = runCatching { dueItems(uid, nowMs, target) }
+                .onFailure { Log.w(TAG, "review due query failed [${it::class.simpleName}]: ${it.message}") }
+                .getOrDefault(emptyList())
             if (due.size >= target) return ReviewPool.merge(due, emptyList(), target)
-            val fresh = runCatching { newItems(uid, target) }.getOrDefault(emptyList())
+            val fresh = runCatching { newItems(uid, target) }
+                .onFailure { Log.w(TAG, "review supplement query failed [${it::class.simpleName}]: ${it.message}") }
+                .getOrDefault(emptyList())
             return ReviewPool.merge(due, fresh, target)
         }
 
@@ -57,7 +62,9 @@ class FirestoreReviewSource
             cap: Int,
         ): Int {
             val uid = authRepository.uidForSavedCardRead() ?: return 0
-            return runCatching { dueItems(uid, nowMs, cap).size }.getOrDefault(0)
+            return runCatching { dueItems(uid, nowMs, cap).size }
+                .onFailure { Log.w(TAG, "review dueCount query failed [${it::class.simpleName}]: ${it.message}") }
+                .getOrDefault(0)
         }
 
         private suspend fun dueItems(
@@ -147,6 +154,7 @@ class FirestoreReviewSource
             }
 
         private companion object {
+            const val TAG = "ReviewSource"
             const val USERS = "users"
             const val SAVED_CARDS = "saved_cards"
             const val PER_TYPE_SCAN = 30
