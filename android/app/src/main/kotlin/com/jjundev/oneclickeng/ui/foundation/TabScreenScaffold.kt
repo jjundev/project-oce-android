@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -27,6 +28,7 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
 fun TabScreenScaffold(
     @StringRes titleRes: Int,
     modifier: Modifier = Modifier,
+    listState: LazyListState = rememberLazyListState(),
     content: LazyListScope.() -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -36,7 +38,7 @@ fun TabScreenScaffold(
                 Modifier
                     .fillMaxSize()
                     .padding(horizontal = OceTheme.spacing.xl),
-            state = rememberLazyListState(),
+            state = listState,
             contentPadding =
                 PaddingValues(bottom = OceBottomNavDefaults.overlayContentBottomPadding),
         ) {

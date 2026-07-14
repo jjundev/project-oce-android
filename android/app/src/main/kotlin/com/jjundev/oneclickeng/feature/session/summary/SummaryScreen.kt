@@ -41,7 +41,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -60,6 +59,7 @@ import com.jjundev.oneclickeng.ui.component.OneClickConfettiBurst
 import com.jjundev.oneclickeng.ui.component.OneClickCountUp
 import com.jjundev.oneclickeng.ui.component.OneClickEmptyState
 import com.jjundev.oneclickeng.ui.component.OneClickInlineError
+import com.jjundev.oneclickeng.ui.component.OneClickScrollFab
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
@@ -230,33 +230,19 @@ private fun SummaryScrollFab(
     val atEnd by remember(tolerancePx) {
         derivedStateOf { scrollState.value >= scrollState.maxValue - tolerancePx }
     }
-    Box(
-        modifier =
-            modifier
-                .size(SummaryFabSize)
-                .shadow(SummaryFabElevation, CircleShape)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surface)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
-                .clickable {
-                    scope.launch {
-                        if (atEnd) {
-                            scrollState.animateScrollTo(0)
-                        } else {
-                            scrollState.animateScrollBy(scrollState.viewportSize * SUMMARY_FAB_PAGE_FRACTION)
-                        }
-                    }
-                },
-        contentAlignment = Alignment.Center,
-    ) {
-        OneClickIcon(
-            icon = OceIcon.ExpandMore,
-            contentDescription = if (atEnd) "맨 위로" else "아래로 스크롤",
-            tint = MaterialTheme.colorScheme.primary,
-            size = SummaryFabIconSize,
-            modifier = Modifier.rotate(if (atEnd) 180f else 0f),
-        )
-    }
+    OneClickScrollFab(
+        atEnd = atEnd,
+        onClick = {
+            scope.launch {
+                if (atEnd) {
+                    scrollState.animateScrollTo(0)
+                } else {
+                    scrollState.animateScrollBy(scrollState.viewportSize * SUMMARY_FAB_PAGE_FRACTION)
+                }
+            }
+        },
+        modifier = modifier,
+    )
 }
 
 /** ⓪ 상단 타이틀바 — 프로토타입 realization-SoT: 중앙 정렬 "세션 요약"(축하형 헤더). */
@@ -1084,15 +1070,6 @@ private val StreakCaptionIconSize = 16.dp
 
 /** "더 보기" 원형 chevron 버튼 크기. */
 private val MoreChevronSize = 40.dp
-
-/** 스크롤 보조 FAB 지름(프로토 summaryFab 48px 원형). */
-private val SummaryFabSize = 48.dp
-
-/** 스크롤 보조 FAB chevron 아이콘 크기(프로토 26px). */
-private val SummaryFabIconSize = 26.dp
-
-/** 스크롤 보조 FAB 그림자 높이(프로토 soft box-shadow 근사). */
-private val SummaryFabElevation = 6.dp
 
 /** 스크롤 보조 FAB 와 완료 풋터 사이 간격(프로토 FAB bottom:104 ≈ 풋터 높이 + 16). */
 private val SummaryFabBottomGap = 16.dp

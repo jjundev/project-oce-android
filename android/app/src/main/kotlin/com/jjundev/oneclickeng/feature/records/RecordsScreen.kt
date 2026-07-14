@@ -2,22 +2,29 @@ package com.jjundev.oneclickeng.feature.records
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jjundev.oneclickeng.R
@@ -26,7 +33,9 @@ import com.jjundev.oneclickeng.ui.component.EmptyStateCtaStrength
 import com.jjundev.oneclickeng.ui.component.OneClickDialog
 import com.jjundev.oneclickeng.ui.component.OneClickDialogVariant
 import com.jjundev.oneclickeng.ui.component.OneClickEmptyState
+import com.jjundev.oneclickeng.ui.component.OneClickScrollFab
 import com.jjundev.oneclickeng.ui.component.OneClickSegmentedControl
+import com.jjundev.oneclickeng.ui.foundation.OceBottomNavDefaults
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.ScreenEntranceState
 import com.jjundev.oneclickeng.ui.foundation.TabScreenScaffold
@@ -34,6 +43,7 @@ import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.foundation.rememberScreenEntrance
 import com.jjundev.oneclickeng.ui.foundation.staggerReveal
 import com.jjundev.oneclickeng.ui.theme.OceTheme
+import kotlinx.coroutines.launch
 
 /**
  * 기록 탭(M2-05). 공유 [TabScreenScaffold] 골격을 유지하고 그 [LazyListScope] 안에 평생통계 헤더(item) →
@@ -74,9 +84,11 @@ internal fun RecordsContent(
     var expandedId by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
     val entrance = rememberScreenEntrance(reduceMotion)
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
 
     Box(modifier = modifier.fillMaxSize()) {
-        TabScreenScaffold(titleRes = R.string.tab_records) {
+        TabScreenScaffold(titleRes = R.string.tab_records, listState = listState) {
             item(key = "lifetime") {
                 LifetimeStatsHeader(
                     lifetime = state.lifetime,
@@ -117,6 +129,32 @@ internal fun RecordsContent(
                 onRequestDelete = { entry -> pendingDeleteId = entry.cardId },
                 onLoadMore = onLoadMore,
                 entrance = entrance,
+            )
+        }
+
+        // 스크롤 보조 FAB(세션 요약 화면과 동일) — 스크롤 가능할 때만 뜨고, 끝 이전엔 아래(page-down),
+        // 끝에선 위(맨 위로) chevron. 플로팅 하단 내비 바로 위에 띄운다.
+        val canScroll by remember {
+            derivedStateOf { listState.canScrollForward || listState.canScrollBackward }
+        }
+        val atEnd by remember { derivedStateOf { !listState.canScrollForward } }
+        if (canScroll) {
+            OneClickScrollFab(
+                atEnd = atEnd,
+                onClick = {
+                    scope.launch {
+                        if (atEnd) {
+                            listState.animateScrollToItem(0)
+                        } else {
+                            val viewportHeight = listState.layoutInfo.viewportSize.height
+                            listState.animateScrollBy(viewportHeight * RECORDS_FAB_PAGE_FRACTION)
+                        }
+                    }
+                },
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = OceBottomNavDefaults.overlayContentBottomPadding + RecordsFabBottomGap),
             )
         }
     }
@@ -200,6 +238,12 @@ private fun tabLabel(cardType: CardType): String =
         CardType.WORD -> "단어"
         CardType.SENTENCE -> "문장"
     }
+
+/** 스크롤 보조 FAB 와 플로팅 하단 내비 사이 간격(요약 화면 SummaryFabBottomGap 선례와 정합). */
+private val RecordsFabBottomGap = 16.dp
+
+/** FAB 한 번 탭 시 내려가는 뷰포트 비율(요약 화면 SUMMARY_FAB_PAGE_FRACTION 선례와 정합). */
+private const val RECORDS_FAB_PAGE_FRACTION = 0.82f
 
 @Suppress("UnusedPrivateMember")
 @Preview(showBackground = true, widthDp = 360)
