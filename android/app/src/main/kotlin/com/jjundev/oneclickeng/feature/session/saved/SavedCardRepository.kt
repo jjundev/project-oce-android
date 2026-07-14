@@ -41,6 +41,16 @@ interface SavedCardRepository {
         cardType: CardType,
         deleted: Boolean,
     )
+
+    fun updateSrs(
+        cardId: String,
+        cardType: CardType,
+        box: Int,
+        nextReviewAt: Long,
+        lastReviewedAt: Long,
+        reps: Int,
+        lapses: Int,
+    )
 }
 
 /**
@@ -102,6 +112,32 @@ class FirestoreSavedCardRepository
                     ref.set(SavedCardPayload.tombstone(cardType, deletedAt), SetOptions.merge()).await()
                 } catch (e: Exception) {
                     Log.w(TAG, "saved_card setDeleted skipped [${e::class.simpleName}]: ${e.message}")
+                }
+            }
+        }
+
+        @Suppress("TooGenericExceptionCaught", "LongParameterList")
+        override fun updateSrs(
+            cardId: String,
+            cardType: CardType,
+            box: Int,
+            nextReviewAt: Long,
+            lastReviewedAt: Long,
+            reps: Int,
+            lapses: Int,
+        ) {
+            val uid = authRepository.currentUid ?: return
+            scope.launch {
+                try {
+                    val ref = docRef(uid, cardId)
+                    // srs 는 기존 문서에만 — 부분 create(규칙 위반) 회피.
+                    if (!exists(ref)) return@launch
+                    ref.set(
+                        SavedCardPayload.srs(cardType, box, nextReviewAt, lastReviewedAt, reps, lapses),
+                        SetOptions.merge(),
+                    ).await()
+                } catch (e: Exception) {
+                    Log.w(TAG, "saved_card updateSrs skipped [${e::class.simpleName}]: ${e.message}")
                 }
             }
         }
