@@ -42,8 +42,8 @@ data class ScaffoldTask(val koreanPrompt: String)
 sealed interface DialogueMessage {
     val english: String
 
-    /** 상대역 말풍선(좌측, `surface.card`). */
-    data class Opponent(override val english: String) : DialogueMessage
+    /** 상대역 말풍선(좌측, `surface.card`). [korean] 은 `해석 보기` 토글용 한국어 번역(없으면 빈 문자열). */
+    data class Opponent(override val english: String, val korean: String = "") : DialogueMessage
 
     /**
      * 학습자 말풍선(우측, `brand.primary`). M1-03 에서는 [DialogueTurn.referenceEnglish] 목표 문장을
@@ -61,6 +61,14 @@ const val DEFAULT_OPPONENT_ADVANCE_DELAY_MS: Int = 1200
  * 0 을 주입해 스켈레톤 국면을 건너뛴다(자동 진행 결정성 유지).
  */
 const val DEFAULT_OPPONENT_SKELETON_DELAY_MS: Int = 700
+
+/**
+ * 라이브 세션(GeneratedDialogueSession) 상대역 말풍선 reveal 전 **최소 스켈레톤 노출 dwell(ms)**. 대사
+ * 합성/발화 시작([GeneratedDialogueSessionContent] 의 onSpeakOpponent)을 이만큼 미뤄, 오디오 엔진이 warm
+ * 이거나 음성없음(ERROR_TEXT_ONLY)으로 즉시 폴백해도 "타이핑 중" 스켈레톤이 최소 시간 보이게 한다. 프로토타입
+ * oppSkeleton dwell(950ms) 정합에 가까운 값. reduceMotion 과 무관하게 적용한다(페이싱 게이트이지 모션 아님).
+ */
+const val DEFAULT_OPPONENT_SKELETON_FLOOR_MS: Long = 900L
 
 /**
  * M1-03 대화 턴 화면의 상태 홀더. **신규 도입** 화면 스코프 홀더로, 리포에 `remember*State` 홀더 선례는

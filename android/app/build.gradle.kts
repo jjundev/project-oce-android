@@ -92,6 +92,7 @@ tasks.withType<Test>().configureEach {
             "**/SummaryScrollEndGateTest*",
             "**/SummaryScrollFabTest*",
             "**/SummaryHandoffDelayTest*",
+            "**/OpponentSkeletonFloorTest*",
             "**/HomeSettingsChipTest*",
             "**/HomeSituationTapTest*",
             "**/HomeStatsStripTest*",
@@ -100,6 +101,7 @@ tasks.withType<Test>().configureEach {
             "**/DialogueExitGuardTest*",
             "**/AppExitGuardTest*",
             "**/RecordsDeleteDialogTest*",
+            "**/DialogueTranslationToggleTest*",
         )
     }
 }

@@ -24,7 +24,7 @@ private fun ready(
     streamStatus = status,
 )
 
-private fun model(en: String) = NetworkDialogueTurn(ko = "상대역", en = en, role = "model")
+private fun model(en: String) = NetworkDialogueTurn(ko = "", en = en, role = "model")
 
 private fun user(
     en: String,
@@ -133,5 +133,18 @@ class SessionTurnSnapshotTest {
         assertEquals(TWO_PAIRS.size, snapshot.turns.size)
         assertEquals("Hello", snapshot.turns.first().en)
         assertNotNull(snapshot.turns.first { it.role == "user" })
+    }
+
+    @Test
+    fun `snapshot round-trip preserves the opponent Korean translation`() {
+        val state = GeneratedDialogueState()
+        state.accept(ready(listOf(NetworkDialogueTurn(ko = "안녕하세요", en = "Hello", role = "model"))))
+        state.commitReveal()
+
+        val encoded = json.encodeToString(state.toSnapshot(MicState.Ready, emptyList(), "s1", "easy"))
+        val decoded = json.decodeFromString<SessionTurnSnapshot>(encoded)
+        val restored = GeneratedDialogueState().apply { restoreFrom(decoded) }
+
+        assertEquals(DialogueMessage.Opponent("Hello", "안녕하세요"), restored.messages.last())
     }
 }
