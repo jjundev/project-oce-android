@@ -69,6 +69,7 @@ class AppNavigationTest {
                         navController = navController,
                         onStartSession = { _, _, _, _, _ -> },
                         onResume = {},
+                        onEnterReview = {},
                     )
                     OceBottomNav(navController)
                 }
