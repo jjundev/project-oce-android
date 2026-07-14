@@ -28,7 +28,7 @@ export type ResponseMode = "sse" | "json";
  * `sessions/{id}.turnCount` — the per-session call-cap divisor (session-cap.ts:75).
  */
 export interface DialoguePayload {
-  level: "easy" | "normal" | "hard";
+  level: "starter" | "easy" | "normal" | "hard" | "expert";
   topic: string;
   length: number;
   firstSession: boolean;
