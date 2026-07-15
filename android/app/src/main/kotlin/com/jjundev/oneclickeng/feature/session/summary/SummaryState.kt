@@ -22,7 +22,7 @@ data class SummaryState(
     val totalScore: Int?,
     /** 하이라이트 base = slim 점수 최고 턴(≤1). coaching 편승 enrich 는 M2-01 스키마 확정 후(#6). */
     val highlight: HighlightTurn?,
-    /** 북마크 문장(SENTENCE) 최신순 ≤8, 표시 전용. M2-04 착지 전엔 빈 리스트(BookmarkSource seam). */
+    /** 북마크 문장(SENTENCE) 최신순 ≤8. BookmarkSource 가 읽고 SummaryCoordinator 가 저장 토글을 처리한다. */
     val bookmarks: List<BookmarkCard>,
     /** 적립 스트립(streak/학습시간/XP) — 실데이터 배선 M3-05, 슬롯머신 카운트업 M3-06([AccrualStrip.animate]). */
     val accrual: AccrualStrip,
@@ -35,6 +35,8 @@ data class SummaryState(
      */
     val savedWordIndices: Set<Int> = emptySet(),
     val savedExprIndices: Set<Int> = emptySet(),
+    /** 저장 해제된 북마크 문장 ID 집합. 카드는 목록에 유지하고 저장 상태만 낙관적으로 토글한다. */
+    val unsavedBookmarkIds: Set<String> = emptySet(),
     /**
      * 온보딩 첫 세션 여부(M3-02). true 면 격려 카피를 더 따뜻한 변형으로 고른다("보장된 승리"의 격려 강조,
      * 01-onboarding §8). 일반 세션은 false. 점수 계산·SSE 로직에는 영향이 없다 — 카피 톤만 바꾼다.
@@ -149,8 +151,9 @@ data class Coaching(
     val hasToImprove: Boolean get() = toImprove.isNotBlank()
 }
 
-/** 북마크 문장(SENTENCE) — deep 패러프레이즈 소스(saved-cards.md §3.3). 표시 전용. */
+/** 북마크 문장(SENTENCE) — deep 패러프레이즈 소스(saved-cards.md §3.3). Firestore 문서 ID를 보존한다. */
 data class BookmarkCard(
+    val cardId: String,
     val english: String,
     val korean: String,
 )

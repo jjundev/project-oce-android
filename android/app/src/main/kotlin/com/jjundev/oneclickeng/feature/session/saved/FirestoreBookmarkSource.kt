@@ -56,6 +56,7 @@ class FirestoreBookmarkSource
                     snapshot.documents.mapNotNull { doc ->
                         val english = doc.getString(FIELD_ENGLISH) ?: return@mapNotNull null
                         BookmarkDoc(
+                            cardId = doc.id,
                             english = english,
                             korean = doc.getString(FIELD_KOREAN).orEmpty(),
                             // pending server timestamp → ESTIMATE 로 ~now 추정(정렬 시 최신 취급).

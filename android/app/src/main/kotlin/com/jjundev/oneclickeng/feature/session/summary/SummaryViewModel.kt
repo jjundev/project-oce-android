@@ -51,6 +51,9 @@ class SummaryViewModel
 
         fun toggleSaveExpression(index: Int) = coordinator.toggleSaveExpression(index)
 
+        /** 북마크 문장 저장 해제 토글을 코디네이터로 위임한다. */
+        fun toggleSaveBookmark(cardId: String) = coordinator.toggleSaveBookmark(cardId)
+
         override fun onCleared() {
             coordinator.reset()
         }
@@ -93,6 +96,7 @@ fun SummaryRoute(
         onRetry = viewModel::retry,
         onToggleSaveWord = viewModel::toggleSaveWord,
         onToggleSaveExpression = viewModel::toggleSaveExpression,
+        onToggleSaveBookmark = viewModel::toggleSaveBookmark,
         modifier = modifier,
         onDone = onDone,
         doneLabel = doneLabel,

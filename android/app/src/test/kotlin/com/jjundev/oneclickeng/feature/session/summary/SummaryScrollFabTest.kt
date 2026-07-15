@@ -86,6 +86,7 @@ class SummaryScrollFabTest {
                         onRetry = {},
                         onToggleSaveWord = {},
                         onToggleSaveExpression = {},
+                        onToggleSaveBookmark = {},
                         onDone = onDone,
                     )
                 }
@@ -97,7 +98,10 @@ class SummaryScrollFabTest {
         SummaryState(
             totalScore = 85,
             highlight = HighlightTurn("커피 주세요", "Could I get a latte?", 92),
-            bookmarks = List(8) { BookmarkCard("I got lost on the way.", "오는 길에 길을 잃었어요.") },
+            bookmarks =
+                List(8) { index ->
+                    BookmarkCard("fixture-sentence-$index", "I got lost on the way.", "오는 길에 길을 잃었어요.")
+                },
             accrual = AccrualStrip(streakDays = 1, xp = 20),
             bundle =
                 SectionBundle.Sectioned(
