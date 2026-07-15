@@ -55,6 +55,7 @@ class RecordsDeleteDialogTest {
                         onSelectTab = {},
                         onDelete = { deleted += it },
                         onLoadMore = {},
+                        onRefresh = {},
                         reduceMotion = true,
                     )
                 }

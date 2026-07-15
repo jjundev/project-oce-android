@@ -45,6 +45,8 @@ import com.jjundev.oneclickeng.ui.foundation.OceBottomNavDefaults
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.ScreenEntranceState
 import com.jjundev.oneclickeng.ui.foundation.TabScreenScaffold
+import com.jjundev.oneclickeng.ui.foundation.refresh.OverscrollRefreshBox
+import com.jjundev.oneclickeng.ui.foundation.refresh.refreshWave
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.foundation.rememberScreenEntrance
 import com.jjundev.oneclickeng.ui.foundation.staggerReveal
@@ -71,6 +73,7 @@ fun RecordsScreen(
         onSelectTab = viewModel::selectTab,
         onDelete = viewModel::deleteCard,
         onLoadMore = viewModel::loadMore,
+        onRefresh = viewModel::refresh,
         onEnterReview = onEnterReview,
         reduceMotion = rememberReduceMotion(),
         modifier = modifier,
@@ -104,6 +107,7 @@ internal fun RecordsContent(
     onSelectTab: (CardType) -> Unit,
     onDelete: (SavedCardEntry) -> Unit,
     onLoadMore: () -> Unit,
+    onRefresh: () -> Unit,
     onEnterReview: () -> Unit = {},
     modifier: Modifier = Modifier,
     reduceMotion: Boolean = false,
@@ -114,7 +118,11 @@ internal fun RecordsContent(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
-    Box(modifier = modifier.fillMaxSize()) {
+    OverscrollRefreshBox(
+        isRefreshing = state.refreshing,
+        onRefresh = onRefresh,
+        modifier = modifier.fillMaxSize(),
+    ) {
         TabScreenScaffold(titleRes = R.string.tab_records, listState = listState) {
             item(key = "lifetime") {
                 LifetimeStatsHeader(
@@ -236,7 +244,11 @@ private fun LazyListScope.cardList(
             expanded = expandedId == entry.cardId,
             onToggleExpand = { onToggleExpand(entry.cardId) },
             onLongPress = { onRequestDelete(entry) },
-            modifier = Modifier.staggerReveal(3 + index, entrance).padding(bottom = OceTheme.spacing.md),
+            modifier =
+                Modifier
+                    .staggerReveal(3 + index, entrance)
+                    .padding(bottom = OceTheme.spacing.md)
+                    .refreshWave(index),
         )
     }
 
