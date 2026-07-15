@@ -4,6 +4,7 @@ import com.jjundev.oneclickeng.feature.session.summary.BookmarkCard
 
 /** 정렬용 북마크 doc — [createdAtMillis] 는 estimate 로 해석된 생성시각(미해결 pending write 는 null). */
 data class BookmarkDoc(
+    val cardId: String,
     val english: String,
     val korean: String,
     val createdAtMillis: Long?,
@@ -22,5 +23,5 @@ object BookmarkOrdering {
         docs
             .sortedByDescending { it.createdAtMillis ?: Long.MAX_VALUE }
             .take(limit)
-            .map { BookmarkCard(english = it.english, korean = it.korean) }
+            .map { doc -> BookmarkCard(cardId = doc.cardId, english = doc.english, korean = doc.korean) }
 }

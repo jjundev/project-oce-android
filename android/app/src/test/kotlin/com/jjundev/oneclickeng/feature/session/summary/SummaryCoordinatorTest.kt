@@ -397,6 +397,34 @@ class SummaryCoordinatorTest {
         }
 
     @Test
+    fun toggleSaveBookmarkRemovesSentenceAndWritesSentenceTombstone() =
+        runTest {
+            val stream = FakeSummaryStream()
+            val repo = FakeSavedCardRepository()
+            val card = BookmarkCard(cardId = "s1__SENTENCE__0__2", english = "I got lost.", korean = "길을 잃었어요.")
+            val coordinator =
+                coordinator(
+                    coordScope(),
+                    stream,
+                    bookmarks = FakeBookmarkSource(listOf(card)),
+                    savedCards = repo,
+                )
+
+            coordinator.begin()
+            runCurrent()
+            assertEquals(listOf(card), coordinator.state.value.bookmarks)
+
+            coordinator.toggleSaveBookmark(card.cardId)
+            runCurrent()
+
+            assertTrue(coordinator.state.value.bookmarks.isEmpty())
+            assertEquals(1, repo.deletes.size)
+            assertEquals(card.cardId, repo.deletes.single().cardId)
+            assertEquals(CardType.SENTENCE, repo.deletes.single().cardType)
+            assertTrue(repo.deletes.single().deleted)
+        }
+
+    @Test
     fun `initial request projects expression candidates and sentences from the buffer`() =
         runTest {
             val stream = FakeSummaryStream()

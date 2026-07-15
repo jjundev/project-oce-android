@@ -22,7 +22,7 @@ data class SummaryState(
     val totalScore: Int?,
     /** 하이라이트 base = slim 점수 최고 턴(≤1). coaching 편승 enrich 는 M2-01 스키마 확정 후(#6). */
     val highlight: HighlightTurn?,
-    /** 북마크 문장(SENTENCE) 최신순 ≤8, 표시 전용. M2-04 착지 전엔 빈 리스트(BookmarkSource seam). */
+    /** 북마크 문장(SENTENCE) 최신순 ≤8. BookmarkSource 가 읽고 SummaryCoordinator 가 저장 해제를 처리한다. */
     val bookmarks: List<BookmarkCard>,
     /** 적립 스트립(streak/학습시간/XP) — 실데이터 배선 M3-05, 슬롯머신 카운트업 M3-06([AccrualStrip.animate]). */
     val accrual: AccrualStrip,
@@ -149,11 +149,15 @@ data class Coaching(
     val hasToImprove: Boolean get() = toImprove.isNotBlank()
 }
 
-/** 북마크 문장(SENTENCE) — deep 패러프레이즈 소스(saved-cards.md §3.3). 표시 전용. */
+/** 북마크 문장(SENTENCE) — deep 패러프레이즈 소스(saved-cards.md §3.3). Firestore 문서 ID를 보존한다. */
 data class BookmarkCard(
+    val cardId: String,
     val english: String,
     val korean: String,
-)
+) {
+    /** 기존 정적 미리보기 호출부를 위한 호환 생성자. 실제 저장 카드에는 Firestore ID를 사용한다. */
+    constructor(english: String, korean: String) : this(cardId = "", english = english, korean = korean)
+}
 
 /**
  * 적립 스트립 값(주입 seam). 순서 = streak → 학습시간 → XP(gamification-emphasis.md §4.3). 실데이터 소스

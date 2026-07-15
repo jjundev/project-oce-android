@@ -209,6 +209,15 @@ class SummaryCoordinator
             emit()
         }
 
+        /** 현재 요약의 저장된 SENTENCE 카드를 낙관적으로 제거하고 톰스톤 처리한다. */
+        fun toggleSaveBookmark(cardId: String) {
+            if (sessionId == null) return
+            val current = bookmarks.firstOrNull { it.cardId == cardId } ?: return
+            bookmarks = bookmarks.filterNot { it.cardId == current.cardId }
+            savedCardRepository.setDeleted(current.cardId, CardType.SENTENCE, deleted = true)
+            emit()
+        }
+
         private fun loadBookmarks(sessionId: String) {
             scope.launch {
                 val loaded = bookmarkSource.latestSentences(sessionId, BOOKMARK_LIMIT)
