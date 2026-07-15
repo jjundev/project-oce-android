@@ -48,6 +48,7 @@ class RecordsViewModel
         private var lifetime: LifetimeStats? = null
         private var animateCountUp: Boolean = false
         private var dueCount: Int = 0
+        private var refreshing: Boolean = false
 
         private val _uiState = MutableStateFlow(RecordsUiState())
         val uiState: StateFlow<RecordsUiState> = _uiState.asStateFlow()
@@ -89,6 +90,7 @@ class RecordsViewModel
             val state = typeStates.getValue(cardType)
             if (state.loading) return
 
+            refreshing = true
             typeStates[cardType] =
                 state.copy(
                     cards = emptyList(),
@@ -139,6 +141,7 @@ class RecordsViewModel
                         loading = false,
                         loaded = true,
                     )
+                if (cardType == selected) refreshing = false
                 publish()
             }
         }
@@ -154,6 +157,7 @@ class RecordsViewModel
                     lifetime = lifetime,
                     animateCountUp = animateCountUp,
                     dueCount = dueCount,
+                    refreshing = refreshing,
                 )
         }
     }

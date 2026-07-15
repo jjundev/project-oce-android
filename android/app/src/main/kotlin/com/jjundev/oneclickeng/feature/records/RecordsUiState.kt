@@ -16,6 +16,8 @@ data class RecordsUiState(
     val animateCountUp: Boolean = false,
     /** 오늘의 복습 배너에 표시할 due 카드 수(캡 20; 20이면 "20+"). 0이면 배너 톤 축소. */
     val dueCount: Int = 0,
+    /** 당겨서 새로고침 진행 여부(Firebase reload 인-플라이트). 스프링 복귀 대기용. */
+    val refreshing: Boolean = false,
 ) {
     /** 기록 탭 3종 세그먼트 순서(R2). */
     val tabs: List<CardType> get() = TABS
