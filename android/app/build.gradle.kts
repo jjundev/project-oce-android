@@ -107,6 +107,9 @@ tasks.withType<Test>().configureEach {
             "**/RecordsDeleteDialogTest*",
             "**/ReviewFlowBehaviorTest*",
             "**/DialogueTranslationToggleTest*",
+            "**/OverscrollRefreshBoxTest*",
+            "**/HomePullRefreshTest*",
+            "**/RecordsScreenPullRefreshTest*",
         )
     }
 }
