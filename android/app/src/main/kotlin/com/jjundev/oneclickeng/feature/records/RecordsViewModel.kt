@@ -19,6 +19,7 @@ import javax.inject.Inject
  *  undo 는 없다 — 다이얼로그가 안전장치이므로 되돌릴 필요가 없다.
  *
  * 읽기가 1회성 get 이라 리스너 재전달에 의존하지 않으므로, 삭제 후 리스트 반영은 이 낙관 변이가 단일하게 소유한다.
+ * 기록 destination이 다시 재개되면 [refresh]가 현재 선택 타입만 첫 페이지부터 재조회하고, 다른 타입의 누적 상태는 보존한다.
  */
 @Suppress("LongParameterList") // DI: 기존 읽기/삭제/통계 seam 5종 + 복습 배너용 ReviewSource/ReviewClock(Task 8).
 @HiltViewModel
@@ -43,6 +44,7 @@ class RecordsViewModel
 
         private val typeStates = RecordsUiState.TABS.associateWith { TypeState() }.toMutableMap()
         private var selected: CardType = RecordsUiState.TABS.first()
+        private var hasResumed = false
         private var lifetime: LifetimeStats? = null
         private var animateCountUp: Boolean = false
         private var dueCount: Int = 0
@@ -79,6 +81,30 @@ class RecordsViewModel
             val state = typeStates.getValue(selected)
             if (state.loading || state.endReached || !state.loaded) return
             loadPage(selected, after = state.cursor)
+        }
+
+        /** 기록 탭 재진입 시 현재 세그먼트를 첫 페이지부터 다시 읽는다. 진행 중인 조회와는 중복 실행하지 않는다. */
+        fun refresh() {
+            val cardType = selected
+            val state = typeStates.getValue(cardType)
+            if (state.loading) return
+
+            typeStates[cardType] =
+                state.copy(
+                    cards = emptyList(),
+                    cursor = null,
+                    endReached = false,
+                )
+            loadFirstPage(cardType)
+        }
+
+        /** 기록 destination의 최초 resume는 init 조회가 담당하므로 소비하고, 이후 resume마다 최신 목록을 읽는다. */
+        fun refreshOnResume() {
+            if (!hasResumed) {
+                hasResumed = true
+                return
+            }
+            refresh()
         }
 
         /** 삭제(확인 다이얼로그 이후) = 톰스톤 + 낙관 제거. undo 없음(다이얼로그가 안전장치). */
