@@ -181,6 +181,19 @@ describe("point_ledger (create-only 불변, 서버시각 강제)", () => {
     );
   });
 
+  it.each(["starter", "expert"])(
+    "difficulty:%s 로 생성 허용(5단계 난이도)",
+    async (difficulty) => {
+      await assertSucceeds(
+        setDoc(doc(aliceDb(), path), {
+          difficulty,
+          modeId: "m1",
+          awardedAt: serverTimestamp(),
+        })
+      );
+    }
+  );
+
   it("잘못된 difficulty 는 거부", async () => {
     await assertFails(
       setDoc(doc(aliceDb(), path), {

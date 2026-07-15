@@ -43,7 +43,7 @@ data class ToneLabel(
 )
 
 /**
- * C8 슬라이더 표현 모드. 하나의 [OneClickSlider] 가 두 모드를 실현한다(단일 컴포넌트 2모드).
+ * C8 슬라이더 표현 모드. 하나의 [OneClickSlider] 가 세 모드를 실현한다(단일 컴포넌트 3모드).
  */
 sealed interface SliderMode {
     /** 연속값 — 말하기 속도 0.5x~1.5x(기본 1.0). */
@@ -58,17 +58,50 @@ sealed interface SliderMode {
     data class Discrete(
         val labels: List<ToneLabel>,
     ) : SliderMode
+
+    /**
+     * 정수 스냅값 — 임의 정수 구간을 [step] 간격으로 스냅한다(레벨 인덱스 0..4, 길이 6..20/step2).
+     * [value] 는 stop 인덱스가 아니라 실제 정수(Float)이고, [labelFormatter] 가 그 정수의 표시 문자열을
+     * 만든다. 하단 값 라벨은 [showValueLabel] 로 게이팅한다(Discrete 와 달리 무조건 렌더하지 않는다).
+     */
+    data class Stepped(
+        val range: IntRange,
+        val step: Int = 1,
+        val labelFormatter: (Int) -> String,
+    ) : SliderMode
 }
 
+private fun computeValueRange(mode: SliderMode): ClosedFloatingPointRange<Float> =
+    when (mode) {
+        is SliderMode.Continuous -> mode.range
+        is SliderMode.Discrete -> 0f..(mode.labels.lastIndex.coerceAtLeast(0)).toFloat()
+        is SliderMode.Stepped -> steppedSliderSpec(mode.range, mode.step).valueRange
+    }
+
+private fun computeSteps(mode: SliderMode): Int =
+    when (mode) {
+        is SliderMode.Continuous -> 0
+        // stops = steps + 2 ⇒ steps = labels 수 - 2 (5 stop → steps 3).
+        is SliderMode.Discrete -> (mode.labels.size - 2).coerceAtLeast(0)
+        is SliderMode.Stepped -> steppedSliderSpec(mode.range, mode.step).steps
+    }
+
+private fun computeState(mode: SliderMode, value: Float): String =
+    when (mode) {
+        is SliderMode.Continuous -> "${"%.1f".format(value)}x"
+        is SliderMode.Discrete -> mode.labels.getOrNull(value.roundToInt())?.let { "${it.en} / ${it.ko}" } ?: ""
+        is SliderMode.Stepped -> mode.labelFormatter(value.roundToInt())
+    }
+
 /**
- * C8 슬라이더 = M3 [Slider] 래핑, 단일 컴포넌트 2모드. 정본: 02-shared-components.md:80.
+ * C8 슬라이더 = M3 [Slider] 래핑, 단일 컴포넌트 3모드. 정본: 02-shared-components.md:80.
  *
  * [SliderMode.Continuous] 는 속도(0.5–1.5x, thumb 값 = 배속), [SliderMode.Discrete] 는 톤 5단계
- * (thumb 값 = stop 인덱스 0..4, `steps=3` 스냅)로 동작한다. 트랙 색은 활성 `brand.primary` /
- * 비활성 `border.hairline`. 값 변경은 M3 내장 setProgress 시맨틱에 위임하고, 현재값을
- * `stateDescription`(배속/현재 톤 라벨)으로 announce 한다(A2·A6).
+ * (thumb 값 = stop 인덱스 0..4, `steps=3` 스냅), [SliderMode.Stepped] 는 정수 구간 스냅(thumb 값 = 실제
+ * 정수)으로 동작한다. 트랙 색은 활성 `brand.primary` / 비활성 `border.hairline`. 값 변경은 M3 내장
+ * setProgress 시맨틱에 위임하고, 현재값을 `stateDescription`(배속/현재 톤 라벨/정수)으로 announce 한다(A2·A6).
  *
- * @param value Continuous = 배속 실수, Discrete = stop 인덱스(0..labels.lastIndex, 정수 실수).
+ * @param value Continuous = 배속 실수, Discrete = stop 인덱스(0..labels.lastIndex, 정수 실수), Stepped = 실제 정수(Float).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,22 +113,9 @@ fun OneClickSlider(
     onValueChangeFinished: (() -> Unit)? = null,
     showValueLabel: Boolean = true,
 ) {
-    val valueRange =
-        when (mode) {
-            is SliderMode.Continuous -> mode.range
-            is SliderMode.Discrete -> 0f..(mode.labels.lastIndex.coerceAtLeast(0)).toFloat()
-        }
-    val steps =
-        when (mode) {
-            is SliderMode.Continuous -> 0
-            // stops = steps + 2 ⇒ steps = labels 수 - 2 (5 stop → steps 3).
-            is SliderMode.Discrete -> (mode.labels.size - 2).coerceAtLeast(0)
-        }
-    val state =
-        when (mode) {
-            is SliderMode.Continuous -> "${"%.1f".format(value)}x"
-            is SliderMode.Discrete -> mode.labels.getOrNull(value.roundToInt())?.let { "${it.en} / ${it.ko}" } ?: ""
-        }
+    val valueRange = computeValueRange(mode)
+    val steps = computeSteps(mode)
+    val state = computeState(mode, value)
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -136,26 +156,41 @@ fun OneClickSlider(
                 )
             },
         )
-        when (mode) {
-            is SliderMode.Continuous ->
-                if (showValueLabel) {
-                    Text(
-                        text = "${"%.1f".format(value)}x",
-                        style = OceTheme.typography.body,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
+        renderValueLabel(mode, value, showValueLabel)
+    }
+}
 
-            is SliderMode.Discrete ->
-                mode.labels.getOrNull(value.roundToInt())?.let { label ->
-                    Text(
-                        text = label.toDualLine(),
-                        style = OceTheme.typography.body,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-        }
+@Composable
+private fun renderValueLabel(mode: SliderMode, value: Float, showValueLabel: Boolean) {
+    when (mode) {
+        is SliderMode.Continuous ->
+            if (showValueLabel) {
+                Text(
+                    text = "${"%.1f".format(value)}x",
+                    style = OceTheme.typography.body,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+
+        is SliderMode.Discrete ->
+            mode.labels.getOrNull(value.roundToInt())?.let { label ->
+                Text(
+                    text = label.toDualLine(),
+                    style = OceTheme.typography.body,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
+                )
+            }
+
+        is SliderMode.Stepped ->
+            if (showValueLabel) {
+                Text(
+                    text = mode.labelFormatter(value.roundToInt()),
+                    style = OceTheme.typography.body,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
+                )
+            }
     }
 }
 
@@ -166,6 +201,23 @@ private fun ToneLabel.toDualLine(): AnnotatedString =
         append("\n")
         append(ko)
     }
+
+/** M3 Slider 스펙 파생: 정수 [range]/[step] → (valueRange, steps). stops = steps + 2 규칙. */
+internal data class SteppedSpec(
+    val valueRange: ClosedFloatingPointRange<Float>,
+    val steps: Int,
+)
+
+internal fun steppedSliderSpec(
+    range: IntRange,
+    step: Int,
+): SteppedSpec {
+    val stops = ((range.last - range.first) / step) + 1
+    return SteppedSpec(
+        valueRange = range.first.toFloat()..range.last.toFloat(),
+        steps = (stops - 2).coerceAtLeast(0),
+    )
+}
 
 @Suppress("UnusedPrivateMember")
 @Preview(showBackground = true, widthDp = 320)

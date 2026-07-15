@@ -60,12 +60,14 @@ import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jjundev.oneclickeng.core.session.SessionLevel
 import com.jjundev.oneclickeng.feature.home.topic.TopicCatalog
 import com.jjundev.oneclickeng.feature.home.topic.TopicSelectSheet
 import com.jjundev.oneclickeng.feature.reminder.ui.HomeReminderHost
@@ -74,8 +76,9 @@ import com.jjundev.oneclickeng.feature.settings.ReminderTimeSheet
 import com.jjundev.oneclickeng.ui.component.OneClickAtLimitNotice
 import com.jjundev.oneclickeng.ui.component.OneClickCountUp
 import com.jjundev.oneclickeng.ui.component.OneClickReminderEnabledBanner
-import com.jjundev.oneclickeng.ui.component.OneClickSegmentedControl
 import com.jjundev.oneclickeng.ui.component.OneClickShimmerPiece
+import com.jjundev.oneclickeng.ui.component.OneClickSlider
+import com.jjundev.oneclickeng.ui.component.SliderMode
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
@@ -87,6 +90,7 @@ import com.jjundev.oneclickeng.ui.foundation.rememberScreenEntrance
 import com.jjundev.oneclickeng.ui.foundation.staggerReveal
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import kotlin.math.PI
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -115,18 +119,6 @@ private const val WAVE_PEAK_ALPHA = 0.5f
 
 /** 물결 글로우 반경 = 카드 폭의 이 비율. */
 private const val WAVE_RADIUS_FRACTION = 0.6f
-
-/** 세션 설정 옵션(프로토 인라인 패널 levelOptions/lengthOptions 정합, 저장값 = profile.level 계약). */
-private val LEVEL_OPTIONS = listOf("easy", "normal", "hard")
-private val LENGTH_OPTIONS = listOf(5, 10)
-
-private fun levelLabel(level: String): String =
-    when (level) {
-        "easy" -> "쉬움"
-        "normal" -> "보통"
-        "hard" -> "어려움"
-        else -> "쉬움"
-    }
 
 /**
  * 히어로 리빌 재생 여부. 최초 컴포지션이 아니고([primed]) 새 대화 모드([resumeTopic]==null)일 때만 재생한다.
@@ -588,7 +580,8 @@ private fun HeroCta(
         if (resumeTopic != null) {
             "$resumeTopic · $resumeTurn / ${resumeTotalTurns}턴"
         } else {
-            listOfNotNull(situationLabel, "${length}턴", level?.let(::levelLabel)).joinToString(" · ")
+            listOfNotNull(situationLabel, level?.let { SessionLevel.fromToken(it).labelKo }, "${length}턴")
+                .joinToString(" · ")
         }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
@@ -736,12 +729,13 @@ private fun HeroBadge(icon: OceIcon) {
 }
 
 /**
- * 설정 변경 인라인(프로토 settingsOpenHome) — "⚙ 설정 변경 · 쉬움 · 5턴 ⌄" 행 탭 시 홈 안에서 레벨·길이
- * 세그먼트 패널이 펼쳐진다(별도 화면 없음). [level] null(=profile.level 미해소, #6) 동안은 요약을 로딩
- * 문구로 대체하고 펼침을 막는다.
+ * 설정 변경 인라인(프로토 settingsOpenHome) — "⚙ 설정 변경 ⌄" 행 탭 시 홈 안에서 레벨·길이 슬라이더
+ * 패널이 펼쳐진다(별도 화면 없음). 레벨은 5-스톱 슬라이더(라벨+설명 우측 정렬), 길이는 짝수 6..20
+ * 슬라이더(기본 10턴)다. [level] null(=profile.level 미해소, #6) 동안은 요약을 로딩 문구로 대체하고
+ * 펼침을 막는다.
  */
 @Composable
-private fun SettingsInline(
+internal fun SettingsInline(
     level: String?,
     length: Int,
     onSetLevel: (String) -> Unit,
@@ -782,25 +776,82 @@ private fun SettingsInline(
         ) {
             OneClickCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(OceTheme.spacing.lg),
+                    modifier = Modifier.fillMaxWidth().padding(OceTheme.spacing.xl),
                     verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.lg),
                 ) {
+                    // 레벨: 5-스톱 슬라이더(인덱스 0..4) + 선택 라벨/설명(우측 정렬, CEFR 미노출).
+                    val current = SessionLevel.fromToken(level)
                     Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
-                        SettingLabel("레벨")
-                        OneClickSegmentedControl(
-                            options = LEVEL_OPTIONS,
-                            selected = level ?: LEVEL_OPTIONS.first(),
-                            onSelect = onSetLevel,
-                            label = ::levelLabel,
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            SettingLabel("난이도")
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+                            ) {
+                                Text(
+                                    text = current.labelKo,
+                                    style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    text = current.descKo,
+                                    style = OceTheme.typography.helper,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.End,
+                                )
+                            }
+                        }
+                        OneClickSlider(
+                            value = current.ordinal.toFloat(),
+                            onValueChange = { onSetLevel(SessionLevel.entries[it.roundToInt()].token) },
+                            mode =
+                                SliderMode.Stepped(
+                                    range = 0..SessionLevel.entries.lastIndex,
+                                    step = 1,
+                                    labelFormatter = { SessionLevel.entries[it].labelKo },
+                                ),
+                            showValueLabel = false,
                         )
                     }
+                    // 길이: 짝수 6..20 슬라이더 + "N턴"/설명(우측 정렬, 레벨 컨트롤과 동일 레이아웃).
                     Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
-                        SettingLabel("길이")
-                        OneClickSegmentedControl(
-                            options = LENGTH_OPTIONS,
-                            selected = length,
-                            onSelect = onSetLength,
-                            label = { "${it}턴" },
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            SettingLabel("대화 길이")
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+                            ) {
+                                Text(
+                                    text = "${length}턴",
+                                    style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    text = lengthDescKo(length),
+                                    style = OceTheme.typography.helper,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.End,
+                                )
+                            }
+                        }
+                        OneClickSlider(
+                            value = length.toFloat(),
+                            onValueChange = { onSetLength(it.roundToInt()) },
+                            mode =
+                                SliderMode.Stepped(
+                                    range = HomeViewModel.MIN_LENGTH..HomeViewModel.MAX_LENGTH,
+                                    step = HomeViewModel.LENGTH_STEP,
+                                    labelFormatter = { "${it}턴" },
+                                ),
+                            showValueLabel = false,
                         )
                     }
                 }
@@ -818,6 +869,15 @@ private fun SettingLabel(text: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
+
+/** 대화 길이(짝수 6..20) 구간별 짧은 설명 — 레벨 설명과 대칭되는 우측 정렬 보조 문구. */
+private fun lengthDescKo(length: Int): String =
+    when {
+        length <= 8 -> "짧고 가볍게 대화해요"
+        length <= 12 -> "적당한 길이로 대화해요"
+        length <= 16 -> "여유 있게 대화해요"
+        else -> "길고 깊이 있게 대화해요"
+    }
 
 /**
  * 게임화 요약 스트립(H2) — 인라인 `🕐 오늘 N분 · 🔥 N일 연속`(프로토타입 정합, pill 아님). streak 0 은 숨긴다.

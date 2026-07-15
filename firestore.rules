@@ -22,7 +22,7 @@ service cloud.firestore {
       match /point_ledger/{sessionId} {
         allow read:   if owner(uid);
         allow create: if owner(uid)
-                      && request.resource.data.difficulty in ['easy','normal','hard']
+                      && request.resource.data.difficulty in ['starter','easy','normal','hard','expert']
                       && request.resource.data.awardedAt == request.time;          // 서버시각 강제(streak 스푸핑 차단)
         allow update, delete: if false;                                       // 불변, 맵 인덱싱 없음
       }

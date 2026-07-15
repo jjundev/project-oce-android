@@ -21,6 +21,7 @@ import com.jjundev.oneclickeng.core.audio.AudioCaptureException
 import com.jjundev.oneclickeng.core.audio.RecordingController
 import com.jjundev.oneclickeng.core.audio.RecordingResult
 import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
+import com.jjundev.oneclickeng.core.session.SessionLevel
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenState
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenerationCoordinator
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueStreamStatus
@@ -42,6 +43,7 @@ import com.jjundev.oneclickeng.ui.audio.MicTransientReason
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -92,7 +94,9 @@ fun GeneratedDialogueSessionRoute(
     LaunchedEffect(navIdentity) { navIdentity?.let(viewModel::rememberHeaderIdentity) }
 
     // 헤더 재료: 시작 플로우 nav-arg 우선, 빈 재진입(이어하기/프로세스킬)은 VM 이 durable 스냅샷에서 복원한
-    // 정체성으로 폴백한다(둘 다 없으면 header=null → 미표시). 진행 점은 학습자 말풍선 수로 채운다.
+    // 정체성으로 폴백한다(둘 다 없으면 header=null → 미표시). 진행 점/수치는 [totalTurns](상대+학습자
+    // 합산 스크립트 길이)와 같은 단위로 맞춰 누적 말풍선 총수로 채운다(학습자 말풍선만 세면 완주해도
+    // totalTurns 의 절반에서 멈춘다 — 상대·학습자가 교대로 한 줄씩 쌓이므로).
     val identity = navIdentity ?: viewModel.headerIdentity
     val header =
         identity?.let {
@@ -101,26 +105,13 @@ fun GeneratedDialogueSessionRoute(
                 title = it.topicTitle,
                 levelLabel = dialogueLevelLabel(it.level, it.totalTurns),
                 totalTurns = it.totalTurns,
-                completedTurns = state.messages.count { m -> m is DialogueMessage.Learner },
+                completedTurns = state.messages.size,
             )
         }
 
     // 코디네이터 라이브 상태를 턴머신에 흘려보낸다. 프로세스킬 복원 시 코디네이터는 Idle(비Ready)라 accept 는
     // no-op 이고, 시드된 스냅샷이 정본으로 남는다(결정 #4).
     LaunchedEffect(generationState) { viewModel.onGenerationState(generationState) }
-
-    // 턴 진행: 상대역 턴에 진입하면 스켈레톤을 유지한 채 곧바로 대사를 합성/발화한다. 말풍선 표시는 더 이상
-    // 고정 지연이 아니라 오디오가 실제 재생을 시작하는 순간(VM 의 tts.audioReady 수집 → revealOnAudioReady)이
-    // 구동한다. 합성/엔진-init 지연(첫 오디오 API 로딩 등) 동안 "표시된 대사 + 침묵" 대신 "타이핑 중" 스켈레톤이
-    // 보이고, 오디오가 준비되면 대사와 소리가 함께 나타난다. 자동진행(턴 마감)은 발화 완료(VM 의 completions/
-    // ERROR_TEXT_ONLY 수집 → completeOpponentTurn)가 구동한다 — 발화 실패·mute 도 그 경로에서 표시+전진 폴백이라
-    // 스켈레톤이 영원히 남지 않는다. reduce-motion 은 스켈레톤을 숨기지 않는다(청각 로딩 게이트이지 모션 아님 —
-    // 스켈레톤은 reduceMotion 이면 시머/페이드 없이 정적으로 렌더된다).
-    LaunchedEffect(state.opponentTurnSerial) {
-        if (state.turnPhase == TurnPhase.OpponentTurn && state.sessionPhase == SessionPhase.InTurn) {
-            state.pendingOpponentEnglish()?.let(viewModel::speakOpponent)
-        }
-    }
 
     DialogueExitGuard(onExit = onExit) { onBackRequest ->
         GeneratedDialogueSessionContent(
@@ -145,6 +136,7 @@ fun GeneratedDialogueSessionRoute(
             // 자기 녹음 재생: 어떤 학습자 말풍선에 버튼을 띄울지 + 탭 시 그 순번 클립 재생.
             learnerClipIndices = viewModel.learnerClipIndices,
             onPlayLearnerClip = { index -> viewModel.playLearnerClip(index) },
+            onSpeakOpponent = { text -> viewModel.speakOpponent(text) },
         )
 
         // 턴 피드백 시트는 드래그 없는 고정 오버레이라 대화 콘텐츠의 형제로 얹는다. Idle 이면 스스로 아무것도
@@ -763,6 +755,10 @@ internal fun GeneratedDialogueSessionContent(
     learnerClipIndices: Set<Int> = emptySet(),
     // 학습자 말풍선 스피커 탭 콜백. 미주입이면 no-op.
     onPlayLearnerClip: (Int) -> Unit = {},
+    // 상대역 대사 합성/발화 시작 콜백. Route 는 viewModel.speakOpponent 로 연결한다. 미주입(테스트)이면 no-op.
+    onSpeakOpponent: (String) -> Unit = {},
+    // 상대역 말풍선 reveal 전 최소 스켈레톤 노출 dwell(ms). 이 시간 경과 후에만 onSpeakOpponent 를 호출한다.
+    minSkeletonMs: Long = DEFAULT_OPPONENT_SKELETON_FLOOR_MS,
 ) {
     val listState = rememberLazyListState()
     // 메시지 추가·타이핑 스켈레톤 등장 시 최신 아이템으로 자동 스크롤(스켈레톤은 메시지 뒤 마지막 아이템).
@@ -770,6 +766,20 @@ internal fun GeneratedDialogueSessionContent(
         val lastIndex = if (state.opponentTyping) state.messages.size else state.messages.lastIndex
         if (lastIndex >= 0) {
             listState.animateScrollToItem(lastIndex)
+        }
+    }
+    // 상대역 턴 진입 → 최소 스켈레톤 dwell 후 대사 합성/발화 시작. 말풍선 표시는 VM 의 tts.audioReady 수집
+    // (revealOnAudioReady)이 구동하므로, 스켈레톤은 dwell + 합성-로딩 시간만큼 노출돼 항상 최소 dwell 이상
+    // 눈에 보인다. dwell 은 reduceMotion 과 무관하게 적용한다(페이싱 게이트). serial 이 재키잉되면 이전 dwell
+    // 코루틴은 취소된다.
+    LaunchedEffect(state.opponentTurnSerial) {
+        if (state.turnPhase == TurnPhase.OpponentTurn && state.sessionPhase == SessionPhase.InTurn) {
+            delay(minSkeletonMs)
+            // 가드는 delay 전 1회만 평가한다. dwell 중 OpponentTurn/InTurn 을 벗어나지 않음에 의존한다 —
+            // 이 조합은 completeOpponentTurn 으로만 벗어나고, 그건 speak 개시 후 TTS 신호(audioReady/completions/
+            // ERROR_TEXT_ONLY) 하류에서만 발화하므로 speak 전 전이는 없다(새 displayOpponent 는 serial 재키잉→취소).
+            // dwell 전에 전이를 유발하는 코드를 추가하면 이 불변식이 깨지니 함께 재검토할 것.
+            state.pendingOpponentEnglish()?.let(onSpeakOpponent)
         }
     }
     DialogueTurnContent(
@@ -793,22 +803,19 @@ internal fun GeneratedDialogueSessionContent(
 }
 
 /**
- * 세션 헤더 레벨 라벨(홈 히어로 문구 정합) — `<레벨 한글> · <N>턴`. 레벨 문자열은 홈 설정과 동일 매핑
- * (easy=쉬움/normal=보통/hard=어려움), 미해소/빈 값이면 턴 수만 남긴다.
+ * 세션 헤더 레벨 라벨(홈 히어로 문구 정합) — `<레벨 한글> · <N>턴`. 레벨 문자열은 [SessionLevel] SoT 로
+ * 매핑(5티어: 매우 쉬움/쉬움/중간/어려움/매우 어려움), 미지 토큰은 SessionLevel.fromToken 폴백(NORMAL)을 따른다.
  */
 private fun dialogueLevelLabel(
     level: String,
     totalTurns: Int,
-): String {
-    val levelKo =
-        when (level) {
-            "easy" -> "쉬움"
-            "normal" -> "보통"
-            "hard" -> "어려움"
-            else -> null
-        }
-    return listOfNotNull(levelKo, "${totalTurns}턴").joinToString(" · ")
-}
+): String = "${SessionLevel.fromToken(level).labelKo} · ${totalTurns}턴"
+
+/** 테스트 전용 노출(순수 매핑 검증용). */
+internal fun dialogueLevelLabelForTest(
+    level: String,
+    totalTurns: Int,
+): String = dialogueLevelLabel(level, totalTurns)
 
 /**
  * Couples timer-driven opponent-state mutations to their durable-state notification. Keeping this
@@ -977,7 +984,7 @@ internal class GeneratedDialogueState {
             return
         }
         if (turn.role == ROLE_MODEL) {
-            val next = PendingOpponent(opponentEnglish = turn.en)
+            val next = PendingOpponent(opponentEnglish = turn.en, opponentKorean = turn.ko)
             if (pending.opponentEnglish == null) {
                 displayOpponent(next)
             } else {
@@ -1012,7 +1019,9 @@ internal class GeneratedDialogueState {
         if (!awaitingReveal) return
         val english = pending.opponentEnglish
         awaitingReveal = false
-        if (english != null) messages = messages + DialogueMessage.Opponent(english)
+        if (english != null) {
+            messages = messages + DialogueMessage.Opponent(english, pending.opponentKorean.orEmpty())
+        }
         recomputeTyping()
     }
 
@@ -1091,7 +1100,14 @@ internal class GeneratedDialogueState {
             level = level,
             // messages는 실제로 렌더된 말풍선만 보존한다. 표시 대기 상대역 대사는 pending에 남겨 복원 시
             // 스켈레톤을 다시 거친다. 따라서 홈의 resumeInfo가 messages를 렌더 사실로 사용할 수 있다.
-            messages = messages.map { MessageData(it is DialogueMessage.Learner, it.english) },
+            messages =
+                messages.map {
+                    MessageData(
+                        isLearner = it is DialogueMessage.Learner,
+                        english = it.english,
+                        korean = (it as? DialogueMessage.Opponent)?.korean.orEmpty(),
+                    )
+                },
             turnPhase = turnPhase.name,
             sessionPhase = sessionPhase.name,
             currentTaskKo = currentTask?.koreanPrompt,
@@ -1109,7 +1125,11 @@ internal class GeneratedDialogueState {
     fun restoreFrom(snapshot: SessionTurnSnapshot) {
         messages =
             snapshot.messages.map {
-                if (it.isLearner) DialogueMessage.Learner(it.english) else DialogueMessage.Opponent(it.english)
+                if (it.isLearner) {
+                    DialogueMessage.Learner(it.english)
+                } else {
+                    DialogueMessage.Opponent(it.english, it.korean)
+                }
             }
         turnPhase = runCatching { TurnPhase.valueOf(snapshot.turnPhase) }.getOrDefault(TurnPhase.OpponentTurn)
         sessionPhase = runCatching { SessionPhase.valueOf(snapshot.sessionPhase) }.getOrDefault(SessionPhase.InTurn)
@@ -1130,13 +1150,14 @@ internal class GeneratedDialogueState {
         awaitingReveal =
             turnPhase == TurnPhase.OpponentTurn &&
                 pendingOpponent != null &&
-                messages.lastOrNull() != DialogueMessage.Opponent(pendingOpponent)
+                (messages.lastOrNull() as? DialogueMessage.Opponent)?.english != pendingOpponent
         recomputeTyping()
     }
 
     private fun PendingOpponent.toData(): PendingData =
         PendingData(
             opponentEnglish = opponentEnglish,
+            opponentKorean = opponentKorean,
             taskKo = task?.koreanPrompt,
             referenceEnglish = referenceEnglish,
             opponentComplete = opponentComplete,
@@ -1145,6 +1166,7 @@ internal class GeneratedDialogueState {
     private fun PendingData.toPending(): PendingOpponent =
         PendingOpponent(
             opponentEnglish = opponentEnglish,
+            opponentKorean = opponentKorean,
             task = taskKo?.let { ScaffoldTask(it) },
             referenceEnglish = referenceEnglish,
             opponentComplete = opponentComplete,
@@ -1152,6 +1174,7 @@ internal class GeneratedDialogueState {
 
     private data class PendingOpponent(
         var opponentEnglish: String? = null,
+        var opponentKorean: String? = null,
         var task: ScaffoldTask? = null,
         var referenceEnglish: String? = null,
         var opponentComplete: Boolean = false,

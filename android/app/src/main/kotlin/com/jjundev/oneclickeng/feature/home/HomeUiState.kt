@@ -27,7 +27,7 @@ data class HomeUiState(
     val resumeTurn: Int = 0,
     val resumeTotalTurns: Int = 0,
     val level: String? = null,
-    val length: Int = 5,
+    val length: Int = 10,
     val selectedSituation: SelectedSituation? = null,
     /** 추천 상황 리스트(프로토타입 홈 하단, 선택 상황 제외 4개). 비어 있으면 섹션을 숨긴다. */
     val situations: List<HomeSituation> = emptyList(),

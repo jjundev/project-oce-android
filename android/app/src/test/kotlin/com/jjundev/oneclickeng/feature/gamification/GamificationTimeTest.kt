@@ -8,7 +8,10 @@ import org.junit.Test
 class GamificationTimeTest {
     @Test
     fun `xp map mirrors the server constant`() {
-        assertEquals(mapOf("easy" to 10, "normal" to 20, "hard" to 35), GamificationTime.XP_BY_DIFFICULTY)
+        assertEquals(
+            mapOf("starter" to 5, "easy" to 10, "normal" to 20, "hard" to 35, "expert" to 55),
+            GamificationTime.XP_BY_DIFFICULTY,
+        )
     }
 
     @Test

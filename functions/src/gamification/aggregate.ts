@@ -15,13 +15,15 @@ import { kstDayDiff } from "../config/kst";
  * only the `difficulty` enum, never the XP value, and the ledger doc deliberately does NOT store
  * `points`. XP is a pure function of difficulty, owned here.
  */
-export const XP_BY_DIFFICULTY = { easy: 10, normal: 20, hard: 35 } as const;
+export const XP_BY_DIFFICULTY = { starter: 5, easy: 10, normal: 20, hard: 35, expert: 55 } as const;
 
 export type Difficulty = keyof typeof XP_BY_DIFFICULTY;
 
 /** true iff `d` is one of the known difficulty enum values. */
 export function isDifficulty(d: unknown): d is Difficulty {
-  return d === "easy" || d === "normal" || d === "hard";
+  return (
+    d === "starter" || d === "easy" || d === "normal" || d === "hard" || d === "expert"
+  );
 }
 
 /** The `gamification/progress` fields this aggregation reads and writes (firestore-schema.md:92). */

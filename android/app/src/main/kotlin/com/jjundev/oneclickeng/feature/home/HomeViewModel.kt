@@ -7,6 +7,7 @@ import com.jjundev.oneclickeng.core.auth.AuthRepository
 import com.jjundev.oneclickeng.core.auth.ProfileRepository
 import com.jjundev.oneclickeng.core.connectivity.Connectivity
 import com.jjundev.oneclickeng.core.connectivity.ConnectivityObserver
+import com.jjundev.oneclickeng.core.session.SessionLevel
 import com.jjundev.oneclickeng.feature.gamification.GamificationTime
 import com.jjundev.oneclickeng.feature.gamification.data.StudytimeStore
 import com.jjundev.oneclickeng.feature.home.topic.Topic
@@ -121,7 +122,7 @@ class HomeViewModel
             viewModelScope.launch {
                 val level =
                     runCatching { authRepository.currentUid?.let { profileRepository.readLevel(it) } }
-                        .onFailure { Log.d(TAG, "readLevel failed — defaulting easy: ${it.message}") }
+                        .onFailure { Log.d(TAG, "readLevel failed — defaulting normal: ${it.message}") }
                         .getOrNull()
                 defaultLevel.value = level ?: FALLBACK_LEVEL
             }
@@ -145,7 +146,7 @@ class HomeViewModel
         }
 
         fun setLength(turns: Int) {
-            length.value = turns
+            length.value = clampLength(turns)
         }
 
         /** 시트/추천 행에서 카탈로그 상황 선택(프로토 pickTopic·startTopic 공용 선택 갱신). */
@@ -180,15 +181,24 @@ class HomeViewModel
             val situations: List<HomeSituation>,
         )
 
-        private companion object {
+        companion object {
             const val TAG = "HomeViewModel"
             const val STOP_TIMEOUT_MS = 5_000L
-            const val DEFAULT_LENGTH = 5
-            const val FALLBACK_LEVEL = "easy"
+            const val MIN_LENGTH = 6
+            const val MAX_LENGTH = 20
+            const val LENGTH_STEP = 2
+            const val DEFAULT_LENGTH = 10
+            val FALLBACK_LEVEL = SessionLevel.NORMAL.token
 
             /** 추천 풀 5개 → 선택 상황 제외 후 4개 노출(프로토 홈 리스트 행 수). */
             const val RECOMMEND_POOL = 5
             const val RECOMMEND_VISIBLE = 4
+
+            /** 임의 정수를 짝수 6..20 로 스냅(슬라이더 밖 입력·구버전 값 방어). */
+            fun clampLength(turns: Int): Int {
+                val clamped = turns.coerceIn(MIN_LENGTH, MAX_LENGTH)
+                return clamped - ((clamped - MIN_LENGTH) % LENGTH_STEP)
+            }
 
             fun Topic.toSelected() = SelectedSituation(topicId = id, labelKo = titleKo, promptSeed = promptSeed)
         }

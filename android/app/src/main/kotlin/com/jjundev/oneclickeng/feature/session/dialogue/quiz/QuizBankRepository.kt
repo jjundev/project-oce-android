@@ -46,7 +46,7 @@ class QuizBankRepository
          * Unknown/blank tiers fall back to `easy`.
          */
         override fun forTier(tier: String): List<QuizItem> {
-            val key = tier.lowercase().ifBlank { EASY }
+            val key = mapTierKey(tier)
             return (byTier[key] ?: byTier[EASY].orEmpty()).shuffled()
         }
 
@@ -54,6 +54,14 @@ class QuizBankRepository
             const val ASSET = "wait_quiz_bank.json"
             const val EASY = "easy"
         }
+    }
+
+/** 세션 난이도 토큰 → 3-티어 퀴즈 뱅크 키. starter→easy, expert→hard, 빈 값→easy, 그 외 소문자 통과. */
+internal fun mapTierKey(tier: String): String =
+    when (val t = tier.lowercase().ifBlank { "easy" }) {
+        "starter" -> "easy"
+        "expert" -> "hard"
+        else -> t
     }
 
 /** Pure JSON → tier-keyed [QuizItem] map. Separated from [QuizBankRepository] for unit testing. */

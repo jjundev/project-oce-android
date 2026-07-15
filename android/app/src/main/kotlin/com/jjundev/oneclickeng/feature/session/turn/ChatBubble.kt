@@ -158,14 +158,16 @@ fun LearnerTurn(
  * 상대역 발화 1턴(프로토타입 정합): 원형 아바타 + 화자명 + 말풍선(영문 + `해석 보기` 토글 + `다시 듣기` TTS).
  * 아바타는 화자명 아래 말풍선 높이에 맞춰 얹힌다(프로토타입 `margin-top` 정합).
  *
- * TTS([onReplay], M1-05)·번역 토글([onToggleTranslation])은 현재 시각 셸 seam 으로 기본 no-op 이다.
+ * TTS([onReplay], M1-05)는 시각 셸 seam. 번역 토글([onToggleTranslation])은 [translationShown]·[korean] 으로
+ * 영문↔한국어 본문 교체를 렌더한다(호스트가 per-메시지 토글 상태를 소유).
  */
 @Composable
 fun OpponentTurn(
     text: String,
     modifier: Modifier = Modifier,
     speaker: String = "Emma",
-    translationLabel: String = "해석 보기",
+    korean: String = "",
+    translationShown: Boolean = false,
     onReplay: () -> Unit = {},
     onToggleTranslation: () -> Unit = {},
 ) {
@@ -186,8 +188,9 @@ fun OpponentTurn(
                 )
                 OpponentBubble(
                     text = text,
+                    korean = korean,
+                    translationShown = translationShown,
                     maxBubbleWidth = maxBubbleWidth,
-                    translationLabel = translationLabel,
                     onReplay = onReplay,
                     onToggleTranslation = onToggleTranslation,
                 )
@@ -199,11 +202,15 @@ fun OpponentTurn(
 @Composable
 private fun OpponentBubble(
     text: String,
+    korean: String,
+    translationShown: Boolean,
     maxBubbleWidth: Dp,
-    translationLabel: String,
     onReplay: () -> Unit,
     onToggleTranslation: () -> Unit,
 ) {
+    val hasTranslation = korean.isNotBlank()
+    // 본문 = 토글 상태에 따라 영문(en 로케일 스팬) 또는 한국어(로케일 스팬 없음)로 교체(프로토타입 정합).
+    val body = if (translationShown && hasTranslation) AnnotatedString(korean) else englishLocaleText(text)
     // Row 는 Top 정렬(기본). 볼륨 버튼은 첫 줄 높이 래퍼에 center 배치돼 텍스트가 여러 줄이어도 첫 줄 중앙에 고정된다.
     // 폭은 고정이 아닌 상대값(78%) — 텍스트 칼럼은 아이콘/간격/패딩을 제외한 나머지에서 자연스럽게 래핑된다.
     Row(
@@ -221,16 +228,19 @@ private fun OpponentBubble(
             verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Text(
-                text = englishLocaleText(text),
+                text = body,
                 style = OceTheme.typography.body,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            Text(
-                text = translationLabel,
-                style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable(onClick = onToggleTranslation),
-            )
+            // 번역이 있을 때만 토글 라벨 노출. 상태에 따라 `해석 보기`↔`원문 보기`.
+            if (hasTranslation) {
+                Text(
+                    text = if (translationShown) "원문 보기" else "해석 보기",
+                    style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable(onClick = onToggleTranslation),
+                )
+            }
         }
         // 첫 줄 높이(23dp) 래퍼에 center — 아이콘(28dp) center 를 텍스트 첫 줄 center 에 고정한다.
         Box(
@@ -300,7 +310,7 @@ private fun ChatBubblePreviewBody(darkTheme: Boolean) {
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            OpponentTurn(text = "Hi! What can I get for you?")
+            OpponentTurn(text = "Hi! What can I get for you?", korean = "안녕하세요! 무엇을 드릴까요?")
             // 여러 줄 래핑 케이스 — 볼륨 아이콘이 첫 줄 중앙에 고정되는지(밀리지 않는지) 확인용.
             OpponentTurn(
                 text = "Sure! Would you like it iced or hot, and what size would you prefer today?",

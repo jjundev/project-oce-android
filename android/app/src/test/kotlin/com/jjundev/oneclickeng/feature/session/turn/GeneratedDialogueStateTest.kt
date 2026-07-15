@@ -22,7 +22,7 @@ private fun ready(
 
 private fun model(
     en: String,
-    ko: String = "상대역",
+    ko: String = "",
 ) = NetworkDialogueTurn(ko = ko, en = en, role = "model")
 
 private fun user(
@@ -303,5 +303,17 @@ class GeneratedDialogueStateTest {
         progress.revealOnAudioReady()
 
         assertEquals(0, changes) // guarded out — no reveal, no persist
+    }
+
+    @Test
+    fun `opponent line carries its Korean translation into the revealed message`() {
+        val state = GeneratedDialogueState()
+        state.accept(ready(listOf(model("Hello", ko = "안녕하세요"))))
+        state.commitReveal()
+
+        assertEquals(
+            DialogueMessage.Opponent("Hello", "안녕하세요"),
+            state.messages.last(),
+        )
     }
 }

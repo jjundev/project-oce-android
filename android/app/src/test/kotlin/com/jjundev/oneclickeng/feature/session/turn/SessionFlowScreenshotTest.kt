@@ -72,7 +72,8 @@ class SessionFlowScreenshotTest {
             title = "카페에서 주문하기",
             levelLabel = "easy(A2) · 5턴 균일",
         )
-    private val opponent = listOf(DialogueMessage.Opponent("Hi! What can I get for you?"))
+    private val opponent =
+        listOf(DialogueMessage.Opponent("Hi! What can I get for you?", "안녕하세요! 무엇을 드릴까요?"))
     private val task = ScaffoldTask("라떼 한 잔을 주문해보세요")
     private val waveform =
         MutableStateFlow(FloatArray(48) { i -> 0.35f + 0.55f * abs(sin(i * 0.7f)) })
@@ -164,7 +165,7 @@ class SessionFlowScreenshotTest {
 
     private val feedbackBehind =
         listOf(
-            DialogueMessage.Opponent("Hi! What can I get for you?"),
+            DialogueMessage.Opponent("Hi! What can I get for you?", "안녕하세요! 무엇을 드릴까요?"),
             DialogueMessage.Learner("Can I get a latte, please?"),
         )
 

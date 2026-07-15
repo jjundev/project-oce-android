@@ -35,7 +35,7 @@ describe("parseDialoguePayload", () => {
 
   it("rejects an out-of-range level (non-first-session)", () => {
     expect(() =>
-      parseDialoguePayload({ level: "expert", topic: "t", length: 5, firstSession: false })
+      parseDialoguePayload({ level: "legendary", topic: "t", length: 6, firstSession: false })
     ).toThrow(InvalidDialoguePayloadError);
   });
 

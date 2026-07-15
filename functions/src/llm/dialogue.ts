@@ -17,6 +17,7 @@
  * only guarantees a complete object boundary; the parse turns it into the wire shape.
  */
 import { modelFor } from "../config/models";
+import { LEVEL_TOKENS, isEven6to20 } from "../config/levels";
 import { cacheKey } from "./cacheKey";
 import { SseWritable, writeEvent } from "./sse";
 import {
@@ -30,8 +31,7 @@ import { DialoguePayload } from "../types/protocol";
 /** thrown when the dialogue payload is malformed — mapped to 400 INVALID_PAYLOAD. */
 export class InvalidDialoguePayloadError extends Error {}
 
-const VALID_LEVELS = new Set<string>(["easy", "normal", "hard"]);
-const VALID_LENGTHS = new Set<number>([5, 10]);
+const VALID_LEVELS = new Set<string>(LEVEL_TOKENS);
 
 /**
  * Validate + normalize an untrusted dialogue payload. `firstSession:true` COERCES level→easy and
@@ -57,7 +57,7 @@ export function parseDialoguePayload(payload: unknown): DialoguePayload {
   if (!VALID_LEVELS.has(level)) {
     throw new InvalidDialoguePayloadError(`invalid level: ${String(p.level)}`);
   }
-  if (!VALID_LENGTHS.has(length)) {
+  if (!isEven6to20(length)) {
     throw new InvalidDialoguePayloadError(`invalid length: ${String(p.length)}`);
   }
   return {

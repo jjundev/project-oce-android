@@ -153,7 +153,7 @@ class DialogueGenerationViewModel
         )
 
         private companion object {
-            const val FIRST_SESSION_TIER = "easy"
+            val FIRST_SESSION_TIER = com.jjundev.oneclickeng.core.session.SessionLevel.EASY.token
 
             // `offline_blocked_action` surface(exception-states.md §9). LimitSurface.DialogueStartGate 와 동일
             // 표면 문자열을 재사용해 한도 게이트와 오프라인 게이트가 같은 표면으로 계측된다.
