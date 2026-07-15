@@ -763,7 +763,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -803,11 +802,16 @@ fun OverscrollRefreshBox(
             }
             state.wave.clockMs = -1f
         }
-        // (C) 로딩 완료까지 대기(+ 최소 표시 시간). 학습은 isRefreshing=false 라 최소 시간만 적용.
-        val minVisible = launch { kotlinx.coroutines.delay(OverscrollDefaults.MinVisibleMs) }
-        snapshotFlow { currentRefreshing }.filter { !it }.first()
-        minVisible.join()
+        // (C) 최소 표시 시간을 먼저 확보한 뒤, 그 시점에 아직 로딩 중이면(isRefreshing==true) 완료될 때까지 대기.
+        //   - 학습: isRefreshing 항상 false → 최소 시간 경과 후 first{!it} 즉시 통과.
+        //   - 기록 빠른 로딩: 최소 시간 안에 이미 false → 즉시 통과.
+        //   - 기록 느린 로딩: 최소 시간 후에도 true → false 로 바뀔 때까지 대기(= Firebase reload 완료 대기).
+        // 순서가 핵심: snapshotFlow 는 수집 시작 시 현재값을 즉시 방출하므로, 반드시 min-floor 이후에 평가해야
+        // "로딩 전 false" 를 즉시 통과해버리는 버그를 피한다. RecordsViewModel.refresh() 는 refreshing=true 를
+        // 동기적으로 세팅하므로(다음 프레임에 파라미터 반영) min-floor(450ms) 경과 시점엔 로딩 상태가 정확히 반영돼 있다.
+        kotlinx.coroutines.delay(OverscrollDefaults.MinVisibleMs)
         waveJob.join()
+        snapshotFlow { currentRefreshing }.first { !it }
         // (D) 통통 스프링 복귀
         state.offset.animateTo(
             0f,
