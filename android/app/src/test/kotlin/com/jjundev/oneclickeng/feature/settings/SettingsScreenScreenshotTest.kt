@@ -3,7 +3,11 @@ package com.jjundev.oneclickeng.feature.settings
 import android.app.Application
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
@@ -11,6 +15,9 @@ import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.jjundev.oneclickeng.ui.theme.OceTheme
+import kotlinx.coroutines.CompletableDeferred
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,6 +34,44 @@ import org.robolectric.annotation.GraphicsMode
 class SettingsScreenScreenshotTest {
     @get:Rule
     val composeRule = createComposeRule()
+
+    @Test
+    fun settingsMessageIsConsumedWhenSnackbarEffectIsCancelledAndDoesNotReplayAfterReentry() {
+        val snackbarStarted = CompletableDeferred<Unit>()
+        val releaseSnackbar = CompletableDeferred<Unit>()
+        var visible by mutableStateOf(true)
+        var message by mutableStateOf<String?>("카드를 삭제했어요.")
+        var snackbarCalls = 0
+
+        composeRule.setContent {
+            if (visible) {
+                SettingsMessageEffect(
+                    messageText = message,
+                    showSnackbar = {
+                        snackbarCalls += 1
+                        snackbarStarted.complete(Unit)
+                        releaseSnackbar.await()
+                        SnackbarResult.Dismissed
+                    },
+                    consumeMessage = { message = null },
+                )
+            }
+        }
+
+        composeRule.waitUntil { snackbarStarted.isCompleted }
+        visible = false
+        composeRule.waitForIdle()
+        composeRule.runOnIdle {
+            assertNull(message)
+            assertEquals(1, snackbarCalls)
+        }
+
+        visible = true
+        composeRule.waitForIdle()
+        assertEquals(1, snackbarCalls)
+
+        releaseSnackbar.complete(Unit)
+    }
 
     private fun renderSettings(state: SettingsUiState, dark: Boolean, blocked: Boolean, name: String) {
         composeRule.setContent {

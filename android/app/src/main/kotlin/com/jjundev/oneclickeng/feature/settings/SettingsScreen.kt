@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -45,6 +46,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToDownIgnoreConsumed
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -108,6 +115,7 @@ fun SettingsScreen(
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
     var showPurgeSheet by rememberSaveable { mutableStateOf(false) }
     var showTimeSheet by rememberSaveable { mutableStateOf(false) }
+    var snackbarBounds by remember { mutableStateOf<Rect?>(null) }
 
     // 시스템 알림 on/off 는 화면 재개마다 재확인(설정 앱에서 끄고 돌아온 경우 반영).
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -118,6 +126,9 @@ fun SettingsScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 notificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
+            }
+            if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) {
+                snackbarHostState.currentSnackbarData?.dismiss()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -134,12 +145,11 @@ fun SettingsScreen(
         if (linkState is LinkUiState.Error) snackbarHostState.showSnackbar(linkFailedMsg)
     }
     val messageText = state.message?.let { settingsMessageText(it) }
-    LaunchedEffect(messageText) {
-        if (messageText != null) {
-            snackbarHostState.showSnackbar(messageText)
-            viewModel.consumeMessage()
-        }
-    }
+    SettingsMessageEffect(
+        messageText = messageText,
+        showSnackbar = snackbarHostState::showSnackbar,
+        consumeMessage = viewModel::consumeMessage,
+    )
 
     // 알림 권한(13+) 런처: 허용→활성, 영구거부→시스템 설정 딥링크.
     val notifPermLauncher =
@@ -194,7 +204,23 @@ fun SettingsScreen(
         Unit
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .pointerInput(snackbarBounds) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            val down = event.changes.firstOrNull { it.changedToDownIgnoreConsumed() } ?: continue
+                            val bounds = snackbarBounds ?: continue
+                            if (!bounds.contains(down.position)) {
+                                snackbarHostState.currentSnackbarData?.dismiss()
+                            }
+                        }
+                    }
+                },
+    ) {
         SettingsContent(
             state = state,
             versionLabel = appVersionLabel(context),
@@ -287,7 +313,10 @@ fun SettingsScreen(
 
         OneClickSnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter),
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .onGloballyPositioned { snackbarBounds = it.boundsInRoot() },
             bottomInset = OceBottomNavDefaults.overlayContentBottomPadding,
         )
     }
@@ -808,11 +837,29 @@ private fun SpeedTicks(modifier: Modifier = Modifier) {
 private fun settingsMessageText(message: SettingsMessage): String =
     when (message) {
         is SettingsMessage.CardsPurged -> stringResource(R.string.settings_msg_cards_purged, message.count)
+        SettingsMessage.NoCardsToPurge -> stringResource(R.string.settings_msg_no_cards_to_purge)
         SettingsMessage.PurgeFailed -> stringResource(R.string.settings_msg_purge_failed)
         SettingsMessage.MetricsResetFailed -> stringResource(R.string.settings_msg_reset_failed)
         SettingsMessage.DeleteFailed -> stringResource(R.string.settings_msg_delete_failed)
         SettingsMessage.LogoutFailed -> stringResource(R.string.settings_msg_logout_failed)
     }
+
+@Composable
+internal fun SettingsMessageEffect(
+    messageText: String?,
+    showSnackbar: suspend (String) -> SnackbarResult,
+    consumeMessage: () -> Unit,
+) {
+    LaunchedEffect(messageText) {
+        if (messageText != null) {
+            try {
+                showSnackbar(messageText)
+            } finally {
+                consumeMessage()
+            }
+        }
+    }
+}
 
 private fun appVersionLabel(context: Context): String =
     runCatching {

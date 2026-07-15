@@ -4,6 +4,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SettingsFormatTest {
+    @Test fun `no cards to purge uses dedicated message`() {
+        assertEquals(SettingsMessage.NoCardsToPurge, purgeSelectionMessage(0))
+    }
+
+    @Test fun `positive purge count does not use no-cards message`() {
+        assertEquals(null, purgeSelectionMessage(1))
+    }
+
     @Test fun `evening 20_00 formats as 오후 8_00`() {
         assertEquals("오후 8:00", reminderTimeLabel(20, 0))
     }

@@ -81,6 +81,7 @@
 
     <!-- 결과 메시지(스낵바) -->
     <string name="settings_msg_cards_purged">%1$d개 카드를 삭제했어요</string>
+    <string name="settings_msg_no_cards_to_purge">삭제할 카드가 없어요</string>
     <string name="settings_msg_purge_failed">삭제하지 못했어요. 잠시 후 다시 시도해 주세요</string>
     <string name="settings_msg_reset_failed">초기화하지 못했어요. 잠시 후 다시 시도해 주세요</string>
     <string name="settings_msg_delete_failed">계정을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요</string>

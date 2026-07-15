@@ -45,6 +45,8 @@ data class PurgeConfirm(
 sealed interface SettingsMessage {
     data class CardsPurged(val count: Int) : SettingsMessage
 
+    data object NoCardsToPurge : SettingsMessage
+
     data object PurgeFailed : SettingsMessage
 
     data object MetricsResetFailed : SettingsMessage
