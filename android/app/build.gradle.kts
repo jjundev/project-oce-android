@@ -76,6 +76,7 @@ tasks.withType<Test>().configureEach {
     if (name.contains("Release", ignoreCase = true)) {
         exclude(
             "**/*ScreenshotTest*",
+            "**/RecordsScreenRefreshTest*",
             "**/SlimFeedbackSheetTest*",
             "**/ConceptualBridgeLegendTest*",
             "**/ConceptualBridgeInsideModeTest*",
