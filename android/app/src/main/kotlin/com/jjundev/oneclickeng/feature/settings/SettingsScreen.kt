@@ -120,6 +120,9 @@ fun SettingsScreen(
             if (event == Lifecycle.Event.ON_RESUME) {
                 notificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
             }
+            if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) {
+                snackbarHostState.currentSnackbarData?.dismiss()
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
