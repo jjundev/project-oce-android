@@ -34,7 +34,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -73,11 +72,16 @@ fun OverscrollRefreshBox(
             }
             state.wave.clockMs = -1f
         }
-        // (C) 로딩 완료까지 대기(+ 최소 표시 시간). 테스트는 isRefreshing=false 라 최소 시간만 적용.
-        val minVisible = launch { delay(OverscrollDefaults.MinVisibleMs) }
-        snapshotFlow { currentRefreshing }.filter { !it }.first()
-        minVisible.join()
+        // (C) 최소 표시 시간 확보 후, 그 시점에 아직 로딩 중이면 완료될 때까지 대기.
+        // snapshotFlow 는 collect 시작 시점의 "현재" 값을 즉시 방출한다 — floor 이전에 평가하면
+        // caller 의 onRefresh() 가 아직 상태를 true 로 뒤집기 전이라 항상 false 로 즉시 통과해버린다(원래 버그).
+        // floor 이후에 평가해야 실제 로딩 상태를 읽는다. 세 경우 모두 올바르게 동작:
+        //  - 홈: isRefreshing 이 항상 false → floor 이후 first{!it} 이 즉시 통과(true 를 먼저 기다리면 영원히 멈춤).
+        //  - 기록 탭, 빠른 재조회: floor 시점에 이미 false 로 복귀 → 즉시 통과.
+        //  - 기록 탭, 느린 재조회(Firebase): floor 시점에도 아직 true → true→false 전환(로딩 완료)까지 대기.
+        delay(OverscrollDefaults.MinVisibleMs)
         waveJob.join()
+        snapshotFlow { currentRefreshing }.first { !it }
         // (D) 통통 스프링 복귀
         val bounceBackSpring = spring<Float>(
             dampingRatio = OverscrollDefaults.SpringDampingRatio,
