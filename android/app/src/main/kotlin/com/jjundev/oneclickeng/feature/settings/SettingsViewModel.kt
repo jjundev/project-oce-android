@@ -157,7 +157,11 @@ class SettingsViewModel
         fun selectPurgeScope(scope: PurgeScope) {
             viewModelScope.launch {
                 val count = cardPurgeRepository.count(scope)
-                _uiState.update { it.copy(purgeConfirm = PurgeConfirm(scope, count)) }
+                _uiState.update {
+                    purgeSelectionMessage(count)?.let { message ->
+                        it.copy(purgeConfirm = null, message = message)
+                    } ?: it.copy(purgeConfirm = PurgeConfirm(scope, count))
+                }
             }
         }
 
@@ -236,6 +240,9 @@ class SettingsViewModel
     }
 
 /** 3범위 카운트 수집(정리 시트 배지용). 각 범위 실패는 0으로 강등(오프라인/권한 안전). */
+internal fun purgeSelectionMessage(count: Int): SettingsMessage? =
+    if (count == 0) SettingsMessage.NoCardsToPurge else null
+
 suspend fun collectPurgeCounts(repo: CardPurgeRepository): Map<PurgeScope, Int> =
     PurgeScope.entries.associateWith { scope ->
         runCatching { repo.count(scope) }.getOrDefault(0)
