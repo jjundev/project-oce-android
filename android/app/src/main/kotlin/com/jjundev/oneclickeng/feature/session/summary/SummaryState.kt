@@ -154,10 +154,7 @@ data class BookmarkCard(
     val cardId: String,
     val english: String,
     val korean: String,
-) {
-    /** 기존 정적 미리보기 호출부를 위한 호환 생성자. 실제 저장 카드에는 Firestore ID를 사용한다. */
-    constructor(english: String, korean: String) : this(cardId = "", english = english, korean = korean)
-}
+)
 
 /**
  * 적립 스트립 값(주입 seam). 순서 = streak → 학습시간 → XP(gamification-emphasis.md §4.3). 실데이터 소스

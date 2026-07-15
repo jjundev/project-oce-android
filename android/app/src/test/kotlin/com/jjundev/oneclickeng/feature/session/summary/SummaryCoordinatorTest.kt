@@ -387,7 +387,10 @@ class SummaryCoordinatorTest {
     fun `bookmarks load asynchronously into the local block`() =
         runTest {
             val stream = FakeSummaryStream()
-            val bookmarks = FakeBookmarkSource(listOf(BookmarkCard("I got lost.", "길을 잃었어요.")))
+            val bookmarks =
+                FakeBookmarkSource(
+                    listOf(BookmarkCard("fixture-sentence-async", "I got lost.", "길을 잃었어요.")),
+                )
             val coordinator = coordinator(coordScope(), stream, bookmarks = bookmarks)
 
             coordinator.begin()

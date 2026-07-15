@@ -71,6 +71,7 @@ class SummaryScreenshotTest {
                         onRetry = {},
                         onToggleSaveWord = {},
                         onToggleSaveExpression = {},
+                        onToggleSaveBookmark = {},
                         // 고정 "완료" 풋터가 항상 하단에 보이는지 캡처(프로토 flex:none 풋터 정합).
                         onDone = {},
                     )
@@ -136,6 +137,9 @@ class SummaryScreenshotTest {
                             exampleEn = "Let me grab a quick bite.",
                             exampleKo = "간단히 먹을게요.",
                         ),
+                        WordCard("lost", "길을 잃은", "adjective", "B1", "I got lost on the way.", "오는 길에 길을 잃었어요."),
+                        WordCard("receipt", "영수증", "noun", "A2", "Could I get the receipt?", "영수증을 받을 수 있을까요?"),
+                        WordCard("polite", "공손한", "adjective", "B1", "That was a polite request.", "공손한 부탁이었어요."),
                     ),
                 ),
             coaching =
@@ -154,7 +158,7 @@ class SummaryScreenshotTest {
                     score = 92,
                     rationale = "정중하게 부탁하는 표현을 스스로 골라 말했어요.",
                 ),
-            bookmarks = listOf(BookmarkCard("I got lost on the way.", "오는 길에 길을 잃었어요.")),
+            bookmarks = listOf(BookmarkCard("fixture-sentence-screenshot", "I got lost on the way.", "오는 길에 길을 잃었어요.")),
             accrual =
                 AccrualStrip(
                     streakDays = 1,

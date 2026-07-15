@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -68,13 +69,14 @@ class SummaryScrollEndGateTest {
                         onRetry = {},
                         onToggleSaveWord = {},
                         onToggleSaveExpression = {},
+                        onToggleSaveBookmark = {},
                         onScrollEndReached = { callbackCount += 1 },
                     )
                 }
             }
         }
 
-        composeRule.onAllNodesWithContentDescription("더 보기")[0].performClick()
+        composeRule.onAllNodesWithText("더보기")[0].performClick()
         scrollToBottom()
         composeRule.mainClock.advanceTimeBy(250, ignoreFrameDuration = true)
         composeRule.runOnIdle { expressionCount = 8 }
@@ -92,6 +94,7 @@ class SummaryScrollEndGateTest {
                         onRetry = {},
                         onToggleSaveWord = {},
                         onToggleSaveExpression = {},
+                        onToggleSaveBookmark = {},
                         onScrollEndReached = onScrollEndReached,
                     )
                 }
@@ -116,7 +119,10 @@ class SummaryScrollEndGateTest {
         SummaryState(
             totalScore = 85,
             highlight = HighlightTurn("커피 주세요", "Could I get a latte?", 92),
-            bookmarks = List(8) { BookmarkCard("I got lost on the way.", "오는 길에 길을 잃었어요.") },
+            bookmarks =
+                List(8) { index ->
+                    BookmarkCard("fixture-sentence-$index", "I got lost on the way.", "오는 길에 길을 잃었어요.")
+                },
             accrual = AccrualStrip(streakDays = 1, xp = 20),
             bundle =
                 SectionBundle.Sectioned(

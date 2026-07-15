@@ -91,6 +91,7 @@ tasks.withType<Test>().configureEach {
             "**/DeepFeedbackRegionTest*",
             "**/SummaryScrollEndGateTest*",
             "**/SummaryScrollFabTest*",
+            "**/SummaryInteractionTest*",
             "**/SummaryHandoffDelayTest*",
             "**/OpponentSkeletonFloorTest*",
             "**/HomeSettingsChipTest*",

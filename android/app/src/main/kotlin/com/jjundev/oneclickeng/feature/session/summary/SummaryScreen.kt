@@ -4,8 +4,6 @@ package com.jjundev.oneclickeng.feature.session.summary
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,13 +18,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -40,7 +38,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -93,6 +90,7 @@ fun SummaryScreen(
     onRetry: (SummarySection) -> Unit,
     onToggleSaveWord: (Int) -> Unit,
     onToggleSaveExpression: (Int) -> Unit,
+    onToggleSaveBookmark: (String) -> Unit,
     modifier: Modifier = Modifier,
     onDone: (() -> Unit)? = null,
     doneLabel: String = "완료",
@@ -155,7 +153,7 @@ fun SummaryScreen(
                         onToggleSaveWord = onToggleSaveWord,
                         onToggleSaveExpression = onToggleSaveExpression,
                     )
-                    BookmarkSection(state.bookmarks)
+                    BookmarkSection(state.bookmarks, onToggleSaveBookmark)
                     CoachingArea(bundle = state.bundle, onRetry = onRetry)
                 }
                 // 스크롤 보조 FAB — 완료 풋터가 있을 때만(온보딩 GoogleSavePromptSheet 오버레이 케이스 제외).
@@ -216,7 +214,7 @@ private fun SummaryDoneFooter(
 /**
  * 스크롤 보조 FAB(프로토 summaryFab) — 완료 풋터 바로 위에 떠 있는 원형 버튼. 끝에 닿기 전엔 아래 chevron
  * (탭 = 뷰포트 [SUMMARY_FAB_PAGE_FRACTION] 만큼 page-down), 끝에 닿으면 위 chevron(탭 = 맨 위로). 시각은
- * [MoreChevron] 원형 버튼(흰 서피스 + hairline)과 동일 규칙에 그림자만 더한다. 스크롤이 불가능하면
+ * 원형 스크롤 버튼(흰 서피스 + hairline)과 동일 규칙에 그림자만 더한다. 스크롤이 불가능하면
  * (내용이 뷰포트에 다 들어와 [ScrollState.maxValue] == 0) 죽은 어포던스가 되므로 렌더하지 않는다.
  */
 @Composable
@@ -672,9 +670,12 @@ private fun CoachingSection(
     }
 }
 
-/** ⑦ 북마크 문장(≤8, 최신순) — 로컬 즉시. 빈 리스트면 빈 상태(M2-04 착지 전 기본). 저장 토글 표시 전용. */
+/** ⑦ 북마크 문장(≤8, 최신순) — 로컬 즉시. 빈 리스트면 빈 상태(M2-04 착지 전 기본). 저장 토글. */
 @Composable
-private fun BookmarkSection(bookmarks: List<BookmarkCard>) {
+private fun BookmarkSection(
+    bookmarks: List<BookmarkCard>,
+    onToggleSave: (String) -> Unit,
+) {
     val count = bookmarks.size.takeIf { it > 0 }?.let { "${it}개 · 최신순" }
     SectionScaffold(title = "북마크 문장", count = count) {
         if (bookmarks.isEmpty()) {
@@ -707,12 +708,18 @@ private fun BookmarkSection(bookmarks: List<BookmarkCard>) {
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            // 저장됨 표식(표시 전용) — 프로토타입 정합 골드(gameSaveGold 토큰).
-                            OneClickIcon(
-                                icon = OceIcon.Bookmark,
-                                contentDescription = null,
-                                tint = OceTheme.colors.gameSaveGold,
-                            )
+                            IconToggleButton(
+                                checked = true,
+                                onCheckedChange = { checked ->
+                                    if (!checked) onToggleSave(card.cardId)
+                                },
+                            ) {
+                                OneClickIcon(
+                                    icon = OceIcon.Bookmark,
+                                    contentDescription = "저장 해제",
+                                    tint = OceTheme.colors.gameSaveGold,
+                                )
+                            }
                         }
                     }
                 }
@@ -822,39 +829,12 @@ private fun <T> ExpandableCards(
         visible.forEachIndexed { index, item ->
             OneClickCard { card(index, item) }
         }
-        if (items.size > COLLAPSED_PREVIEW) {
-            MoreChevron(expanded = isExpanded, onToggle = { expanded[section] = !isExpanded })
-        }
-    }
-}
-
-/**
- * "더 보기/접기" 어포던스 — 프로토타입 정합: 카드 스택 아래 중앙의 **원형 chevron 버튼**(흰 서피스 + hairline).
- * [OceIcon.ExpandMore](아래 chevron) 를 접힘=정방향, 전개=180° 뒤집어 위 chevron 으로 표시. 프로토는 카드 위로
- * 살짝 겹치나(오버랩) 여기선 중앙 배치로 근사(위치 잔차 note).
- */
-@Composable
-private fun MoreChevron(
-    expanded: Boolean,
-    onToggle: () -> Unit,
-) {
-    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        Box(
-            modifier =
-                Modifier
-                    .size(MoreChevronSize)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
-                    .clickable(onClick = onToggle),
-            contentAlignment = Alignment.Center,
-        ) {
-            OneClickIcon(
-                icon = OceIcon.ExpandMore,
-                contentDescription = if (expanded) "접기" else "더 보기",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.rotate(if (expanded) 180f else 0f),
-            )
+        if (items.size > COLLAPSED_PREVIEW && !isExpanded) {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                TextButton(onClick = { expanded[section] = true }) {
+                    Text(text = "더보기")
+                }
+            }
         }
     }
 }
@@ -1068,9 +1048,6 @@ private val AccrualDividerHeight = 44.dp
 /** 스트릭 캡션 🔥 아이콘 크기. */
 private val StreakCaptionIconSize = 16.dp
 
-/** "더 보기" 원형 chevron 버튼 크기. */
-private val MoreChevronSize = 40.dp
-
 /** 스크롤 보조 FAB 와 완료 풋터 사이 간격(프로토 FAB bottom:104 ≈ 풋터 높이 + 16). */
 private val SummaryFabBottomGap = 16.dp
 
@@ -1177,7 +1154,14 @@ private fun SummaryRichPreview() {
                             score = 92,
                             rationale = "정중하게 부탁하는 표현을 스스로 골라 말했어요.",
                         ),
-                    bookmarks = listOf(BookmarkCard("I got lost on the way.", "오는 길에 길을 잃었어요.")),
+                    bookmarks =
+                        listOf(
+                            BookmarkCard(
+                                "fixture-sentence-preview",
+                                "I got lost on the way.",
+                                "오는 길에 길을 잃었어요.",
+                            ),
+                        ),
                     accrual = previewAccrual,
                     bundle = previewRichBundle,
                     savedWordIndices = setOf(0),
@@ -1185,6 +1169,7 @@ private fun SummaryRichPreview() {
             onRetry = {},
             onToggleSaveWord = {},
             onToggleSaveExpression = {},
+            onToggleSaveBookmark = {},
         )
     }
 }
@@ -1212,6 +1197,7 @@ private fun SummaryLoadingPreview() {
             onRetry = {},
             onToggleSaveWord = {},
             onToggleSaveExpression = {},
+            onToggleSaveBookmark = {},
         )
     }
 }
