@@ -7,13 +7,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +26,9 @@ import com.jjundev.oneclickeng.ui.component.OneClickConfettiBurst
 import com.jjundev.oneclickeng.ui.component.OneClickProgressRing
 import com.jjundev.oneclickeng.ui.component.ProgressRingMode
 import com.jjundev.oneclickeng.ui.theme.OceTheme
+
+/** 재시작 버튼 높이 — 앱 전역 primary CTA 표준(52dp, DialogueGeneratingScreen.PrimaryCtaHeight 등과 동일). */
+private val ReviewButtonHeight = 52.dp
 
 /**
  * 복습 완료 화면(Task 11) — 진행 링(Determinate 1f, 항상 가득 참) + 색종이 1회 버스트 + 완료/다시 집계 +
@@ -40,12 +44,9 @@ fun ReviewSummary(
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(OceTheme.spacing.xl),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
+        Column(modifier = Modifier.fillMaxSize()) {
             Column(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(OceTheme.spacing.xl),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
@@ -80,21 +81,27 @@ fun ReviewSummary(
                     Tally(value = again, label = "다시", color = OceTheme.colors.feedbackCorrectAccent)
                 }
             }
-            Button(
-                onClick = onRestart,
-                modifier = Modifier.fillMaxWidth(),
-                shape = OceTheme.shapes.radius12,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-            ) { Text(text = "한 번 더 복습", style = OceTheme.typography.sectionLabel) }
-            TextButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "닫기",
-                    style = OceTheme.typography.sectionLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            ReviewButtonSheet {
+                Button(
+                    onClick = onRestart,
+                    modifier = Modifier.fillMaxWidth().height(ReviewButtonHeight),
+                    shape = OceTheme.shapes.radius12,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                ) { Text(text = "한 번 더 복습", style = OceTheme.typography.sectionLabel) }
+                OutlinedButton(
+                    onClick = onClose,
+                    modifier = Modifier.fillMaxWidth().height(ReviewButtonHeight),
+                    shape = OceTheme.shapes.radius12,
+                ) {
+                    Text(
+                        text = "닫기",
+                        style = OceTheme.typography.sectionLabel,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
         OneClickConfettiBurst(modifier = Modifier.fillMaxSize())

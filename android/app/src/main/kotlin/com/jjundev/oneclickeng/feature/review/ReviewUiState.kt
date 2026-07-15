@@ -15,6 +15,8 @@ data class ReviewUiState(
     val done: Int = 0,
     val again: Int = 0,
     val finished: Boolean = false,
+    /** true 면 이 세션 전체가 due/신규 소진 후 당겨온 "미리 복습" 폴백 — 채점해도 SRS 스케줄은 안 바뀐다. */
+    val aheadOfSchedule: Boolean = false,
 ) {
     val current: ReviewItem? get() = items.getOrNull(index)
     val total: Int get() = items.size

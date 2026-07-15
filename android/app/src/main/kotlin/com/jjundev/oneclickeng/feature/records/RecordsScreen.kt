@@ -93,17 +93,17 @@ internal fun RecordsContent(
 
     Box(modifier = modifier.fillMaxSize()) {
         TabScreenScaffold(titleRes = R.string.tab_records, listState = listState) {
-            item(key = "review_banner") {
-                ReviewBanner(
-                    dueCount = state.dueCount,
-                    onClick = onEnterReview,
-                    modifier = Modifier.staggerReveal(0, entrance).padding(bottom = OceTheme.spacing.lg),
-                )
-            }
             item(key = "lifetime") {
                 LifetimeStatsHeader(
                     lifetime = state.lifetime,
                     animate = state.animateCountUp,
+                    modifier = Modifier.staggerReveal(0, entrance).padding(bottom = OceTheme.spacing.lg),
+                )
+            }
+            item(key = "review_banner") {
+                ReviewBanner(
+                    dueCount = state.dueCount,
+                    onClick = onEnterReview,
                     modifier = Modifier.staggerReveal(1, entrance).padding(bottom = OceTheme.spacing.lg),
                 )
             }

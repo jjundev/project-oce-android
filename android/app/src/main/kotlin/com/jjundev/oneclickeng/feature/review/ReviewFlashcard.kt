@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -29,6 +30,9 @@ import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
+
+/** 카드 하단 버튼 높이 — 앱 전역 primary CTA 표준(52dp, DialogueGeneratingScreen.PrimaryCtaHeight 등과 동일). */
+private val ReviewButtonHeight = 52.dp
 
 /**
  * 복습 플립 카드(Word/Sentence 공통, Task 9). 앞면=한국어 프롬프트+"정답 보기", 뒷면=영어 정답+TTS+
@@ -108,38 +112,42 @@ fun ReviewFlashcard(
             }
         }
         if (!revealed) {
-            Button(
-                onClick = onReveal,
-                modifier = Modifier.fillMaxWidth().padding(OceTheme.spacing.lg),
-                shape = OceTheme.shapes.radius12,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-            ) { Text(text = "정답 보기", style = OceTheme.typography.sectionLabel) }
+            ReviewButtonSheet {
+                Button(
+                    onClick = onReveal,
+                    modifier = Modifier.fillMaxWidth().height(ReviewButtonHeight),
+                    shape = OceTheme.shapes.radius12,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                ) { Text(text = "정답 보기", style = OceTheme.typography.sectionLabel) }
+            }
         } else {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(OceTheme.spacing.lg),
-                horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
-            ) {
-                Button(
-                    onClick = { onGrade(false) },
-                    modifier = Modifier.weight(1f),
-                    shape = OceTheme.shapes.radius12,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = OceTheme.colors.feedbackCorrectBg,
-                        contentColor = OceTheme.colors.feedbackCorrectAccent,
-                    ),
-                ) { Text(text = "다시", style = OceTheme.typography.sectionLabel) }
-                Button(
-                    onClick = { onGrade(true) },
-                    modifier = Modifier.weight(1f),
-                    shape = OceTheme.shapes.radius12,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = OceTheme.colors.feedbackNaturalAccent,
-                        contentColor = Color.White,
-                    ),
-                ) { Text(text = "완료", style = OceTheme.typography.sectionLabel) }
+            ReviewButtonSheet {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
+                ) {
+                    Button(
+                        onClick = { onGrade(false) },
+                        modifier = Modifier.weight(1f).height(ReviewButtonHeight),
+                        shape = OceTheme.shapes.radius12,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = OceTheme.colors.feedbackCorrectBg,
+                            contentColor = OceTheme.colors.feedbackCorrectAccent,
+                        ),
+                    ) { Text(text = "다시", style = OceTheme.typography.sectionLabel) }
+                    Button(
+                        onClick = { onGrade(true) },
+                        modifier = Modifier.weight(1f).height(ReviewButtonHeight),
+                        shape = OceTheme.shapes.radius12,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = OceTheme.colors.feedbackNaturalAccent,
+                            contentColor = Color.White,
+                        ),
+                    ) { Text(text = "완료", style = OceTheme.typography.sectionLabel) }
+                }
             }
         }
     }

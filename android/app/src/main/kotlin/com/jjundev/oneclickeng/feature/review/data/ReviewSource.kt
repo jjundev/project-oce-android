@@ -32,6 +32,10 @@ interface ReviewSource {
  * [FirebaseFirestore] 구현. due = `deletedAt==null && srsNextReviewAt<=now orderBy srsNextReviewAt` (Task 5 복합
  * 인덱스). 신규 보충 = 3타입 per-type `cardType==T && deletedAt==null orderBy createdAt desc`(기존 인덱스 재사용) +
  * client-side `srsNextReviewAt==null` 필터. 둘을 [ReviewPool.merge] 로 합친다.
+ *
+ * due + 신규가 모두 비면(오늘 볼 것도, 안 본 것도 없음) [aheadItems] 폴백 — srs 가 있는 카드를 다음 복습일이
+ * 가까운 순으로 당겨와 [ReviewItem.aheadOfSchedule]=true 로 표시한다(같은 (deletedAt, srsNextReviewAt) 인덱스
+ * 재사용, `<=now` 상한만 없앤 쿼리). 자발적 미리 복습이며 스케줄은 갱신하지 않는다.
  */
 @Singleton
 class FirestoreReviewSource
@@ -53,7 +57,14 @@ class FirestoreReviewSource
             val fresh = runCatching { newItems(uid, target) }
                 .onFailure { Log.w(TAG, "review supplement query failed [${it::class.simpleName}]: ${it.message}") }
                 .getOrDefault(emptyList())
-            return ReviewPool.merge(due, fresh, target)
+            val combined = ReviewPool.merge(due, fresh, target)
+            if (combined.isNotEmpty()) return combined
+            val ahead = runCatching { aheadItems(uid, target) }
+                .onFailure {
+                    Log.w(TAG, "review ahead-of-schedule query failed [${it::class.simpleName}]: ${it.message}")
+                }
+                .getOrDefault(emptyList())
+            return ahead.map { it.copy(aheadOfSchedule = true) }
         }
 
         @Suppress("TooGenericExceptionCaught")
@@ -76,6 +87,24 @@ class FirestoreReviewSource
                 collection(uid)
                     .whereEqualTo(FIELD_DELETED_AT, null)
                     .whereLessThanOrEqualTo(FIELD_SRS_NEXT_REVIEW_AT, nowMs)
+                    .orderBy(FIELD_SRS_NEXT_REVIEW_AT, Query.Direction.ASCENDING)
+                    .limit(limit.toLong())
+                    .get().await().documents
+            return docs.mapNotNull { it.toReviewItem() }
+        }
+
+        /**
+         * 미리 복습 폴백 = due 쿼리와 동일 (deletedAt, srsNextReviewAt) 인덱스, `<=now` 상한만 없앤 쿼리 — srs 가
+         * 있는 카드 중 다음 복습일이 가장 가까운 것부터. srsNextReviewAt 이 없는(미복습) 문서는 orderBy 가
+         * 자동 제외한다.
+         */
+        private suspend fun aheadItems(
+            uid: String,
+            limit: Int,
+        ): List<ReviewItem> {
+            val docs =
+                collection(uid)
+                    .whereEqualTo(FIELD_DELETED_AT, null)
                     .orderBy(FIELD_SRS_NEXT_REVIEW_AT, Query.Direction.ASCENDING)
                     .limit(limit.toLong())
                     .get().await().documents

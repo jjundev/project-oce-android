@@ -87,4 +87,24 @@ class ReviewViewModelTest {
         assertEquals(1, repo.srsUpdates.first().box)
         assertEquals(1, repo.srsUpdates.first().lapses)
     }
+
+    @Test
+    fun `ahead-of-schedule pool flags uiState and grading skips srs update`() = runTest(dispatcher) {
+        val aheadWord = word.copy(aheadOfSchedule = true)
+        val (viewModel, repo) = vm(listOf(aheadWord))
+        advanceUntilIdle()
+        assertEquals(true, viewModel.uiState.value.aheadOfSchedule)
+        viewModel.reveal()
+        viewModel.grade(correct = true)
+        assertEquals(1, viewModel.uiState.value.done)
+        assertEquals(true, viewModel.uiState.value.finished)
+        assertEquals(0, repo.srsUpdates.size)
+    }
+
+    @Test
+    fun `non-ahead pool does not flag aheadOfSchedule`() = runTest(dispatcher) {
+        val (viewModel, _) = vm(listOf(word))
+        advanceUntilIdle()
+        assertEquals(false, viewModel.uiState.value.aheadOfSchedule)
+    }
 }

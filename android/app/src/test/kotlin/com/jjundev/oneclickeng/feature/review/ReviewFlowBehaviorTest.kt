@@ -99,4 +99,74 @@ class ReviewFlowBehaviorTest {
         composeRule.onNodeWithText("I go store").assertIsDisplayed()
         composeRule.onNodeWithText("I'm going to the store").assertIsDisplayed()
     }
+
+    @Test
+    fun `empty pool shows empty state without restart CTA, close calls onClose`() {
+        var closed = false
+        composeRule.setContent {
+            OceTheme(darkTheme = false) {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    ReviewFlowContent(
+                        state = ReviewUiState(
+                            loading = false,
+                            items = emptyList(),
+                            index = 0,
+                            phase = ReviewPhase.Done,
+                            finished = true,
+                        ),
+                        onReveal = {},
+                        onGrade = {},
+                        onPick = {},
+                        onNext = {},
+                        onSpeak = {},
+                        onClose = { closed = true },
+                        onRestart = {},
+                    )
+                }
+            }
+        }
+        composeRule.onNodeWithText("아직 저장한 카드가 없어요").assertIsDisplayed()
+        composeRule.onNodeWithText("한 번 더 복습").assertDoesNotExist()
+        composeRule.onNodeWithText("닫기").performClick()
+        assertEquals(true, closed)
+    }
+
+    @Test
+    fun `ahead-of-schedule session shows label and grading does not call onGrade's srs path`() {
+        val grades = mutableListOf<Boolean>()
+        val word =
+            ReviewItem(
+                cardId = "w1",
+                card = SavedCard.Word("grasp", "완전히 이해하다", "", ""),
+                review = null,
+                aheadOfSchedule = true,
+            )
+        composeRule.setContent {
+            OceTheme(darkTheme = false) {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    ReviewFlowContent(
+                        state = ReviewUiState(
+                            loading = false,
+                            items = listOf(word),
+                            index = 0,
+                            phase = ReviewPhase.Back,
+                            aheadOfSchedule = true,
+                        ),
+                        onReveal = {},
+                        onGrade = { grades += it },
+                        onPick = {},
+                        onNext = {},
+                        onSpeak = {},
+                        onClose = {},
+                        onRestart = {},
+                    )
+                }
+            }
+        }
+        // "미리 복습" label is the UI signal; the actual SRS-skip guard lives in ReviewViewModel.record
+        // (verified in ReviewViewModelTest) — this test only confirms onGrade still fires from the sheet.
+        composeRule.onNodeWithText("미리 복습").assertIsDisplayed()
+        composeRule.onNodeWithText("완료").performClick()
+        assertEquals(listOf(true), grades)
+    }
 }

@@ -54,4 +54,33 @@ class ReviewFlowScreenshotTest {
         }
         composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/review_summary_light.png")
     }
+
+    @Test
+    fun empty_pool_light() {
+        composeRule.setContent {
+            OceTheme(darkTheme = false) {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    ReviewFlowContent(
+                        state = ReviewUiState(
+                            loading = false,
+                            items = emptyList(),
+                            index = 0,
+                            phase = ReviewPhase.Done,
+                            done = 0,
+                            again = 0,
+                            finished = true,
+                        ),
+                        onReveal = {},
+                        onGrade = {},
+                        onPick = {},
+                        onNext = {},
+                        onSpeak = {},
+                        onClose = {},
+                        onRestart = {},
+                    )
+                }
+            }
+        }
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/review_empty_pool_light.png")
+    }
 }

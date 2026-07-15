@@ -89,7 +89,10 @@ class ReviewViewModel
 
         fun playTts(text: String) = speak(text)
 
+        /** [ReviewItem.aheadOfSchedule] 카드는 채점해도 SRS 를 갱신하지 않는다 — 미리 복습이 정식 간격반복
+         * 주기를 흐트러뜨리지 않도록. */
         private fun record(item: ReviewItem, correct: Boolean) {
+            if (item.aheadOfSchedule) return
             val next = LeitnerLogic.onGrade(item.review, correct, clock.nowMs())
             savedCardRepository.updateSrs(
                 cardId = item.cardId,
@@ -123,6 +126,7 @@ class ReviewViewModel
                         index = 0,
                         phase = if (items.isEmpty()) ReviewPhase.Done else phaseFor(items[0]),
                         finished = items.isEmpty(),
+                        aheadOfSchedule = items.isNotEmpty() && items.first().aheadOfSchedule,
                     )
             }
         }
