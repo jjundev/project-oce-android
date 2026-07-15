@@ -103,6 +103,7 @@ tasks.withType<Test>().configureEach {
             "**/DialogueHeaderProgressTest*",
             "**/AppExitGuardTest*",
             "**/RecordsDeleteDialogTest*",
+            "**/ReviewFlowBehaviorTest*",
             "**/DialogueTranslationToggleTest*",
         )
     }

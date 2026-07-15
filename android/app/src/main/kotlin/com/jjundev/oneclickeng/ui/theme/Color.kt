@@ -12,6 +12,10 @@ internal val White = Color(0xFFFFFFFF)
 internal val BrandBlue = Color(0xFF39A0ED)
 internal val BrandBluePressed = Color(0xFF2B7FBB)
 
+// 복습(review) 그라데이션 시작점 — 종점은 FeedbackNaturalAccent(#009B72) 재사용(브랜드 그라데이션과 동일하게
+// 밝은 시작→짙은 종점 패턴, "자연스러운" 초록 정체성과 정합).
+internal val ReviewGradientStart = Color(0xFF00C896)
+
 // --- 표면 / 텍스트 / 보더 (라이트/다크) — §2.1 ---
 internal val BackgroundLight = Color(0xFFF3F4F6)
 internal val BackgroundDark = Color(0xFF0E0F12)

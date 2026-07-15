@@ -31,11 +31,16 @@ data class OceColors(
     val gameSaveGold: Color,
     val gradientStart: Color,
     val gradientEnd: Color,
+    val reviewGradientStart: Color,
+    val reviewGradientEnd: Color,
     val waveformTop: Color,
     val waveformBottom: Color,
 ) {
     /** 브랜드 그라데이션(135° 선형, start→end). §2.2 카드 배경. */
     fun brandGradient(): Brush = Brush.linearGradient(listOf(gradientStart, gradientEnd))
+
+    /** 복습 배너 그라데이션(135° 선형, 초록 테마) — 오늘의 복습 배너 전용. */
+    fun reviewGradient(): Brush = Brush.linearGradient(listOf(reviewGradientStart, reviewGradientEnd))
 
     /** crackle 파형 세로 그라데이션(top→bottom). 렌더/anatomy 정본은 §6 / I2. */
     fun waveformGradient(): Brush = Brush.verticalGradient(listOf(waveformTop, waveformBottom))
@@ -61,6 +66,8 @@ internal val LightOceColors =
         gameSaveGold = GameSaveGoldLight,
         gradientStart = BrandBlue,
         gradientEnd = BrandBluePressed,
+        reviewGradientStart = ReviewGradientStart,
+        reviewGradientEnd = FeedbackNaturalAccent,
         waveformTop = WaveformTop,
         waveformBottom = WaveformBottom,
     )
@@ -85,6 +92,8 @@ internal val DarkOceColors =
         gameSaveGold = GameSaveGoldDark,
         gradientStart = BrandBlue,
         gradientEnd = BrandBluePressed,
+        reviewGradientStart = ReviewGradientStart,
+        reviewGradientEnd = FeedbackNaturalAccent,
         waveformTop = WaveformTop,
         waveformBottom = WaveformBottom,
     )

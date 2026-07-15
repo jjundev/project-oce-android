@@ -14,6 +14,8 @@ data class RecordsUiState(
     val lifetime: LifetimeStats? = null,
     /** 헤더 카운트업 애니메이션 여부. 스텁이거나 세션 최초 진입이 아니면 false(정적 스냅). */
     val animateCountUp: Boolean = false,
+    /** 오늘의 복습 배너에 표시할 due 카드 수(캡 20; 20이면 "20+"). 0이면 배너 톤 축소. */
+    val dueCount: Int = 0,
 ) {
     /** 기록 탭 3종 세그먼트 순서(R2). */
     val tabs: List<CardType> get() = TABS

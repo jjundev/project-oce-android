@@ -20,6 +20,7 @@ import javax.inject.Inject
  *
  * 읽기가 1회성 get 이라 리스너 재전달에 의존하지 않으므로, 삭제 후 리스트 반영은 이 낙관 변이가 단일하게 소유한다.
  */
+@Suppress("LongParameterList") // DI: 기존 읽기/삭제/통계 seam 5종 + 복습 배너용 ReviewSource/ReviewClock(Task 8).
 @HiltViewModel
 class RecordsViewModel
     @Inject
@@ -29,6 +30,8 @@ class RecordsViewModel
         private val lifetimeStatsSource: LifetimeStatsSource,
         private val analytics: HistoryAnalytics,
         private val countUpGate: HistoryCountUpGate,
+        private val reviewSource: com.jjundev.oneclickeng.feature.review.data.ReviewSource,
+        private val reviewClock: com.jjundev.oneclickeng.feature.review.data.ReviewClock,
     ) : ViewModel() {
         private data class TypeState(
             val cards: List<SavedCardEntry> = emptyList(),
@@ -42,6 +45,7 @@ class RecordsViewModel
         private var selected: CardType = RecordsUiState.TABS.first()
         private var lifetime: LifetimeStats? = null
         private var animateCountUp: Boolean = false
+        private var dueCount: Int = 0
 
         private val _uiState = MutableStateFlow(RecordsUiState())
         val uiState: StateFlow<RecordsUiState> = _uiState.asStateFlow()
@@ -51,6 +55,7 @@ class RecordsViewModel
                 lifetime = lifetimeStatsSource.lifetime()
                 // 카운트업: 실데이터가 있고(스텁 아님) 세션 최초 진입일 때만 애니메이션.
                 animateCountUp = lifetime != null && countUpGate.consumeFirstEntry()
+                dueCount = reviewSource.dueCount(reviewClock.nowMs())
                 publish()
             }
             analytics.tabView(selected)
@@ -122,6 +127,7 @@ class RecordsViewModel
                     endReached = state.endReached,
                     lifetime = lifetime,
                     animateCountUp = animateCountUp,
+                    dueCount = dueCount,
                 )
         }
     }

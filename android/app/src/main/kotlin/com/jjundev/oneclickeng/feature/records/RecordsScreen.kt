@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jjundev.oneclickeng.R
+import com.jjundev.oneclickeng.feature.review.ReviewBanner
 import com.jjundev.oneclickeng.feature.session.saved.CardType
 import com.jjundev.oneclickeng.ui.component.EmptyStateCtaStrength
 import com.jjundev.oneclickeng.ui.component.OneClickDialog
@@ -52,6 +53,7 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun RecordsScreen(
+    onEnterReview: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: RecordsViewModel = hiltViewModel(),
 ) {
@@ -62,6 +64,7 @@ fun RecordsScreen(
         onSelectTab = viewModel::selectTab,
         onDelete = viewModel::deleteCard,
         onLoadMore = viewModel::loadMore,
+        onEnterReview = onEnterReview,
         reduceMotion = rememberReduceMotion(),
         modifier = modifier,
     )
@@ -78,6 +81,7 @@ internal fun RecordsContent(
     onSelectTab: (CardType) -> Unit,
     onDelete: (SavedCardEntry) -> Unit,
     onLoadMore: () -> Unit,
+    onEnterReview: () -> Unit = {},
     modifier: Modifier = Modifier,
     reduceMotion: Boolean = false,
 ) {
@@ -94,6 +98,13 @@ internal fun RecordsContent(
                     lifetime = state.lifetime,
                     animate = state.animateCountUp,
                     modifier = Modifier.staggerReveal(0, entrance).padding(bottom = OceTheme.spacing.lg),
+                )
+            }
+            item(key = "review_banner") {
+                ReviewBanner(
+                    dueCount = state.dueCount,
+                    onClick = onEnterReview,
+                    modifier = Modifier.staggerReveal(1, entrance).padding(bottom = OceTheme.spacing.lg),
                 )
             }
             stickyHeader(key = "segments") {
@@ -118,7 +129,7 @@ internal fun RecordsContent(
                         text = "${state.cards.size}개 · 최신순",
                         style = OceTheme.typography.helper,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.staggerReveal(1, entrance).padding(bottom = OceTheme.spacing.sm),
+                        modifier = Modifier.staggerReveal(2, entrance).padding(bottom = OceTheme.spacing.sm),
                     )
                 }
             }
@@ -187,7 +198,7 @@ private fun LazyListScope.cardList(
     if (state.cards.isEmpty()) {
         if (!state.loading) {
             item(key = "empty") {
-                Box(modifier = Modifier.staggerReveal(1, entrance)) {
+                Box(modifier = Modifier.staggerReveal(2, entrance)) {
                     EmptyState(state.selected)
                 }
             }
@@ -202,7 +213,7 @@ private fun LazyListScope.cardList(
             expanded = expandedId == entry.cardId,
             onToggleExpand = { onToggleExpand(entry.cardId) },
             onLongPress = { onRequestDelete(entry) },
-            modifier = Modifier.staggerReveal(2 + index, entrance).padding(bottom = OceTheme.spacing.md),
+            modifier = Modifier.staggerReveal(3 + index, entrance).padding(bottom = OceTheme.spacing.md),
         )
     }
 

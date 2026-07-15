@@ -10,8 +10,19 @@ class FakeSavedCardRepository : SavedCardRepository {
 
     data class DeleteCall(val cardId: String, val cardType: CardType, val deleted: Boolean)
 
+    data class SrsCall(
+        val cardId: String,
+        val cardType: CardType,
+        val box: Int,
+        val nextReviewAt: Long,
+        val lastReviewedAt: Long,
+        val reps: Int,
+        val lapses: Int,
+    )
+
     val saves = mutableListOf<SaveCall>()
     val deletes = mutableListOf<DeleteCall>()
+    val srsUpdates = mutableListOf<SrsCall>()
 
     override fun save(
         cardId: String,
@@ -26,5 +37,17 @@ class FakeSavedCardRepository : SavedCardRepository {
         deleted: Boolean,
     ) {
         deletes += DeleteCall(cardId, cardType, deleted)
+    }
+
+    override fun updateSrs(
+        cardId: String,
+        cardType: CardType,
+        box: Int,
+        nextReviewAt: Long,
+        lastReviewedAt: Long,
+        reps: Int,
+        lapses: Int,
+    ) {
+        srsUpdates += SrsCall(cardId, cardType, box, nextReviewAt, lastReviewedAt, reps, lapses)
     }
 }

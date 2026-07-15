@@ -30,6 +30,8 @@ import com.jjundev.oneclickeng.feature.home.homeSessionResumeRoute
 import com.jjundev.oneclickeng.feature.home.homeSessionStartRoute
 import com.jjundev.oneclickeng.feature.onboarding.ONBOARDING_ROUTE
 import com.jjundev.oneclickeng.feature.onboarding.onboardingGraph
+import com.jjundev.oneclickeng.feature.review.reviewGraph
+import com.jjundev.oneclickeng.feature.review.reviewStartRoute
 import com.jjundev.oneclickeng.ui.component.BlockingGateSurface
 import com.jjundev.oneclickeng.ui.component.OneClickBlockingGate
 import com.jjundev.oneclickeng.ui.component.OneClickOfflineBanner
@@ -121,6 +123,7 @@ fun AppRoot(
                     )
                 },
                 onResume = { outerNavController.navigate(homeSessionResumeRoute()) },
+                onEnterReview = { outerNavController.navigate(reviewStartRoute()) },
                 pendingNav = pendingNav,
                 onNavConsumed = onNavConsumed,
             )
@@ -129,6 +132,8 @@ fun AppRoot(
         onboardingGraph(outerNavController, reduceMotion)
         // 홈 주도 세션 그래프(M3-08): 3탭 밖 풀스크린 형제(주제→생성→대화→요약).
         homeSessionGraph(outerNavController, reduceMotion)
+        // 복습 그래프: 3탭 밖 풀스크린 형제(ADR-0008).
+        reviewGraph(outerNavController)
     }
 }
 
@@ -148,8 +153,8 @@ private fun BootSplash() {
  * [OceBottomNav]는 그 하단 가장자리 위에 정렬된다.
  * 탭 선택 지속은 자체 [rememberNavController] 백스택이 담당한다(회전/복귀 시 상태 유지).
  *
- * [isOnline]=false 면 상단에 글로벌 오프라인 배너(C4)를 노출한다(M3-08 A4). [onStartSession]/[onResume] 는
- * outer NavController 로 세션 그래프에 진입하는 람다다(홈 히어로·추천 행·이어하기).
+ * [isOnline]=false 면 상단에 글로벌 오프라인 배너(C4)를 노출한다(M3-08 A4). [onStartSession]/[onResume]/
+ * [onEnterReview] 는 outer NavController 로 각 그래프에 진입하는 람다다(홈 히어로·추천 행·이어하기·복습 배너).
  *
  * [pendingNav] 는 알림 탭에서 온 nav 명령(M3-07 §5). `home` 이면 홈 탭으로 옮기고 소비를 통지한다.
  */
@@ -158,6 +163,7 @@ private fun MainTabsScaffold(
     isOnline: Boolean,
     onStartSession: (promptSeed: String, topicLabel: String, topicEmoji: String, level: String, length: Int) -> Unit,
     onResume: () -> Unit,
+    onEnterReview: () -> Unit,
     pendingNav: String?,
     onNavConsumed: () -> Unit,
 ) {
@@ -188,6 +194,7 @@ private fun MainTabsScaffold(
                 navController = navController,
                 onStartSession = onStartSession,
                 onResume = onResume,
+                onEnterReview = onEnterReview,
                 modifier = contentModifier,
             )
         }
