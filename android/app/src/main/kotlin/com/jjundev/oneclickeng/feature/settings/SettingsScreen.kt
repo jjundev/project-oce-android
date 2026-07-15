@@ -46,6 +46,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToDownIgnoreConsumed
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -109,6 +115,7 @@ fun SettingsScreen(
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
     var showPurgeSheet by rememberSaveable { mutableStateOf(false) }
     var showTimeSheet by rememberSaveable { mutableStateOf(false) }
+    var snackbarBounds by remember { mutableStateOf<Rect?>(null) }
 
     // 시스템 알림 on/off 는 화면 재개마다 재확인(설정 앱에서 끄고 돌아온 경우 반영).
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -197,7 +204,23 @@ fun SettingsScreen(
         Unit
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .pointerInput(snackbarBounds) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            val down = event.changes.firstOrNull { it.changedToDownIgnoreConsumed() } ?: continue
+                            val bounds = snackbarBounds ?: continue
+                            if (!bounds.contains(down.position)) {
+                                snackbarHostState.currentSnackbarData?.dismiss()
+                            }
+                        }
+                    }
+                },
+    ) {
         SettingsContent(
             state = state,
             versionLabel = appVersionLabel(context),
@@ -290,7 +313,10 @@ fun SettingsScreen(
 
         OneClickSnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter),
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .onGloballyPositioned { snackbarBounds = it.boundsInRoot() },
             bottomInset = OceBottomNavDefaults.overlayContentBottomPadding,
         )
     }
