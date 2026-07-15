@@ -88,6 +88,57 @@ class RecordsViewModelTest {
         }
 
     @Test
+    fun `refresh reloads the first page for the currently selected tab`() =
+        runTest(dispatcher) {
+            val query = FakeQuerySource(mapOf(CardType.EXPRESSION to listOf(expr("old"))))
+            val viewModel = vm(query = query)
+            advanceUntilIdle()
+
+            query.replace(CardType.EXPRESSION, listOf(expr("new"), expr("old")))
+            viewModel.refresh()
+            advanceUntilIdle()
+
+            assertEquals(listOf("new", "old"), viewModel.uiState.value.cards.map { it.cardId })
+            assertEquals(
+                2,
+                query.requests.count { (cardType, after) ->
+                    cardType == CardType.EXPRESSION && after == null
+                },
+            )
+        }
+
+    @Test
+    fun `refresh is a no-op while the current tab is loading`() =
+        runTest(dispatcher) {
+            val query = FakeQuerySource(mapOf(CardType.EXPRESSION to listOf(expr("only"))))
+            val viewModel = vm(query = query)
+
+            viewModel.refresh()
+            advanceUntilIdle()
+
+            assertEquals(1, query.requests.count { it.first == CardType.EXPRESSION && it.second == null })
+            assertEquals(listOf("only"), viewModel.uiState.value.cards.map { it.cardId })
+        }
+
+    @Test
+    fun `first resume uses the init result and second resume refreshes`() =
+        runTest(dispatcher) {
+            val query = FakeQuerySource(mapOf(CardType.EXPRESSION to listOf(expr("old"))))
+            val viewModel = vm(query = query)
+
+            viewModel.refreshOnResume()
+            advanceUntilIdle()
+            assertEquals(1, query.requests.count { it.first == CardType.EXPRESSION && it.second == null })
+
+            query.replace(CardType.EXPRESSION, listOf(expr("new")))
+            viewModel.refreshOnResume()
+            advanceUntilIdle()
+
+            assertEquals(2, query.requests.count { it.first == CardType.EXPRESSION && it.second == null })
+            assertEquals(listOf("new"), viewModel.uiState.value.cards.map { it.cardId })
+        }
+
+    @Test
     fun `deleteCard tombstones, optimistically removes, and logs delete`() =
         runTest(dispatcher) {
             val query = FakeQuerySource(mapOf(CardType.EXPRESSION to listOf(expr("a"), expr("b"), expr("c"))))
@@ -168,13 +219,30 @@ class RecordsViewModelTest {
 }
 
 private class FakeQuerySource(
-    private val byType: Map<CardType, List<SavedCardEntry>> = emptyMap(),
+    initialByType: Map<CardType, List<SavedCardEntry>> = emptyMap(),
 ) : SavedCardQuerySource {
+    private val byType = initialByType.toMutableMap()
+    val requests = mutableListOf<Pair<CardType, DocumentSnapshot?>>()
+
+    fun replace(
+        cardType: CardType,
+        entries: List<SavedCardEntry>,
+    ) {
+        byType[cardType] = entries
+    }
+
     override suspend fun page(
         cardType: CardType,
         after: DocumentSnapshot?,
         limit: Int,
-    ): SavedCardPage = SavedCardPage(entries = byType[cardType].orEmpty(), cursor = null, endReached = true)
+    ): SavedCardPage {
+        requests += cardType to after
+        return SavedCardPage(
+            entries = byType[cardType].orEmpty(),
+            cursor = null,
+            endReached = true,
+        )
+    }
 }
 
 private class FakeLifetimeStatsSource(private val value: LifetimeStats?) : LifetimeStatsSource {
