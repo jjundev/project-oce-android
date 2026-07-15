@@ -15,14 +15,16 @@ fun waveBob(t: Float): Float {
     if (t <= 0f || t >= 1f) return 0f
     val keys = floatArrayOf(0f, 0.32f, 0.66f, 1f)
     val vals = floatArrayOf(0f, 1f, -0.27f, 0f)
+    var result = 0f
     for (i in 0 until keys.size - 1) {
         if (t <= keys[i + 1]) {
             val span = keys[i + 1] - keys[i]
             val f = if (span == 0f) 0f else (t - keys[i]) / span
-            return vals[i] + (vals[i + 1] - vals[i]) * f
+            result = vals[i] + (vals[i + 1] - vals[i]) * f
+            break
         }
     }
-    return 0f
+    return result
 }
 
 /**

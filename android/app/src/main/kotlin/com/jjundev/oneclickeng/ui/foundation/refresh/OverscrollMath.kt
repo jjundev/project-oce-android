@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName") // 파일은 OverscrollDefaults + rubberBand/inverseRubberBand 묶음(단일 선언 아님).
+
 package com.jjundev.oneclickeng.ui.foundation.refresh
 
 import androidx.compose.ui.unit.Dp

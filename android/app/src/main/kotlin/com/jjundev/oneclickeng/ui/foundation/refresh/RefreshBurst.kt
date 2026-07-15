@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName") // 파일은 BurstParticle + RefreshBurst 컴포저블 묶음(단일 선언 아님).
+
 package com.jjundev.oneclickeng.ui.foundation.refresh
 
 import androidx.compose.animation.core.Animatable
