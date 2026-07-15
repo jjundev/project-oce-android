@@ -789,35 +789,41 @@ fun OverscrollRefreshBox(
 
     LaunchedEffect(state.releaseRequest) {
         if (state.releaseRequest <= 0) return@LaunchedEffect
-        // (A) 로딩 위치로 스냅
-        state.offset.animateTo(holdPx, tween(OverscrollDefaults.SnapToHoldMs, easing = FastOutSlowInEasing))
-        // (B) 물결 + 폭죽 + 새로고침 트리거
-        currentOnRefresh()
-        state.fireBurst()
-        val waveJob = launch {
-            val total = OverscrollDefaults.WaveDurationMs + 8 * OverscrollDefaults.WaveStaggerMs
-            val clock = Animatable(0f)
-            clock.animateTo(total, tween(total.roundToInt(), easing = LinearEasing)) {
-                state.wave.clockMs = value
+        // try/finally 로 onCycleFinished() 를 항상 보장 → onRefresh() 예외 등으로 시퀀스가 중단돼도
+        // busy 가 true 로 고착돼 이후 당김이 죽는 것을 막는다(방어적 하드닝).
+        try {
+            // (A) 로딩 위치로 스냅
+            state.offset.animateTo(holdPx, tween(OverscrollDefaults.SnapToHoldMs, easing = FastOutSlowInEasing))
+            // (B) 물결 + 폭죽 + 새로고침 트리거
+            currentOnRefresh()
+            state.fireBurst()
+            val waveJob = launch {
+                val total = OverscrollDefaults.WaveDurationMs + 8 * OverscrollDefaults.WaveStaggerMs
+                val clock = Animatable(0f)
+                clock.animateTo(total, tween(total.roundToInt(), easing = LinearEasing)) {
+                    state.wave.clockMs = value
+                }
+                state.wave.clockMs = -1f
             }
-            state.wave.clockMs = -1f
+            // (C) 최소 표시 시간을 먼저 확보한 뒤, 그 시점에 아직 로딩 중이면(isRefreshing==true) 완료될 때까지 대기.
+            //   - 학습: isRefreshing 항상 false → 최소 시간 경과 후 first{!it} 즉시 통과.
+            //   - 기록 빠른 로딩: 최소 시간 안에 이미 false → 즉시 통과.
+            //   - 기록 느린 로딩: 최소 시간 후에도 true → false 로 바뀔 때까지 대기(= Firebase reload 완료 대기).
+            // 순서가 핵심: snapshotFlow 는 수집 시작 시 현재값을 즉시 방출하므로, 반드시 min-floor 이후에 평가해야
+            // "로딩 전 false" 를 즉시 통과해버리는 버그를 피한다. RecordsViewModel.refresh() 는 refreshing=true 를
+            // 동기적으로 세팅하므로(다음 프레임에 파라미터 반영) min-floor(450ms) 경과 시점엔 로딩 상태가 정확히 반영돼 있다.
+            // (기록 탭 전환으로 refresh 가 포기되면 RecordsViewModel.selectTab 이 refreshing=false 로 풀어줘 여기 대기가 해제된다.)
+            kotlinx.coroutines.delay(OverscrollDefaults.MinVisibleMs)
+            waveJob.join()
+            snapshotFlow { currentRefreshing }.first { !it }
+            // (D) 통통 스프링 복귀
+            state.offset.animateTo(
+                0f,
+                spring(dampingRatio = OverscrollDefaults.SpringDampingRatio, stiffness = OverscrollDefaults.SpringStiffness),
+            )
+        } finally {
+            state.onCycleFinished()
         }
-        // (C) 최소 표시 시간을 먼저 확보한 뒤, 그 시점에 아직 로딩 중이면(isRefreshing==true) 완료될 때까지 대기.
-        //   - 학습: isRefreshing 항상 false → 최소 시간 경과 후 first{!it} 즉시 통과.
-        //   - 기록 빠른 로딩: 최소 시간 안에 이미 false → 즉시 통과.
-        //   - 기록 느린 로딩: 최소 시간 후에도 true → false 로 바뀔 때까지 대기(= Firebase reload 완료 대기).
-        // 순서가 핵심: snapshotFlow 는 수집 시작 시 현재값을 즉시 방출하므로, 반드시 min-floor 이후에 평가해야
-        // "로딩 전 false" 를 즉시 통과해버리는 버그를 피한다. RecordsViewModel.refresh() 는 refreshing=true 를
-        // 동기적으로 세팅하므로(다음 프레임에 파라미터 반영) min-floor(450ms) 경과 시점엔 로딩 상태가 정확히 반영돼 있다.
-        kotlinx.coroutines.delay(OverscrollDefaults.MinVisibleMs)
-        waveJob.join()
-        snapshotFlow { currentRefreshing }.first { !it }
-        // (D) 통통 스프링 복귀
-        state.offset.animateTo(
-            0f,
-            spring(dampingRatio = OverscrollDefaults.SpringDampingRatio, stiffness = OverscrollDefaults.SpringStiffness),
-        )
-        state.onCycleFinished()
     }
 
     Box(modifier = modifier.nestedScroll(state.nestedScrollConnection)) {
@@ -1035,6 +1041,22 @@ Include the flag in `publish()` — add to the `RecordsUiState(...)` constructio
 
 ```kotlin
                     refreshing = refreshing,
+```
+
+Abandon the refresh on tab-switch — in `selectTab(cardType)`, after `selected = cardType` and before the load/publish branch, add `refreshing = false`. Without this, the `if (cardType == selected)` completion guard above strands `refreshing = true` forever when the user switches away from the tab mid-refresh (the in-flight load completes with `cardType != selected`, never clearing the flag), which permanently hangs the `OverscrollRefreshBox` (content stuck down, infinite spinner, dead gesture). Switching tabs abandons the pull gesture; the old tab's load still completes in the background.
+
+```kotlin
+        fun selectTab(cardType: CardType) {
+            if (cardType == selected) return
+            selected = cardType
+            refreshing = false // 탭 전환 = 진행 중인 당겨서-새로고침 제스처 포기(박스 무한 대기 방지)
+            analytics.tabSwitch(cardType)
+            if (!typeStates.getValue(cardType).loaded) {
+                loadFirstPage(cardType)
+            } else {
+                publish()
+            }
+        }
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
