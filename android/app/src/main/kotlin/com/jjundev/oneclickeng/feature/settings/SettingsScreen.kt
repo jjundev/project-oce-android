@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -134,12 +135,11 @@ fun SettingsScreen(
         if (linkState is LinkUiState.Error) snackbarHostState.showSnackbar(linkFailedMsg)
     }
     val messageText = state.message?.let { settingsMessageText(it) }
-    LaunchedEffect(messageText) {
-        if (messageText != null) {
-            snackbarHostState.showSnackbar(messageText)
-            viewModel.consumeMessage()
-        }
-    }
+    SettingsMessageEffect(
+        messageText = messageText,
+        showSnackbar = snackbarHostState::showSnackbar,
+        consumeMessage = viewModel::consumeMessage,
+    )
 
     // 알림 권한(13+) 런처: 허용→활성, 영구거부→시스템 설정 딥링크.
     val notifPermLauncher =
@@ -813,6 +813,20 @@ private fun settingsMessageText(message: SettingsMessage): String =
         SettingsMessage.DeleteFailed -> stringResource(R.string.settings_msg_delete_failed)
         SettingsMessage.LogoutFailed -> stringResource(R.string.settings_msg_logout_failed)
     }
+
+@Composable
+internal fun SettingsMessageEffect(
+    messageText: String?,
+    showSnackbar: suspend (String) -> SnackbarResult,
+    consumeMessage: () -> Unit,
+) {
+    LaunchedEffect(messageText) {
+        if (messageText != null) {
+            consumeMessage()
+            showSnackbar(messageText)
+        }
+    }
+}
 
 private fun appVersionLabel(context: Context): String =
     runCatching {
