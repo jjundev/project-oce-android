@@ -822,8 +822,11 @@ internal fun SettingsMessageEffect(
 ) {
     LaunchedEffect(messageText) {
         if (messageText != null) {
-            consumeMessage()
-            showSnackbar(messageText)
+            try {
+                showSnackbar(messageText)
+            } finally {
+                consumeMessage()
+            }
         }
     }
 }

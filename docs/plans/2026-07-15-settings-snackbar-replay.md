@@ -4,7 +4,7 @@
 
 **Goal:** 설정 탭에서 저장카드 정리 후 표시된 스낵바 메시지가 다른 탭을 다녀온 뒤 다시 표시되지 않도록 일회성 메시지를 화면 이탈에 안전하게 소비한다.
 
-**Architecture:** 현재 `SettingsViewModel`이 `SettingsUiState.message`에 결과 메시지를 보관하고, `SettingsScreen`이 이를 스낵바로 표시한 뒤 소비한다. 스낵바 표시 코루틴이 끝날 때까지 소비를 미루지 않도록 메시지 전달 effect를 작은 내부 Composable로 분리하고, effect가 시작되자마자 `consumeMessage()`를 호출한 다음 스낵바 표시를 기다리게 한다. 따라서 탭 전환으로 effect가 취소되어도 ViewModel에는 재생할 메시지가 남지 않는다.
+**Architecture:** 현재 `SettingsViewModel`이 `SettingsUiState.message`에 결과 메시지를 보관하고, `SettingsScreen`이 이를 스낵바로 표시한 뒤 소비한다. 메시지 전달 effect를 작은 내부 Composable로 분리하고, 스낵바 표시를 `try/finally`로 감싸 표시 코루틴이 정상 종료되거나 탭 전환으로 취소되는 모든 경우에 `consumeMessage()`가 실행되게 한다. 따라서 스낵바는 먼저 표시되고, 화면 이탈 시에도 ViewModel에는 재생할 메시지가 남지 않는다.
 
 **Tech Stack:** Kotlin, Jetpack Compose runtime, Material 3 `SnackbarHostState`, Robolectric Compose UI tests, JUnit.
 
@@ -105,7 +105,7 @@
 
   Expected before the fix: FAIL because the existing effect calls `showSnackbar(messageText)` before `viewModel.consumeMessage()`, so `message` remains non-null while the snackbar is suspended.
 
-- [ ] **Step 3: Extract the effect and consume the message before awaiting the snackbar**
+- [ ] **Step 3: Extract the effect and consume cancelled snackbar messages**
 
   In `SettingsScreen.kt`, import `SnackbarResult`, replace the existing result-message block:
 
@@ -130,7 +130,7 @@
   )
   ```
 
-  Add this internal, testable effect near `settingsMessageText`:
+  Add this internal, testable effect near `settingsMessageText`. The snackbar call must happen before consumption so the first popup is not cancelled by the state update; `finally` consumes the message both after normal dismissal and when the effect is cancelled by tab navigation:
 
   ```kotlin
   @Composable
@@ -141,8 +141,11 @@
   ) {
       LaunchedEffect(messageText) {
           if (messageText != null) {
-              consumeMessage()
-              showSnackbar(messageText)
+              try {
+                  showSnackbar(messageText)
+              } finally {
+                  consumeMessage()
+              }
           }
       }
   }

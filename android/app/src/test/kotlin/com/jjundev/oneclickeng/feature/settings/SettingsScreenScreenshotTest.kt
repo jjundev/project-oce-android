@@ -36,7 +36,7 @@ class SettingsScreenScreenshotTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun settingsMessageIsConsumedBeforeSnackbarSuspensionAndDoesNotReplayAfterReentry() {
+    fun settingsMessageIsConsumedWhenSnackbarEffectIsCancelledAndDoesNotReplayAfterReentry() {
         val snackbarStarted = CompletableDeferred<Unit>()
         val releaseSnackbar = CompletableDeferred<Unit>()
         var visible by mutableStateOf(true)
@@ -59,13 +59,13 @@ class SettingsScreenScreenshotTest {
         }
 
         composeRule.waitUntil { snackbarStarted.isCompleted }
+        visible = false
+        composeRule.waitForIdle()
         composeRule.runOnIdle {
             assertNull(message)
             assertEquals(1, snackbarCalls)
         }
 
-        visible = false
-        composeRule.waitForIdle()
         visible = true
         composeRule.waitForIdle()
         assertEquals(1, snackbarCalls)
