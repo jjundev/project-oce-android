@@ -69,6 +69,7 @@ class RecordsViewModel
         fun selectTab(cardType: CardType) {
             if (cardType == selected) return
             selected = cardType
+            refreshing = false // 탭 전환 = 진행 중인 당겨서-새로고침 제스처 포기(박스 무한 대기 방지)
             analytics.tabSwitch(cardType)
             if (!typeStates.getValue(cardType).loaded) {
                 loadFirstPage(cardType)

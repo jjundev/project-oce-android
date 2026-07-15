@@ -59,36 +59,40 @@ fun OverscrollRefreshBox(
 
     LaunchedEffect(state.releaseRequest) {
         if (state.releaseRequest <= 0) return@LaunchedEffect
-        // (A) 로딩 위치로 스냅
-        state.offset.animateTo(holdPx, tween(OverscrollDefaults.SnapToHoldMs, easing = FastOutSlowInEasing))
-        // (B) 물결 + 폭죽 + 새로고침 트리거
-        currentOnRefresh()
-        state.fireBurst()
-        val waveJob = launch {
-            val total = OverscrollDefaults.WaveDurationMs + 8 * OverscrollDefaults.WaveStaggerMs
-            val clock = Animatable(0f)
-            clock.animateTo(total, tween(total.roundToInt(), easing = LinearEasing)) {
-                state.wave.clockMs = value
+        try {
+            // (A) 로딩 위치로 스냅
+            state.offset.animateTo(holdPx, tween(OverscrollDefaults.SnapToHoldMs, easing = FastOutSlowInEasing))
+            // (B) 물결 + 폭죽 + 새로고침 트리거
+            currentOnRefresh()
+            state.fireBurst()
+            val waveJob = launch {
+                val total = OverscrollDefaults.WaveDurationMs + 8 * OverscrollDefaults.WaveStaggerMs
+                val clock = Animatable(0f)
+                clock.animateTo(total, tween(total.roundToInt(), easing = LinearEasing)) {
+                    state.wave.clockMs = value
+                }
+                state.wave.clockMs = -1f
             }
-            state.wave.clockMs = -1f
+            // (C) 최소 표시 시간 확보 후, 그 시점에 아직 로딩 중이면 완료될 때까지 대기.
+            // snapshotFlow 는 collect 시작 시점의 "현재" 값을 즉시 방출한다 — floor 이전에 평가하면
+            // caller 의 onRefresh() 가 아직 상태를 true 로 뒤집기 전이라 항상 false 로 즉시 통과해버린다(원래 버그).
+            // floor 이후에 평가해야 실제 로딩 상태를 읽는다. 세 경우 모두 올바르게 동작:
+            //  - 홈: isRefreshing 이 항상 false → floor 이후 first{!it} 이 즉시 통과(true 를 먼저 기다리면 영원히 멈춤).
+            //  - 기록 탭, 빠른 재조회: floor 시점에 이미 false 로 복귀 → 즉시 통과.
+            //  - 기록 탭, 느린 재조회(Firebase): floor 시점에도 아직 true → true→false 전환(로딩 완료)까지 대기.
+            delay(OverscrollDefaults.MinVisibleMs)
+            waveJob.join()
+            snapshotFlow { currentRefreshing }.first { !it }
+            // (D) 통통 스프링 복귀
+            val bounceBackSpring = spring<Float>(
+                dampingRatio = OverscrollDefaults.SpringDampingRatio,
+                stiffness = OverscrollDefaults.SpringStiffness,
+            )
+            state.offset.animateTo(0f, bounceBackSpring)
+        } finally {
+            // onRefresh() 가 던지거나 시퀀스가 취소돼도 busy 는 반드시 리셋된다(무한 대기 방지).
+            state.onCycleFinished()
         }
-        // (C) 최소 표시 시간 확보 후, 그 시점에 아직 로딩 중이면 완료될 때까지 대기.
-        // snapshotFlow 는 collect 시작 시점의 "현재" 값을 즉시 방출한다 — floor 이전에 평가하면
-        // caller 의 onRefresh() 가 아직 상태를 true 로 뒤집기 전이라 항상 false 로 즉시 통과해버린다(원래 버그).
-        // floor 이후에 평가해야 실제 로딩 상태를 읽는다. 세 경우 모두 올바르게 동작:
-        //  - 홈: isRefreshing 이 항상 false → floor 이후 first{!it} 이 즉시 통과(true 를 먼저 기다리면 영원히 멈춤).
-        //  - 기록 탭, 빠른 재조회: floor 시점에 이미 false 로 복귀 → 즉시 통과.
-        //  - 기록 탭, 느린 재조회(Firebase): floor 시점에도 아직 true → true→false 전환(로딩 완료)까지 대기.
-        delay(OverscrollDefaults.MinVisibleMs)
-        waveJob.join()
-        snapshotFlow { currentRefreshing }.first { !it }
-        // (D) 통통 스프링 복귀
-        val bounceBackSpring = spring<Float>(
-            dampingRatio = OverscrollDefaults.SpringDampingRatio,
-            stiffness = OverscrollDefaults.SpringStiffness,
-        )
-        state.offset.animateTo(0f, bounceBackSpring)
-        state.onCycleFinished()
     }
 
     Box(modifier = modifier.nestedScroll(state.nestedScrollConnection)) {
