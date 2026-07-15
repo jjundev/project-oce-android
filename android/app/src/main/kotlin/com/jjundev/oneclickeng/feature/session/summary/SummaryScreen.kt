@@ -153,7 +153,7 @@ fun SummaryScreen(
                         onToggleSaveWord = onToggleSaveWord,
                         onToggleSaveExpression = onToggleSaveExpression,
                     )
-                    BookmarkSection(state.bookmarks, onToggleSaveBookmark)
+                    BookmarkSection(state.bookmarks, state.unsavedBookmarkIds, onToggleSaveBookmark)
                     CoachingArea(bundle = state.bundle, onRetry = onRetry)
                 }
                 // 스크롤 보조 FAB — 완료 풋터가 있을 때만(온보딩 GoogleSavePromptSheet 오버레이 케이스 제외).
@@ -674,6 +674,7 @@ private fun CoachingSection(
 @Composable
 private fun BookmarkSection(
     bookmarks: List<BookmarkCard>,
+    unsavedBookmarkIds: Set<String>,
     onToggleSave: (String) -> Unit,
 ) {
     val count = bookmarks.size.takeIf { it > 0 }?.let { "${it}개 · 최신순" }
@@ -687,6 +688,7 @@ private fun BookmarkSection(
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
                 bookmarks.forEach { card ->
+                    val saved = card.cardId !in unsavedBookmarkIds
                     OneClickCard {
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(OceTheme.spacing.lg),
@@ -709,15 +711,17 @@ private fun BookmarkSection(
                                 )
                             }
                             IconToggleButton(
-                                checked = true,
+                                checked = saved,
                                 onCheckedChange = { checked ->
-                                    if (!checked) onToggleSave(card.cardId)
+                                    if (checked != saved) onToggleSave(card.cardId)
                                 },
                             ) {
                                 OneClickIcon(
-                                    icon = OceIcon.Bookmark,
-                                    contentDescription = "저장 해제",
-                                    tint = OceTheme.colors.gameSaveGold,
+                                    icon = if (saved) OceIcon.Bookmark else OceIcon.BookmarkBorder,
+                                    contentDescription = if (saved) "저장 해제" else "저장",
+                                    tint =
+                                        if (saved) OceTheme.colors.gameSaveGold
+                                        else MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }

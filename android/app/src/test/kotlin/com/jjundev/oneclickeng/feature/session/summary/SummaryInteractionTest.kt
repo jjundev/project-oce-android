@@ -2,6 +2,9 @@ package com.jjundev.oneclickeng.feature.session.summary
 
 import android.app.Application
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -11,7 +14,6 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.jjundev.oneclickeng.ui.theme.OceTheme
-import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -51,14 +53,30 @@ class SummaryInteractionTest {
     }
 
     @Test
-    fun bookmarkSentenceExposesSaveOffToggleCallback() {
-        var toggledCardId: String? = null
-        setContent(bookmarkToggle = { toggledCardId = it })
+    fun bookmarkSentenceToggleKeepsCardVisibleAndCanBeReenabled() {
+        var unsavedBookmarkIds by mutableStateOf(emptySet<String>())
+        composeRule.setContent {
+            OceTheme {
+                Surface {
+                    SummaryScreen(
+                        state = state(0, 0, unsavedBookmarkIds),
+                        onRetry = {},
+                        onToggleSaveWord = {},
+                        onToggleSaveExpression = {},
+                        onToggleSaveBookmark = { cardId ->
+                            unsavedBookmarkIds =
+                                if (cardId in unsavedBookmarkIds) unsavedBookmarkIds - cardId
+                                else unsavedBookmarkIds + cardId
+                        },
+                    )
+                }
+            }
+        }
 
         composeRule.onNodeWithContentDescription("저장 해제").assertIsDisplayed().performClick()
-        composeRule.runOnIdle {
-            assertEquals("s1__SENTENCE__0__2", toggledCardId)
-        }
+        composeRule.onNodeWithText("I got lost.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("저장").assertIsDisplayed().performClick()
+        composeRule.onNodeWithContentDescription("저장 해제").assertIsDisplayed()
     }
 
     private fun setContent(
@@ -70,7 +88,7 @@ class SummaryInteractionTest {
             OceTheme {
                 Surface {
                     SummaryScreen(
-                        state = state(expressionCount, wordCount),
+                        state = state(expressionCount, wordCount, emptySet()),
                         onRetry = {},
                         onToggleSaveWord = {},
                         onToggleSaveExpression = {},
@@ -81,7 +99,11 @@ class SummaryInteractionTest {
         }
     }
 
-    private fun state(expressionCount: Int, wordCount: Int) =
+    private fun state(
+        expressionCount: Int,
+        wordCount: Int,
+        unsavedBookmarkIds: Set<String>,
+    ) =
         SummaryState(
             totalScore = null,
             highlight = null,
@@ -123,5 +145,6 @@ class SummaryInteractionTest {
                         ),
                     coaching = SummarySectionState.Ready(Coaching(positive = "", toImprove = "")),
                 ),
+            unsavedBookmarkIds = unsavedBookmarkIds,
         )
 }

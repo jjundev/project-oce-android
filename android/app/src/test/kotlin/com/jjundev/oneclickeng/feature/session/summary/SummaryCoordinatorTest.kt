@@ -14,6 +14,7 @@ import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
 import com.jjundev.oneclickeng.feature.session.feedback.TurnFeedbackBuffer
 import com.jjundev.oneclickeng.feature.session.saved.CardType
 import com.jjundev.oneclickeng.feature.session.saved.FakeSavedCardRepository
+import com.jjundev.oneclickeng.feature.session.saved.SavedCard
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
@@ -400,7 +401,7 @@ class SummaryCoordinatorTest {
         }
 
     @Test
-    fun toggleSaveBookmarkRemovesSentenceAndWritesSentenceTombstone() =
+    fun toggleSaveBookmarkKeepsSentenceAndTogglesSentencePersistence() =
         runTest {
             val stream = FakeSummaryStream()
             val repo = FakeSavedCardRepository()
@@ -420,11 +421,21 @@ class SummaryCoordinatorTest {
             coordinator.toggleSaveBookmark(card.cardId)
             runCurrent()
 
-            assertTrue(coordinator.state.value.bookmarks.isEmpty())
+            assertEquals(listOf(card), coordinator.state.value.bookmarks)
+            assertEquals(setOf(card.cardId), coordinator.state.value.unsavedBookmarkIds)
             assertEquals(1, repo.deletes.size)
             assertEquals(card.cardId, repo.deletes.single().cardId)
             assertEquals(CardType.SENTENCE, repo.deletes.single().cardType)
             assertTrue(repo.deletes.single().deleted)
+
+            coordinator.toggleSaveBookmark(card.cardId)
+            runCurrent()
+
+            assertEquals(listOf(card), coordinator.state.value.bookmarks)
+            assertTrue(coordinator.state.value.unsavedBookmarkIds.isEmpty())
+            assertEquals(1, repo.saves.size)
+            assertEquals(card.cardId, repo.saves.single().cardId)
+            assertEquals(SavedCard.Sentence(card.english, card.korean), repo.saves.single().card)
         }
 
     @Test

@@ -91,6 +91,7 @@ class SummaryCoordinator
         // 저장 카드 낙관적 UI 축(M2-04). sourceIndex=표시 인덱스. start()/reset() 에서만 초기화된다.
         private var savedWordIndices = emptySet<Int>()
         private var savedExprIndices = emptySet<Int>()
+        private var unsavedBookmarkIds = emptySet<String>()
 
         // Per-section accumulators. Before the first `done`, arrived cards set Ready but the bundle
         // still shows BundleLoading (single skeleton) until [sectioned] flips.
@@ -126,6 +127,7 @@ class SummaryCoordinator
             bookmarks = emptyList()
             savedWordIndices = emptySet()
             savedExprIndices = emptySet()
+            unsavedBookmarkIds = emptySet()
             basePayload = SummaryPayloadProjector.project(turnBuffer.bufferedTurns(), totalScore ?: 0)
             expression = SummarySectionState.Loading
             word = SummarySectionState.Loading
@@ -172,6 +174,7 @@ class SummaryCoordinator
             sessionId = null
             savedWordIndices = emptySet()
             savedExprIndices = emptySet()
+            unsavedBookmarkIds = emptySet()
             _state.value = EMPTY
         }
 
@@ -209,12 +212,21 @@ class SummaryCoordinator
             emit()
         }
 
-        /** 현재 요약의 저장된 SENTENCE 카드를 낙관적으로 제거하고 톰스톤 처리한다. */
+        /** 현재 요약의 SENTENCE 카드 저장 상태를 토글한다. 카드는 목록에 유지해 재저장할 수 있다. */
         fun toggleSaveBookmark(cardId: String) {
             if (sessionId == null) return
             val current = bookmarks.firstOrNull { it.cardId == cardId } ?: return
-            bookmarks = bookmarks.filterNot { it.cardId == current.cardId }
-            savedCardRepository.setDeleted(current.cardId, CardType.SENTENCE, deleted = true)
+            val added = cardId in unsavedBookmarkIds
+            unsavedBookmarkIds =
+                if (added) unsavedBookmarkIds - cardId else unsavedBookmarkIds + cardId
+            if (added) {
+                savedCardRepository.save(
+                    cardId,
+                    SavedCard.Sentence(english = current.english, korean = current.korean),
+                )
+            } else {
+                savedCardRepository.setDeleted(cardId, CardType.SENTENCE, deleted = true)
+            }
             emit()
         }
 
@@ -437,6 +449,7 @@ class SummaryCoordinator
                     bundle = bundle,
                     savedWordIndices = savedWordIndices,
                     savedExprIndices = savedExprIndices,
+                    unsavedBookmarkIds = unsavedBookmarkIds,
                     isFirstSession = isFirstSession,
                 )
         }
