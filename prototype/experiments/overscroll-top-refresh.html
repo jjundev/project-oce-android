@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>딸깍영어 — 상단 오버스크롤 새로고침 프로토타입</title>
+<style>
+  :root {
+    --bg: #F2F4F6;
+    --card: #FFFFFF;
+    --text-strong: #191F28;
+    --text: #333D4B;
+    --text-sub: #6B7684;
+    --text-weak: #8B95A1;
+    --blue: #3182F6;
+    --blue-strong: #1B64DA;
+    --blue-50: #E8F3FF;
+    --blue-100: #C9E2FF;
+    --orange: #FF6B00;
+    --yellow: #FFC800;
+    --pink: #F04452;
+    --pink-50: #FDEDEE;
+    --green: #00C471;
+    --line: #E5E8EB;
+    --indicator: #E5E8EB;
+    --radius-card: 20px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+    background: #d7dbe0;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh;
+    user-select: none; -webkit-user-select: none;
+  }
+
+  /* ── phone frame ─────────────────────────────── */
+  .phone {
+    width: 390px; height: 844px;
+    background: var(--bg);
+    border-radius: 28px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 24px 60px rgba(0,0,0,.28);
+    display: flex; flex-direction: column;
+  }
+  .phone-scaler { flex: none; }
+
+  .statusbar {
+    height: 44px; flex: none;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+    font-size: 15px; font-weight: 700; color: var(--text-strong);
+    position: relative; z-index: 30;
+  }
+  .statusbar .icons { display: flex; gap: 6px; align-items: center; }
+
+  /* ── screen: header + scroll 이 함께 하강 ── */
+  .screen { flex: 1; position: relative; overflow: hidden; display: none; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  .screen-header {
+    flex: none;
+    padding: 12px 24px 4px;
+    position: relative; z-index: 1;
+    transition: none;
+    will-change: transform;
+  }
+
+  .scroll-wrap { flex: 1; position: relative; overflow: hidden; }
+
+  /* 당김으로 벌어진 틈(화면 최상단)에 보이는 원형 인디케이터 */
+  .refresh-indicator {
+    position: absolute; top: 14px; left: 50%;
+    width: 40px; height: 40px; margin-left: -20px;
+    border-radius: 50%;
+    background: var(--indicator);
+    opacity: 0; transform: scale(.6);
+    will-change: opacity, transform;
+    z-index: 0; pointer-events: none;
+  }
+  .refresh-indicator .arc {
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: #c6cdd5;
+    opacity: 0;
+  }
+  .refresh-indicator.spinning .arc { opacity: 1; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .scroll-area {
+    position: absolute; inset: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    z-index: 1;
+    will-change: transform;
+  }
+  .scroll-area::-webkit-scrollbar { display: none; }
+  .scroll-content { padding: 8px 20px 120px; }
+
+  /* ── 학습 탭 ─────────────────────────────────── */
+  .h-title { font-size: 27px; font-weight: 800; color: var(--text-strong); letter-spacing: -.4px; }
+  .h-sub { margin-top: 8px; font-size: 15px; color: var(--text-sub); }
+  .h-meta { margin-top: 12px; display: flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 700; color: var(--text-sub); }
+  .h-meta .dot { color: #CFD4DA; }
+  .h-meta .flame { color: var(--orange); }
+
+  .cta-card {
+    margin-top: 14px;
+    background: linear-gradient(135deg, #3D8BFF, #2272EB);
+    border-radius: 24px;
+    padding: 26px 24px;
+    color: #fff;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 10px 24px rgba(49,130,246,.28);
+  }
+  .cta-card .t { font-size: 22px; font-weight: 800; letter-spacing: -.3px; }
+  .cta-card .s { margin-top: 8px; font-size: 14px; opacity: .85; }
+  .cta-play {
+    width: 64px; height: 56px; flex: none;
+    background: rgba(255,255,255,.22);
+    border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .new-chat { margin: 18px 4px 6px; display: flex; align-items: center; gap: 8px; color: var(--blue); font-size: 16px; font-weight: 700; }
+
+  .sec-head { margin: 22px 4px 12px; display: flex; align-items: center; justify-content: space-between; }
+  .sec-head .t { font-size: 19px; font-weight: 800; color: var(--text-strong); }
+  .sec-head .actions { display: flex; align-items: center; gap: 14px; }
+  .sec-head .refresh-link { display: flex; align-items: center; gap: 5px; color: var(--blue); font-size: 14.5px; font-weight: 700; cursor: pointer; }
+
+  .sug-card {
+    background: var(--card);
+    border-radius: var(--radius-card);
+    padding: 20px;
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(25,31,40,.04);
+  }
+  .sug-icon {
+    width: 48px; height: 48px; flex: none;
+    border-radius: 14px;
+    background: var(--blue-50);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .sug-title { flex: 1; font-size: 16.5px; font-weight: 700; color: var(--text); }
+  .sug-chevron { color: #B0B8C1; }
+
+  .outline-btn {
+    margin-top: 6px;
+    border: 1px solid #D1D6DB; border-radius: 18px;
+    background: transparent;
+    width: 100%; padding: 17px;
+    font-size: 16px; font-weight: 700; color: var(--text);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+
+  /* ── 기록 탭 ─────────────────────────────────── */
+  .r-title { text-align: center; font-size: 18px; font-weight: 800; color: var(--text-strong); padding: 4px 0 14px; }
+  .r-stats-label { font-size: 13.5px; font-weight: 700; color: var(--text-weak); margin-bottom: 10px; }
+  .r-stats { display: flex; align-items: center; gap: 7px; font-size: 18.5px; font-weight: 800; color: var(--text-strong); white-space: nowrap; }
+  .r-stats .dot { color: #CFD4DA; font-size: 14px; }
+  .r-stats .suffix { font-size: 13.5px; font-weight: 600; color: var(--text-weak); margin-left: 2px; }
+  .r-chips { display: flex; gap: 6px; margin-top: 16px; }
+  .r-chip {
+    padding: 9px 18px; border-radius: 20px;
+    font-size: 15px; font-weight: 700; color: var(--text-weak);
+  }
+  .r-chip.on { background: #fff; color: var(--text-strong); box-shadow: 0 1px 4px rgba(25,31,40,.1); }
+  .r-count { margin: 12px 0 2px; font-size: 13.5px; font-weight: 600; color: var(--text-weak); }
+
+  .rec-card {
+    background: var(--card);
+    border: 1px solid #F6D9DC;
+    border-radius: var(--radius-card);
+    padding: 18px 20px;
+    margin-bottom: 14px;
+  }
+  .rec-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .rec-chip {
+    background: var(--pink-50); color: var(--pink);
+    font-size: 12.5px; font-weight: 700;
+    padding: 5px 10px; border-radius: 8px;
+  }
+  .rec-top .right { display: flex; align-items: center; gap: 14px; color: #B0B8C1; }
+  .rec-bookmark { color: var(--yellow); }
+  .rec-ko { font-size: 14px; color: var(--text-sub); margin-bottom: 6px; }
+  .rec-wrong { font-size: 15.5px; color: #B0B8C1; text-decoration: line-through; margin-bottom: 10px; }
+  .rec-right { display: flex; align-items: center; gap: 10px; font-size: 17.5px; font-weight: 800; color: var(--text-strong); }
+  .rec-right .arrow { color: var(--green); flex: none; }
+
+  /* ── bottom nav ─────────────────────────────── */
+  .bottombar {
+    position: absolute; left: 14px; right: 14px; bottom: 14px;
+    background: #fff; border-radius: 28px;
+    box-shadow: 0 6px 24px rgba(25,31,40,.12);
+    display: flex; padding: 8px;
+    z-index: 40;
+  }
+  .tab-btn {
+    flex: 1; border: none; background: transparent;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 9px 0; border-radius: 20px;
+    font-size: 12.5px; font-weight: 700; color: var(--text-weak);
+    cursor: pointer;
+  }
+  .tab-btn.on { background: var(--blue-50); color: var(--blue-strong); }
+  .tab-btn svg { display: block; }
+
+  /* ── 숫자/카드 롤-블러 갱신 효과 (영상의 새로고침 크로스페이드) ── */
+  .rollable { display: inline-block; will-change: transform, filter, opacity; }
+  .rolling { animation: roll .55s cubic-bezier(.3,0,.2,1); }
+  @keyframes roll {
+    0%   { filter: blur(0);   opacity: 1;  transform: translateY(0); }
+    45%  { filter: blur(5px); opacity: .25; transform: translateY(9px); }
+    55%  { filter: blur(5px); opacity: .25; transform: translateY(-9px); }
+    100% { filter: blur(0);   opacity: 1;  transform: translateY(0); }
+  }
+  .card-refreshing { animation: cardDim .7s ease; }
+  @keyframes cardDim {
+    0% { opacity: 1; } 35% { opacity: .38; } 70% { opacity: .38; } 100% { opacity: 1; }
+  }
+
+  /* 물결(wave): 놓은 직후 리스트를 훑고 지나가는 상하 흔들림. 아이템마다 지연을 줘 파도처럼 전파 */
+  .wave-item { animation: waveBob .52s cubic-bezier(.34,1.3,.5,1) both; will-change: transform; }
+  @keyframes waveBob {
+    0%   { transform: translateY(0); }
+    32%  { transform: translateY(11px); }
+    66%  { transform: translateY(-3px); }
+    100% { transform: translateY(0); }
+  }
+  /* 헤더 텍스트용 은은한 물결(작은 진폭). 헤더 자식에 적용 → 헤더 하강 transform과 겹쳐짐 */
+  .wave-soft { animation: waveSoft .46s cubic-bezier(.34,1.2,.5,1) both; will-change: transform; }
+  @keyframes waveSoft {
+    0%   { transform: translateY(0); }
+    34%  { transform: translateY(4.5px); }
+    68%  { transform: translateY(-1.5px); }
+    100% { transform: translateY(0); }
+  }
+
+  /* 투명 폭죽: 새로고침 순간 상단 인디케이터에서 반투명 입자가 방사형으로 터짐 */
+  .burst { position: absolute; top: 34px; left: 50%; width: 0; height: 0; z-index: 2; pointer-events: none; }
+  .burst-dot {
+    position: absolute; left: 0; top: 0;
+    width: var(--sz); height: var(--sz);
+    margin-left: calc(var(--sz) / -2); margin-top: calc(var(--sz) / -2);
+    border-radius: 50%;
+    background: var(--pc);
+    opacity: 0;
+    animation: burstFly .68s cubic-bezier(.16,.7,.3,1) forwards;
+  }
+  @keyframes burstFly {
+    0%   { transform: translate(0,0) scale(.35); opacity: 0; }
+    18%  { opacity: .55; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(1); opacity: 0; }
+  }
+
+  .hint {
+    position: fixed; left: 0; right: 0; bottom: 10px;
+    text-align: center; font-size: 12.5px; color: #7d8590;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone-scaler" id="phone-scaler">
+<div class="phone" id="phone">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="icons">
+      <svg width="17" height="13" viewBox="0 0 17 13" fill="currentColor"><path d="M8.5 2.5c2.7 0 5.2 1 7.1 2.9l1.4-1.4C14.7 1.7 11.7.5 8.5.5S2.3 1.7 0 4l1.4 1.4C3.3 3.5 5.8 2.5 8.5 2.5zm0 4c1.6 0 3.1.6 4.2 1.8l1.4-1.4C12.6 5.4 10.6 4.5 8.5 4.5S4.4 5.4 2.9 6.9l1.4 1.4C5.4 7.1 6.9 6.5 8.5 6.5zm2.8 4.2L8.5 13.5l-2.8-2.8c.7-.7 1.7-1.2 2.8-1.2s2.1.5 2.8 1.2z"/></svg>
+      <svg width="22" height="12" viewBox="0 0 22 12"><rect x=".5" y=".5" width="18" height="11" rx="3" fill="none" stroke="currentColor"/><rect x="2.2" y="2.2" width="14.6" height="7.6" rx="1.6" fill="currentColor"/><path d="M20 4v4c1 0 1.6-.8 1.6-2S21 4 20 4z" fill="currentColor"/></svg>
+    </span>
+  </div>
+
+  <!-- ═══════════ 학습 탭 ═══════════ -->
+  <section class="screen active" id="screen-learn">
+    <div class="refresh-indicator"><div class="arc"></div></div>
+    <div class="screen-header" data-fade>
+      <div class="h-title">이어서 말해볼까요?</div>
+      <div class="h-sub">이전 대화를 이어가거나 새로 시작할 수 있어요.</div>
+      <div class="h-meta">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="#8B95A1"><circle cx="8" cy="8" r="8"/><path d="M8 3.5v4.7l3.2 1.9-.7 1.2L7 9V3.5h1z" fill="#fff"/></svg>
+        <span>오늘 <span class="rollable" data-roll="learn-today">0분</span></span>
+        <span class="dot">·</span>
+        <span class="flame">🔥</span>
+        <span><span class="rollable" data-roll="learn-streak">7일</span> 연속</span>
+      </div>
+    </div>
+    <div class="scroll-wrap">
+      <div class="scroll-area">
+        <div class="scroll-content">
+          <div class="cta-card">
+            <div>
+              <div class="t">이어서 대화하기</div>
+              <div class="s">카페에서 주문하기 · 2 / 5턴</div>
+            </div>
+            <div class="cta-play">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l12-7z"/></svg>
+            </div>
+          </div>
+          <div class="new-chat">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            새 대화 시작
+          </div>
+          <div class="sec-head">
+            <span class="t">추천 상황</span>
+            <span class="actions">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="#8B95A1"><rect x="1" y="1" width="7" height="7" rx="2"/><rect x="10" y="1" width="7" height="7" rx="2"/><rect x="1" y="10" width="7" height="7" rx="2"/><rect x="10" y="10" width="7" height="7" rx="2"/></svg>
+              <span class="refresh-link" id="learn-refresh-link">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 8A8.5 8.5 0 1 0 21 13"/><path d="M21 3v5h-5"/></svg>
+                새로고침
+              </span>
+            </span>
+          </div>
+          <div id="sug-list"></div>
+          <button class="outline-btn">
+            <svg width="17" height="17" viewBox="0 0 18 18" fill="#4E5968"><rect x="1" y="1" width="7" height="7" rx="2"/><rect x="10" y="1" width="7" height="7" rx="2"/><rect x="1" y="10" width="7" height="7" rx="2"/><rect x="10" y="10" width="7" height="7" rx="2"/></svg>
+            다른 상황 고르기
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 기록 탭 ═══════════ -->
+  <section class="screen" id="screen-records">
+    <div class="refresh-indicator"><div class="arc"></div></div>
+    <div class="screen-header" data-fade>
+      <div class="r-title">기록</div>
+      <div class="r-stats-label">평생 통계</div>
+      <div class="r-stats">
+        <span style="color:var(--blue)">⚡</span><span class="rollable" data-roll="rec-xp">240 XP</span>
+        <span class="dot">·</span>
+        <svg width="19" height="19" viewBox="0 0 16 16" fill="#6B7684"><circle cx="8" cy="8" r="8"/><path d="M8 3.5v4.7l3.2 1.9-.7 1.2L7 9V3.5h1z" fill="#fff"/></svg>
+        <span class="rollable" data-roll="rec-time">1시간 8분</span>
+        <span class="dot">·</span>
+        <span>🔥</span><span class="rollable" data-roll="rec-days">12일</span><span class="suffix">학습</span>
+      </div>
+      <div class="r-chips">
+        <span class="r-chip on">표현</span>
+        <span class="r-chip">단어</span>
+        <span class="r-chip">문장</span>
+      </div>
+      <div class="r-count"><span class="rollable" data-roll="rec-count">4개</span> · 최신순</div>
+    </div>
+    <div class="scroll-wrap">
+      <div class="scroll-area">
+        <div class="scroll-content" id="rec-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <nav class="bottombar" id="bottombar">
+    <button class="tab-btn on" data-tab="learn">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h13a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H9l-4 3.5V17H4a3 3 0 0 1-1-.17V6a3 3 0 0 1 1-3z" opacity=".35"/><path d="M4 3a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h1v3.5L9 17h8a3 3 0 0 0 3-3V6a3 3 0 0 0-3-3H4zm0 2h13a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H8.2L7 16.1V15H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>
+      학습
+    </button>
+    <button class="tab-btn" data-tab="records">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6L3.5 8.5"/><path d="M3.5 3.5v5h5" stroke-linecap="round"/><path d="M12 8v4.5l3 1.8" stroke-linecap="round"/></svg>
+      기록
+    </button>
+    <button class="tab-btn" data-tab="settings">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.56-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.08a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51.88z"/></svg>
+      설정
+    </button>
+  </nav>
+</div>
+
+</div>
+
+<div class="hint">맨 위에서 아래로 드래그(또는 휠을 위로) 하면 새로고침 애니메이션이 재생돼요</div>
+
+<script>
+/* 뷰포트에 맞춰 폰 프레임 스케일 */
+(function fitPhone() {
+  const scaler = document.getElementById('phone-scaler');
+  const resize = () => {
+    const s = Math.min(1, (window.innerHeight - 40) / 844, (window.innerWidth - 24) / 390);
+    scaler.style.transform = `scale(${s})`;
+  };
+  window.addEventListener('resize', resize);
+  resize();
+})();
+
+/* ═══════════ 데모 데이터 ═══════════ */
+const SUG_POOL = [
+  { icon: '⛅', title: '날씨로 가볍게 대화하기' },
+  { icon: '👋', title: '처음 만나 자기소개하기' },
+  { icon: '📅', title: '친구와 약속 잡기' },
+  { icon: '🛏️', title: '호텔 체크인하기' },
+  { icon: '🍝', title: '식당에서 주문하기' },
+  { icon: '🚕', title: '택시로 길 설명하기' },
+  { icon: '🛍️', title: '옷 가게에서 환불하기' },
+  { icon: '✈️', title: '공항에서 체크인하기' },
+];
+let sugOffset = 0;
+
+const REC_CARDS = [
+  { ko: '커피 한 잔 주문하기', wrong: 'I want a coffee.', right: 'Could I get a latte, please?' },
+  { ko: '가격 물어보기', wrong: 'How much this one?', right: 'How much is this one?' },
+  { ko: '영수증 요청하기', wrong: 'Give me receipt.', right: 'Can I have the receipt?' },
+  { ko: '매장 이용 여부 말하기', wrong: 'For here eat.', right: "It's for here, please." },
+];
+const REC_NEW = { ko: '자리 요청하기', wrong: 'Window seat please me.', right: 'Could we get a window seat?' };
+
+function renderSug() {
+  const list = document.getElementById('sug-list');
+  list.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const s = SUG_POOL[(sugOffset + i) % SUG_POOL.length];
+    const el = document.createElement('div');
+    el.className = 'sug-card';
+    el.innerHTML = `
+      <div class="sug-icon">${s.icon}</div>
+      <div class="sug-title">${s.title}</div>
+      <svg class="sug-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg>`;
+    list.appendChild(el);
+  }
+}
+
+function recCardHTML(c) {
+  return `
+    <div class="rec-top">
+      <span class="rec-chip">표현</span>
+      <span class="right">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 9l7 7 7-7"/></svg>
+        <svg class="rec-bookmark" width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M6 2h12a1 1 0 0 1 1 1v19l-7-4.2L5 22V3a1 1 0 0 1 1-1z"/></svg>
+      </span>
+    </div>
+    <div class="rec-ko">${c.ko}</div>
+    <div class="rec-wrong">${c.wrong}</div>
+    <div class="rec-right">
+      <svg class="arrow" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M4 12h15M13 5.5 19.5 12 13 18.5"/></svg>
+      ${c.right}
+    </div>`;
+}
+
+function renderRecords(cards) {
+  const list = document.getElementById('rec-list');
+  list.innerHTML = '';
+  cards.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'rec-card';
+    el.innerHTML = recCardHTML(c);
+    list.appendChild(el);
+  });
+}
+
+renderSug();
+renderRecords(REC_CARDS);
+
+/* ═══════════ 탭 전환 ═══════════ */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    if (tab === 'settings') return; // 프로토타입 범위 밖
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('on', b === btn));
+    document.getElementById('screen-learn').classList.toggle('active', tab === 'learn');
+    document.getElementById('screen-records').classList.toggle('active', tab === 'records');
+  });
+});
+
+/* ═══════════ 롤-블러 텍스트 갱신 (영상의 숫자 크로스페이드) ═══════════ */
+function rollText(key, newText, delay = 0) {
+  const el = document.querySelector(`[data-roll="${key}"]`);
+  if (!el) return;
+  setTimeout(() => {
+    el.classList.remove('rolling');
+    void el.offsetWidth;
+    el.classList.add('rolling');
+    setTimeout(() => { el.textContent = newText; }, 275); // roll 중간(블러 최대)에 텍스트 교체
+  }, delay);
+}
+
+/* ═══════════ 새로고침(데이터 갱신) 시나리오 ═══════════ */
+let learnRefreshCount = 0;
+function refreshLearn() {
+  learnRefreshCount++;
+  rollText('learn-today', `${learnRefreshCount * 3}분`, 60);
+  // 추천 상황 카드: 순차 dim + 롤 교체
+  sugOffset = (sugOffset + 4) % SUG_POOL.length;
+  const cards = document.querySelectorAll('#sug-list .sug-card');
+  cards.forEach((card, i) => {
+    setTimeout(() => {
+      card.classList.add('card-refreshing');
+      const s = SUG_POOL[(sugOffset + i) % SUG_POOL.length];
+      setTimeout(() => {
+        card.querySelector('.sug-icon').textContent = s.icon;
+        card.querySelector('.sug-title').textContent = s.title;
+      }, 260);
+      setTimeout(() => card.classList.remove('card-refreshing'), 720);
+    }, 80 + i * 90);
+  });
+}
+
+let recRefreshed = false;
+function refreshRecords() {
+  rollText('rec-xp', '264 XP', 60);
+  rollText('rec-time', '1시간 12분', 150);
+  rollText('rec-days', '13일', 240);
+  const list = document.getElementById('rec-list');
+  const firstCards = list.querySelectorAll('.rec-card');
+  firstCards.forEach((c, i) => {
+    if (i < 2) {
+      setTimeout(() => {
+        c.classList.add('card-refreshing');
+        setTimeout(() => c.classList.remove('card-refreshing'), 720);
+      }, 100 + i * 90);
+    }
+  });
+  if (!recRefreshed) {
+    recRefreshed = true;
+    rollText('rec-count', '5개', 300);
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'rec-card card-refreshing';
+      el.innerHTML = recCardHTML(REC_NEW);
+      list.prepend(el);
+      setTimeout(() => el.classList.remove('card-refreshing'), 720);
+    }, 320);
+  }
+}
+
+/* ═══════════ 오버스크롤(당김) 엔진 ═══════════
+   영상 분석 기반 파라미터:
+   - 콘텐츠 전체가 저항을 받으며 translateY (최대 ≈ 화면의 32%)
+   - 고정 헤더는 당김 깊이에 비례해 opacity 1 → 0.35
+   - 벌어진 틈 상단에 원형 인디케이터가 페이드+스케일 인
+   - 놓으면 스프링으로 복귀(오버슈트 거의 없음), 복귀 중 데이터 롤-갱신 */
+class OverscrollRefresh {
+  constructor(screenEl, onRefresh) {
+    this.screen = screenEl;
+    this.header = screenEl.querySelector('[data-fade]');
+    this.scrollArea = screenEl.querySelector('.scroll-area');
+    this.indicator = screenEl.querySelector('.refresh-indicator');
+    this.onRefresh = onRefresh;
+
+    this.pull = 0;          // 현재 화면에 적용된 당김(px)
+    this.dragRaw = 0;       // 손가락 이동 누적(px)
+    this.dragging = false;
+    this.animating = false;
+    this.MAX = 270;         // 최대 하강 (844의 ~32%)
+    this.THRESHOLD = 80;    // 새로고침 트리거
+
+    this.bind();
+  }
+
+  rubber(d) { // 고무줄 저항: d→∞ 일 때 MAX로 수렴
+    return this.MAX * (1 - 1 / (1 + d / this.MAX));
+  }
+
+  apply(pull) {
+    this.pull = pull;
+    // 헤더 + 스크롤 콘텐츠가 같은 값으로 함께 하강 (하나의 블록처럼)
+    this.header.style.transform = `translateY(${pull}px)`;
+    this.scrollArea.style.transform = `translateY(${pull}px)`;
+    const p = Math.max(0, Math.min(pull / this.THRESHOLD, 1));
+    // 화면 최상단 틈에서 인디케이터가 페이드+스케일 인 (음수 오버슈트 구간엔 숨김)
+    this.indicator.style.opacity = String(Math.max(0, Math.min(pull / 70, 1)) * 0.95);
+    this.indicator.style.transform = `scale(${0.55 + 0.45 * p})`;
+  }
+
+  startDrag() {
+    if (this.animating) return;
+    this.dragging = true;
+    this.dragRaw = this.pull > 0 ? this.invRubber(this.pull) : 0;
+  }
+  invRubber(y) { return y / (1 - y / this.MAX); }
+
+  moveDrag(dy) {
+    if (!this.dragging) return false;
+    this.dragRaw = Math.max(0, this.dragRaw + dy);
+    const target = this.rubber(this.dragRaw);
+    if (target <= 0 && dy < 0) { this.apply(0); this.dragging = false; return false; }
+    this.apply(target);
+    return target > 0;
+  }
+
+  endDrag() {
+    if (!this.dragging) return;
+    this.dragging = false;
+    if (this.pull >= this.THRESHOLD) this.refreshSequence();
+    else this.springBack(); // 임계값 미만 → 그냥 통통 복귀
+  }
+
+  // 놓은 뒤: (A) 로딩 위치로 스냅 → (B) 물결 + 투명 폭죽(짧은 딜레이) → (C) 통통 스프링 복귀
+  refreshSequence() {
+    const HOLD = 60;          // 로딩 상태로 살짝 걸쳐두는 높이
+    const WAVE_DELAY = 250;   // 물결 체류 시간(짧게)
+    this.indicator.classList.add('spinning');
+    this.animateTo(HOLD, 140, () => {
+      this.playWave();                                   // (B) 물결
+      this.burst();                                      //    투명 폭죽 터짐
+      setTimeout(() => this.onRefresh(), WAVE_DELAY * 0.35); // 초반에 데이터 롤
+      setTimeout(() => {
+        this.springBack(() => this.indicator.classList.remove('spinning')); // (C) 통통 복귀
+      }, WAVE_DELAY);
+    });
+  }
+
+  // 상단 인디케이터 지점에서 반투명 입자가 방사형으로 터지는 폭죽
+  burst() {
+    const host = document.createElement('div');
+    host.className = 'burst';
+    const colors = ['rgba(120,160,255,.40)', 'rgba(255,255,255,.55)', 'rgba(90,140,246,.32)'];
+    const N = 13;
+    for (let i = 0; i < N; i++) {
+      const dot = document.createElement('span');
+      dot.className = 'burst-dot';
+      const ang = (Math.PI * 2) * (i / N) + (Math.random() - 0.5) * 0.5;
+      const dist = 42 + Math.random() * 38;
+      dot.style.setProperty('--dx', `${Math.cos(ang) * dist}px`);
+      dot.style.setProperty('--dy', `${Math.sin(ang) * dist * 0.9}px`);
+      dot.style.setProperty('--sz', `${5 + Math.random() * 5}px`);
+      dot.style.setProperty('--pc', colors[i % colors.length]);
+      dot.style.animationDelay = `${Math.random() * 45}ms`;
+      host.appendChild(dot);
+    }
+    this.screen.appendChild(host);
+    setTimeout(() => host.remove(), 850);
+  }
+
+  // 헤더 텍스트(은은) → 리스트 아이템(강) 순으로 지연 전파시켜 물결처럼 흔든다
+  playWave() {
+    const headerEls = Array.from(this.header.children);                 // 제목·부제·통계 등
+    const cardEls = Array.from(this.scrollArea.querySelectorAll('.cta-card, .sug-card, .rec-card'));
+    let idx = 0;
+    const run = (el, soft) => {
+      const cls = soft ? 'wave-soft' : 'wave-item';
+      el.classList.remove(cls);
+      void el.offsetWidth;
+      el.style.animationDelay = `${idx * 36}ms`;
+      el.classList.add(cls);
+      const total = 520 + idx * 36 + 40;
+      setTimeout(() => { el.classList.remove(cls); el.style.animationDelay = ''; }, total);
+      idx++;
+    };
+    headerEls.forEach(el => run(el, true));   // 위쪽부터 은은하게 시작
+    cardEls.forEach(el => run(el, false));    // 이어서 리스트로 파도 전파
+  }
+
+  // 단순 ease-out 이동 (스냅 인)
+  animateTo(target, dur, done) {
+    this.animating = true;
+    const from = this.pull, start = performance.now();
+    const ease = t => 1 - Math.pow(1 - t, 3);
+    const step = now => {
+      const t = Math.min((now - start) / dur, 1);
+      this.apply(from + (target - from) * ease(t));
+      if (t < 1) requestAnimationFrame(step);
+      else { this.animating = false; done && done(); }
+    };
+    requestAnimationFrame(step);
+  }
+
+  // 감쇠 부족(underdamped) 스프링 → 0을 지나 살짝 튀어오르며 여러 번 통통
+  springBack(done) {
+    this.animating = true;
+    const from = this.pull, start = performance.now();
+    const omega = 10.5, zeta = 0.30;                   // zeta 낮을수록 더 통통
+    const wd = omega * Math.sqrt(1 - zeta * zeta);
+    const step = now => {
+      const t = (now - start) / 1000; // sec
+      const env = Math.exp(-zeta * omega * t);
+      const val = from * env * (Math.cos(wd * t) + (zeta * omega / wd) * Math.sin(wd * t));
+      this.apply(Math.max(val, -26));                   // 위쪽 오버슈트는 26px로 제한
+      if (t < 1.6 && (Math.abs(val) > 0.3 || t < 0.25)) requestAnimationFrame(step);
+      else { this.animating = false; this.apply(0); done && done(); }
+    };
+    requestAnimationFrame(step);
+  }
+
+  bind() {
+    // 드래그/휠 리스너를 화면 레이아웃 전체(.screen)에 건다.
+    // → 상단 헤더(고정 텍스트) 영역에서 시작한 제스처도 당김으로 잡힘.
+    const area = this.scrollArea;
+    const surface = this.screen;
+    // 헤더는 스크롤되지 않으므로, 헤더에서 시작하면 항상 "맨 위"로 간주.
+    const startedFromHeader = e => this.header.contains(e.target);
+
+    // ── 터치/마우스 드래그 ──
+    let tracking = false, lastY = 0, pulledThisGesture = false, fromHeader = false;
+
+    surface.addEventListener('pointerdown', e => {
+      if (!this.screen.classList.contains('active')) return;
+      tracking = true; lastY = e.clientY; pulledThisGesture = false;
+      fromHeader = startedFromHeader(e);
+    });
+    window.addEventListener('pointermove', e => {
+      if (!tracking) return;
+      const dy = e.clientY - lastY; lastY = e.clientY;
+      const atTop = fromHeader || area.scrollTop <= 0;
+      if ((this.pull > 0) || (atTop && dy > 0)) {
+        if (!this.dragging) this.startDrag();
+        const consumed = this.moveDrag(dy);
+        if (consumed) { pulledThisGesture = true; e.preventDefault(); }
+      }
+    });
+    window.addEventListener('pointerup', () => {
+      if (this.dragging) this.endDrag();
+      tracking = false;
+    });
+    // 드래그 중 네이티브 스크롤/제스처 충돌 방지
+    surface.addEventListener('touchmove', e => { if (this.pull > 0) e.preventDefault(); }, { passive: false });
+
+    // ── 데스크톱 휠: 맨 위에서 위로 굴리면 당김 (화면 어디서든) ──
+    let wheelTimer = null;
+    surface.addEventListener('wheel', e => {
+      if (this.animating || !this.screen.classList.contains('active')) return;
+      const overHeader = this.header.contains(e.target);
+      const atTop = overHeader || area.scrollTop <= 0;
+      if ((atTop && e.deltaY < 0) || this.pull > 0) {
+        e.preventDefault();
+        if (!this.dragging) this.startDrag();
+        this.moveDrag(-e.deltaY * 0.55);
+        clearTimeout(wheelTimer);
+        wheelTimer = setTimeout(() => this.endDrag(), 180);
+      }
+    }, { passive: false });
+  }
+}
+
+const learnCtrl = new OverscrollRefresh(document.getElementById('screen-learn'), refreshLearn);
+const recCtrl = new OverscrollRefresh(document.getElementById('screen-records'), refreshRecords);
+
+// "새로고침" 텍스트 버튼도 동일 시나리오 재생(당김 없이 롤만)
+document.getElementById('learn-refresh-link').addEventListener('click', refreshLearn);
+</script>
+</body>
+</html>
