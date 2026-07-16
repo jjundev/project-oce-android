@@ -192,7 +192,15 @@ internal fun DialogueTurnContent(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxWidth().weight(1f),
-                contentPadding = PaddingValues(horizontal = 18.dp, vertical = OceTheme.spacing.sm),
+                // 프로토타입 thread 정합(padding:8px 18px 16px) — 상단 8dp 는 기존 유지, 하단만 16dp 로 넓혀
+                // 마지막 말풍선이 화면 하단에 바짝 붙지 않게 한다.
+                contentPadding =
+                    PaddingValues(
+                        start = 18.dp,
+                        top = OceTheme.spacing.sm,
+                        end = 18.dp,
+                        bottom = OceTheme.spacing.lg,
+                    ),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 itemsIndexed(messages) { index, message ->
