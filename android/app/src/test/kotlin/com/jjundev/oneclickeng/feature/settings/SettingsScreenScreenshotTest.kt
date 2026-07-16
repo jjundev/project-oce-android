@@ -1,3 +1,5 @@
+@file:Suppress("WildcardImport") // Test assertion functions are extension functions not directly exported
+
 package com.jjundev.oneclickeng.feature.settings
 
 import android.app.Application
