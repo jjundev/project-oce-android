@@ -103,7 +103,7 @@ fun OverscrollRefreshBox(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .graphicsLayer { translationY = state.offset.value },
+                    .graphicsLayer { translationY = state.currentPullPx() },
                 content = content,
             )
         }
@@ -135,7 +135,7 @@ private fun BoxScope.RefreshIndicator(state: OverscrollRefreshState, fadeAtPx: F
             .align(Alignment.TopCenter)
             .offset { IntOffset(0, topPx.roundToInt()) }
             .graphicsLayer {
-                val pull = state.offset.value
+                val pull = state.currentPullPx()
                 alpha = (pull / fadeAtPx).coerceIn(0f, 1f)
                 val p = (pull / thresholdPx).coerceIn(0f, 1f)
                 scaleX = 0.55f + 0.45f * p
