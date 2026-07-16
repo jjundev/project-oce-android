@@ -105,6 +105,9 @@ class TtsPlaybackCoordinator
         // Outstanding prefetch launches, cancelled by clearCache on screen exit.
         private val prefetchJobs = mutableListOf<Job>()
 
+        // 전면 진입 시 모델 예열용 throwaway 합성 job. 진행 중이면 중복 발주하지 않는다.
+        private var warmUpJob: Job? = null
+
         // replay 등 "발화는 하되 턴을 전진시키지 않는" 재생을 위한 플래그. startNewSession 이 true 로 리셋하고
         // playTurn 이 인자로 덮어쓴다. finish 가 completions emit 여부를 이 값으로 게이트한다.
         @Volatile
@@ -199,19 +202,46 @@ class TtsPlaybackCoordinator
             job.invokeOnCompletion { prefetchJobs.remove(job) }
         }
 
+        /** Preheat the Gemini TTS model with a throwaway synthesis (fire-and-forget; call when the app
+         *  comes to the foreground). The text tasks run on a DIFFERENT model (`gemini-3.1-flash-lite`)
+         *  than TTS (`gemini-2.5-flash-preview-tts`, config/models.ts), so generating the dialogue never
+         *  warms the speech model: the first real line's synthesis is cold (>7s) and the SERVER aborts
+         *  its own Gemini request at 7s/attempt → the line device-falls-back. Preheating early means the
+         *  first real synthesis is warm (~5-6s) and simply succeeds.
+         *
+         *  SERVER + unmuted only. Goes straight to [synthesize] — NOT [obtainAudio] — so the throwaway
+         *  line is discarded and never occupies a slot in the [CACHE_CAP]-bounded cache. Skipped while a
+         *  preheat is already in flight. */
+        fun warmUpModel() {
+            if (warmUpJob?.isActive == true) return
+            warmUpJob =
+                scope.launch {
+                    val settings = settingsRepo.current()
+                    if (settings.muted || settings.quality != TtsQuality.SERVER) return@launch
+                    synthesize(WARM_UP_TEXT, gender = null, rate = settings.speechRate) // discarded on purpose
+                }
+        }
+
         /** Suspend until [text]'s audio is warmed — cached, joining any in-flight [prefetch] —
          *  then return true. Returns true *immediately* when there is nothing to warm (muted, or
-         *  DEVICE quality); returns false only if SERVER synthesis failed. The loading gate uses
-         *  this to decide when the first line will play instantly, never to gate correctness (live
-         *  playback still falls back on its own). Bounded by [SYNTH_WATCHDOG_MS] (16s) — so on a
-         *  cold first call the loading gate that awaits this can hold the quiz up to ~16s. */
+         *  DEVICE quality); returns false only if SERVER synthesis failed after a retry. The loading
+         *  gate uses this to decide when the first line will play instantly, never to gate correctness
+         *  (live playback still falls back on its own). Bounded by [SYNTH_WATCHDOG_MS] (16s) per
+         *  attempt, and this retries once, so the loading gate that awaits this can hold the quiz up
+         *  to ~2×16s in the pathological case where both attempts run to the full budget. */
         suspend fun awaitWarm(
             text: String,
             gender: String?,
         ): Boolean {
             val settings = settingsRepo.current()
             if (settings.muted || settings.quality != TtsQuality.SERVER) return true
-            return obtainAudio(text, gender, settings.speechRate) != null
+            // One retry, no loop. A cold call fails because the SERVER aborts its own Gemini request at
+            // 7s/attempt (gemini.ts) — no client budget can save it — but that failed attempt still
+            // preheats the model, so the retry typically lands (~5-6s). The loading gate covers this
+            // wait; succeeding here is what keeps the first line on the natural voice. `||` short-
+            // circuits, so the retry only runs when the first attempt failed.
+            return obtainAudio(text, gender, settings.speechRate) != null ||
+                obtainAudio(text, gender, settings.speechRate) != null
         }
 
         /** Drop all cached and in-flight synthesis (call on leaving the dialogue screen).
@@ -398,5 +428,9 @@ class TtsPlaybackCoordinator
             // A dialogue has ~2–3 opponent lines; 4 covers current + next with margin, and
             // LRU eviction bounds memory if a longer session accumulates more.
             const val CACHE_CAP = 4
+
+            // Throwaway text for [warmUpModel] — one short word is enough to make the server issue a
+            // real TTS request; the audio is discarded, so keep it minimal (cost is per audio token).
+            const val WARM_UP_TEXT = "Hi"
         }
     }
