@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -53,6 +54,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
@@ -350,6 +352,7 @@ internal fun SettingsContent(
     onTerms: () -> Unit,
     modifier: Modifier = Modifier,
     reduceMotion: Boolean = false,
+    isGoogleSaveLoading: Boolean = false,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         val entrance = rememberScreenEntrance(reduceMotion)
@@ -373,6 +376,7 @@ internal fun SettingsContent(
                         onRetryMerge = onRetryMerge,
                         onLogoutClick = onLogoutClick,
                         onDeleteClick = onDeleteClick,
+                        isGoogleSaveLoading = isGoogleSaveLoading,
                         modifier = Modifier.staggerReveal(0, entrance),
                     )
                 }
@@ -483,6 +487,7 @@ internal fun SettingsContent(
                         onRetryMerge = onRetryMerge,
                         onLogoutClick = onLogoutClick,
                         onDeleteClick = onDeleteClick,
+                        isGoogleSaveLoading = isGoogleSaveLoading,
                         modifier = Modifier.staggerReveal(5, entrance),
                     )
                 }
@@ -669,6 +674,7 @@ private fun AccountSection(
     onLogoutClick: () -> Unit,
     onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isGoogleSaveLoading: Boolean = false,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
@@ -691,7 +697,8 @@ private fun AccountSection(
                     titleColor = MaterialTheme.colorScheme.primary,
                     iconTint = MaterialTheme.colorScheme.primary,
                     iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                    onClick = onGoogleSave,
+                    onClick = if (isGoogleSaveLoading) null else onGoogleSave,
+                    trailing = { GoogleSaveTrailing(isGoogleSaveLoading) },
                 )
                 if (state.showRetryMerge) {
                     SettingsCardDivider()
@@ -730,6 +737,29 @@ private fun AccountSection(
                 modifier = Modifier.padding(start = 4.dp),
             )
         }
+    }
+}
+
+/**
+ * Google 저장 행 trailing — 로딩 중엔 인라인 스피너(자격증명 시트가 뜨기 전 무반응 구간을 메운다), 평시엔 기본
+ * chevron. [SettingsNavRow]의 기본 chevron 람다를 그대로 복제한다(trailing을 조건부로 통째로 바꿔야 해서
+ * 기본값 재사용이 불가능하다).
+ */
+@Composable
+private fun GoogleSaveTrailing(isLoading: Boolean) {
+    if (isLoading) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(GoogleSaveLoadingIndicatorSize).testTag(GOOGLE_SAVE_LOADING_TAG),
+            color = MaterialTheme.colorScheme.primary,
+            strokeWidth = 2.dp,
+        )
+    } else {
+        OneClickIcon(
+            icon = OceIcon.ChevronRight,
+            contentDescription = null,
+            tint = OceTheme.colors.textTertiary,
+            size = OceIconSize.ListDisclosure,
+        )
     }
 }
 
@@ -913,3 +943,9 @@ private fun speedLabel(speed: Float): String = String.format(Locale.US, "%.1fx",
 
 /** 설정 경로의 Google 연결 계측 sessionId(온보딩 세션 아님). */
 private const val LINK_SESSION_ID = "settings"
+
+/** Google 저장 행 로딩 스피너 지름 — 온보딩 시트 primary 버튼 인라인 스피너와 동일 컨벤션(20dp/2dp stroke). */
+private val GoogleSaveLoadingIndicatorSize = 20.dp
+
+/** 설정 화면 Google 저장 로딩 스피너 testTag(컴포즈/스크린샷 테스트 seam). */
+internal const val GOOGLE_SAVE_LOADING_TAG = "google_save_loading"

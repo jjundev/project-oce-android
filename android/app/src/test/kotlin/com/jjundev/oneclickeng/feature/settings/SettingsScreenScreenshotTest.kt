@@ -9,8 +9,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -73,7 +73,13 @@ class SettingsScreenScreenshotTest {
         releaseSnackbar.complete(Unit)
     }
 
-    private fun renderSettings(state: SettingsUiState, dark: Boolean, blocked: Boolean, name: String) {
+    private fun renderSettings(
+        state: SettingsUiState,
+        dark: Boolean,
+        blocked: Boolean,
+        name: String,
+        isGoogleSaveLoading: Boolean = false,
+    ) {
         composeRule.setContent {
             OceTheme(darkTheme = dark) {
                 Surface(color = MaterialTheme.colorScheme.background) {
@@ -97,6 +103,7 @@ class SettingsScreenScreenshotTest {
                         onPrivacy = {},
                         onTerms = {},
                         reduceMotion = true,
+                        isGoogleSaveLoading = isGoogleSaveLoading,
                     )
                 }
             }
@@ -110,6 +117,15 @@ class SettingsScreenScreenshotTest {
             dark = false,
             blocked = false,
             name = "settings_light_guest",
+        )
+
+    @Test fun settings_light_guest_google_saving() =
+        renderSettings(
+            SettingsUiState(loading = false, nickname = "준영", isGuest = true),
+            dark = false,
+            blocked = false,
+            name = "settings_light_guest_google_saving",
+            isGoogleSaveLoading = true,
         )
 
     @Test fun settings_light_member() =
@@ -180,5 +196,81 @@ class SettingsScreenScreenshotTest {
             }
         }
         composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/reminder_time_sheet.png")
+    }
+
+    @Test
+    fun accountSection_showsLoadingSpinner_andDisablesClick_whenGoogleSaveLoading() {
+        var clicked = 0
+        composeRule.setContent {
+            OceTheme(darkTheme = false) {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    SettingsContent(
+                        state = SettingsUiState(loading = false, nickname = "준영", isGuest = true),
+                        versionLabel = "1.0.0 (1)",
+                        notificationsBlocked = false,
+                        onNicknameChange = {},
+                        onQualityChange = {},
+                        onSpeedChange = {},
+                        onMuteChange = {},
+                        onReminderToggle = {},
+                        onReminderTimeClick = {},
+                        onOpenNotificationSettings = {},
+                        onPurgeClick = {},
+                        onResetClick = {},
+                        onGoogleSave = { clicked += 1 },
+                        onLogoutClick = {},
+                        onDeleteClick = {},
+                        onRetryMerge = {},
+                        onPrivacy = {},
+                        onTerms = {},
+                        isGoogleSaveLoading = true,
+                        reduceMotion = true,
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithTag(GOOGLE_SAVE_LOADING_TAG, useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Google로 진도 저장").assertHasNoClickAction()
+        assertEquals(0, clicked)
+    }
+
+    @Test
+    fun accountSection_showsChevron_andAllowsClick_whenGoogleSaveNotLoading() {
+        var clicked = 0
+        composeRule.setContent {
+            OceTheme(darkTheme = false) {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    SettingsContent(
+                        state = SettingsUiState(loading = false, nickname = "준영", isGuest = true),
+                        versionLabel = "1.0.0 (1)",
+                        notificationsBlocked = false,
+                        onNicknameChange = {},
+                        onQualityChange = {},
+                        onSpeedChange = {},
+                        onMuteChange = {},
+                        onReminderToggle = {},
+                        onReminderTimeClick = {},
+                        onOpenNotificationSettings = {},
+                        onPurgeClick = {},
+                        onResetClick = {},
+                        onGoogleSave = { clicked += 1 },
+                        onLogoutClick = {},
+                        onDeleteClick = {},
+                        onRetryMerge = {},
+                        onPrivacy = {},
+                        onTerms = {},
+                        isGoogleSaveLoading = false,
+                        reduceMotion = true,
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithTag(GOOGLE_SAVE_LOADING_TAG, useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithText("Google로 진도 저장").assertHasClickAction()
+        composeRule.onNodeWithText("Google로 진도 저장").performClick()
+        composeRule.waitForIdle()
+        assertEquals(1, clicked)
     }
 }
