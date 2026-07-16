@@ -47,17 +47,18 @@ private suspend fun <R> withAnimationFrameClock(block: suspend () -> R): R =
  * 값을 그대로 이어받고 [dragOffsetPx] 는 0으로 비워진다 — 항상 둘 중 하나만 0이 아니므로
  * [currentPullPx] 는 단순 합으로 어느 쪽이 값을 들고 있든 정확히 읽힌다.
  *
- * (이전 구현은 onPreScroll/onPostScroll 이 `scope.launch { offset.snapTo(target) }` 로 오프셋을
- * *비동기* 반영했는데, onPreFling 이 그 사이 아직 반영되지 않은 offset.value 를 동기적으로 읽어
- * 오판할 수 있었다. 이 레이스는 드래그 소유값을 코루틴 없이 동기 필드로 옮겨 제거했지만, 실기기
- * 재현에서 밝혀진 진짜 원인은 따로 있었다: 릴리스/스냅백 판단이 [onPreFling] 안에서만 이뤄졌는데,
- * "리스트 안쪽에서 빠르게 위로 튕기는" 제스처는 그 fling 이 아직 진행 중일 때(경계에 아직 안 닿았을 때)
- * onPreFling 이 한 번 호출되고(그 시점엔 dragOffsetPx==0 이라 정상적으로 통과) — 그 *같은* fling 이
- * 감속하며 상단 경계에 부딪히면 틈이 [onPostScroll](source=SideEffect)로만 열린다. 이 시나리오의
- * 종료 이벤트는 onPreFling 이 아니라 [onPostFling] 인데, 이전 구현엔 onPostFling 오버라이드가 아예
- * 없어 그 틈을 닫을(릴리스하거나 스냅백할) 기회가 영영 없었다 — 실기기 adb 재현(연속 위 스와이프 3회
- * → 빠른 아래 스와이프 1회)에서 `dragOffsetPx` 가 504px 로 열린 채 고착되는 것으로 확인. [resolvePull]
- * 을 onPreFling/onPostFling 양쪽에서 호출해 이 경로를 닫는다.)
+ * **틈은 손가락 직접 드래그(`source == UserInput`)로만 열린다.** fling 감속(`SideEffect`)은 무시한다 —
+ * Material3 `PullToRefreshBox` 의 nested-scroll 커넥션도 동일하게 게이트한다. "당겨서 새로고침"은
+ * 사용자가 의도적으로 당기는 제스처이지, 리스트를 위로 튕겨 맨 위로 돌아가는 것이 아니기 때문이다.
+ *
+ * (실기기 재현으로 밝혀진 원래 버그: "리스트 안쪽에서 빠르게 위로 튕기는" 제스처는 fling 이 아직
+ * 경계에 닿기 전에 [onPreFling] 이 한 번 호출되고(그 시점엔 dragOffsetPx==0 이라 정상 통과) — 그 *같은*
+ * fling 이 감속하며 상단 경계에 부딪히면 잔여 스크롤이 [onPostScroll](source=SideEffect)로 수백 프레임에
+ * 걸쳐 흘러든다. 이때 틈을 열면 두 가지가 잘못된다: (1) fling 이 완전히 멈출 때까지(실측 ~1.8초) 러버밴드가
+ * 포화된 채 얼어붙어 보이고, 그 뒤에야 종료 이벤트인 [onPostFling] 이 와서 릴리스가 시작된다(총 ~3초),
+ * (2) 사용자가 요청하지도 않은 새로고침이 매번 발동한다. source 게이팅으로 애초에 틈이 열리지 않게 해
+ * 둘 다 없앤다. [onPostFling] 의 [resolvePull] 은 "제스처가 fling 으로 끝났는데 틈이 남아 있는" 경우를
+ * 위한 최종 안전망으로 남긴다 — 이 버그의 본질이 정확히 "종료 핸들러 부재" 였다.)
  */
 class OverscrollRefreshState(
     private val thresholdPx: Float,
@@ -151,10 +152,15 @@ class OverscrollRefreshState(
         }
     }
 
+    /** 손가락 직접 드래그만 틈을 여닫을 수 있다 — fling 감속(SideEffect)은 무시(클래스 문서 참고). */
+    private fun acceptsDrag(source: NestedScrollSource): Boolean =
+        !settling && source == NestedScrollSource.UserInput
+
     val nestedScrollConnection = object : NestedScrollConnection {
         override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-            // 당겨져 있을 때 위로 드래그하면 먼저 틈을 닫는다.
-            if (settling || available.y >= 0f || dragOffsetPx <= 0f) return Offset.Zero
+            // 당겨져 있을 때 위로 드래그하면 먼저 틈을 닫는다(손가락 드래그에만 반응 — 클래스 문서 참고).
+            val closingAnOpenGap = available.y < 0f && dragOffsetPx > 0f
+            if (!acceptsDrag(source) || !closingAnOpenGap) return Offset.Zero
             accumulatedDrag = (accumulatedDrag + available.y).coerceAtLeast(0f)
             val target = rubberBand(accumulatedDrag, maxPullPx)
             val delta = target - dragOffsetPx
@@ -164,10 +170,9 @@ class OverscrollRefreshState(
 
         override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
             // 리스트가 더 못 내려갈 때(available.y>0) 남은 아래 방향 드래그로 틈을 연다.
-            // source 는 UserInput(직접 드래그)뿐 아니라 SideEffect(fling 이 감속하며 경계에 부딪히는
-            // 경우)로도 온다 — 후자의 종료는 onPreFling 이 아니라 onPostFling 이므로, 거기서 열린
-            // 틈은 onPostFling 의 resolvePull() 호출이 책임진다.
-            if (settling || available.y <= 0f) return Offset.Zero
+            // fling 이 경계에 부딪히며 감속할 때도 잔여 스크롤이 여기로 오지만(source=SideEffect),
+            // 거기에 반응하면 인디케이터가 얼어붙고 원치 않은 새로고침이 발동한다 — 클래스 문서 참고.
+            if (!acceptsDrag(source) || available.y <= 0f) return Offset.Zero
             accumulatedDrag = (accumulatedDrag + available.y).coerceAtLeast(0f)
             dragOffsetPx = rubberBand(accumulatedDrag, maxPullPx)
             return Offset(0f, available.y)
