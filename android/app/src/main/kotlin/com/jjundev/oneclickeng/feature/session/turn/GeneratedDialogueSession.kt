@@ -167,6 +167,19 @@ fun GeneratedDialogueSessionRoute(
  * 프로세스킬 복원 시 정착 Recording/Analyzing 은 [MicState.Ready] 로 강등된다 — fresh Singleton 이라 stale
  * 콜백이 없고(orphan 없음), 사용자에겐 재시도 힌트로 고지한다(무증명 아님, 결정 #12b).
  */
+/** The English of the opponent (model) line at the given 0-based opponent ordinal, or
+ *  null if that line is not yet available. Opponent lines occupy even indices (0,2,4,…)
+ *  of the raw turn buffer per the wire contract (DialogueTurn.role ∈ {"model","user"});
+ *  ordinal 0 = the first opponent line. Used to prefetch/​warm a line's TTS ahead of its
+ *  turn. Defensive against malformed data (non-model / blank → null). */
+internal fun nextOpponentEnglish(
+    turns: List<NetworkDialogueTurn>,
+    opponentOrdinal: Int,
+): String? {
+    val turn = turns.getOrNull(2 * opponentOrdinal) ?: return null
+    return turn.en.takeIf { turn.role == "model" && it.isNotBlank() }
+}
+
 // 마이크 4상태 루프 + 텍스트 대체 + SavedState 결선이라 작은 전이 헬퍼가 많다(SlimFeedbackCoordinator 선례).
 // LongParameterList: 세션 루프 DI 허브(생성·녹음·발화·피드백 코디네이터 + durable 스냅샷 + SavedState).
 @Suppress("TooManyFunctions", "LongParameterList")
@@ -268,6 +281,10 @@ class GeneratedDialogueSessionViewModel
         // L2 원본 버퍼-of-record. 정상 운영 시 코디네이터 Ready.turns 에서 갱신, 복원 시 스냅샷에서 seed.
         private var latestTurns: List<NetworkDialogueTurn> = emptyList()
 
+        // 이미 프리페치를 발주한 상대 라인 서수(중복 발주·SSE 청크마다의 코루틴 런치 억제). 실제 발주 성공 시에만
+        // 갱신하므로 turns 미도착으로 실패하면 다음 상태에서 재시도된다. 세션 복원 시 -1로 리셋.
+        private var lastWarmedOrdinal = -1
+
         // 아직 요약 버퍼에 기록되지 않은 현재 턴의 과제·답변 echo. 피드백 정착([onFeedbackState]) 또는
         // "다음"([onAdvance]) 중 먼저 오는 쪽이 기록하고 null 로 비워 턴당 1회 기록을 보장한다.
         private var pendingTurn: PendingTurn? = null
@@ -345,6 +362,7 @@ class GeneratedDialogueSessionViewModel
         private fun seedFrom(snapshot: SessionTurnSnapshot) {
             turnState.restoreFrom(snapshot)
             latestTurns = snapshot.turns.map { it.toDomain() }
+            lastWarmedOrdinal = -1 // 복원된 위치에서 다시 워밍하도록 리셋
             restoredSessionId = snapshot.sessionId
             restoredLevel = snapshot.level
             assignSpeakerIfNeeded() // 결정적 매핑이라 복원 sessionId 로 동일 발화자 재도출
@@ -414,9 +432,11 @@ class GeneratedDialogueSessionViewModel
 
         private fun acceptGenerationState(state: DialogueGenState) {
             if (state is DialogueGenState.Ready) latestTurns = state.turns
+            val ordinalBeforeAccept = turnState.opponentTurnSerial // accept()가 이번에 증가시킬 수 있어 그 전에 읽는다
             turnState.accept(state)
             reconcileLearnerClips() // turns 축소 리셋 시 사라진 순번의 stale 클립 파기
             assignSpeakerIfNeeded()
+            prefetchOpponentLine(ordinalBeforeAccept) // 첫 라인 워밍(서수 0) + 스트리밍으로 늦게 온 라인 재시도
             persistResume()
         }
 
@@ -431,6 +451,16 @@ class GeneratedDialogueSessionViewModel
          *  합성(8초 워치독 후 단말 폴백), DEVICE 면 단말 TTS. 완료 시 completions→자동진행. */
         fun speakOpponent(text: String) {
             tts.playTurn(text, gender = opponentSpeaker?.gender, advanceOnDone = true)
+        }
+
+        /** 주어진 상대 서수(ordinal, 0-기반)의 라인 오디오를 미리 서버 합성해 캐시에 채운다. 코디네이터가
+         *  SERVER·비음소거 게이트와 중복요청 dedup을 처리하므로 발주 자체는 안전하다. lastWarmedOrdinal 로
+         *  같은 서수 반복 발주만 억제한다. 라인 미도착(null)이면 lastWarmedOrdinal 을 갱신하지 않아 재시도된다. */
+        private fun prefetchOpponentLine(ordinal: Int) {
+            if (ordinal == lastWarmedOrdinal) return
+            val text = nextOpponentEnglish(latestTurns, ordinal) ?: return // 아직 미도착 — 다음 상태에서 재시도
+            lastWarmedOrdinal = ordinal
+            tts.prefetch(text, opponentSpeaker?.gender)
         }
 
         /** 말풍선 "다시 듣기" 재발화. 자동발화 중(OpponentTurn)엔 no-op — 라이브 발화 취소·조기전진을 막는다.
@@ -471,6 +501,7 @@ class GeneratedDialogueSessionViewModel
             // 자동발화 완료가 턴을 마감한다. progress 경유(completeOpponentTurn())라야 마감 후 durable 스냅샷이
             // 갱신돼 master 의 "전진 후 영속" 계약이 유지된다(turnState 직접 호출은 persistResume 를 건너뜀).
             completeOpponentTurn()
+            prefetchOpponentLine(turnState.opponentTurnSerial) // 학습자 턴 진입 → 다음 상대 라인 미리 합성
         }
 
         /** 도크 마이크 탭. 정착 상태별 분기(결정 #12). */
@@ -690,6 +721,7 @@ class GeneratedDialogueSessionViewModel
             appScope.launch { runCatching { recording.stop() } }
             speaking.reset()
             tts.stop() // 잔여 발화 차단(nav-pop 시 이 훅이 커버 — 별도 onExit 훅 없음).
+            tts.clearCache() // 프리페치/캐시 파기(화면 이탈 — 다음 세션에 stale 오디오가 새지 않게).
         }
 
         /** 요약 버퍼 기록 대기 중인 턴의 과제·답변 echo(피드백 스냅샷과 함께 record 로 밀어넣는다). */
