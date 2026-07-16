@@ -85,7 +85,7 @@ fun ReviewFlashcard(
                         style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold, fontSize = 30.sp),
                         color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f, fill = false),
                     )
                     SpeakButton(onClick = { onSpeak(english) })
                 }
