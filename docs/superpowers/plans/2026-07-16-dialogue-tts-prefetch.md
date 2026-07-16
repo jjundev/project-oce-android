@@ -367,23 +367,9 @@ Add to `TtsPlaybackCoordinatorTest.kt`:
             assertEquals(1, api.callCount) // live play joined the in-flight synthesis — no 2nd call
             assertEquals(1, player.played.size)
         }
-
-    @Test
-    fun `a cancelled awaiter does not evict an in-flight synthesis (no duplicate call)`() =
-        runTest {
-            val api = FakeLlmApi(delayMs = 100) // keep the synthesis in flight across the cancel
-            val coordinator = TtsPlaybackCoordinator(api, FakePcmPlayer(), FakeDeviceTts(), FakeSettings(), coordScope())
-
-            coordinator.playTurn("Same", null) // live synthesis for "Same" begins (in flight)
-            coordinator.playTurn("Other", null) // startNewSession() cancels the first awaiter mid-await
-            coordinator.playTurn("Same", null) // same key again, BEFORE the original synth resolves
-            advanceUntilIdle()
-
-            // The original "Same" synthesis was never evicted by the cancelled awaiter, so the
-            // third call joins it rather than starting a second: one "Same" call + one "Other" call.
-            assertEquals(2, api.callCount)
-        }
 ```
+
+> Note: the cancel-survives-eviction invariant (a `startNewSession` cancelling a live awaiter must not evict a still-running synthesis) is regression-tested in Task 1 by `second playTurn of the same line joins an in-flight synthesis` — no duplicate needed here.
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
