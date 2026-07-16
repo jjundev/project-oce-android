@@ -29,6 +29,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -60,6 +61,8 @@ import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.foundation.rememberScreenEntrance
 import com.jjundev.oneclickeng.ui.foundation.staggerReveal
 import com.jjundev.oneclickeng.ui.theme.OceTheme
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -127,6 +130,30 @@ internal fun RecordsContent(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
+    // 카드 스켈레톤 최소 노출 시간(핫픽스): Firestore 캐시 히트 등으로 재로딩이 매우 빨리 끝나도, 새로고침이
+    // 시작된 순간(state.refreshing 이 true 로 전이)부터 최소 RECORDS_SKELETON_MIN_VISIBLE_MS 동안은 실제
+    // 카드로 바로 넘어가지 않고 스켈레톤을 유지한다(프로토 홈 `flashSituationsSkeleton` 과 동일 패턴 — 데이터
+    // 도착 여부와 무관하게 고정 시간 홀드). state.refreshing 을 트리거로 쓰면 당겨서-새로고침 박스의 내부
+    // 제스처/스냅 애니메이션 타이밍과 결합되지 않고, "새로고침이 실제로 시작됨"이라는 안정적 상태 계약만 본다.
+    var cardsSkeletonMinHold by remember { mutableStateOf(false) }
+    var skeletonJob by remember { mutableStateOf<Job?>(null) }
+    fun flashCardsSkeleton() {
+        skeletonJob?.cancel()
+        cardsSkeletonMinHold = true
+        skeletonJob =
+            scope.launch {
+                delay(RECORDS_SKELETON_MIN_VISIBLE_MS)
+                cardsSkeletonMinHold = false
+            }
+    }
+    // rememberUpdatedState 필수: LaunchedEffect(Unit) 은 최초 컴포지션에서 딱 한 번만 코루틴을 시작하므로,
+    // state 파라미터를 직접 클로저로 캡처하면 이후 재구성으로 갱신되는 값을 절대 못 본다(고정된 첫 값에
+    // 박제됨). rememberUpdatedState 로 감싸야 매 재구성마다 최신 값을 가리키는 State 를 통해 읽는다.
+    val currentState = rememberUpdatedState(state)
+    LaunchedEffect(Unit) {
+        snapshotFlow { currentState.value.refreshing }.collect { refreshing -> if (refreshing) flashCardsSkeleton() }
+    }
+
     OverscrollRefreshBox(
         isRefreshing = state.refreshing,
         onRefresh = onRefresh,
@@ -171,7 +198,7 @@ internal fun RecordsContent(
                     )
                 }
             }
-            if (state.cards.isNotEmpty()) {
+            if (state.cards.isNotEmpty() && !cardsSkeletonMinHold) {
                 item(key = "count") {
                     Text(
                         text = "${state.cards.size}개 · 최신순",
@@ -189,6 +216,7 @@ internal fun RecordsContent(
                 onLoadMore = onLoadMore,
                 entrance = entrance,
                 reduceMotion = reduceMotion,
+                skeletonMinHold = cardsSkeletonMinHold,
             )
         }
 
@@ -244,17 +272,21 @@ private fun LazyListScope.cardList(
     onLoadMore: () -> Unit,
     entrance: ScreenEntranceState,
     reduceMotion: Boolean,
+    skeletonMinHold: Boolean,
 ) {
+    // 로딩 중(첫 진입 또는 당겨서 재로딩으로 cards 가 비워진 직후)이거나, 실제 데이터가 이미 도착했더라도
+    // 최소 노출 타이머([skeletonMinHold])가 아직 안 끝났으면 빈 상태/실제 카드 대신 카드 모양 스켈레톤을
+    // 채운다 — "아무것도 없다가 갑자기 나타나는" 깜빡임과 "너무 빨리 지나가는" 두 문제를 함께 없앤다
+    // (홈 추천 상황 스켈레톤과 동일 패턴).
+    if (skeletonMinHold || (state.cards.isEmpty() && state.loading)) {
+        recordsSkeletonItems(reduceMotion)
+        return
+    }
+
     if (state.cards.isEmpty()) {
-        // 로딩 중(첫 진입 또는 당겨서 재로딩으로 cards 가 비워진 직후)엔 빈 상태 대신 카드 모양 스켈레톤을
-        // 채워 "아무것도 없다가 갑자기 나타나는" 깜빡임을 없앤다(홈 추천 상황 스켈레톤과 동일 패턴).
-        if (state.loading) {
-            recordsSkeletonItems(reduceMotion)
-        } else {
-            item(key = "empty") {
-                Box(modifier = Modifier.staggerReveal(2, entrance)) {
-                    EmptyState(state.selected)
-                }
+        item(key = "empty") {
+            Box(modifier = Modifier.staggerReveal(2, entrance)) {
+                EmptyState(state.selected)
             }
         }
         return
@@ -332,6 +364,9 @@ private val RECORDS_SKELETON_CHIP_HEIGHT = 22.dp
 private const val RECORDS_SKELETON_LINE_WIDE = 0.78f
 private const val RECORDS_SKELETON_LINE_NARROW = 0.5f
 private const val RECORDS_SKELETON_COUNT = 3
+
+/** 카드 스켈레톤 최소 노출 시간(핫픽스) — 홈 `SITUATIONS_REFRESH_SKELETON_MS` 와 동일 크기, 데이터 도착과 무관하게 고정 홀드. */
+internal const val RECORDS_SKELETON_MIN_VISIBLE_MS = 780L
 
 @Composable
 private fun EmptyState(cardType: CardType) {
