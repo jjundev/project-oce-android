@@ -365,8 +365,8 @@ private const val RECORDS_SKELETON_LINE_WIDE = 0.78f
 private const val RECORDS_SKELETON_LINE_NARROW = 0.5f
 private const val RECORDS_SKELETON_COUNT = 3
 
-/** 카드 스켈레톤 최소 노출 시간(핫픽스) — 홈 `SITUATIONS_REFRESH_SKELETON_MS` 와 동일 크기, 데이터 도착과 무관하게 고정 홀드. */
-internal const val RECORDS_SKELETON_MIN_VISIBLE_MS = 780L
+/** 카드 스켈레톤 최소 노출 시간(핫픽스) — 홈 그리드 전환 스켈레톤 `SITUATIONS_GRID_SKELETON_MS` 와 동일 크기, 데이터 도착과 무관하게 고정 홀드. */
+internal const val RECORDS_SKELETON_MIN_VISIBLE_MS = 300L
 
 @Composable
 private fun EmptyState(cardType: CardType) {
