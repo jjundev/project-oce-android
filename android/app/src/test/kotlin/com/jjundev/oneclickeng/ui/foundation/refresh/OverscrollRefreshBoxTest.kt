@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -78,10 +80,14 @@ class OverscrollRefreshBoxTest {
         }
         rule.waitForIdle()
 
-        // 스와이프 제스처는 클럭이 정지된 상태에서 불안정하므로, 임계값 이상으로 오프셋을 직접 스냅한 뒤
-        // onPreFling 을 호출해 릴리스 시퀀스를 결정적으로 트리거한다.
+        // 스와이프 제스처는 클럭이 정지된 상태에서 불안정하므로, onPostScroll 로 임계값 이상까지
+        // 당김을 만든 뒤 onPreFling 을 호출해 릴리스 시퀀스를 결정적으로 트리거한다.
         runBlocking {
-            capturedState.offset.snapTo(500f)
+            capturedState.nestedScrollConnection.onPostScroll(
+                consumed = Offset.Zero,
+                available = Offset(0f, 2000f),
+                source = NestedScrollSource.UserInput,
+            )
             capturedState.nestedScrollConnection.onPreFling(Velocity.Zero)
         }
         rule.waitForIdle()
@@ -109,5 +115,44 @@ class OverscrollRefreshBoxTest {
 
         assertTrue("cycle completes once refreshing clears", !capturedState.busy)
         assertEquals("offset springs back to rest", 0f, capturedState.offset.value, 1f)
+    }
+
+    // 회귀 테스트: Task 1 이후 드래그 중엔 dragOffsetPx 가 값을 들고 있고 offset.value 는 0으로
+    // 남는다. OverscrollRefreshBox 가 여전히 state.offset.value 를 직접 읽으면 드래그 도중 콘텐츠가
+    // 손가락을 따라오지 않는다(당김이 시각적으로 전혀 안 보임) — currentPullPx() 를 읽어야 한다.
+    @Test fun dragWithoutRelease_indicatorFollowsDragOffsetPx() {
+        lateinit var capturedState: OverscrollRefreshState
+        rule.setContent {
+            val state = rememberOverscrollRefreshState()
+            capturedState = state
+            OverscrollRefreshBox(
+                isRefreshing = false,
+                onRefresh = {},
+                modifier = Modifier.fillMaxSize().testTag("box"),
+                state = state,
+            ) {
+                LazyColumn(Modifier.fillMaxSize()) {
+                    items((1..3).toList()) { Text("row $it", Modifier.height(80.dp)) }
+                }
+            }
+        }
+        rule.waitForIdle()
+
+        runBlocking {
+            capturedState.nestedScrollConnection.onPostScroll(
+                consumed = Offset.Zero,
+                available = Offset(0f, 40f), // below threshold — stays a pure drag, no release
+                source = NestedScrollSource.UserInput,
+            )
+        }
+        rule.waitForIdle()
+
+        assertTrue("dragOffsetPx reflects the live drag", capturedState.dragOffsetPx > 0f)
+        assertEquals(
+            "currentPullPx() must be read by the box while dragging (offset.value alone stays 0)",
+            capturedState.dragOffsetPx,
+            capturedState.currentPullPx(),
+            0.5f,
+        )
     }
 }
