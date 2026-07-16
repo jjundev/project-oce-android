@@ -315,7 +315,11 @@ internal fun HomeContent(
             // 프로토타입 홈 리듬(비균일): 섹션 사이는 넉넉히(12~24dp), 상황 카드끼리는 촘촘히(8dp).
             item(key = "header") {
                 Column(
-                    modifier = Modifier.staggerReveal(1, entrance).padding(top = OceTheme.spacing.xxl),
+                    modifier =
+                        Modifier
+                            .staggerReveal(1, entrance)
+                            .padding(top = OceTheme.spacing.xxl)
+                            .refreshWave(0, soft = true),
                     verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
                 ) {
                     Text(
@@ -342,7 +346,11 @@ internal fun HomeContent(
                     studyMinutes = state.studyMinutes,
                     streak = state.streak,
                     reduceMotion = reduceMotion,
-                    modifier = Modifier.staggerReveal(2, entrance).padding(top = OceTheme.spacing.md),
+                    modifier =
+                        Modifier
+                            .staggerReveal(2, entrance)
+                            .padding(top = OceTheme.spacing.md)
+                            .refreshWave(1, soft = true),
                 )
             }
 

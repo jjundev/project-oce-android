@@ -123,12 +123,20 @@ internal fun RecordsContent(
         onRefresh = onRefresh,
         modifier = modifier.fillMaxSize(),
     ) {
-        TabScreenScaffold(titleRes = R.string.tab_records, listState = listState) {
+        TabScreenScaffold(
+            titleRes = R.string.tab_records,
+            listState = listState,
+            headerModifier = Modifier.refreshWave(0, soft = true),
+        ) {
             item(key = "lifetime") {
                 LifetimeStatsHeader(
                     lifetime = state.lifetime,
                     animate = state.animateCountUp,
-                    modifier = Modifier.staggerReveal(0, entrance).padding(bottom = OceTheme.spacing.lg),
+                    modifier =
+                        Modifier
+                            .staggerReveal(0, entrance)
+                            .padding(bottom = OceTheme.spacing.lg)
+                            .refreshWave(1, soft = true),
                 )
             }
             item(key = "review_banner") {

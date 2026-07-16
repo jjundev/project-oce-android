@@ -29,10 +29,11 @@ fun TabScreenScaffold(
     @StringRes titleRes: Int,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
+    headerModifier: Modifier = Modifier,
     content: LazyListScope.() -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        PinnedTabHeader(titleRes = titleRes)
+        PinnedTabHeader(titleRes = titleRes, modifier = headerModifier)
         LazyColumn(
             modifier =
                 Modifier
