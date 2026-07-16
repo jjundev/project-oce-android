@@ -194,6 +194,20 @@ class TtsPlaybackCoordinator
             job.invokeOnCompletion { prefetchJobs.remove(job) }
         }
 
+        /** Suspend until [text]'s audio is warmed — cached, joining any in-flight [prefetch] —
+         *  then return true. Returns true *immediately* when there is nothing to warm (muted, or
+         *  DEVICE quality); returns false only if SERVER synthesis failed. The loading gate uses
+         *  this to decide when the first line will play instantly, never to gate correctness (live
+         *  playback still falls back on its own). Bounded by [obtainAudio]'s own 8s watchdog. */
+        suspend fun awaitWarm(
+            text: String,
+            gender: String?,
+        ): Boolean {
+            val settings = settingsRepo.current()
+            if (settings.muted || settings.quality != TtsQuality.SERVER) return true
+            return obtainAudio(text, gender, settings.speechRate) != null
+        }
+
         /** Drop all cached and in-flight synthesis (call on leaving the dialogue screen).
          *  Cancels outstanding prefetch launches and their in-flight synthesis jobs. Does not
          *  affect live playback — [stop] handles that separately. */

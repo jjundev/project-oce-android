@@ -52,6 +52,12 @@ class DialogueGenerationViewModel
         private val _quizItems = MutableStateFlow<List<QuizItem>>(emptyList())
         val quizItems: StateFlow<List<QuizItem>> = _quizItems.asStateFlow()
 
+        // 첫 상대 대사 음성이 재생 가능(캐시됨)해졌는지. 로딩 화면이 이 값이 true 가 될 때까지 "준비 중"을
+        // 유지해 첫 대사가 채팅 진입 즉시 재생되게 한다(생성 완료만으론 부족 — TTS 합성 시간이 지배적).
+        // 워밍할 게 없으면(DEVICE·음소거) 즉시 true 라 추가 대기 없음.
+        private val _firstLineReady = MutableStateFlow(false)
+        val firstLineReady: StateFlow<Boolean> = _firstLineReady.asStateFlow()
+
         // Monotonic position of the answered card within this generation, for `card_index`
         // (analytics-events.md §6.6) — the WaitQuiz callback does not carry the card position.
         private var answeredCount = 0
@@ -106,15 +112,22 @@ class DialogueGenerationViewModel
             }
         }
 
-        /** 로딩 퀴즈가 떠 있는 동안 첫 상대 대사 오디오를 미리 서버 합성해 캐시에 채운다(Route 가 Ready 도착 시 호출).
-         *  TtsPlaybackCoordinator 는 @Singleton 이라 이 VM 이 파괴돼도(생성→채팅 nav pop) 캐시가 살아 있어,
-         *  채팅의 speakOpponent 가 같은 라인을 즉시 재생한다(같은 sessionId→같은 gender→같은 캐시 키). 코디네이터
-         *  prefetch 가 SERVER·비음소거 게이트와 dedup 을 처리하므로 여기선 무조건 호출해도 안전(중복 호출 무해). */
-        fun warmFirstLine() {
-            val ready = coordinator.state.value as? DialogueGenState.Ready ?: return
-            val text = nextOpponentEnglish(ready.turns, 0) ?: return
-            val gender = ready.sessionId?.let { SpeakerDirectory.assign(it).gender }
-            tts.prefetch(text, gender)
+        /** 첫 상대 대사 오디오를 서버 합성해 캐시에 채우고, 준비되면 [firstLineReady] 를 true 로 올린다(Route 가
+         *  Ready 도착 시 호출, suspend). 로딩 화면이 이 신호까지 "준비 중"을 유지하므로 채팅 진입 즉시 첫 대사가
+         *  재생된다. TtsPlaybackCoordinator 는 @Singleton 이라 이 VM 이 파괴돼도(생성→채팅 nav pop) 캐시가 살아
+         *  있어 채팅의 speakOpponent 가 같은 라인을 즉시 재생한다(같은 sessionId→같은 gender→같은 캐시 키).
+         *  [awaitWarm] 은 DEVICE·음소거면 즉시 반환하고, SERVER 면 합성 완료(코디네이터 8s 워치독 상한)까지 대기해
+         *  무한 블록되지 않는다. 멱등(이미 준비됐으면 no-op). */
+        suspend fun prepareFirstLine() {
+            if (_firstLineReady.value) return
+            val ready = coordinator.state.value as? DialogueGenState.Ready ?: return // 아직 미도착 — 재호출 시 재시도
+            // 첫 라인이 있으면 캐시될 때까지 대기(DEVICE·음소거면 즉시); 없으면 대기 없이 곧바로 게이트 해제.
+            val text = nextOpponentEnglish(ready.turns, 0)
+            if (text != null) {
+                val gender = ready.sessionId?.let { SpeakerDirectory.assign(it).gender }
+                tts.awaitWarm(text, gender) // 결과와 무관하게 진입 허용(라이브 재생이 자체 폴백)
+            }
+            _firstLineReady.value = true
         }
 
         /**

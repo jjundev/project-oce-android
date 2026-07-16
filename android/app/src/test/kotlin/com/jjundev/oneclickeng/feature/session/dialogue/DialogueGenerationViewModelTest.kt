@@ -133,9 +133,10 @@ private class NoopDeviceTts : DeviceTts {
     override fun stop() = Unit
 }
 
-private class ServerTtsSettings : TtsSettingsRepository {
-    override val settings: Flow<TtsSettings> = flowOf(TtsSettings())
-    override suspend fun current(): TtsSettings = TtsSettings() // default quality = SERVER
+private class ServerTtsSettings(private val quality: TtsQuality = TtsQuality.SERVER) : TtsSettingsRepository {
+    private val value = TtsSettings(quality = quality)
+    override val settings: Flow<TtsSettings> = flowOf(value)
+    override suspend fun current(): TtsSettings = value // default quality = SERVER
     override suspend fun setQuality(quality: TtsQuality) = Unit
     override suspend fun setSpeechRate(rate: Float) = Unit
     override suspend fun setMuted(muted: Boolean) = Unit
@@ -317,7 +318,7 @@ class DialogueGenerationViewModelTest {
         }
 
     @Test
-    fun `warmFirstLine prefetches the first opponent line once generation is Ready`() =
+    fun `prepareFirstLine warms the first opponent line and marks it ready`() =
         runTest {
             val stream = FakeStream()
             val scope: CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
@@ -346,12 +347,56 @@ class DialogueGenerationViewModelTest {
             stream.push(DialogueEvent.Turn(DialogueTurn(ko = "안녕", en = "Hello there", role = "model")))
             runCurrent()
             assertTrue(coordinator.state.value is DialogueGenState.Ready)
+            assertFalse(vm.firstLineReady.value)
 
-            vm.warmFirstLine()
+            vm.prepareFirstLine()
             advanceUntilIdle()
 
             assertEquals(1, ttsApi.callCount)
             assertEquals("Hello there", ttsApi.lastText) // the first opponent (model, index 0) line
+            assertTrue(vm.firstLineReady.value) // loading gate may now release
+        }
+
+    @Test
+    fun `prepareFirstLine marks ready without synthesis in DEVICE quality`() =
+        runTest {
+            val stream = FakeStream()
+            val scope: CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
+            val coordinator = DialogueGenerationCoordinator(stream, scope, FakeConnectivity(offline = false))
+            val ttsApi = CountingTtsApi()
+            val tts =
+                TtsPlaybackCoordinator(
+                    ttsApi,
+                    NoopPcmPlayer(),
+                    NoopDeviceTts(),
+                    ServerTtsSettings(TtsQuality.DEVICE),
+                    scope,
+                )
+
+            val vm =
+                DialogueGenerationViewModel(
+                    coordinator,
+                    tts,
+                    bank,
+                    RecordingAnalytics(),
+                    RecordingLimitAnalytics(),
+                    SessionSnapshotStore(inMemoryPrefsDataStore()),
+                    scope,
+                    RecordingOfflineAnalytics(),
+                    FakeConfig(true),
+                )
+
+            coordinator.start("easy", "t", 5, firstSession = true)
+            runCurrent()
+            stream.push(DialogueEvent.Start(sessionId = "s1", remaining = 3))
+            stream.push(DialogueEvent.Turn(DialogueTurn(ko = "안녕", en = "Hello there", role = "model")))
+            runCurrent()
+
+            vm.prepareFirstLine()
+            advanceUntilIdle()
+
+            assertEquals(0, ttsApi.callCount) // DEVICE quality → nothing to warm
+            assertTrue(vm.firstLineReady.value) // but the gate still releases immediately
         }
 
     @Suppress("LongParameterList") // 테스트 팩토리 — seam 별 fake 를 명시 주입한다(운영 코드 아님).

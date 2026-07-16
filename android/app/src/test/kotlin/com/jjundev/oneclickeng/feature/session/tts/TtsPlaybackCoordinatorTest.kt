@@ -521,6 +521,60 @@ class TtsPlaybackCoordinatorTest {
             assertEquals(1, player.played.size)
         }
 
+    @Test
+    fun `awaitWarm synthesizes and caches so a later playTurn makes no call`() =
+        runTest {
+            val api = FakeLlmApi()
+            val player = FakePcmPlayer()
+            val coordinator =
+                TtsPlaybackCoordinator(api, player, FakeDeviceTts(), FakeSettings(), coordScope())
+
+            assertTrue(coordinator.awaitWarm("Warm", "male"))
+            advanceUntilIdle()
+            assertEquals(1, api.callCount)
+
+            coordinator.playTurn("Warm", "male")
+            advanceUntilIdle()
+            assertEquals(1, api.callCount) // played from the warmed cache — no 2nd synthesis
+            assertEquals(1, player.played.size)
+        }
+
+    @Test
+    fun `awaitWarm returns true immediately without synthesis in DEVICE quality`() =
+        runTest {
+            val api = FakeLlmApi()
+            val coordinator =
+                TtsPlaybackCoordinator(
+                    api,
+                    FakePcmPlayer(),
+                    FakeDeviceTts(),
+                    FakeSettings(TtsSettings(quality = TtsQuality.DEVICE)),
+                    coordScope(),
+                )
+
+            assertTrue(coordinator.awaitWarm("x", null)) // nothing to warm on the device path
+            advanceUntilIdle()
+            assertEquals(0, api.callCount)
+        }
+
+    @Test
+    fun `awaitWarm returns true immediately when muted`() =
+        runTest {
+            val api = FakeLlmApi()
+            val coordinator =
+                TtsPlaybackCoordinator(
+                    api,
+                    FakePcmPlayer(),
+                    FakeDeviceTts(),
+                    FakeSettings(TtsSettings(muted = true)),
+                    coordScope(),
+                )
+
+            assertTrue(coordinator.awaitWarm("x", null))
+            advanceUntilIdle()
+            assertEquals(0, api.callCount)
+        }
+
     /** Coordinator scope on an unconfined dispatcher tied to the test scheduler, so
      *  launches run eagerly while virtual time still drives the watchdogs. */
     private fun TestScope.coordScope(): CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
