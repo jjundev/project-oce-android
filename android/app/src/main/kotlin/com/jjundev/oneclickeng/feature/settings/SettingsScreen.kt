@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -53,6 +54,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
@@ -116,6 +118,9 @@ fun SettingsScreen(
     var showPurgeSheet by rememberSaveable { mutableStateOf(false) }
     var showTimeSheet by rememberSaveable { mutableStateOf(false) }
     var snackbarBounds by remember { mutableStateOf<Rect?>(null) }
+    // rememberSaveable: 프로세스 재생성으로 true 가 복원돼도 linkState 는 ViewModel 재생성으로 Idle 부터
+    // 다시 시작하므로, 아래 LaunchedEffect(linkState) 가 즉시 false 로 되돌려 스피너가 끼지 않는다.
+    var googleSaveLoading by rememberSaveable { mutableStateOf(false) }
 
     // 시스템 알림 on/off 는 화면 재개마다 재확인(설정 앱에서 끄고 돌아온 경우 반영).
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -135,6 +140,11 @@ fun SettingsScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
     val notificationsBlocked = !notificationsEnabled
+
+    // Google 저장 카드 로딩 — Linking 이 끝나면(성공/실패/취소) 해제. retryMerge 로 시작된 Linking 은 무시.
+    LaunchedEffect(linkState) {
+        googleSaveLoading = googleSaveLoadingAfterLinkStateChange(googleSaveLoading, linkState)
+    }
 
     // Google 연결 성공 → 계정 분기 갱신(게스트 CTA → 로그아웃/삭제).
     LaunchedEffect(linkState) { if (linkState is LinkUiState.Success) viewModel.refreshAccount() }
@@ -187,6 +197,7 @@ fun SettingsScreen(
     }
 
     val onGoogleSave = {
+        googleSaveLoading = true
         scope.launch {
             linkViewModel.onCredentialFlowStarted()
             val token =
@@ -238,6 +249,7 @@ fun SettingsScreen(
             },
             onResetClick = { showResetDialog = true },
             onGoogleSave = { onGoogleSave() },
+            isGoogleSaveLoading = googleSaveLoading,
             onLogoutClick = { showLogoutDialog = true },
             onDeleteClick = { showDeleteDialog = true },
             onRetryMerge = { linkViewModel.retryMerge(LINK_SESSION_ID) },
@@ -350,6 +362,7 @@ internal fun SettingsContent(
     onTerms: () -> Unit,
     modifier: Modifier = Modifier,
     reduceMotion: Boolean = false,
+    isGoogleSaveLoading: Boolean = false,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         val entrance = rememberScreenEntrance(reduceMotion)
@@ -373,6 +386,7 @@ internal fun SettingsContent(
                         onRetryMerge = onRetryMerge,
                         onLogoutClick = onLogoutClick,
                         onDeleteClick = onDeleteClick,
+                        isGoogleSaveLoading = isGoogleSaveLoading,
                         modifier = Modifier.staggerReveal(0, entrance),
                     )
                 }
@@ -483,6 +497,7 @@ internal fun SettingsContent(
                         onRetryMerge = onRetryMerge,
                         onLogoutClick = onLogoutClick,
                         onDeleteClick = onDeleteClick,
+                        isGoogleSaveLoading = isGoogleSaveLoading,
                         modifier = Modifier.staggerReveal(5, entrance),
                     )
                 }
@@ -669,6 +684,7 @@ private fun AccountSection(
     onLogoutClick: () -> Unit,
     onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isGoogleSaveLoading: Boolean = false,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
@@ -691,7 +707,8 @@ private fun AccountSection(
                     titleColor = MaterialTheme.colorScheme.primary,
                     iconTint = MaterialTheme.colorScheme.primary,
                     iconBg = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                    onClick = onGoogleSave,
+                    onClick = if (isGoogleSaveLoading) null else onGoogleSave,
+                    trailing = { GoogleSaveTrailing(isGoogleSaveLoading) },
                 )
                 if (state.showRetryMerge) {
                     SettingsCardDivider()
@@ -730,6 +747,29 @@ private fun AccountSection(
                 modifier = Modifier.padding(start = 4.dp),
             )
         }
+    }
+}
+
+/**
+ * Google 저장 행 trailing — 로딩 중엔 인라인 스피너(자격증명 시트가 뜨기 전 무반응 구간을 메운다), 평시엔 기본
+ * chevron. [SettingsNavRow]의 기본 chevron 람다를 그대로 복제한다(trailing을 조건부로 통째로 바꿔야 해서
+ * 기본값 재사용이 불가능하다).
+ */
+@Composable
+private fun GoogleSaveTrailing(isLoading: Boolean) {
+    if (isLoading) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(GoogleSaveLoadingIndicatorSize).testTag(GOOGLE_SAVE_LOADING_TAG),
+            color = MaterialTheme.colorScheme.primary,
+            strokeWidth = 2.dp,
+        )
+    } else {
+        OneClickIcon(
+            icon = OceIcon.ChevronRight,
+            contentDescription = null,
+            tint = OceTheme.colors.textTertiary,
+            size = OceIconSize.ListDisclosure,
+        )
     }
 }
 
@@ -913,3 +953,20 @@ private fun speedLabel(speed: Float): String = String.format(Locale.US, "%.1fx",
 
 /** 설정 경로의 Google 연결 계측 sessionId(온보딩 세션 아님). */
 private const val LINK_SESSION_ID = "settings"
+
+/** Google 저장 행 로딩 스피너 지름 — 온보딩 시트 primary 버튼 인라인 스피너와 동일 컨벤션(20dp/2dp stroke). */
+private val GoogleSaveLoadingIndicatorSize = 20.dp
+
+/** 설정 화면 Google 저장 로딩 스피너 testTag(컴포즈/스크린샷 테스트 seam). */
+internal const val GOOGLE_SAVE_LOADING_TAG = "google_save_loading"
+
+/**
+ * 설정 화면 Google 저장 카드 로딩 유지 여부(순수). 탭 시점엔 `true`로 직접 세팅하고, 이후 `linkState`가
+ * 바뀔 때마다 이 함수로 갱신한다 — [LinkUiState.Linking]이 계속되면 유지, 그 외([LinkUiState.Success]/
+ * [LinkUiState.Error]/[LinkUiState.Idle])면 해제. [previous]가 false(예: "진도 다시 옮기기"로 시작된
+ * Linking)면 이 카드는 애초에 로딩 표시 대상이 아니었으므로 계속 false를 유지한다.
+ */
+internal fun googleSaveLoadingAfterLinkStateChange(
+    previous: Boolean,
+    linkState: LinkUiState,
+): Boolean = previous && linkState is LinkUiState.Linking
