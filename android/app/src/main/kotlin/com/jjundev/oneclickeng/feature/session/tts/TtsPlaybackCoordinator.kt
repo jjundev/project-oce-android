@@ -105,7 +105,10 @@ class TtsPlaybackCoordinator
         // Outstanding prefetch launches, cancelled by clearCache on screen exit.
         private val prefetchJobs = mutableListOf<Job>()
 
-        // 전면 진입 시 모델 예열용 throwaway 합성 job. 진행 중이면 중복 발주하지 않는다.
+        // 전면 진입 시 모델 예열용 throwaway 합성 job. 진행 중이면 중복 발주하지 않는다(겹침 방지 가드일 뿐
+        // 쓰로틀이 아니다). [prefetchJobs]/[inFlight] 와 달리 [clearCache]·[stop] 이 취소하지 않는 건 의도다 —
+        // 그 훅들은 대화 화면 수명 주기인데 예열은 앱 수명 주기다. 화면을 떠나는 순간이야말로 다음 세션을 위해
+        // 모델이 데워진 채로 남아야 할 때다. [SYNTH_WATCHDOG_MS] 로 상한이 있고 아무 상태도 건드리지 않는다.
         private var warmUpJob: Job? = null
 
         // replay 등 "발화는 하되 턴을 전진시키지 않는" 재생을 위한 플래그. startNewSession 이 true 로 리셋하고
