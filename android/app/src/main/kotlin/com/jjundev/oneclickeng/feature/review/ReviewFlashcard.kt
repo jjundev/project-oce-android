@@ -72,23 +72,14 @@ fun ReviewFlashcard(
                     textAlign = TextAlign.Center,
                 )
             } else {
-                // fillMaxWidth + 중앙 정렬 Arrangement: 텍스트가 2줄로 줄바꿈되면 Text 가 가용 너비 전체를
-                // 차지해 Column 의 블록 중앙정렬이 무력화되므로(짧은 한 줄 텍스트만 실제로 중앙에 옴), Row
-                // 자체를 전체 너비로 펼치고 (텍스트+스피커 아이콘) 묶음을 가운데로 모은다.
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md, Alignment.CenterHorizontally),
-                ) {
-                    Text(
-                        text = english,
-                        style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold, fontSize = 30.sp),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    SpeakButton(onClick = { onSpeak(english) })
-                }
+                Text(
+                    text = english,
+                    style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold, fontSize = 30.sp),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.size(OceTheme.spacing.sm))
+                SpeakButton(onClick = { onSpeak(english) })
                 Spacer(Modifier.size(OceTheme.spacing.sm))
                 Text(
                     text = korean,
