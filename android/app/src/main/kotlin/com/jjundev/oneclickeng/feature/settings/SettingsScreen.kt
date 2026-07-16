@@ -118,6 +118,9 @@ fun SettingsScreen(
     var showPurgeSheet by rememberSaveable { mutableStateOf(false) }
     var showTimeSheet by rememberSaveable { mutableStateOf(false) }
     var snackbarBounds by remember { mutableStateOf<Rect?>(null) }
+    // rememberSaveable: 프로세스 재생성으로 true 가 복원돼도 linkState 는 ViewModel 재생성으로 Idle 부터
+    // 다시 시작하므로, 아래 LaunchedEffect(linkState) 가 즉시 false 로 되돌려 스피너가 끼지 않는다.
+    var googleSaveLoading by rememberSaveable { mutableStateOf(false) }
 
     // 시스템 알림 on/off 는 화면 재개마다 재확인(설정 앱에서 끄고 돌아온 경우 반영).
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -137,6 +140,11 @@ fun SettingsScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
     val notificationsBlocked = !notificationsEnabled
+
+    // Google 저장 카드 로딩 — Linking 이 끝나면(성공/실패/취소) 해제. retryMerge 로 시작된 Linking 은 무시.
+    LaunchedEffect(linkState) {
+        googleSaveLoading = googleSaveLoadingAfterLinkStateChange(googleSaveLoading, linkState)
+    }
 
     // Google 연결 성공 → 계정 분기 갱신(게스트 CTA → 로그아웃/삭제).
     LaunchedEffect(linkState) { if (linkState is LinkUiState.Success) viewModel.refreshAccount() }
@@ -189,6 +197,7 @@ fun SettingsScreen(
     }
 
     val onGoogleSave = {
+        googleSaveLoading = true
         scope.launch {
             linkViewModel.onCredentialFlowStarted()
             val token =
@@ -240,6 +249,7 @@ fun SettingsScreen(
             },
             onResetClick = { showResetDialog = true },
             onGoogleSave = { onGoogleSave() },
+            isGoogleSaveLoading = googleSaveLoading,
             onLogoutClick = { showLogoutDialog = true },
             onDeleteClick = { showDeleteDialog = true },
             onRetryMerge = { linkViewModel.retryMerge(LINK_SESSION_ID) },
@@ -949,3 +959,14 @@ private val GoogleSaveLoadingIndicatorSize = 20.dp
 
 /** 설정 화면 Google 저장 로딩 스피너 testTag(컴포즈/스크린샷 테스트 seam). */
 internal const val GOOGLE_SAVE_LOADING_TAG = "google_save_loading"
+
+/**
+ * 설정 화면 Google 저장 카드 로딩 유지 여부(순수). 탭 시점엔 `true`로 직접 세팅하고, 이후 `linkState`가
+ * 바뀔 때마다 이 함수로 갱신한다 — [LinkUiState.Linking]이 계속되면 유지, 그 외([LinkUiState.Success]/
+ * [LinkUiState.Error]/[LinkUiState.Idle])면 해제. [previous]가 false(예: "진도 다시 옮기기"로 시작된
+ * Linking)면 이 카드는 애초에 로딩 표시 대상이 아니었으므로 계속 false를 유지한다.
+ */
+internal fun googleSaveLoadingAfterLinkStateChange(
+    previous: Boolean,
+    linkState: LinkUiState,
+): Boolean = previous && linkState is LinkUiState.Linking

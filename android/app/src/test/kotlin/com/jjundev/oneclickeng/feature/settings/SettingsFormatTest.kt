@@ -1,5 +1,6 @@
 package com.jjundev.oneclickeng.feature.settings
 
+import com.jjundev.oneclickeng.feature.onboarding.google.LinkUiState
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -26,5 +27,28 @@ class SettingsFormatTest {
 
     @Test fun `morning 9_00 formats as 오전 9_00`() {
         assertEquals("오전 9:00", reminderTimeLabel(9, 0))
+    }
+
+    @Test fun `google save loading stays true while credential flow is linking`() {
+        assertEquals(true, googleSaveLoadingAfterLinkStateChange(previous = true, linkState = LinkUiState.Linking))
+    }
+
+    @Test fun `google save loading clears on success`() {
+        assertEquals(false, googleSaveLoadingAfterLinkStateChange(previous = true, linkState = LinkUiState.Success))
+    }
+
+    @Test fun `google save loading clears on error`() {
+        assertEquals(
+            false,
+            googleSaveLoadingAfterLinkStateChange(previous = true, linkState = LinkUiState.Error(afterSignIn = false)),
+        )
+    }
+
+    @Test fun `google save loading clears on idle (credential picker cancelled)`() {
+        assertEquals(false, googleSaveLoadingAfterLinkStateChange(previous = true, linkState = LinkUiState.Idle))
+    }
+
+    @Test fun `google save loading is not triggered by retry-merge linking alone`() {
+        assertEquals(false, googleSaveLoadingAfterLinkStateChange(previous = false, linkState = LinkUiState.Linking))
     }
 }
