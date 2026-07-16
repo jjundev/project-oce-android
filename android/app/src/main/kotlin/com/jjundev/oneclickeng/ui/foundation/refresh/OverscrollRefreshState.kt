@@ -16,6 +16,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Velocity
 import kotlin.coroutines.coroutineContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 
 /**
@@ -141,7 +142,7 @@ class OverscrollRefreshState(
                     dragOffsetPx = 0f
                     busy = true
                     releaseRequest += 1 // Box 가 전체 리프레시 시퀀스 구동 → onCycleFinished() 가 이후 settling 을 정리한다
-                } catch (e: Throwable) {
+                } catch (e: CancellationException) {
                     // snapTo 가 취소/실패하면 releaseRequest 가 절대 증가하지 않아 Box 의 release
                     // LaunchedEffect 가 실행되지 않는다 — 즉 onCycleFinished() 가 호출되지 않아 settling 이
                     // true 로 고착된다. 여기서 직접 정리해 다음 제스처를 받을 수 있는 상태로 되돌린다.
