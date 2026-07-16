@@ -85,4 +85,55 @@ class OverscrollRefreshStateTest {
         assertEquals("no visual jump at hand-off", dragAtRelease, s.offset.value, 0.01f)
         assertEquals("drag bookkeeping cleared once the animatable owns the value", 0f, s.dragOffsetPx, 0.01f)
     }
+
+    // 회귀 테스트 — 실기기(Galaxy S23, adb 터치 주입)로 재현·확인된 진짜 근본 원인. "리스트 안쪽에서
+    // 빠르게 위로 튕기는" 제스처는: (1) fling 시작 시점엔 리스트가 아직 상단 경계에 안 닿아 있어
+    // onPreFling 이 dragOffsetPx==0 인 채로 정상 통과(bail)하고, (2) 그 같은 fling 이 감속하며 상단
+    // 경계에 부딪히면 nested-scroll 이 그 잔여 스크롤을 onPostScroll(source=SideEffect) 로 여러 프레임에
+    // 걸쳐 흘려보내 dragOffsetPx 를 연다 — 이 구간엔 onPreFling 이 다시 호출되지 않는다. 이 시나리오의
+    // 유일한 종료 이벤트는 onPostFling 이다. 실기기 로그(logcat, DEBUGfling 태그)로 정확히 이 순서를
+    // 확인했다: onPreFling(dragOffsetPx=0, bail) -> onPostScroll(SideEffect) x100+ -> onPostFling
+    // (dragOffsetPx=504.66, settling=false) — onPostFling 오버라이드가 없던 구버전은 여기서 아무 것도
+    // 하지 않아 인디케이터가 열린 채로 영원히 고착됐다.
+    @Test fun flingHitsBoundaryMidFlight_onPostFlingResolvesTheOpenedGap() = runTest {
+        val s = state()
+
+        // (1) fling 시작 — 리스트가 아직 안쪽이라 당김이 없다. onPreFling 은 정상적으로 통과(bail)한다.
+        val preFlingConsumed = s.nestedScrollConnection.onPreFling(Velocity(0f, 19695f))
+        assertEquals("nothing pulled yet, defer entirely to the scrollable", Velocity.Zero, preFlingConsumed)
+        assertEquals("no release triggered from onPreFling alone", 0, s.releaseRequest)
+
+        // (2) 그 같은 fling 이 상단 경계에 부딪혀 감속하며, 여러 프레임에 걸쳐 SideEffect 스크롤로
+        // 틈을 연다(실기기 로그의 감쇠 패턴을 그대로 재현).
+        var velocity = 200f
+        repeat(30) {
+            s.nestedScrollConnection.onPostScroll(Offset.Zero, Offset(0f, velocity), NestedScrollSource.SideEffect)
+            velocity *= 0.85f
+        }
+        assertTrue("gap opened via SideEffect scroll, past threshold", s.dragOffsetPx >= 64f)
+        assertEquals("onPostScroll alone never triggers release", 0, s.releaseRequest)
+
+        // (3) fling 이 완전히 멈춘다 — 이게 이 시나리오의 유일한 종료 이벤트다.
+        val before = s.releaseRequest
+        val postFlingConsumed = s.nestedScrollConnection.onPostFling(Velocity.Zero, Velocity.Zero)
+        assertEquals("release triggered from onPostFling, not left stuck open", before + 1, s.releaseRequest)
+        assertEquals("indicator not left open", 0f, s.dragOffsetPx, 0.01f)
+        assertTrue("busy once released", s.busy)
+        assertEquals(Velocity.Zero, postFlingConsumed)
+    }
+
+    // 회귀 테스트: 위 시나리오에서 fling 이 경계에 살짝만 부딪혀 임계값 미달로 멈추면, onPostFling 이
+    // 릴리스가 아니라 스냅백을 트리거해야 한다(onPreFling 의 else 분기와 대칭).
+    @Test fun flingHitsBoundaryMidFlight_belowThreshold_snapsBackViaOnPostFling() = runTest {
+        val s = state()
+        s.nestedScrollConnection.onPreFling(Velocity(0f, 5000f))
+        s.nestedScrollConnection.onPostScroll(Offset.Zero, Offset(0f, 20f), NestedScrollSource.SideEffect)
+        assertTrue("opened but below threshold", s.dragOffsetPx in 1f..63f)
+
+        val before = s.releaseRequest
+        s.nestedScrollConnection.onPostFling(Velocity.Zero, Velocity.Zero)
+        assertEquals("no refresh requested below threshold", before, s.releaseRequest)
+        assertEquals("sprang back to rest via onPostFling", 0f, s.currentPullPx(), 0.5f)
+        assertFalse("not stuck busy", s.busy)
+    }
 }
