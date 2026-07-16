@@ -92,7 +92,10 @@ private class FakeDeviceTts(
     override fun stop() = Unit
 }
 
-private class FakeSettings(var value: TtsSettings = TtsSettings()) : TtsSettingsRepository {
+// SERVER by default: most of this suite exercises the server synthesis/cache/prefetch/warm-up
+// path, independent of production's TtsSettings() default (DEVICE — a product choice unrelated
+// to what these tests need to exercise; tests that want DEVICE pass it explicitly).
+private class FakeSettings(var value: TtsSettings = TtsSettings(quality = TtsQuality.SERVER)) : TtsSettingsRepository {
     override val settings: Flow<TtsSettings> = flowOf(value)
 
     override suspend fun current(): TtsSettings = value
@@ -403,7 +406,7 @@ class TtsPlaybackCoordinatorTest {
     fun `cache key includes speech rate so a rate change re-synthesizes`() =
         runTest {
             val api = FakeLlmApi()
-            val settings = FakeSettings(TtsSettings(speechRate = 1.0f))
+            val settings = FakeSettings(TtsSettings(quality = TtsQuality.SERVER, speechRate = 1.0f))
             val coordinator = TtsPlaybackCoordinator(api, FakePcmPlayer(), FakeDeviceTts(), settings, coordScope())
 
             coordinator.playTurn("Hello", null)
