@@ -3,13 +3,19 @@ package com.jjundev.oneclickeng.feature.records
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +31,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -41,6 +48,8 @@ import com.jjundev.oneclickeng.ui.component.OneClickDialogVariant
 import com.jjundev.oneclickeng.ui.component.OneClickEmptyState
 import com.jjundev.oneclickeng.ui.component.OneClickScrollFab
 import com.jjundev.oneclickeng.ui.component.OneClickSegmentedControl
+import com.jjundev.oneclickeng.ui.component.OneClickShimmerPiece
+import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.OceBottomNavDefaults
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.ScreenEntranceState
@@ -179,6 +188,7 @@ internal fun RecordsContent(
                 onRequestDelete = { entry -> pendingDeleteId = entry.cardId },
                 onLoadMore = onLoadMore,
                 entrance = entrance,
+                reduceMotion = reduceMotion,
             )
         }
 
@@ -233,9 +243,14 @@ private fun LazyListScope.cardList(
     onRequestDelete: (SavedCardEntry) -> Unit,
     onLoadMore: () -> Unit,
     entrance: ScreenEntranceState,
+    reduceMotion: Boolean,
 ) {
     if (state.cards.isEmpty()) {
-        if (!state.loading) {
+        // 로딩 중(첫 진입 또는 당겨서 재로딩으로 cards 가 비워진 직후)엔 빈 상태 대신 카드 모양 스켈레톤을
+        // 채워 "아무것도 없다가 갑자기 나타나는" 깜빡임을 없앤다(홈 추천 상황 스켈레톤과 동일 패턴).
+        if (state.loading) {
+            recordsSkeletonItems(reduceMotion)
+        } else {
             item(key = "empty") {
                 Box(modifier = Modifier.staggerReveal(2, entrance)) {
                     EmptyState(state.selected)
@@ -266,6 +281,57 @@ private fun LazyListScope.cardList(
         }
     }
 }
+
+/** 카드 로딩 자리표시자([RECORDS_SKELETON_COUNT]개, [SavedCardRow] 모양 미러) — 물결도 실제 카드와 동일하게 참여. */
+private fun LazyListScope.recordsSkeletonItems(reduceMotion: Boolean) {
+    val indices = List(RECORDS_SKELETON_COUNT) { it }
+    itemsIndexed(indices, key = { i, _ -> "skel_$i" }) { index, _ ->
+        RecordsCardSkeletonRow(
+            reduceMotion = reduceMotion,
+            modifier = Modifier.padding(bottom = OceTheme.spacing.md).refreshWave(index),
+        )
+    }
+}
+
+/** [RecordsCardSkeletonRow] 테스트 태그 — [FeedbackLoadingSkeleton] 의 `FEEDBACK_LOADING_CARD_TAG` 선례와 동일 패턴. */
+internal const val RECORDS_CARD_SKELETON_TAG = "records_card_skeleton"
+
+/** [SavedCardRow] 미러 — 유형칩 + 본문 2줄(넓은/좁은) 시머. 카드와 동일한 [OneClickCard] 컨테이너·패딩. */
+@Composable
+private fun RecordsCardSkeletonRow(
+    reduceMotion: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    OneClickCard(modifier = modifier.fillMaxWidth().testTag(RECORDS_CARD_SKELETON_TAG)) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(OceTheme.spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+        ) {
+            OneClickShimmerPiece(
+                shape = OceTheme.shapes.pill,
+                modifier = Modifier.width(RECORDS_SKELETON_CHIP_WIDTH).height(RECORDS_SKELETON_CHIP_HEIGHT),
+                reduceMotion = reduceMotion,
+            )
+            OneClickShimmerPiece(
+                shape = RecordsSkeletonLineShape,
+                modifier = Modifier.fillMaxWidth(RECORDS_SKELETON_LINE_WIDE).height(16.dp),
+                reduceMotion = reduceMotion,
+            )
+            OneClickShimmerPiece(
+                shape = RecordsSkeletonLineShape,
+                modifier = Modifier.fillMaxWidth(RECORDS_SKELETON_LINE_NARROW).height(14.dp),
+                reduceMotion = reduceMotion,
+            )
+        }
+    }
+}
+
+private val RecordsSkeletonLineShape = RoundedCornerShape(6.dp)
+private val RECORDS_SKELETON_CHIP_WIDTH = 72.dp
+private val RECORDS_SKELETON_CHIP_HEIGHT = 22.dp
+private const val RECORDS_SKELETON_LINE_WIDE = 0.78f
+private const val RECORDS_SKELETON_LINE_NARROW = 0.5f
+private const val RECORDS_SKELETON_COUNT = 3
 
 @Composable
 private fun EmptyState(cardType: CardType) {
