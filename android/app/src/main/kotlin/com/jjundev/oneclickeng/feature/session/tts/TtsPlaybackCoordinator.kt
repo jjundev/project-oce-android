@@ -97,6 +97,9 @@ class TtsPlaybackCoordinator
         // concurrent prefetch for the same line join a single /llm call (exactly-once).
         private val inFlight = mutableMapOf<TtsCacheKey, Deferred<CachedAudio?>>()
 
+        // Outstanding prefetch launches, cancelled by clearCache on screen exit.
+        private val prefetchJobs = mutableListOf<Job>()
+
         // replay 등 "발화는 하되 턴을 전진시키지 않는" 재생을 위한 플래그. startNewSession 이 true 로 리셋하고
         // playTurn 이 인자로 덮어쓴다. finish 가 completions emit 여부를 이 값으로 게이트한다.
         @Volatile
@@ -171,6 +174,35 @@ class TtsPlaybackCoordinator
                     }
                     playPcm(token, pcm, sampleRate)
                 }
+        }
+
+        /** Warm the cache for an upcoming opponent line so its later [playTurn] is a cache
+         *  hit (instant, no watchdog). SERVER + unmuted only. Delegates to [obtainAudio], so
+         *  a live [playTurn] for the same line that arrives mid-synthesis joins this one call
+         *  (exactly-once). Never touches player/state/token, so it cannot disturb playback. */
+        fun prefetch(
+            text: String,
+            gender: String?,
+        ) {
+            val job =
+                scope.launch {
+                    val settings = settingsRepo.current()
+                    if (settings.muted || settings.quality != TtsQuality.SERVER) return@launch
+                    obtainAudio(text, gender, settings.speechRate) // result cached as a side effect
+                }
+            prefetchJobs.add(job)
+            job.invokeOnCompletion { prefetchJobs.remove(job) }
+        }
+
+        /** Drop all cached and in-flight synthesis (call on leaving the dialogue screen).
+         *  Cancels outstanding prefetch launches and their in-flight synthesis jobs. Does not
+         *  affect live playback — [stop] handles that separately. */
+        fun clearCache() {
+            prefetchJobs.toList().forEach { it.cancel() }
+            prefetchJobs.clear()
+            inFlight.values.toList().forEach { it.cancel() }
+            inFlight.clear()
+            cache.clear()
         }
 
         /** Stop all playback and reset to idle (e.g. speaker re-tap = stop, plan #14). */

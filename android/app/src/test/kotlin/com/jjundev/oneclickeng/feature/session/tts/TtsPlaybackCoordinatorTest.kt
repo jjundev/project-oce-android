@@ -410,6 +410,117 @@ class TtsPlaybackCoordinatorTest {
             assertEquals(2, api.callCount) // different rate → different key → fresh synthesis
         }
 
+    @Test
+    fun `prefetch warms cache so the later playTurn makes no server call`() =
+        runTest {
+            val api = FakeLlmApi()
+            val player = FakePcmPlayer()
+            val coordinator =
+                TtsPlaybackCoordinator(api, player, FakeDeviceTts(), FakeSettings(), coordScope())
+
+            coordinator.prefetch("Ahead", "female")
+            advanceUntilIdle()
+            assertEquals(1, api.callCount) // synthesized in the background
+            assertEquals(0, player.played.size) // but not played
+
+            coordinator.playTurn("Ahead", "female")
+            advanceUntilIdle()
+            assertEquals(1, api.callCount) // served from the warmed cache — no second call
+            assertEquals(1, player.played.size)
+        }
+
+    @Test
+    fun `prefetch is a no-op in DEVICE quality and when muted`() =
+        runTest {
+            val deviceApi = FakeLlmApi()
+            val deviceCoord =
+                TtsPlaybackCoordinator(
+                    deviceApi,
+                    FakePcmPlayer(),
+                    FakeDeviceTts(),
+                    FakeSettings(TtsSettings(quality = TtsQuality.DEVICE)),
+                    coordScope(),
+                )
+            deviceCoord.prefetch("x", null)
+            advanceUntilIdle()
+            assertEquals(0, deviceApi.callCount)
+
+            val mutedApi = FakeLlmApi()
+            val mutedCoord =
+                TtsPlaybackCoordinator(
+                    mutedApi,
+                    FakePcmPlayer(),
+                    FakeDeviceTts(),
+                    FakeSettings(TtsSettings(muted = true)),
+                    coordScope(),
+                )
+            mutedCoord.prefetch("x", null)
+            advanceUntilIdle()
+            assertEquals(0, mutedApi.callCount)
+        }
+
+    @Test
+    fun `duplicate prefetch of the same line dedups to one synthesis`() =
+        runTest {
+            val api = FakeLlmApi(delayMs = 50) // keep the first in flight while the second arrives
+            val coordinator =
+                TtsPlaybackCoordinator(api, FakePcmPlayer(), FakeDeviceTts(), FakeSettings(), coordScope())
+
+            coordinator.prefetch("Dup", null)
+            coordinator.prefetch("Dup", null)
+            advanceUntilIdle()
+
+            assertEquals(1, api.callCount)
+        }
+
+    @Test
+    fun `prefetch does not disturb playback state`() =
+        runTest {
+            val coordinator =
+                TtsPlaybackCoordinator(FakeLlmApi(), FakePcmPlayer(), FakeDeviceTts(), FakeSettings(), coordScope())
+            val completions = collectCompletions(coordinator)
+            val audioReady = collectAudioReady(coordinator)
+
+            coordinator.prefetch("Bg", null)
+            advanceUntilIdle()
+
+            assertEquals(PlaybackState.IDLE, coordinator.state.value) // never left IDLE
+            assertEquals(0, completions.size)
+            assertEquals(0, audioReady.size)
+        }
+
+    @Test
+    fun `clearCache forces the next playTurn to re-synthesize`() =
+        runTest {
+            val api = FakeLlmApi()
+            val coordinator =
+                TtsPlaybackCoordinator(api, FakePcmPlayer(), FakeDeviceTts(), FakeSettings(), coordScope())
+
+            coordinator.prefetch("Gone", null)
+            advanceUntilIdle()
+            coordinator.clearCache()
+            coordinator.playTurn("Gone", null)
+            advanceUntilIdle()
+
+            assertEquals(2, api.callCount) // cache cleared → fresh synthesis
+        }
+
+    @Test
+    fun `playTurn joins an in-flight prefetch instead of re-synthesizing`() =
+        runTest {
+            val api = FakeLlmApi(delayMs = 100) // keep the synthesis in flight
+            val player = FakePcmPlayer()
+            val coordinator =
+                TtsPlaybackCoordinator(api, player, FakeDeviceTts(), FakeSettings(), coordScope())
+
+            coordinator.prefetch("Join", null) // starts synthesis (Unconfined runs it to the delay)
+            coordinator.playTurn("Join", null) // same line arrives before synthesis resolves → joins it
+            advanceUntilIdle()
+
+            assertEquals(1, api.callCount) // live play joined the in-flight synthesis — no 2nd call
+            assertEquals(1, player.played.size)
+        }
+
     /** Coordinator scope on an unconfined dispatcher tied to the test scheduler, so
      *  launches run eagerly while virtual time still drives the watchdogs. */
     private fun TestScope.coordScope(): CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
