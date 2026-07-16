@@ -675,6 +675,46 @@ class TtsPlaybackCoordinatorTest {
         }
 
     @Test
+    fun `prefetch tolerates a cold synthesis longer than the live watchdog and caches it`() =
+        runTest {
+            // 12s synth: exceeds the 8s live-playback bound but is within the 16s synthesis budget.
+            val api = FakeLlmApi(delayMs = 12_000)
+            val player = FakePcmPlayer()
+            val coordinator =
+                TtsPlaybackCoordinator(api, player, FakeDeviceTts(), FakeSettings(), coordScope())
+
+            coordinator.prefetch("Cold", "female")
+            advanceUntilIdle()
+            assertEquals(1, api.callCount) // the cold synthesis completed (not killed at 8s)
+
+            coordinator.playTurn("Cold", "female")
+            advanceUntilIdle()
+            assertEquals(1, api.callCount) // served from the warmed cache — no re-synthesis
+            assertEquals(1, player.played.size)
+        }
+
+    @Test
+    fun `live playTurn falls back to device at 8s while the cold synthesis keeps caching`() =
+        runTest {
+            val api = FakeLlmApi(delayMs = 12_000) // > 8s live bound, < 16s synth budget
+            val device = FakeDeviceTts(result = DeviceTtsResult.COMPLETED)
+            val player = FakePcmPlayer()
+            val coordinator =
+                TtsPlaybackCoordinator(api, player, device, FakeSettings(), coordScope())
+
+            coordinator.playTurn("Cold", "female") // no prefetch: live path starts the synthesis
+            advanceUntilIdle()
+            assertEquals(1, device.callCount) // fell back to device at the 8s bound
+            assertEquals(1, api.callCount) // one synthesis was started
+
+            // The synthesis kept running past the 8s live bound and cached; a later play is a hit.
+            coordinator.playTurn("Cold", "female")
+            advanceUntilIdle()
+            assertEquals(1, api.callCount) // no second synthesis — cache hit
+            assertEquals(1, player.played.size) // and it played from the server cache this time
+        }
+
+    @Test
     fun `device path stays LOADING with no audioReady until the engine reports onStart`() =
         runTest {
             val device = FakeDeviceTts(result = DeviceTtsResult.COMPLETED, delayMs = 5_000)

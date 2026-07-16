@@ -32,15 +32,20 @@ internal data class TtsCacheKey(
 )
 
 /**
- * Orchestrates opponent-turn TTS: server (Gemini) synthesis with an 8s watchdog, device
- * fallback with a 7s watchdog, in-memory replay, mute, and stale-session guarding
- * (Kotlin/coroutine port of the archived `DialoguePlaybackCoordinator`).
+ * Orchestrates opponent-turn TTS: server (Gemini) synthesis, device fallback ([DEVICE_WATCHDOG_MS],
+ * 7s), in-memory replay, mute, and stale-session guarding (Kotlin/coroutine port of the archived
+ * `DialoguePlaybackCoordinator`).
  *
- * The watchdog bounds *synthesis* (PCM reception), not playback duration — once audio
- * arrives, it plays to completion (tts.md §4). Base64→PCM decoding happens here (plan
- * #11) via [Base64] (available at minSdk 26), keeping the player free of encoding.
- * Framework audio/engine work is behind [PcmPlayer]/[DeviceTts] so this class is a pure,
- * unit-testable coroutine state machine.
+ * Two bounds govern the server path (tts.md §4). [SYNTH_WATCHDOG_MS] (16s) budgets the synthesis
+ * job itself, so the *covered* paths ([prefetch]/[awaitWarm], hidden behind the loading quiz or the
+ * learner's turn) let a cold first call finish and cache. [SERVER_WATCHDOG_MS] (8s) bounds only how
+ * long *live* playback waits in [playFromServer] before falling back to the device — the synthesis
+ * is a sibling job, so that wait can lapse while the synthesis completes and caches for next time.
+ * Neither bounds playback duration: once audio arrives it plays to completion.
+ *
+ * Base64→PCM decoding happens here (plan #11) via [Base64] (available at minSdk 26), keeping the
+ * player free of encoding. Framework audio/engine work is behind [PcmPlayer]/[DeviceTts] so this
+ * class is a pure, unit-testable coroutine state machine.
  */
 // 상태 머신 코디네이터라 작은 전이 헬퍼가 많다(DeepFeedbackCoordinator 선례와 동일 판단).
 @Suppress("TooManyFunctions")
@@ -198,7 +203,8 @@ class TtsPlaybackCoordinator
          *  then return true. Returns true *immediately* when there is nothing to warm (muted, or
          *  DEVICE quality); returns false only if SERVER synthesis failed. The loading gate uses
          *  this to decide when the first line will play instantly, never to gate correctness (live
-         *  playback still falls back on its own). Bounded by [obtainAudio]'s own 8s watchdog. */
+         *  playback still falls back on its own). Bounded by [SYNTH_WATCHDOG_MS] (16s) — so on a
+         *  cold first call the loading gate that awaits this can hold the quiz up to ~16s. */
         suspend fun awaitWarm(
             text: String,
             gender: String?,
@@ -250,7 +256,7 @@ class TtsPlaybackCoordinator
             rate: Float,
         ): CachedAudio? {
             val response =
-                withTimeoutOrNull(SERVER_WATCHDOG_MS) {
+                withTimeoutOrNull(SYNTH_WATCHDOG_MS) {
                     try {
                         api.tts(TtsRequest(payload = TtsPayload(text = text, gender = gender, speechRate = rate)))
                     } catch (e: kotlinx.coroutines.CancellationException) {
@@ -302,7 +308,10 @@ class TtsPlaybackCoordinator
             gender: String?,
             rate: Float,
         ): Boolean {
-            val audio = obtainAudio(text, gender, rate) ?: return false
+            // Live playback waits at most SERVER_WATCHDOG_MS for the audio, then falls back to
+            // device. The synthesis is a sibling job on `scope`, so this timeout only abandons the
+            // *wait* — the cold synthesis finishes in the background and caches for the next need.
+            val audio = withTimeoutOrNull(SERVER_WATCHDOG_MS) { obtainAudio(text, gender, rate) } ?: return false
             if (token != sessionToken) return true // stale: swallow, don't advance
             lastPcm = audio.pcm
             lastSampleRate = audio.sampleRate
@@ -375,8 +384,16 @@ class TtsPlaybackCoordinator
 
         companion object {
             // Client watchdogs (tts.md §4). Constants for now; a config override is a follow-up seam.
+            // SYNTH_WATCHDOG_MS bounds the synthesis job itself (covers the server's 7s×2 retry);
+            // SERVER_WATCHDOG_MS bounds only the live-playback wait in playFromServer, not synthesis.
             const val SERVER_WATCHDOG_MS = 8_000L
             const val DEVICE_WATCHDOG_MS = 7_000L
+
+            // The synthesis job's own budget. Must exceed the SERVER's worst-case retry
+            // (gemini.ts REQUEST_TIMEOUT_MS 7s × MAX_ATTEMPTS 2 = 14s) so a cold Gemini-TTS
+            // call that only succeeds on the server's second attempt still completes and caches.
+            // Prefetch/warm paths are covered (loading quiz / learner turn), so they can afford it.
+            const val SYNTH_WATCHDOG_MS = 16_000L
 
             // A dialogue has ~2–3 opponent lines; 4 covers current + next with margin, and
             // LRU eviction bounds memory if a longer session accumulates more.

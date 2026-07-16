@@ -116,8 +116,16 @@ class DialogueGenerationViewModel
          *  Ready 도착 시 호출, suspend). 로딩 화면이 이 신호까지 "준비 중"을 유지하므로 채팅 진입 즉시 첫 대사가
          *  재생된다. TtsPlaybackCoordinator 는 @Singleton 이라 이 VM 이 파괴돼도(생성→채팅 nav pop) 캐시가 살아
          *  있어 채팅의 speakOpponent 가 같은 라인을 즉시 재생한다(같은 sessionId→같은 gender→같은 캐시 키).
-         *  [awaitWarm] 은 DEVICE·음소거면 즉시 반환하고, SERVER 면 합성 완료(코디네이터 8s 워치독 상한)까지 대기해
-         *  무한 블록되지 않는다. 멱등(이미 준비됐으면 no-op). */
+         *  [awaitWarm] 은 DEVICE·음소거면 즉시 반환하고, SERVER 면 합성 완료까지 대기한다 — 상한은 코디네이터의
+         *  [TtsPlaybackCoordinator.SYNTH_WATCHDOG_MS](16s)라 콜드 첫 호출이면 로딩 화면이 최대 그만큼 유지된다
+         *  (8s 가 아니다 — 8s 는 라이브 재생의 단말 폴백 상한). 합성 실패여도 게이트는 열어 진입을 막지 않는다.
+         *  멱등(이미 준비됐으면 no-op).
+         *
+         *  전제: 이 await 중에 [TtsPlaybackCoordinator.clearCache] 가 불리면 in-flight deferred 가 취소되며
+         *  CancellationException 이 여기로 전파돼 [firstLineReady] 가 영영 false 로 남는다(로딩 화면 고착).
+         *  현재 clearCache 호출자는 채팅 VM 의 onCleared 뿐이고 생성→채팅 pop 이후라 도달 불가하다. 생성 측에
+         *  clearCache 호출자를 추가한다면 이 await 를 `catch (e: CancellationException) { coroutineContext.ensureActive() }`
+         *  로 감싸 deferred 취소와 본 코루틴 취소를 구분해야 한다. */
         suspend fun prepareFirstLine() {
             if (_firstLineReady.value) return
             val ready = coordinator.state.value as? DialogueGenState.Ready ?: return // 아직 미도착 — 재호출 시 재시도
