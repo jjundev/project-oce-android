@@ -48,6 +48,7 @@ class RecordsViewModel
         private var lifetime: LifetimeStats? = null
         private var animateCountUp: Boolean = false
         private var dueCount: Int = 0
+        private var refreshing: Boolean = false
 
         private val _uiState = MutableStateFlow(RecordsUiState())
         val uiState: StateFlow<RecordsUiState> = _uiState.asStateFlow()
@@ -68,6 +69,7 @@ class RecordsViewModel
         fun selectTab(cardType: CardType) {
             if (cardType == selected) return
             selected = cardType
+            refreshing = false // 탭 전환 = 진행 중인 당겨서-새로고침 제스처 포기(박스 무한 대기 방지)
             analytics.tabSwitch(cardType)
             if (!typeStates.getValue(cardType).loaded) {
                 loadFirstPage(cardType)
@@ -89,6 +91,7 @@ class RecordsViewModel
             val state = typeStates.getValue(cardType)
             if (state.loading) return
 
+            refreshing = true
             typeStates[cardType] =
                 state.copy(
                     cards = emptyList(),
@@ -139,6 +142,7 @@ class RecordsViewModel
                         loading = false,
                         loaded = true,
                     )
+                if (cardType == selected) refreshing = false
                 publish()
             }
         }
@@ -154,6 +158,7 @@ class RecordsViewModel
                     lifetime = lifetime,
                     animateCountUp = animateCountUp,
                     dueCount = dueCount,
+                    refreshing = refreshing,
                 )
         }
     }

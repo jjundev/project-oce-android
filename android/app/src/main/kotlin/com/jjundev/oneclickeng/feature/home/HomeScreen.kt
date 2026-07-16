@@ -85,6 +85,8 @@ import com.jjundev.oneclickeng.ui.foundation.OceIconSize
 import com.jjundev.oneclickeng.ui.foundation.OceBottomNavDefaults
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.foundation.ScreenEntranceState
+import com.jjundev.oneclickeng.ui.foundation.refresh.OverscrollRefreshBox
+import com.jjundev.oneclickeng.ui.foundation.refresh.refreshWave
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.foundation.rememberScreenEntrance
 import com.jjundev.oneclickeng.ui.foundation.staggerReveal
@@ -284,124 +286,138 @@ internal fun HomeContent(
             if (reduceMotion) listState.scrollToItem(0) else listState.animateScrollToItem(0)
         }
     }
-    LazyColumn(
-        state = listState,
-        modifier =
-            modifier
-                .fillMaxSize()
-                .padding(horizontal = OceTheme.spacing.xl),
-        contentPadding =
-            PaddingValues(bottom = OceBottomNavDefaults.overlayContentBottomPadding),
+    OverscrollRefreshBox(
+        isRefreshing = false, // 추천 상황 회전은 동기/로컬 → 최소 표시 시간이 지배
+        onRefresh = onRefreshSituations, // 오직 추천 상황만 새로고침(오늘 N분/streak/hero 불변)
+        modifier = modifier,
     ) {
-        // 리마인더 켜짐 확인 배너(프로토 reminderBanner) — 홈 최상단 in-flow.
-        if (showReminderBanner) {
-            item(key = "reminder_banner") {
-                OneClickReminderEnabledBanner(
-                    hour = reminderHour,
-                    minute = reminderMinute,
-                    onDismiss = onDismissReminderBanner,
-                    onChangeTime = onChangeReminderTime,
-                    modifier = Modifier.staggerReveal(0, entrance).padding(top = OceTheme.spacing.lg),
+        LazyColumn(
+            state = listState,
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = OceTheme.spacing.xl),
+            contentPadding =
+                PaddingValues(bottom = OceBottomNavDefaults.overlayContentBottomPadding),
+        ) {
+            // 리마인더 켜짐 확인 배너(프로토 reminderBanner) — 홈 최상단 in-flow.
+            if (showReminderBanner) {
+                item(key = "reminder_banner") {
+                    OneClickReminderEnabledBanner(
+                        hour = reminderHour,
+                        minute = reminderMinute,
+                        onDismiss = onDismissReminderBanner,
+                        onChangeTime = onChangeReminderTime,
+                        modifier = Modifier.staggerReveal(0, entrance).padding(top = OceTheme.spacing.lg),
+                    )
+                }
+            }
+            // 프로토타입 홈 리듬(비균일): 섹션 사이는 넉넉히(12~24dp), 상황 카드끼리는 촘촘히(8dp).
+            item(key = "header") {
+                Column(
+                    modifier =
+                        Modifier
+                            .staggerReveal(1, entrance)
+                            .padding(top = OceTheme.spacing.xxl)
+                            .refreshWave(0, soft = true),
+                    verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
+                ) {
+                    Text(
+                        text = if (state.hasResume) "이어서 말해볼까요?" else "오늘도 영어로 말해볼까요?",
+                        style = OceTheme.typography.homeTitle,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    Text(
+                        text =
+                            if (state.hasResume) {
+                                "이전 대화를 이어가거나 새로 시작할 수 있어요."
+                            } else {
+                                "5분만 가볍게 시작해요."
+                            },
+                        style = OceTheme.typography.helper.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            item(key = "stats") {
+                StatsStrip(
+                    studyMinutes = state.studyMinutes,
+                    streak = state.streak,
+                    reduceMotion = reduceMotion,
+                    modifier =
+                        Modifier
+                            .staggerReveal(2, entrance)
+                            .padding(top = OceTheme.spacing.md)
+                            .refreshWave(1, soft = true),
                 )
             }
-        }
-        // 프로토타입 홈 리듬(비균일): 섹션 사이는 넉넉히(12~24dp), 상황 카드끼리는 촘촘히(8dp).
-        item(key = "header") {
-            Column(
-                modifier = Modifier.staggerReveal(1, entrance).padding(top = OceTheme.spacing.xxl),
-                verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
-            ) {
-                Text(
-                    text = if (state.hasResume) "이어서 말해볼까요?" else "오늘도 영어로 말해볼까요?",
-                    style = OceTheme.typography.homeTitle,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.semantics { heading() },
-                )
-                Text(
-                    text =
-                        if (state.hasResume) {
-                            "이전 대화를 이어가거나 새로 시작할 수 있어요."
-                        } else {
-                            "5분만 가볍게 시작해요."
-                        },
-                    style = OceTheme.typography.helper.copy(fontWeight = FontWeight.Medium),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
 
-        item(key = "stats") {
-            StatsStrip(
-                studyMinutes = state.studyMinutes,
-                streak = state.streak,
-                reduceMotion = reduceMotion,
-                modifier = Modifier.staggerReveal(2, entrance).padding(top = OceTheme.spacing.md),
-            )
-        }
-
-        item(key = "hero") {
-            HeroCta(
-                online = state.isOnline,
-                resumeTopic = if (state.hasResume) state.resumeTopic else null,
-                resumeTurn = state.resumeTurn,
-                resumeTotalTurns = state.resumeTotalTurns,
-                situationLabel = state.selectedSituation?.labelKo,
-                level = state.level,
-                length = state.length,
-                onClick = if (state.hasResume) onResumeContinue else onStartLearning,
-                onDisabledClick = onOfflineBlocked,
-                reduceMotion = reduceMotion,
-                modifier = Modifier.staggerReveal(3, entrance).padding(top = OceTheme.spacing.xl),
-            )
-        }
-
-        if (state.hasResume) {
-            item(key = "new_chat") {
-                NewChatLink(
-                    onClick = onResumeStartNew,
-                    modifier = Modifier.staggerReveal(4, entrance).padding(top = OceTheme.spacing.md),
-                )
-            }
-        } else {
-            item(key = "settings_inline") {
-                SettingsInline(
+            item(key = "hero") {
+                HeroCta(
+                    online = state.isOnline,
+                    resumeTopic = if (state.hasResume) state.resumeTopic else null,
+                    resumeTurn = state.resumeTurn,
+                    resumeTotalTurns = state.resumeTotalTurns,
+                    situationLabel = state.selectedSituation?.labelKo,
                     level = state.level,
                     length = state.length,
-                    onSetLevel = onSetLevel,
-                    onSetLength = onSetLength,
-                    modifier = Modifier.staggerReveal(4, entrance).padding(top = OceTheme.spacing.md),
+                    onClick = if (state.hasResume) onResumeContinue else onStartLearning,
+                    onDisabledClick = onOfflineBlocked,
+                    reduceMotion = reduceMotion,
+                    modifier = Modifier.staggerReveal(3, entrance).padding(top = OceTheme.spacing.xl),
                 )
             }
-        }
 
-        if (state.situations.isNotEmpty()) {
-            item(key = "situations_header") {
-                SituationsHeader(
-                    gridMode = gridMode,
-                    onToggleLayout = onToggleLayout,
-                    onRefresh = onRefreshSituations,
-                    modifier = Modifier.staggerReveal(5, entrance).padding(top = OceTheme.spacing.xxl),
-                )
-            }
-            if (situationsSkeleton) {
-                situationsSkeletonItems(state.situations.size, gridMode, reduceMotion)
+            if (state.hasResume) {
+                item(key = "new_chat") {
+                    NewChatLink(
+                        onClick = onResumeStartNew,
+                        modifier = Modifier.staggerReveal(4, entrance).padding(top = OceTheme.spacing.md),
+                    )
+                }
             } else {
-                situationsCardItems(state.situations, gridMode, entrance, onSituationTap)
+                item(key = "settings_inline") {
+                    SettingsInline(
+                        level = state.level,
+                        length = state.length,
+                        onSetLevel = onSetLevel,
+                        onSetLength = onSetLength,
+                        modifier = Modifier.staggerReveal(4, entrance).padding(top = OceTheme.spacing.md),
+                    )
+                }
             }
-            item(key = "more_situations") {
-                MoreSituationsButton(
-                    onClick = onMoreSituations,
-                    modifier = Modifier.staggerReveal(11, entrance).padding(top = OceTheme.spacing.xl),
-                )
-            }
-        }
 
-        if (state.atLimit) {
-            item(key = "atLimit") {
-                OneClickAtLimitNotice(
-                    onViewRecords = onViewRecords,
-                    modifier = Modifier.staggerReveal(11, entrance).padding(top = OceTheme.spacing.md),
-                )
+            if (state.situations.isNotEmpty()) {
+                item(key = "situations_header") {
+                    SituationsHeader(
+                        gridMode = gridMode,
+                        onToggleLayout = onToggleLayout,
+                        onRefresh = onRefreshSituations,
+                        modifier = Modifier.staggerReveal(5, entrance).padding(top = OceTheme.spacing.xxl),
+                    )
+                }
+                if (situationsSkeleton) {
+                    situationsSkeletonItems(state.situations.size, gridMode, reduceMotion)
+                } else {
+                    situationsCardItems(state.situations, gridMode, entrance, onSituationTap)
+                }
+                item(key = "more_situations") {
+                    MoreSituationsButton(
+                        onClick = onMoreSituations,
+                        modifier = Modifier.staggerReveal(11, entrance).padding(top = OceTheme.spacing.xl),
+                    )
+                }
+            }
+
+            if (state.atLimit) {
+                item(key = "atLimit") {
+                    OneClickAtLimitNotice(
+                        onViewRecords = onViewRecords,
+                        modifier = Modifier.staggerReveal(11, entrance).padding(top = OceTheme.spacing.md),
+                    )
+                }
             }
         }
     }
@@ -423,7 +439,8 @@ private fun LazyListScope.situationsCardItems(
                         .staggerReveal(6 + index, entrance)
                         .fillMaxWidth()
                         .padding(top = if (index == 0) OceTheme.spacing.lg else OceTheme.spacing.sm)
-                        .height(IntrinsicSize.Min),
+                        .height(IntrinsicSize.Min)
+                        .refreshWave(index),
                 horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
             ) {
                 pair.forEach { situation ->
@@ -444,7 +461,7 @@ private fun LazyListScope.situationsCardItems(
                 modifier =
                     Modifier.staggerReveal(6 + index, entrance).padding(
                         top = if (index == 0) OceTheme.spacing.lg else OceTheme.spacing.sm,
-                    ),
+                    ).refreshWave(index),
             )
         }
     }
