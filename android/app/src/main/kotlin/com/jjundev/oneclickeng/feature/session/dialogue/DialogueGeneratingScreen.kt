@@ -243,6 +243,11 @@ fun DialogueGeneratingRoute(
     }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val quizItems by viewModel.quizItems.collectAsStateWithLifecycle()
+
+    // 로딩 퀴즈가 떠 있는 동안 첫 상대 대사를 미리 합성해둔다(Ready = 첫 대사 도착) → 채팅 진입 시 즉시 재생.
+    LaunchedEffect(state is DialogueGenState.Ready) {
+        if (state is DialogueGenState.Ready) viewModel.warmFirstLine()
+    }
     DialogueGeneratingScreen(
         state = state,
         quizItems = quizItems,

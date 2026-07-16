@@ -6,6 +6,9 @@ import com.jjundev.oneclickeng.core.network.LimitAnalytics
 import com.jjundev.oneclickeng.core.network.WaitQuizAnalytics
 import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
 import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
+import com.jjundev.oneclickeng.feature.session.tts.TtsPlaybackCoordinator
+import com.jjundev.oneclickeng.feature.session.turn.SpeakerDirectory
+import com.jjundev.oneclickeng.feature.session.turn.nextOpponentEnglish
 import com.jjundev.oneclickeng.ui.component.QuizItem
 import com.jjundev.oneclickeng.ui.component.selectLimitSurface
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,6 +35,7 @@ class DialogueGenerationViewModel
     @Inject
     constructor(
         private val coordinator: DialogueGenerationCoordinator,
+        private val tts: TtsPlaybackCoordinator,
         private val quizBank: QuizBank,
         private val analytics: WaitQuizAnalytics,
         private val limitAnalytics: LimitAnalytics,
@@ -100,6 +104,17 @@ class DialogueGenerationViewModel
                     appScope.launch { snapshotStore.clear() }
                 }
             }
+        }
+
+        /** 로딩 퀴즈가 떠 있는 동안 첫 상대 대사 오디오를 미리 서버 합성해 캐시에 채운다(Route 가 Ready 도착 시 호출).
+         *  TtsPlaybackCoordinator 는 @Singleton 이라 이 VM 이 파괴돼도(생성→채팅 nav pop) 캐시가 살아 있어,
+         *  채팅의 speakOpponent 가 같은 라인을 즉시 재생한다(같은 sessionId→같은 gender→같은 캐시 키). 코디네이터
+         *  prefetch 가 SERVER·비음소거 게이트와 dedup 을 처리하므로 여기선 무조건 호출해도 안전(중복 호출 무해). */
+        fun warmFirstLine() {
+            val ready = coordinator.state.value as? DialogueGenState.Ready ?: return
+            val text = nextOpponentEnglish(ready.turns, 0) ?: return
+            val gender = ready.sessionId?.let { SpeakerDirectory.assign(it).gender }
+            tts.prefetch(text, gender)
         }
 
         /**

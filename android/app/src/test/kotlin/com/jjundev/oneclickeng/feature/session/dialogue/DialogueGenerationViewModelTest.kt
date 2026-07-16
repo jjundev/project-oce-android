@@ -8,11 +8,23 @@ import com.jjundev.oneclickeng.core.network.DialogueTurn
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
+import com.jjundev.oneclickeng.core.audio.PcmPlayer
 import com.jjundev.oneclickeng.core.network.DialogueStream
 import com.jjundev.oneclickeng.core.network.LimitAnalytics
+import com.jjundev.oneclickeng.core.network.LlmApi
+import com.jjundev.oneclickeng.core.network.SpeakingRequest
+import com.jjundev.oneclickeng.core.network.SpeakingResponse
+import com.jjundev.oneclickeng.core.network.TtsRequest
+import com.jjundev.oneclickeng.core.network.TtsResponse
 import com.jjundev.oneclickeng.core.network.WaitQuizAnalytics
+import com.jjundev.oneclickeng.core.settings.TtsQuality
+import com.jjundev.oneclickeng.core.settings.TtsSettings
+import com.jjundev.oneclickeng.core.settings.TtsSettingsRepository
 import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
 import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
+import com.jjundev.oneclickeng.feature.session.tts.DeviceTts
+import com.jjundev.oneclickeng.feature.session.tts.DeviceTtsResult
+import com.jjundev.oneclickeng.feature.session.tts.TtsPlaybackCoordinator
 import com.jjundev.oneclickeng.ui.component.QuizItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -20,8 +32,10 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -91,6 +105,41 @@ private class RecordingLimitAnalytics : LimitAnalytics {
 }
 
 private class FakeConfig(override val loadingQuizEnabled: Boolean) : LoadingQuizConfig
+
+private class CountingTtsApi : LlmApi {
+    var callCount = 0
+    var lastText: String? = null
+    var lastGender: String? = null
+
+    override suspend fun tts(body: TtsRequest): TtsResponse {
+        callCount++
+        lastText = body.payload.text
+        lastGender = body.payload.gender
+        return TtsResponse(pcmBase64 = "", sampleRate = 24000, mimeType = "audio/L16;rate=24000")
+    }
+
+    override suspend fun speaking(body: SpeakingRequest): SpeakingResponse = error("unused")
+}
+
+private class NoopPcmPlayer : PcmPlayer {
+    override suspend fun play(pcm: ByteArray, sampleRateHz: Int) = Unit
+    override fun stop() = Unit
+}
+
+private class NoopDeviceTts : DeviceTts {
+    override suspend fun speak(text: String, gender: String?, speechRate: Float, onStart: () -> Unit): DeviceTtsResult =
+        DeviceTtsResult.COMPLETED
+
+    override fun stop() = Unit
+}
+
+private class ServerTtsSettings : TtsSettingsRepository {
+    override val settings: Flow<TtsSettings> = flowOf(TtsSettings())
+    override suspend fun current(): TtsSettings = TtsSettings() // default quality = SERVER
+    override suspend fun setQuality(quality: TtsQuality) = Unit
+    override suspend fun setSpeechRate(rate: Float) = Unit
+    override suspend fun setMuted(muted: Boolean) = Unit
+}
 
 private class RecordingOfflineAnalytics : OfflineAnalytics {
     val blocked = mutableListOf<String>()
@@ -248,9 +297,12 @@ class DialogueGenerationViewModelTest {
             assertTrue(coordinator.state.value is DialogueGenState.Ready)
 
             // A new generating screen mounts → a fresh VM is created sharing that singleton coordinator.
+            val tts =
+                TtsPlaybackCoordinator(CountingTtsApi(), NoopPcmPlayer(), NoopDeviceTts(), ServerTtsSettings(), scope)
             val vm =
                 DialogueGenerationViewModel(
                     coordinator,
+                    tts,
                     bank,
                     RecordingAnalytics(),
                     RecordingLimitAnalytics(),
@@ -262,6 +314,44 @@ class DialogueGenerationViewModelTest {
 
             // init must reset the leftover Ready so the generating screen sees Idle (→ quiz, not auto-skip).
             assertEquals(DialogueGenState.Idle, vm.state.value)
+        }
+
+    @Test
+    fun `warmFirstLine prefetches the first opponent line once generation is Ready`() =
+        runTest {
+            val stream = FakeStream()
+            val scope: CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
+            val coordinator = DialogueGenerationCoordinator(stream, scope, FakeConnectivity(offline = false))
+            val ttsApi = CountingTtsApi()
+            val tts = TtsPlaybackCoordinator(ttsApi, NoopPcmPlayer(), NoopDeviceTts(), ServerTtsSettings(), scope)
+
+            val vm =
+                DialogueGenerationViewModel(
+                    coordinator,
+                    tts,
+                    bank,
+                    RecordingAnalytics(),
+                    RecordingLimitAnalytics(),
+                    SessionSnapshotStore(inMemoryPrefsDataStore()),
+                    scope,
+                    RecordingOfflineAnalytics(),
+                    FakeConfig(true),
+                )
+
+            // init resets the coordinator to Idle, so Ready must be established AFTER construction —
+            // otherwise the ctor's reset() wipes the sticky Ready this test relies on.
+            coordinator.start("easy", "t", 5, firstSession = true)
+            runCurrent()
+            stream.push(DialogueEvent.Start(sessionId = "s1", remaining = 3))
+            stream.push(DialogueEvent.Turn(DialogueTurn(ko = "안녕", en = "Hello there", role = "model")))
+            runCurrent()
+            assertTrue(coordinator.state.value is DialogueGenState.Ready)
+
+            vm.warmFirstLine()
+            advanceUntilIdle()
+
+            assertEquals(1, ttsApi.callCount)
+            assertEquals("Hello there", ttsApi.lastText) // the first opponent (model, index 0) line
         }
 
     @Suppress("LongParameterList") // 테스트 팩토리 — seam 별 fake 를 명시 주입한다(운영 코드 아님).
@@ -276,8 +366,10 @@ class DialogueGenerationViewModelTest {
         val scope: CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
         val coordinator = DialogueGenerationCoordinator(stream, scope, connectivity)
         val snapshotStore = SessionSnapshotStore(inMemoryPrefsDataStore())
+        val tts = TtsPlaybackCoordinator(CountingTtsApi(), NoopPcmPlayer(), NoopDeviceTts(), ServerTtsSettings(), scope)
         return DialogueGenerationViewModel(
             coordinator,
+            tts,
             bank,
             analytics,
             limitAnalytics,
