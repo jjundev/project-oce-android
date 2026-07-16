@@ -343,6 +343,73 @@ class TtsPlaybackCoordinatorTest {
             assertEquals(PlaybackState.IDLE, coordinator.state.value)
         }
 
+    @Test
+    fun `second playTurn of same line reuses cache without a second synthesis`() =
+        runTest {
+            val api = FakeLlmApi(response = okResponse(rate = 24000))
+            val player = FakePcmPlayer()
+            val coordinator = TtsPlaybackCoordinator(api, player, FakeDeviceTts(), FakeSettings(), coordScope())
+
+            coordinator.playTurn("Hello", "female")
+            advanceUntilIdle()
+            coordinator.playTurn("Hello", "female")
+            advanceUntilIdle()
+
+            assertEquals(1, api.callCount) // synthesized once, second play served from cache
+            assertEquals(2, player.played.size) // but played both times
+            assertTrue(PCM_BYTES.contentEquals(player.played[1].first))
+        }
+
+    @Test
+    fun `second playTurn of the same line joins an in-flight synthesis`() =
+        runTest {
+            val api = FakeLlmApi(delayMs = 1_000_000) // keep the first synthesis in flight
+            val player = FakePcmPlayer()
+            val coordinator = TtsPlaybackCoordinator(api, player, FakeDeviceTts(), FakeSettings(), coordScope())
+
+            coordinator.playTurn("Hello", "female")
+            runCurrent() // first synthesis registers inFlight and suspends inside api.tts
+            coordinator.playTurn("Hello", "female") // same line arrives before the first resolves;
+            // its startNewSession() cancels the first awaiter, but the sibling synthesis survives.
+            advanceUntilIdle()
+
+            assertEquals(1, api.callCount) // joined the in-flight synthesis; the cancelled awaiter did NOT evict it
+        }
+
+    @Test
+    fun `replay path advanceOnDone false of a cached line makes no server call`() =
+        runTest {
+            val api = FakeLlmApi()
+            val player = FakePcmPlayer()
+            val coordinator = TtsPlaybackCoordinator(api, player, FakeDeviceTts(), FakeSettings(), coordScope())
+            val completions = collectCompletions(coordinator)
+
+            coordinator.playTurn("Hi", "male") // auto-speak: synthesizes + caches
+            advanceUntilIdle()
+            coordinator.playTurn("Hi", "male", advanceOnDone = false) // "다시 듣기"
+            advanceUntilIdle()
+
+            assertEquals(1, api.callCount) // replay served from cache, no re-synthesis
+            assertEquals(2, player.played.size)
+            assertEquals(1, completions.size) // only the auto-speak advanced; replay did not
+        }
+
+    @Test
+    fun `cache key includes speech rate so a rate change re-synthesizes`() =
+        runTest {
+            val api = FakeLlmApi()
+            val settings = FakeSettings(TtsSettings(speechRate = 1.0f))
+            val coordinator = TtsPlaybackCoordinator(api, FakePcmPlayer(), FakeDeviceTts(), settings, coordScope())
+
+            coordinator.playTurn("Hello", null)
+            advanceUntilIdle()
+            settings.setSpeechRate(1.5f)
+            coordinator.playTurn("Hello", null)
+            advanceUntilIdle()
+
+            assertEquals(2, api.callCount) // different rate → different key → fresh synthesis
+        }
+
     /** Coordinator scope on an unconfined dispatcher tied to the test scheduler, so
      *  launches run eagerly while virtual time still drives the watchdogs. */
     private fun TestScope.coordScope(): CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
