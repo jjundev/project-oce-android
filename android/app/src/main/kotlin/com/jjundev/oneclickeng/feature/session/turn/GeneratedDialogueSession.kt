@@ -323,7 +323,8 @@ class GeneratedDialogueSessionViewModel
             // completions 를 내지 않으므로 여기로 오지 않는다(자동발화만 전진 구동).
             viewModelScope.launch { tts.completions.collect { onOpponentTtsDone() } }
             // 음성 데이터 없음(ERROR_TEXT_ONLY)은 completions 대신 상태로만 표출된다(코디네이터 advance=false).
-            // device-only 라 서버 폴백이 없으므로 텍스트는 남긴 채 그냥 전진시켜 세션이 멈추지 않게 한다(결정 #14).
+            // 이 상태는 단말 경로에서만(DEVICE 설정 또는 SERVER 합성 실패 후 단말 폴백) 영어 음성 데이터 미설치 시
+            // 나온다. 더 내려갈 폴백이 없으므로 텍스트는 남긴 채 그냥 전진시켜 세션이 멈추지 않게 한다(결정 #14).
             // 주의: 이 수집기는 advanceOnDone 게이트가 없다 — replay(LearnerTurn 한정) 중 음성없음이 나도
             // completeOpponentTurn 의 OpponentTurn/InTurn 가드가 오전진을 흡수하는 데 의존한다. replay 를
             // OpponentTurn 중 허용하거나 그 가드를 완화하면 이 의존이 깨지니 함께 재검토할 것.
@@ -426,16 +427,18 @@ class GeneratedDialogueSessionViewModel
             }
         }
 
-        /** 상대역 대사 디바이스 자동발화(Route 가 commitReveal 직후 호출). 완료 시 completions→자동진행. */
+        /** 상대역 대사 자동발화(Route 가 commitReveal 직후 호출). 음질 설정을 따른다 — SERVER 면 서버(Gemini)
+         *  합성(8초 워치독 후 단말 폴백), DEVICE 면 단말 TTS. 완료 시 completions→자동진행. */
         fun speakOpponent(text: String) {
-            tts.playTurn(text, gender = opponentSpeaker?.gender, deviceOnly = true, advanceOnDone = true)
+            tts.playTurn(text, gender = opponentSpeaker?.gender, advanceOnDone = true)
         }
 
         /** 말풍선 "다시 듣기" 재발화. 자동발화 중(OpponentTurn)엔 no-op — 라이브 발화 취소·조기전진을 막는다.
-         *  advanceOnDone=false 라 재발화 완료가 턴 전진을 구동하지 않는다(경쟁 봉인, 결정 #9). */
+         *  음질 설정을 따라 재합성한다(SERVER 면 서버 재합성 — 캐시 재사용 아님, 결정 A). advanceOnDone=false 라
+         *  재발화 완료가 턴 전진을 구동하지 않는다(경쟁 봉인, 결정 #9). */
         fun replayOpponent(text: String) {
             if (turnState.turnPhase == TurnPhase.OpponentTurn) return
-            tts.playTurn(text, gender = opponentSpeaker?.gender, deviceOnly = true, advanceOnDone = false)
+            tts.playTurn(text, gender = opponentSpeaker?.gender, advanceOnDone = false)
         }
 
         /**
