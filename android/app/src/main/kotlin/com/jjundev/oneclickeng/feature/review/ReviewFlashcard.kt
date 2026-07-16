@@ -62,6 +62,7 @@ fun ReviewFlashcard(
                     text = if (card is SavedCard.Word) "이 뜻의 영어 단어는?" else "이 문장을 영어로?",
                     style = OceTheme.typography.helper,
                     color = OceTheme.colors.textTertiary,
+                    textAlign = TextAlign.Center,
                 )
                 Spacer(Modifier.size(OceTheme.spacing.md))
                 Text(
@@ -71,22 +72,20 @@ fun ReviewFlashcard(
                     textAlign = TextAlign.Center,
                 )
             } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
-                ) {
-                    Text(
-                        text = english,
-                        style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold, fontSize = 30.sp),
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    SpeakButton(onClick = { onSpeak(english) })
-                }
+                Text(
+                    text = english,
+                    style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold, fontSize = 30.sp),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.size(OceTheme.spacing.sm))
+                SpeakButton(onClick = { onSpeak(english) })
                 Spacer(Modifier.size(OceTheme.spacing.sm))
                 Text(
                     text = korean,
                     style = OceTheme.typography.body,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
                 )
                 if (card is SavedCard.Word && card.exampleEnglish.isNotBlank()) {
                     Spacer(Modifier.size(OceTheme.spacing.lg))
