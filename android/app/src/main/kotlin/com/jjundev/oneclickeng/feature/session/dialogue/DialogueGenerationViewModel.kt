@@ -6,6 +6,9 @@ import com.jjundev.oneclickeng.core.network.LimitAnalytics
 import com.jjundev.oneclickeng.core.network.WaitQuizAnalytics
 import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
 import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
+import com.jjundev.oneclickeng.feature.session.tts.TtsPlaybackCoordinator
+import com.jjundev.oneclickeng.feature.session.turn.SpeakerDirectory
+import com.jjundev.oneclickeng.feature.session.turn.nextOpponentEnglish
 import com.jjundev.oneclickeng.ui.component.QuizItem
 import com.jjundev.oneclickeng.ui.component.selectLimitSurface
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,6 +35,7 @@ class DialogueGenerationViewModel
     @Inject
     constructor(
         private val coordinator: DialogueGenerationCoordinator,
+        private val tts: TtsPlaybackCoordinator,
         private val quizBank: QuizBank,
         private val analytics: WaitQuizAnalytics,
         private val limitAnalytics: LimitAnalytics,
@@ -47,6 +51,12 @@ class DialogueGenerationViewModel
 
         private val _quizItems = MutableStateFlow<List<QuizItem>>(emptyList())
         val quizItems: StateFlow<List<QuizItem>> = _quizItems.asStateFlow()
+
+        // 첫 상대 대사 음성이 재생 가능(캐시됨)해졌는지. 로딩 화면이 이 값이 true 가 될 때까지 "준비 중"을
+        // 유지해 첫 대사가 채팅 진입 즉시 재생되게 한다(생성 완료만으론 부족 — TTS 합성 시간이 지배적).
+        // 워밍할 게 없으면(DEVICE·음소거) 즉시 true 라 추가 대기 없음.
+        private val _firstLineReady = MutableStateFlow(false)
+        val firstLineReady: StateFlow<Boolean> = _firstLineReady.asStateFlow()
 
         // Monotonic position of the answered card within this generation, for `card_index`
         // (analytics-events.md §6.6) — the WaitQuiz callback does not carry the card position.
@@ -100,6 +110,32 @@ class DialogueGenerationViewModel
                     appScope.launch { snapshotStore.clear() }
                 }
             }
+        }
+
+        /** 첫 상대 대사 오디오를 서버 합성해 캐시에 채우고, 준비되면 [firstLineReady] 를 true 로 올린다(Route 가
+         *  Ready 도착 시 호출, suspend). 로딩 화면이 이 신호까지 "준비 중"을 유지하므로 채팅 진입 즉시 첫 대사가
+         *  재생된다. TtsPlaybackCoordinator 는 @Singleton 이라 이 VM 이 파괴돼도(생성→채팅 nav pop) 캐시가 살아
+         *  있어 채팅의 speakOpponent 가 같은 라인을 즉시 재생한다(같은 sessionId→같은 gender→같은 캐시 키).
+         *  [awaitWarm] 은 DEVICE·음소거면 즉시 반환하고, SERVER 면 합성 완료까지 대기한다 — 상한은 코디네이터의
+         *  [TtsPlaybackCoordinator.SYNTH_WATCHDOG_MS](16s)라 콜드 첫 호출이면 로딩 화면이 최대 그만큼 유지된다
+         *  (8s 가 아니다 — 8s 는 라이브 재생의 단말 폴백 상한). 합성 실패여도 게이트는 열어 진입을 막지 않는다.
+         *  멱등(이미 준비됐으면 no-op).
+         *
+         *  전제: 이 await 중에 [TtsPlaybackCoordinator.clearCache] 가 불리면 in-flight deferred 가 취소되며
+         *  CancellationException 이 여기로 전파돼 [firstLineReady] 가 영영 false 로 남는다(로딩 화면 고착).
+         *  현재 clearCache 호출자는 채팅 VM 의 onCleared 뿐이고 생성→채팅 pop 이후라 도달 불가하다. 생성 측에
+         *  clearCache 호출자를 추가한다면 이 await 를 `catch (e: CancellationException) { coroutineContext.ensureActive() }`
+         *  로 감싸 deferred 취소와 본 코루틴 취소를 구분해야 한다. */
+        suspend fun prepareFirstLine() {
+            if (_firstLineReady.value) return
+            val ready = coordinator.state.value as? DialogueGenState.Ready ?: return // 아직 미도착 — 재호출 시 재시도
+            // 첫 라인이 있으면 캐시될 때까지 대기(DEVICE·음소거면 즉시); 없으면 대기 없이 곧바로 게이트 해제.
+            val text = nextOpponentEnglish(ready.turns, 0)
+            if (text != null) {
+                val gender = ready.sessionId?.let { SpeakerDirectory.assign(it).gender }
+                tts.awaitWarm(text, gender) // 결과와 무관하게 진입 허용(라이브 재생이 자체 폴백)
+            }
+            _firstLineReady.value = true
         }
 
         /**

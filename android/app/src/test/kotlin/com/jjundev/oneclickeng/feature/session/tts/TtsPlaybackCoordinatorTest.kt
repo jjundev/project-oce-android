@@ -21,6 +21,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Base64
@@ -38,12 +39,15 @@ private class FakeLlmApi(
     var response: TtsResponse = okResponse(),
     var error: Throwable? = null,
     var delayMs: Long = 0,
+    var failFirst: Int = 0, // first N calls throw — models a cold call the server aborts (it still preheats)
 ) : LlmApi {
     var callCount = 0
 
+    @Suppress("TooGenericExceptionThrown") // models an opaque server abort — real callers see no typed cause either.
     override suspend fun tts(body: TtsRequest): TtsResponse {
         callCount++
         if (delayMs > 0) delay(delayMs)
+        if (callCount <= failFirst) throw RuntimeException("cold synth aborted by server")
         error?.let { throw it }
         return response
     }
@@ -88,7 +92,10 @@ private class FakeDeviceTts(
     override fun stop() = Unit
 }
 
-private class FakeSettings(var value: TtsSettings = TtsSettings()) : TtsSettingsRepository {
+// SERVER by default: most of this suite exercises the server synthesis/cache/prefetch/warm-up
+// path, independent of production's TtsSettings() default (DEVICE — a product choice unrelated
+// to what these tests need to exercise; tests that want DEVICE pass it explicitly).
+private class FakeSettings(var value: TtsSettings = TtsSettings(quality = TtsQuality.SERVER)) : TtsSettingsRepository {
     override val settings: Flow<TtsSettings> = flowOf(value)
 
     override suspend fun current(): TtsSettings = value
@@ -107,6 +114,7 @@ private class FakeSettings(var value: TtsSettings = TtsSettings()) : TtsSettings
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("LargeClass") // one coordinator, one exhaustive scenario-per-test suite (repo convention for this class).
 class TtsPlaybackCoordinatorTest {
     @Test
     fun `server path synthesizes decodes and plays at server sample rate`() =
@@ -343,6 +351,344 @@ class TtsPlaybackCoordinatorTest {
             assertEquals(PlaybackState.IDLE, coordinator.state.value)
         }
 
+    @Test
+    fun `second playTurn of same line reuses cache without a second synthesis`() =
+        runTest {
+            val api = FakeLlmApi(response = okResponse(rate = 24000))
+            val player = FakePcmPlayer()
+            val coordinator = TtsPlaybackCoordinator(api, player, FakeDeviceTts(), FakeSettings(), coordScope())
+
+            coordinator.playTurn("Hello", "female")
+            advanceUntilIdle()
+            coordinator.playTurn("Hello", "female")
+            advanceUntilIdle()
+
+            assertEquals(1, api.callCount) // synthesized once, second play served from cache
+            assertEquals(2, player.played.size) // but played both times
+            assertTrue(PCM_BYTES.contentEquals(player.played[1].first))
+        }
+
+    @Test
+    fun `second playTurn of the same line joins an in-flight synthesis`() =
+        runTest {
+            val api = FakeLlmApi(delayMs = 1_000_000) // keep the first synthesis in flight
+            val player = FakePcmPlayer()
+            val coordinator = TtsPlaybackCoordinator(api, player, FakeDeviceTts(), FakeSettings(), coordScope())
+
+            coordinator.playTurn("Hello", "female")
+            runCurrent() // first synthesis registers inFlight and suspends inside api.tts
+            coordinator.playTurn("Hello", "female") // same line arrives before the first resolves;
+            // its startNewSession() cancels the first awaiter, but the sibling synthesis survives.
+            advanceUntilIdle()
+
+            assertEquals(1, api.callCount) // joined the in-flight synthesis; the cancelled awaiter did NOT evict it
+        }
+
+    @Test
+    fun `replay path advanceOnDone false of a cached line makes no server call`() =
+        runTest {
+            val api = FakeLlmApi()
+            val player = FakePcmPlayer()
+            val coordinator = TtsPlaybackCoordinator(api, player, FakeDeviceTts(), FakeSettings(), coordScope())
+            val completions = collectCompletions(coordinator)
+
+            coordinator.playTurn("Hi", "male") // auto-speak: synthesizes + caches
+            advanceUntilIdle()
+            coordinator.playTurn("Hi", "male", advanceOnDone = false) // "다시 듣기"
+            advanceUntilIdle()
+
+            assertEquals(1, api.callCount) // replay served from cache, no re-synthesis
+            assertEquals(2, player.played.size)
+            assertEquals(1, completions.size) // only the auto-speak advanced; replay did not
+        }
+
+    @Test
+    fun `cache key includes speech rate so a rate change re-synthesizes`() =
+        runTest {
+            val api = FakeLlmApi()
+            val settings = FakeSettings(TtsSettings(quality = TtsQuality.SERVER, speechRate = 1.0f))
+            val coordinator = TtsPlaybackCoordinator(api, FakePcmPlayer(), FakeDeviceTts(), settings, coordScope())
+
+            coordinator.playTurn("Hello", null)
+            advanceUntilIdle()
+            settings.setSpeechRate(1.5f)
+            coordinator.playTurn("Hello", null)
+            advanceUntilIdle()
+
+            assertEquals(2, api.callCount) // different rate → different key → fresh synthesis
+        }
+
+    @Test
+    fun `prefetch warms cache so the later playTurn makes no server call`() =
+        runTest {
+            val api = FakeLlmApi()
+            val player = FakePcmPlayer()
+            val coordinator =
+                TtsPlaybackCoordinator(api, player, FakeDeviceTts(), FakeSettings(), coordScope())
+
+            coordinator.prefetch("Ahead", "female")
+            advanceUntilIdle()
+            assertEquals(1, api.callCount) // synthesized in the background
+            assertEquals(0, player.played.size) // but not played
+
+            coordinator.playTurn("Ahead", "female")
+            advanceUntilIdle()
+            assertEquals(1, api.callCount) // served from the warmed cache — no second call
+            assertEquals(1, player.played.size)
+        }
+
+    @Test
+    fun `prefetch is a no-op in DEVICE quality and when muted`() =
+        runTest {
+            val deviceApi = FakeLlmApi()
+            val deviceCoord =
+                TtsPlaybackCoordinator(
+                    deviceApi,
+                    FakePcmPlayer(),
+                    FakeDeviceTts(),
+                    FakeSettings(TtsSettings(quality = TtsQuality.DEVICE)),
+                    coordScope(),
+                )
+            deviceCoord.prefetch("x", null)
+            advanceUntilIdle()
+            assertEquals(0, deviceApi.callCount)
+
+            val mutedApi = FakeLlmApi()
+            val mutedCoord =
+                TtsPlaybackCoordinator(
+                    mutedApi,
+                    FakePcmPlayer(),
+                    FakeDeviceTts(),
+                    FakeSettings(TtsSettings(muted = true)),
+                    coordScope(),
+                )
+            mutedCoord.prefetch("x", null)
+            advanceUntilIdle()
+            assertEquals(0, mutedApi.callCount)
+        }
+
+    @Test
+    fun `duplicate prefetch of the same line dedups to one synthesis`() =
+        runTest {
+            val api = FakeLlmApi(delayMs = 50) // keep the first in flight while the second arrives
+            val coordinator =
+                TtsPlaybackCoordinator(api, FakePcmPlayer(), FakeDeviceTts(), FakeSettings(), coordScope())
+
+            coordinator.prefetch("Dup", null)
+            coordinator.prefetch("Dup", null)
+            advanceUntilIdle()
+
+            assertEquals(1, api.callCount)
+        }
+
+    @Test
+    fun `prefetch does not disturb playback state`() =
+        runTest {
+            val coordinator =
+                TtsPlaybackCoordinator(FakeLlmApi(), FakePcmPlayer(), FakeDeviceTts(), FakeSettings(), coordScope())
+            val completions = collectCompletions(coordinator)
+            val audioReady = collectAudioReady(coordinator)
+
+            coordinator.prefetch("Bg", null)
+            advanceUntilIdle()
+
+            assertEquals(PlaybackState.IDLE, coordinator.state.value) // never left IDLE
+            assertEquals(0, completions.size)
+            assertEquals(0, audioReady.size)
+        }
+
+    @Test
+    fun `clearCache forces the next playTurn to re-synthesize`() =
+        runTest {
+            val api = FakeLlmApi()
+            val coordinator =
+                TtsPlaybackCoordinator(api, FakePcmPlayer(), FakeDeviceTts(), FakeSettings(), coordScope())
+
+            coordinator.prefetch("Gone", null)
+            advanceUntilIdle()
+            coordinator.clearCache()
+            coordinator.playTurn("Gone", null)
+            advanceUntilIdle()
+
+            assertEquals(2, api.callCount) // cache cleared → fresh synthesis
+        }
+
+    @Test
+    fun `playTurn joins an in-flight prefetch instead of re-synthesizing`() =
+        runTest {
+            val api = FakeLlmApi(delayMs = 100) // keep the synthesis in flight
+            val player = FakePcmPlayer()
+            val coordinator =
+                TtsPlaybackCoordinator(api, player, FakeDeviceTts(), FakeSettings(), coordScope())
+
+            coordinator.prefetch("Join", null) // starts synthesis (Unconfined runs it to the delay)
+            coordinator.playTurn("Join", null) // same line arrives before synthesis resolves → joins it
+            advanceUntilIdle()
+
+            assertEquals(1, api.callCount) // live play joined the in-flight synthesis — no 2nd call
+            assertEquals(1, player.played.size)
+        }
+
+    @Test
+    fun `awaitWarm synthesizes and caches so a later playTurn makes no call`() =
+        runTest {
+            val api = FakeLlmApi()
+            val player = FakePcmPlayer()
+            val coordinator =
+                TtsPlaybackCoordinator(api, player, FakeDeviceTts(), FakeSettings(), coordScope())
+
+            assertTrue(coordinator.awaitWarm("Warm", "male"))
+            advanceUntilIdle()
+            assertEquals(1, api.callCount)
+
+            coordinator.playTurn("Warm", "male")
+            advanceUntilIdle()
+            assertEquals(1, api.callCount) // played from the warmed cache — no 2nd synthesis
+            assertEquals(1, player.played.size)
+        }
+
+    @Test
+    fun `awaitWarm returns true immediately without synthesis in DEVICE quality`() =
+        runTest {
+            val api = FakeLlmApi()
+            val coordinator =
+                TtsPlaybackCoordinator(
+                    api,
+                    FakePcmPlayer(),
+                    FakeDeviceTts(),
+                    FakeSettings(TtsSettings(quality = TtsQuality.DEVICE)),
+                    coordScope(),
+                )
+
+            assertTrue(coordinator.awaitWarm("x", null)) // nothing to warm on the device path
+            advanceUntilIdle()
+            assertEquals(0, api.callCount)
+        }
+
+    @Test
+    fun `awaitWarm returns true immediately when muted`() =
+        runTest {
+            val api = FakeLlmApi()
+            val coordinator =
+                TtsPlaybackCoordinator(
+                    api,
+                    FakePcmPlayer(),
+                    FakeDeviceTts(),
+                    FakeSettings(TtsSettings(muted = true)),
+                    coordScope(),
+                )
+
+            assertTrue(coordinator.awaitWarm("x", null))
+            advanceUntilIdle()
+            assertEquals(0, api.callCount)
+        }
+
+    @Test
+    fun `warmUpModel preheats with a throwaway synthesis that is never played`() =
+        runTest {
+            val api = FakeLlmApi()
+            val player = FakePcmPlayer()
+            val coordinator =
+                TtsPlaybackCoordinator(api, player, FakeDeviceTts(), FakeSettings(), coordScope())
+            val completions = collectCompletions(coordinator)
+
+            coordinator.warmUpModel()
+            advanceUntilIdle()
+
+            assertEquals(1, api.callCount) // the preheat call fired
+            assertTrue(player.played.isEmpty()) // but nothing was played
+            assertEquals(PlaybackState.IDLE, coordinator.state.value) // and playback state is untouched
+            assertTrue(completions.isEmpty())
+        }
+
+    @Test
+    fun `warmUpModel is a no-op in DEVICE quality and when muted`() =
+        runTest {
+            val deviceApi = FakeLlmApi()
+            TtsPlaybackCoordinator(
+                deviceApi,
+                FakePcmPlayer(),
+                FakeDeviceTts(),
+                FakeSettings(TtsSettings(quality = TtsQuality.DEVICE)),
+                coordScope(),
+            ).warmUpModel()
+            advanceUntilIdle()
+            assertEquals(0, deviceApi.callCount)
+
+            val mutedApi = FakeLlmApi()
+            TtsPlaybackCoordinator(
+                mutedApi,
+                FakePcmPlayer(),
+                FakeDeviceTts(),
+                FakeSettings(TtsSettings(muted = true)),
+                coordScope(),
+            ).warmUpModel()
+            advanceUntilIdle()
+            assertEquals(0, mutedApi.callCount)
+        }
+
+    @Test
+    fun `warmUpModel does not stack while one is already in flight`() =
+        runTest {
+            val api = FakeLlmApi(delayMs = 1_000) // keep the first preheat in flight
+            val coordinator =
+                TtsPlaybackCoordinator(api, FakePcmPlayer(), FakeDeviceTts(), FakeSettings(), coordScope())
+
+            coordinator.warmUpModel()
+            coordinator.warmUpModel() // a second foreground before the first finished
+            advanceUntilIdle()
+
+            assertEquals(1, api.callCount)
+        }
+
+    @Test
+    fun `warmUpModel does not occupy the cache`() =
+        runTest {
+            // The throwaway line must not take a slot in the CACHE_CAP-bounded cache, so a later
+            // real play of the same text still synthesizes.
+            val api = FakeLlmApi()
+            val coordinator =
+                TtsPlaybackCoordinator(api, FakePcmPlayer(), FakeDeviceTts(), FakeSettings(), coordScope())
+
+            coordinator.warmUpModel()
+            advanceUntilIdle()
+            assertEquals(1, api.callCount)
+
+            coordinator.playTurn(TtsPlaybackCoordinator.WARM_UP_TEXT, null)
+            advanceUntilIdle()
+            assertEquals(2, api.callCount) // not served from cache — the preheat was discarded
+        }
+
+    @Test
+    fun `awaitWarm retries once after a cold failure and caches the retry`() =
+        runTest {
+            val api = FakeLlmApi(failFirst = 1) // cold attempt aborts; the retry lands
+            val player = FakePcmPlayer()
+            val coordinator =
+                TtsPlaybackCoordinator(api, player, FakeDeviceTts(), FakeSettings(), coordScope())
+
+            assertTrue(coordinator.awaitWarm("Line one", "female"))
+            advanceUntilIdle()
+            assertEquals(2, api.callCount) // cold attempt + successful retry
+
+            coordinator.playTurn("Line one", "female")
+            advanceUntilIdle()
+            assertEquals(2, api.callCount) // the retry's audio was cached → live play is a hit
+            assertEquals(1, player.played.size)
+        }
+
+    @Test
+    fun `awaitWarm gives up after exactly one retry`() =
+        runTest {
+            val api = FakeLlmApi(failFirst = 2) // both attempts fail
+            val coordinator =
+                TtsPlaybackCoordinator(api, FakePcmPlayer(), FakeDeviceTts(), FakeSettings(), coordScope())
+
+            assertFalse(coordinator.awaitWarm("Line one", null))
+            advanceUntilIdle()
+            assertEquals(2, api.callCount) // one retry only — not a loop
+        }
+
     /** Coordinator scope on an unconfined dispatcher tied to the test scheduler, so
      *  launches run eagerly while virtual time still drives the watchdogs. */
     private fun TestScope.coordScope(): CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
@@ -440,6 +786,46 @@ class TtsPlaybackCoordinatorTest {
             advanceUntilIdle()
 
             assertTrue(ready.isEmpty()) // reveal comes from the ERROR_TEXT_ONLY safety net, not audioReady
+        }
+
+    @Test
+    fun `prefetch tolerates a cold synthesis longer than the live watchdog and caches it`() =
+        runTest {
+            // 12s synth: exceeds the 8s live-playback bound but is within the 16s synthesis budget.
+            val api = FakeLlmApi(delayMs = 12_000)
+            val player = FakePcmPlayer()
+            val coordinator =
+                TtsPlaybackCoordinator(api, player, FakeDeviceTts(), FakeSettings(), coordScope())
+
+            coordinator.prefetch("Cold", "female")
+            advanceUntilIdle()
+            assertEquals(1, api.callCount) // the cold synthesis completed (not killed at 8s)
+
+            coordinator.playTurn("Cold", "female")
+            advanceUntilIdle()
+            assertEquals(1, api.callCount) // served from the warmed cache — no re-synthesis
+            assertEquals(1, player.played.size)
+        }
+
+    @Test
+    fun `live playTurn falls back to device at 8s while the cold synthesis keeps caching`() =
+        runTest {
+            val api = FakeLlmApi(delayMs = 12_000) // > 8s live bound, < 16s synth budget
+            val device = FakeDeviceTts(result = DeviceTtsResult.COMPLETED)
+            val player = FakePcmPlayer()
+            val coordinator =
+                TtsPlaybackCoordinator(api, player, device, FakeSettings(), coordScope())
+
+            coordinator.playTurn("Cold", "female") // no prefetch: live path starts the synthesis
+            advanceUntilIdle()
+            assertEquals(1, device.callCount) // fell back to device at the 8s bound
+            assertEquals(1, api.callCount) // one synthesis was started
+
+            // The synthesis kept running past the 8s live bound and cached; a later play is a hit.
+            coordinator.playTurn("Cold", "female")
+            advanceUntilIdle()
+            assertEquals(1, api.callCount) // no second synthesis — cache hit
+            assertEquals(1, player.played.size) // and it played from the server cache this time
         }
 
     @Test

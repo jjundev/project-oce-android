@@ -12,7 +12,7 @@ import com.jjundev.oneclickeng.feature.settings.data.PurgeScope
 data class SettingsUiState(
     val loading: Boolean = true,
     val nickname: String = "",
-    val ttsQuality: TtsQuality = TtsQuality.SERVER,
+    val ttsQuality: TtsQuality = TtsQuality.DEVICE,
     val speechRate: Float = TtsSettings.DEFAULT_SPEECH_RATE,
     val ttsMuted: Boolean = false,
     val reminderEnabled: Boolean = false,

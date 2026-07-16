@@ -61,7 +61,7 @@ class DataStoreTtsSettingsRepository
             val quality =
                 prefs[KEY_QUALITY]?.let { name ->
                     runCatching { TtsQuality.valueOf(name) }.getOrNull()
-                } ?: TtsQuality.SERVER
+                } ?: TtsQuality.DEVICE
             val rate =
                 prefs[KEY_SPEECH_RATE]?.coerceIn(
                     TtsSettings.MIN_SPEECH_RATE,

@@ -84,6 +84,7 @@ fun DialogueGeneratingScreen(
     modifier: Modifier = Modifier,
     quizEnabled: Boolean = true,
     isOnboarding: Boolean = false,
+    firstLineReady: Boolean = true,
     onQuizAnswered: (item: QuizItem, selectedIndex: Int, correct: Boolean) -> Unit = { _, _, _ -> },
     onLimitReached: (remaining: Int) -> Unit = {},
     onViewRecords: () -> Unit = {},
@@ -96,8 +97,13 @@ fun DialogueGeneratingScreen(
         gatePassed = true
     }
 
+    // "대화 준비 완료" = 대본 생성(Ready) + 첫 대사 음성 워밍([firstLineReady]). 후자를 포함해야 채팅 진입 시
+    // 첫 대사가 즉시 재생된다(생성만 끝나고 넘어가면 TTS 합성 시간만큼 대화창 스켈레톤이 대기). 워밍할 게
+    // 없으면(DEVICE·음소거) firstLineReady 는 즉시 true 라 예전과 동일하게 곧바로 진입한다.
+    val conversationReady = state is DialogueGenState.Ready && firstLineReady
+
     // 게이트(1s) 이전에 준비되면 퀴즈 생략 직행. 게이트 이후엔 CTA로 유저 탭을 기다린다(자동전이 없음).
-    val readyBeforeGate = state is DialogueGenState.Ready && !gatePassed
+    val readyBeforeGate = conversationReady && !gatePassed
     LaunchedEffect(readyBeforeGate) {
         if (readyBeforeGate) onStartConversation()
     }
@@ -131,7 +137,8 @@ fun DialogueGeneratingScreen(
     }
 
     // 준비 완료(게이트 통과) 시 하단 준비 시트를 오버레이하고, 나머지는 중앙 정렬 콘텐츠(퀴즈/로딩/실패).
-    val readyGated = state is DialogueGenState.Ready && gatePassed
+    // 첫 대사 워밍 전(conversationReady=false)엔 CTA를 띄우지 않아 유저가 미리 진입해 스켈레톤을 만나는 걸 막는다.
+    val readyGated = conversationReady && gatePassed
     Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = OceTheme.spacing.lg),
@@ -143,6 +150,7 @@ fun DialogueGeneratingScreen(
                 quizItems = quizItems,
                 gatePassed = gatePassed,
                 quizEnabled = quizEnabled,
+                firstLineReady = firstLineReady,
                 onRetry = onRetry,
                 onQuizAnswered = onQuizAnswered,
             )
@@ -180,6 +188,7 @@ private fun ColumnScope.GeneratingContent(
     quizItems: List<QuizItem>,
     gatePassed: Boolean,
     quizEnabled: Boolean,
+    firstLineReady: Boolean,
     onRetry: () -> Unit,
     onQuizAnswered: (item: QuizItem, selectedIndex: Int, correct: Boolean) -> Unit,
 ) {
@@ -194,15 +203,16 @@ private fun ColumnScope.GeneratingContent(
 
         is DialogueGenState.Ready ->
             // 프로토 genReady: 퀴즈는 중앙에 유지(준비 배너·CTA는 화면 하단 [ReadyBottomSheet] 오버레이).
-            // 준비 완료면 링 회전 정지(loading=false) → 정적 hairline(프로토 quizRingBg=--border-hairline 정합).
+            // 첫 대사 음성이 워밍될 때까지(!firstLineReady) 링을 계속 회전(loading=true)시켜 "아직 준비 중"을 표현
+            // 하고, 워밍 완료면 링 정지(loading=false) → 정적 hairline. 그래야 첫 대사가 채팅 진입 즉시 재생된다.
             if (gatePassed) {
                 if (quizEnabled) {
-                    OneClickWaitQuiz(items = quizItems, onAnswered = onQuizAnswered, loading = false)
+                    OneClickWaitQuiz(items = quizItems, onAnswered = onQuizAnswered, loading = !firstLineReady)
                 } else {
                     SlimLoading()
                 }
             } else {
-                SlimLoading() // <1s 준비: 위 LaunchedEffect가 자동 전이 처리
+                SlimLoading() // <1s: 자동 전이는 conversationReady(생성+워밍) 충족 시에만 발생
             }
 
         DialogueGenState.Generating ->
@@ -243,9 +253,17 @@ fun DialogueGeneratingRoute(
     }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val quizItems by viewModel.quizItems.collectAsStateWithLifecycle()
+    val firstLineReady by viewModel.firstLineReady.collectAsStateWithLifecycle()
+
+    // 로딩 퀴즈가 떠 있는 동안 첫 상대 대사를 미리 합성하고, 워밍이 끝나면 firstLineReady 를 올린다(Ready =
+    // 첫 대사 도착). 로딩 화면은 그 신호까지 "준비 중"을 유지 → 채팅 진입 시 첫 대사 즉시 재생.
+    LaunchedEffect(state is DialogueGenState.Ready) {
+        if (state is DialogueGenState.Ready) viewModel.prepareFirstLine()
+    }
     DialogueGeneratingScreen(
         state = state,
         quizItems = quizItems,
+        firstLineReady = firstLineReady,
         onStartConversation = onStartConversation,
         onRetry = viewModel::retry,
         modifier = modifier,
