@@ -89,7 +89,7 @@ tasks.withType<Test>().configureEach {
             "**/TopicSelectDragBlockTest*",
             "**/GoogleSaveActionsTest*",
             "**/MicDockTogglePositionTest*",
-            "**/MicDockCancelRecordingTest*",
+            "**/MicDockCancelSpeakingTest*",
             "**/DeepFeedbackRegionTest*",
             "**/SummaryScrollEndGateTest*",
             "**/SummaryScrollFabTest*",

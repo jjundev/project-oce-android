@@ -16,19 +16,19 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * 녹음 중("처음부터 말하기") 취소 어피던스 검증. Recording 상태에서는 하단 토글이 "채팅으로 입력하기" 대신
- * "처음부터 말하기"로 바뀌고, 탭하면 [onCancelRecording] 콜백이 호출돼야 한다(다른 상태는 기존 문구 유지).
+ * 발화 취소("처음부터 말하기") 어피던스 검증. Recording 상태에서는 하단 토글이 "채팅으로 입력하기" 대신
+ * "처음부터 말하기"로 바뀌고, 탭하면 [onCancelSpeaking] 콜백이 호출돼야 한다(다른 상태는 기존 문구 유지).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = RobolectricDeviceQualifiers.Pixel5, application = Application::class)
-class MicDockCancelRecordingTest {
+class MicDockCancelSpeakingTest {
     @get:Rule
     val composeRule = createComposeRule()
 
     private val task = ScaffoldTask("라떼 한 잔을 주문해보세요")
     private val waveform = MutableStateFlow(FloatArray(0))
 
-    private fun setDock(micState: MicState, onCancelRecording: () -> Unit) {
+    private fun setDock(micState: MicState, onCancelSpeaking: () -> Unit) {
         composeRule.setContent {
             OceTheme(darkTheme = false) {
                 MicDock(
@@ -42,7 +42,7 @@ class MicDockCancelRecordingTest {
                     reduceMotion = true,
                     onMicTap = {},
                     onAdvance = {},
-                    onCancelRecording = onCancelRecording,
+                    onCancelSpeaking = onCancelSpeaking,
                     onToggleTextMode = {},
                     onTextChange = {},
                     onSubmitText = {},
@@ -53,7 +53,7 @@ class MicDockCancelRecordingTest {
 
     @Test
     fun recording_state_shows_cancel_label_instead_of_chat_toggle() {
-        setDock(MicState.Recording, onCancelRecording = {})
+        setDock(MicState.Recording, onCancelSpeaking = {})
 
         composeRule.onNodeWithText("처음부터 말하기", useUnmergedTree = true).assertExists()
         composeRule.onNodeWithText("채팅으로 입력하기", useUnmergedTree = true).assertDoesNotExist()
@@ -62,7 +62,7 @@ class MicDockCancelRecordingTest {
     @Test
     fun tapping_cancel_label_invokes_callback() {
         var cancelCount = 0
-        setDock(MicState.Recording, onCancelRecording = { cancelCount++ })
+        setDock(MicState.Recording, onCancelSpeaking = { cancelCount++ })
 
         composeRule.onNodeWithText("처음부터 말하기", useUnmergedTree = true).performClick()
 
@@ -71,7 +71,7 @@ class MicDockCancelRecordingTest {
 
     @Test
     fun ready_state_keeps_chat_toggle() {
-        setDock(MicState.Ready, onCancelRecording = {})
+        setDock(MicState.Ready, onCancelSpeaking = {})
 
         composeRule.onNodeWithText("채팅으로 입력하기", useUnmergedTree = true).assertExists()
         composeRule.onNodeWithText("처음부터 말하기", useUnmergedTree = true).assertDoesNotExist()

@@ -559,14 +559,28 @@ class GeneratedDialogueSessionViewModel
         }
 
         /**
-         * 도크 "처음부터 말하기" 탭 — 녹음 취소. [stopRecording] 과 달리 결과를 버리고 Analyzing/분석에 진입하지
-         * 않는다. Ready 로 되돌리면 [MicButton] 이 이미 tappable(enabled=Ready||Recording)이라 재녹음은
-         * 추가 배선 없이 바로 가능하다.
+         * 도크 "처음부터 말하기" 탭 — 이번 발화 시도를 통째로 버린다(녹음 중·분석 중 공용).
+         *
+         * - Recording: 캡처를 멈추고 결과를 버린다([stopRecording] 과 달리 Analyzing 으로 넘어가지 않는다).
+         * - Analyzing: 진행 중인 전사/LLM 왕복을 [SpeakingAnalysisCoordinator.reset] 으로 취소한다. 취소된
+         *   요청은 Result 를 내지 않으므로 [onAnalysisState] → [triggerFeedback] 이 돌지 않고, 따라서 취소한
+         *   턴의 피드백 시트가 뒤늦게 떠오르지 않는다(시트는 [triggerFeedback] → feedback.start 로만 뜬다).
+         *   reset 과 응답 기록이 겹치는 좁은 창은 [onAnalysisState] 의 `micState != Analyzing` 가드가 흡수한다.
+         *
+         * micState 를 launch 밖에서 **먼저** 뒤집는 건 재탭 창을 즉시 닫기 위함이다(안에서 뒤집으면 stop() 이
+         * 끝나기 전 마이크 재탭이 [stopRecording] 을 타 취소한 녹음을 도로 제출한다). Ready 로 되돌리면
+         * [MicButton] 이 이미 tappable(enabled=Ready||Recording)이라 재녹음은 추가 배선 없이 바로 가능하다.
          */
-        fun onCancelRecording() {
-            if (micState != MicState.Recording) return
+        fun onCancelSpeaking() {
+            val phase = micState
+            if (phase != MicState.Recording && phase != MicState.Analyzing) return
             micState = MicState.Ready
-            viewModelScope.launch { recording.stop() }
+            pendingClip = null // 취소한 녹음은 다음 답변 말풍선에 붙지 않는다
+            if (phase == MicState.Recording) {
+                viewModelScope.launch { recording.stop() }
+            } else {
+                speaking.reset()
+            }
         }
 
         // 우리 분석(micState=Analyzing)에만 반응 — Singleton 의 이전 세션 잔여 상태 오반응 차단.

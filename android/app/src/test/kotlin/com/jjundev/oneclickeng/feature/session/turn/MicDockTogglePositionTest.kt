@@ -58,7 +58,7 @@ class MicDockTogglePositionTest {
                                 reduceMotion = true,
                                 onMicTap = {},
                                 onAdvance = {},
-                                onCancelRecording = {},
+                                onCancelSpeaking = {},
                                 onToggleTextMode = {},
                                 onTextChange = {},
                                 onSubmitText = {},

@@ -116,7 +116,7 @@ internal fun MicSessionDock(
         reduceMotion = reduceMotion,
         onMicTap = ::handleMicTap,
         onAdvance = viewModel::onAdvance,
-        onCancelRecording = viewModel::onCancelRecording,
+        onCancelSpeaking = viewModel::onCancelSpeaking,
         onToggleTextMode = viewModel::onToggleTextMode,
         onTextChange = viewModel::onTextChange,
         onSubmitText = viewModel::onSubmitText,
@@ -153,7 +153,7 @@ internal fun MicDock(
     reduceMotion: Boolean,
     onMicTap: () -> Unit,
     onAdvance: () -> Unit,
-    onCancelRecording: () -> Unit,
+    onCancelSpeaking: () -> Unit,
     onToggleTextMode: (Boolean) -> Unit,
     onTextChange: (String) -> Unit,
     onSubmitText: () -> Unit,
@@ -181,7 +181,7 @@ internal fun MicDock(
                 reduceMotion = reduceMotion,
                 onMicTap = onMicTap,
                 onAdvance = onAdvance,
-                onCancelRecording = onCancelRecording,
+                onCancelSpeaking = onCancelSpeaking,
                 onToggleTextMode = onToggleTextMode,
             )
         }
@@ -197,7 +197,7 @@ private fun MicColumn(
     reduceMotion: Boolean,
     onMicTap: () -> Unit,
     onAdvance: () -> Unit,
-    onCancelRecording: () -> Unit,
+    onCancelSpeaking: () -> Unit,
     onToggleTextMode: (Boolean) -> Unit,
 ) {
     Column(
@@ -252,7 +252,7 @@ private fun MicColumn(
                 InputModeToggle(
                     icon = null,
                     label = "처음부터 말하기",
-                    onClick = onCancelRecording,
+                    onClick = onCancelSpeaking,
                     // 마이크 모드: 상태 문구와 밀착(중앙정렬로 생긴 텍스트 위 여백 상쇄) — 토글은 도크 하단 고정.
                     topGap = 0.dp,
                 )
