@@ -1558,8 +1558,10 @@ git commit -m "feat(debug): add adb-triggered TTS speed calibration probe"
 
 여기서 실제 숫자가 나온다. **이 태스크는 실기기가 필요하다** — 온디바이스 TTS 는 에뮬레이터/Robolectric 으로 대체 불가고, `AudioTrack.setPlaybackParams` 도 실기기에서만 진짜로 확인된다.
 
+> **참고:** Task 1~5 는 이미 실행됐고, 그 과정에서 최종 리뷰를 반영해 **계수 구조가 바뀌었다** — 단일 `WEIGHT_DEVICE` 가 `WEIGHT_DEVICE_FEMALE`/`WEIGHT_DEVICE_MALE` 로 갈라졌고(단말도 성별별로 다른 보이스를 쓰므로), `MIN_EFFECTIVE_RATE` 는 0.5 → **0.25** 로 내려갔다(0.5 는 슬라이더 최소와 같아 계수가 1.0 미만이면 슬라이더 하단이 통째로 미보정으로 되돌아갔다). 아래 Task 6 본문은 그 최종 상태 기준으로 갱신돼 있다. Task 1~5 의 스텝 본문은 **실행 당시의 기록**이므로 옛 이름(`WEIGHT_DEVICE` 등)이 남아 있다 — 그건 히스토리이지 지시가 아니다.
+
 **Files:**
-- Modify: `android/app/src/main/kotlin/com/jjundev/oneclickeng/core/audio/TtsSpeedCalibration.kt:12-19` (`WEIGHT_SERVER_MALE`, `WEIGHT_DEVICE`)
+- Modify: `android/app/src/main/kotlin/com/jjundev/oneclickeng/core/audio/TtsSpeedCalibration.kt` (`WEIGHT_SERVER_MALE`, `WEIGHT_DEVICE_FEMALE`, `WEIGHT_DEVICE_MALE` — `WEIGHT_SERVER_FEMALE` 은 기준이라 1.0 고정)
 - Modify: `docs/design/tts.md` §2
 
 **Interfaces:**
@@ -1589,18 +1591,30 @@ Expected: 아래 모양의 출력(숫자는 실측값):
 ```
 TtsCalib: === 발화 속도 보정 계측 시작 (기준 = Gemini Kore 자연 속도) ===
 TtsCalib: wav dir = /storage/emulated/0/Android/data/com.jjundev.oneclickeng/files/tts-calib
-TtsCalib: line 1 | kore=2.841s puck=2.615s device=2.190s
-TtsCalib: line 2 | kore=4.102s puck=3.780s device=3.160s
-TtsCalib: line 3 | kore=3.055s puck=2.810s device=2.360s
+TtsCalib: line 1 | kore=2.841s puck=2.615s deviceFemale=2.190s deviceMale=2.204s
+TtsCalib: line 2 | kore=4.102s puck=3.780s deviceFemale=3.160s deviceMale=3.181s
+TtsCalib: line 3 | kore=3.055s puck=2.810s deviceFemale=2.360s deviceMale=2.372s
 TtsCalib: WEIGHT_SERVER_MALE = 0.921  (n=3, 문장 간 편차=0.008)
-TtsCalib: WEIGHT_DEVICE = 0.772  (n=3, 문장 간 편차=0.011)
+TtsCalib: WEIGHT_DEVICE_FEMALE = 0.772  (n=3, 문장 간 편차=0.011)
+TtsCalib: WEIGHT_DEVICE_MALE = 0.777  (n=3, 문장 간 편차=0.009)
 TtsCalib: WEIGHT_SERVER_FEMALE = 1.000 (기준 보이스 — 정의상 고정)
 ```
 
 **판정 기준:**
 - `측정 불가` 나 `실패` 가 보이면 그 경고를 먼저 해결한다(로그인 안 됨 / 영어 TTS 데이터 미설치 / 네트워크).
-- **문장 간 편차가 0.05 를 넘으면** 그 소스는 문장마다 속도가 흔들린다는 뜻이다. 단일 상수로 못 잡으니 **멈추고 사람에게 보고하라** — 계수를 억지로 채우지 말 것.
+- **부분 측정 경고(`Log.w`, "이 값을 상수로 옮기지 말고 재측정하세요")가 보이면 그 값을 쓰지 마라.** 문장 3개 중 일부만 측정되면 표본이 1개여도 `문장 간 편차` 가 **항상 0.000** 으로 찍혀 아래 편차 게이트를 거짓 통과한다. 그래서 부분 측정은 `Log.i` 가 아니라 `Log.w` 로 분리해 두었다.
+- **문장 간 편차가 0.05 를 넘으면** 그 소스는 문장마다 속도가 흔들린다는 뜻이다. 단일 상수로 못 잡으니 **멈추고 보고하라** — 계수를 억지로 채우지 말 것.
 - `WEIGHT_SERVER_MALE` 이 1.00 ± 0.03 안이면 Puck 과 Kore 의 자연 속도 차이가 유의미하지 않다는 뜻이다. 그래도 실측값을 그대로 적는다(상수가 우연히 같아질 뿐, 계수 구조는 유지).
+- `WEIGHT_DEVICE_FEMALE` 과 `WEIGHT_DEVICE_MALE` 이 사실상 같게 나오면 그것도 **정보**다(단말 엔진의 두 보이스가 같은 속도라는 뜻). 그래도 각각 실측값을 적는다.
+
+> **⚠️ 최종 리뷰가 지적한 계측 한계 — 이 계획의 전제를 흔들 수 있는 항목:**
+> 이 프로브는 문장당 **1회만** 합성한다. 그런데 이 작업의 근본 원인 자체가 "Gemini 가 속도 힌트를
+> 라인마다 다르게 따른다"였다. 만약 Gemini 의 **중립 속도조차 실행할 때마다 흔들린다면** 어떤 단일
+> 상수로도 SERVER 경로를 고칠 수 없다 — 그런데 지금의 `문장 간 편차` 지표는 *문장 간 차이*와
+> *Gemini 의 실행 간 비결정성*을 구분하지 못한다(각 문장이 딱 한 번씩만 합성되므로). 편차 게이트는
+> 운 좋게 통과할 수 있다.
+> **권장:** 계측을 **2~3회 반복 실행**해 같은 문장의 회차 간 값이 얼마나 흔들리는지 먼저 보라.
+> 회차 간 편차가 문장 간 편차만큼 크면, 계수 상수 접근 자체를 재검토해야 한다(그 경우 멈추고 보고).
 
 - [ ] **Step 3: WAV 를 뽑아 사람이 직접 듣는다**
 
@@ -1609,11 +1623,15 @@ adb pull /storage/emulated/0/Android/data/com.jjundev.oneclickeng/files/tts-cali
 open ./tts-calib
 ```
 
-`line1_kore.wav` / `line1_puck.wav` / `line1_device.wav` 를 차례로 듣는다. 이건 **보정 전 원본**이다 — 속도가 서로 다르게 들리는 게 정상이고, 숫자(위 로그)와 귀의 인상이 같은 방향인지 확인하는 게 목적이다. 예: `device` 의 길이가 가장 짧게 측정됐다면 실제로 가장 빠르게 들려야 한다. 어긋나면 트림 임계나 측정이 틀린 것이므로 멈추고 보고한다.
+`line1_kore.wav` / `line1_puck.wav` / `line1_device_female.wav` / `line1_device_male.wav` 를 차례로 듣는다. 이건 **보정 전 원본**이다 — 속도가 서로 다르게 들리는 게 정상이고, 숫자(위 로그)와 귀의 인상이 같은 방향인지 확인하는 게 목적이다. 예: `device_female` 의 길이가 가장 짧게 측정됐다면 실제로 가장 빠르게 들려야 한다. 어긋나면 트림 임계나 측정이 틀린 것이므로 멈추고 보고한다.
+
+단말 WAV 가 깨져 들리거나 길이가 터무니없으면 **OEM TTS 엔진이 비표준 WAV 컨테이너를 썼을 가능성**이 있다(`parseWavPcm16` 은 그 경우 조용히 실패한다) — 이건 보고 대상이다.
+
+반면 `device_female` 과 `device_male` 이 **똑같이 들리는 건 정상일 수 있다.** 기기에 en-US 보이스가 하나뿐이면 `pickGenderVoiceName` 의 Pass 4 가 양쪽에 같은 보이스를 돌려주고, 프로브는 두 단말 계수를 동일하게 보고한다 — 그건 **올바른 출력이지 측정 실패가 아니다**(그 기기에선 실제로 성별별 속도 차이가 없는 것). 쫓지 말 것.
 
 - [ ] **Step 4: 계수를 상수에 옮겨 적는다**
 
-`TtsSpeedCalibration.kt` 의 두 상수를 Step 2 로그의 값으로 바꾼다. **아래 0.921 / 0.772 는 예시다 — 실제 측정값으로 대체하라.** 측정 근거를 주석에 남긴다:
+`TtsSpeedCalibration.kt` 의 **세 상수**(`WEIGHT_SERVER_MALE`·`WEIGHT_DEVICE_FEMALE`·`WEIGHT_DEVICE_MALE`)를 Step 2 로그의 값으로 바꾼다. `WEIGHT_SERVER_FEMALE` 은 기준 보이스라 1.0 고정 — 건드리지 않는다. **아래 숫자는 예시다 — 실제 측정값으로 대체하라.** 측정 근거를 주석에 남긴다:
 
 ```kotlin
     /**
@@ -1623,18 +1641,30 @@ open ./tts-calib
     const val WEIGHT_SERVER_MALE = 0.921f
 
     /**
-     * 온디바이스 Android TTS 계수.
+     * 온디바이스 Android TTS, 여성 보이스 계수.
      * 실측 2026-07-17(`TtsCalibrationProbe`, 참조 문장 3개 평균): 엔진 기본 속도가 Gemini 보다
      * 뚜렷하게 빨라 늦춰야 기준에 붙는다. 기기·엔진마다 기본 속도가 다르므로 측정 기기가 바뀌면
      * 재측정 대상이다.
      */
-    const val WEIGHT_DEVICE = 0.772f
+    const val WEIGHT_DEVICE_FEMALE = 0.772f
+
+    /**
+     * 온디바이스 Android TTS, 남성 보이스 계수.
+     * 실측 2026-07-17(`TtsCalibrationProbe`, 참조 문장 3개 평균). 여성 보이스와 따로 재는 이유:
+     * `AndroidDeviceTts.selectGenderVoice` 가 성별별로 **다른 보이스**를 고르고, 보이스마다 자연
+     * 속도가 다를 수 있기 때문이다(한쪽만 재서 양쪽에 적용하면 남성 경로가 조용히 어긋난다).
+     */
+    const val WEIGHT_DEVICE_MALE = 0.777f
 ```
+
+**계수를 적기 전 확인:** 어떤 계수든 `MIN_EFFECTIVE_RATE`(0.25) / `MAX_EFFECTIVE_RATE`(2.0) 경계에 슬라이더 실사용 범위(0.5~1.5)를 곱한 값이 닿지 않아야 한다. 즉 계수가 **0.5 미만이거나 1.33 초과**로 나오면 클램프가 정상 범위 안에서 발동해 **슬라이더 끝단이 조용히 미보정으로 되돌아간다.** 그런 값이 나오면 상수를 적지 말고 멈추고 보고하라(경계를 넓혀야 하는지 판단 필요).
 
 - [ ] **Step 5: 단위테스트가 계수 변경을 견디는지 확인한다**
 
 Run: `scripts/verify-android.sh`
-Expected: BUILD SUCCESSFUL — **전부 통과해야 한다.** Task 1/3 의 테스트는 계수 값이 아니라 계약에 걸려 있으므로 숫자가 바뀌어도 깨지지 않는다. 여기서 깨진다면 그 테스트가 계수를 하드코딩한 것이니, 상수를 참조하도록 고쳐라(계수를 되돌리지 말 것).
+Expected: BUILD SUCCESSFUL — **전부 통과해야 한다.** Task 1/3 의 테스트는 계수 값이 아니라 계약(클램프·성별 라우팅·단조성)에 걸려 있으므로 숫자가 바뀌어도 깨지지 않는다. 여기서 깨진다면 그 테스트가 계수를 하드코딩한 것이니, 상수를 참조하도록 고쳐라(계수를 되돌리지 말 것).
+
+**이 Step 이 갖는 숨은 의미:** 계수가 전부 1.0 이던 동안 `server playback applies the voice-specific calibration weight` 와 `device path applies the device calibration weight` 두 테스트는 **동어반복**이었다(1.0 을 곱하나 안 곱하나 같으므로, 성별 라우팅이 반전돼 있어도 통과). 계수가 실제로 갈라지는 지금이 그 두 테스트가 처음으로 이빨을 갖는 순간이다 — 여기서 라우팅 버그가 잡히면 그건 **테스트가 제 일을 한 것**이니 계수가 아니라 라우팅을 고쳐라.
 
 - [ ] **Step 6: 실기기에서 두 경로를 A/B 로 듣는다**
 
@@ -1647,15 +1677,17 @@ adb shell am start -n com.jjundev.oneclickeng/.MainActivity
 1. 음질 = **"자연스러운 발음"(SERVER)** 으로 상대 대사를 듣는다.
 2. 설정에서 음질 = **"빠른 발음"(DEVICE)** 으로 바꾸고 같은 대사를 다시 듣는다("다시 듣기" 또는 새 세션).
 3. **두 경로의 발화 속도가 같게 들려야 한다.** 목소리와 자연스러움은 당연히 다르다 — 판정 대상은 오직 속도다.
-4. 배속을 **1.5x** 로 올려 같은 A/B 를 반복한다. 양쪽 모두 빨라지고, 여전히 서로 비슷해야 한다.
-5. 상대역이 **남성**인 상황(예: 남성 점원)으로 세션을 하나 더 돌려 Puck 경로도 확인한다.
+4. 배속을 **1.5x**(상한)로 올려 같은 A/B 를 반복한다. 양쪽 모두 빨라지고, 여전히 서로 비슷해야 한다.
+5. **배속을 `0.5x`(하한)로 내려 같은 A/B 를 반복한다.** ← 빠뜨리지 말 것. 슬라이더 0.5 × 계수(~0.77)면 실제로 `AudioTrack.setPlaybackParams` 에 **~0.39** 가 들어가는데, 이게 기기가 요구받는 **가장 낮은 배속**이라 거부당할 가능성이 가장 높다. 거부되면 `applySpeed` 가 조용히 1.0x 로 폴백하는데(`Log.w` 만 남는다), 하필 0.5x 설정에서의 1.0x 폴백은 **귀에 확 띌 만큼 어긋난다**. 1.0/1.5 만 확인하면 이 구간을 영영 못 본다(최종 리뷰 지적). 하단에서도 두 경로가 같게 들려야 하고, 아래 logcat 확인을 **이 배속에서** 반드시 하라.
+6. 상대역이 **남성**인 상황(예: 남성 점원)으로 세션을 하나 더 돌려 **Puck(서버-남성)** 과 **단말-남성 보이스** 를 둘 다 확인한다. 남성 상황에서도 SERVER↔DEVICE 속도가 같게 들려야 한다.
+7. **1.5x 에서 마지막 음절이 잘리는지** 특히 주의해서 듣는다. `PcmAudioPlayer` 는 마지막 *소스* 프레임에서 완료 마커를 받고 곧바로 트랙을 release 하는데, 시간축 신축(Sonic)은 소스를 렌더 출력보다 앞서 소비하므로 이론상 꼬리가 잘릴 수 있다(최종 리뷰 지적). 1.0x 에선 안 생기고 1.5x 에서만 드러난다. 잘리면 보고하라.
 
 동시에 배속 회귀가 없는지 확인:
 
 ```bash
-adb logcat -c && adb logcat | grep -i "playbackParams\|AudioTrack"
+adb logcat -c && adb logcat | grep -iE "playbackParams|AudioTrack|배속"
 ```
-Expected: `setPlaybackParams` 관련 예외/경고가 없다. `IllegalArgumentException` 이 보이면 그 기기가 해당 배속을 지원하지 않는 것이므로 `MAX_EFFECTIVE_RATE` 를 낮추고 재확인한다(`applySpeed` 의 `runCatching` 이 크래시는 막지만 배속이 조용히 무시된다).
+Expected: `setPlaybackParams` 관련 예외/경고가 없다. `applySpeed` 는 실패 시 `Log.w` 로 거부된 배속값을 남기므로(크래시는 막지만 배속은 조용히 1.0x 로 무시된다), **그 경고가 보이면 그 기기가 해당 배속을 지원하지 않는 것**이다 — `MAX_EFFECTIVE_RATE`/`MIN_EFFECTIVE_RATE` 를 조정하고 재확인한다.
 
 캐시 재사용도 확인 — 세션 중 속도를 바꾸고 "다시 듣기" 를 눌렀을 때 **즉시** 재생돼야 한다(재합성 지연 없음):
 
@@ -1686,8 +1718,15 @@ Expected: 속도 변경 후 "다시 듣기" 에서 새 `/llm` 요청이 **나가
   - 두 경로 모두 `TtsSpeedCalibration` 의 실측 계수를 곱해 절대 속도를 맞춘다.
     **기준점 = Gemini `Kore` 자연 속도 = 1.0x**(Gemini 를 억지로 가속하지 않아 자연스러움 보존).
     계수 `w = D_source / D_reference`(동일 문장·중립 속도·무음 트림 후 길이의 비).
+  - **계수는 보이스별 4개**(`WEIGHT_SERVER_FEMALE`=Kore=1.0 고정 · `WEIGHT_SERVER_MALE`=Puck ·
+    `WEIGHT_DEVICE_FEMALE` · `WEIGHT_DEVICE_MALE`). 단말도 성별별로 다른 보이스를 고르므로
+    (`AndroidDeviceTts.selectGenderVoice`) 한쪽만 재서 양쪽에 쓰면 남성 경로가 조용히 어긋난다.
+  - **클램프 경계는 "슬라이더 범위 × 그럴듯한 계수 범위" 로 정한다**(`MIN_EFFECTIVE_RATE`=0.25 /
+    `MAX_EFFECTIVE_RATE`=2.0). 정상 범위 안에서 클램프가 걸리면 그 구간이 조용히 미보정으로
+    되돌아가므로 — 하한을 슬라이더 최소(0.5)와 같게 두면 계수가 1.0 미만인 순간 슬라이더 하단
+    전체가 먹힌다(초기 설계 결함, 최종 리뷰에서 교정).
   - 계수는 디버그 프로브(`TtsCalibrationProbe`, adb 브로드캐스트)로 실측해 상수에 손으로 적는다.
-    **Gemini TTS 모델이 바뀌면 재측정 대상.**
+    **Gemini TTS 모델이 바뀌거나 측정 기기가 바뀌면 재측정 대상.**
   - 부수 효과: 배속이 캐시 키에서 빠져 **합성 1회가 모든 배속을 커버**한다(§3 의 세션 내 캐시 —
     세션 중 속도 변경이 재합성을 유발하지 않는다).
 ```
