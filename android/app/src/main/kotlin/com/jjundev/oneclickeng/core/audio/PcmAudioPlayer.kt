@@ -3,6 +3,7 @@ package com.jjundev.oneclickeng.core.audio
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.util.Log
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
@@ -118,6 +119,7 @@ class PcmAudioPlayer
         ) {
             if (speed == 1.0f) return
             runCatching { track.playbackParams = track.playbackParams.setSpeed(speed) }
+                .onFailure { Log.w(TAG, "device rejected playback speed $speed — falling back to 1.0x", it) }
         }
 
         private fun releaseTrack() {
@@ -131,5 +133,9 @@ class PcmAudioPlayer
                 setPlaybackPositionUpdateListener(null)
                 release()
             }
+        }
+
+        private companion object {
+            const val TAG = "PcmAudioPlayer"
         }
     }
