@@ -62,8 +62,7 @@ interface StudytimeRepository {
      * server-side merge adds this device's (guest) total onto the target account's pre-existing total
      * (`merge.ts` `resolveStudytimeTotal`) — a total this device never otherwise observes. Re-reads the
      * server's post-merge `totalSeconds` and adopts it if larger than the local total. A no-op if signed
-     * out or offline; the display may understate the merged total until a later successful call (the next
-     * app-start `seedFromServerIfEmpty`/`drain` pass does not retry this — see the follow-up note below).
+     * out or offline; the display may understate the merged total until a later successful call.
      */
     suspend fun reconcileAfterMerge()
 

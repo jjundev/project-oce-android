@@ -46,7 +46,7 @@ class FirestoreLifetimeStatsSource
         }
 
         private companion object {
-            const val TAG = "LifetimeStatsSource"
+            const val TAG = "FirestoreLifetimeStatsSource"
             const val USERS = "users"
             const val GAMIFICATION = "gamification"
             const val PROGRESS = "progress"
