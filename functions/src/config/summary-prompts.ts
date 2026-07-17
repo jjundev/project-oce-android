@@ -11,8 +11,9 @@
  * Ported from docs/design/prompts/summary-{expressions,words,coaching}.md, prepended
  * with the shared safety + tone prefix (prompt-system.md §2). The `responseSchema` is
  * authored here (B-1) from each prompt's output example. These prompts are short
- * (< the ~1024-token cachedContents floor), so they ride the inline system-instruction
- * path (decision #9) — the cache key is reserved but no explicit cachedContents is made.
+ * (well under any plausible cachedContents floor), so they ride the inline system-instruction
+ * path (decision #9) — explicit cachedContents is dropped entirely (backend-functions.md §6),
+ * not merely deferred for these prompts.
  */
 import { PromptSpec } from "./prompts";
 import { SummarySection } from "../types/summary";
@@ -144,7 +145,7 @@ export interface SummaryPromptSpec extends PromptSpec {
   responseSchema: Record<string, unknown>;
 }
 
-/** bump when any prompt body or schema below changes (part of the cache key). */
+/** bump when any prompt body or schema below changes — changelog marker only (no cache key consumes this, backend-functions.md §6). */
 const PROMPT_VERSION = "2026-07-03";
 
 function spec(

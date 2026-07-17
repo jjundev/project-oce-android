@@ -74,10 +74,9 @@ interface LlmProvider {
 
 ## 6. 모델 & 캐싱
 - **모델 ID:** 서버 `config/models`(클라 비노출) → **무재배포 스왑**. 시드는 **현행 GA Gemini 모델 ID**(아카이브 preview 문자열 `gemini-3.1-flash-lite-preview`는 실존하지 않으므로 금지). TTS는 현행 TTS 가능 모델.
-- **프롬프트 캐싱(`cachedContents`):** 정적 시스템 프롬프트+레퍼런스(B-1, `config/prompts`)를 task별 등록. **전 사용자 공유**(옛 기기별 → 비용↓).
-  - **캐시 키 = `(task, promptVersion, modelId)`** — `cachedContents`가 모델 종속이므로 modelId 필수. 모델 스왑 시 새 키 미스→재생성, 구 캐시는 TTL 만료. Gemini 400/404(모델 불일치) 시 무효화+무캐시 재시도.
-  - TTL 3600s, 잔여 <300s면 갱신. 핸들(name/created/promptVersion/modelId)은 `config/cache`.
-  - **최소 토큰 플로어:** 프롬프트가 모델 최소치(≈1k~4k 토큰) 미만이면 캐시 생성 실패 → **inline system instruction 폴백**(매 호출 풀 토큰, footnote 비용). 캐시/inline 두 경로는 **동일 시스템 프롬프트 상수**를 공유해 드리프트 방지.
+- **프롬프트 캐싱 — 명시적 `cachedContents`는 폐기 (2026-07-17 재검토):** 이 문서가 원래 그렸던 `cachedContents` 등록·TTL·`config/cache` 핸들 저장 설계는 **현재 인증 방식으로는 도달 불가능**하다. `cachedContents`는 `projects/{project}/locations/{location}/cachedContents/{id}` 형태의 **프로젝트+리전 스코프 리소스**라 표준 Vertex AI(서비스 계정/OAuth) 인증이 필요한데, 이 백엔드는 의도적으로 **Vertex AI Express Mode**(API 키, `publishers/google` 글로벌 엔드포인트, 프로젝트 ID 없음 — `gemini.ts`의 `GEMINI_BASE_URL` 주석 참고)만 쓴다. 이걸 뒤집으려면 Express Mode를 버리고 서비스 계정 인증·프로젝트/리전 지정으로 마이그레이션해야 하는데, 이는 캐싱 하나를 위해 감수하기엔 별도의 인프라 결정이라 **범위 밖으로 명시적으로 제외**한다. 죽어있던 시임(`functions/src/llm/cacheKey.ts`의 `cacheKey()`/`useInlineFallback()`/`MIN_CACHE_TOKENS_FLOOR=1024`)은 삭제했다 — 참고로 그 1024라는 상수 자체도 실제 배포 모델(`gemini-3.1-flash-lite`, Gemini 3.1 계열)의 실제 캐싱 최소 토큰수(4096)와 불일치한 stale 값이었다.
+- **암묵적(implicit) 캐싱은 코드 변경 없이 이미 적용됐을 수 있음, 단 미검증:** Gemini 2.5+/3.x 모델은 반복되는 프롬프트 프리픽스(각 task의 정적 `systemInstruction`+`responseSchema`)를 서빙 인프라가 자동으로 캐싱해 히트 시 90% 할인을 주는 implicit caching이 기본 활성화돼 있다고 문서화되어 있다. 이게 Express Mode 위에서도 실제로 적용되는지, 얼마나 절감되는지는 확인하지 않았다 — **의도적으로 계측을 추가하지 않기로 결정**했다(2026-07-17): 이 앱의 일일 무료 세션 한도가 ~100건 수준이고 텍스트 태스크가 이미 최저가 티어(`gemini-3.1-flash-lite`)라, 캐시 히트로 아낄 수 있는 절대 금액이 작아 계측 비용 대비 실익이 낮다고 판단했다. Gemini 비용이 실제로 신경 쓸 만큼 트래픽/모델 단가가 오르면, `usageMetadata.cachedContentTokenCount`를 구조화 로그로 남겨 히트율을 관측하는 것부터 재검토한다.
+  - **speaking/tts는 애초에 캐싱 후보 아님:** 정적 지시문이 작고 지배적 토큰이 매 호출 고유(오디오 바이트/합성 텍스트)라 — 계측을 붙이더라도 신호가 없다.
 
 ---
 
@@ -113,7 +112,7 @@ interface LlmProvider {
 1. **표현 필터**(one-shot `generateOnce`) → `summaryCard{kind:expression}` emit.
 2. **단어 추출**(one-shot `generateOnce`) → `summaryCard{kind:word}` emit.
 3. **코칭**(one-shot `generateOnce`) → `summaryCard{kind:coaching}` emit.
-- 캐시는 세 내부 task(`summary.expressions`, `summary.words`, `summary.coaching`)로 분리(§6 키 규칙).
+- 프롬프트/모델은 세 내부 task(`summary.expressions`, `summary.words`, `summary.coaching`)로 분리(config/summary-prompts.ts) — 캐시 키 규칙은 없음(§6, 명시적 캐싱 폐기).
 - **부분 실패:** 종료 `event:done {expressions: ok|failed, words: ok|failed, coaching: ok|failed}`로 클라가 "비어있음" vs "실패→재시도" 구분. 재시도 시 성공 섹션은 재사용하고 실패 섹션만 재호출한다.
 
 ---
@@ -124,7 +123,6 @@ interface LlmProvider {
 sessions/{sessionId}     # 서버 전용 ephemeral — {uid, createdAt, expiresAt, turnCount, callCount}; TTL on expiresAt
 idempotency/{key}        # 서버 전용 — startIntent dedup → {sessionId, createdAt, expiresAt}; TTL
 config/models            # 서버 전용 — task별 모델 ID(라이브 스왑)
-config/cache             # 서버 전용 — cachedContents 핸들(키 task+promptVersion+modelId)
 ```
 전부 Admin SDK만 기록·읽기(클라 default-deny). TTL 정책 2개(`sessions.expiresAt`, `idempotency.expiresAt`).
 

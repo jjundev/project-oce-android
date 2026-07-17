@@ -18,10 +18,8 @@
  */
 import { modelFor } from "../config/models";
 import { LEVEL_TOKENS } from "../config/levels";
-import { cacheKey } from "./cacheKey";
 import { SseWritable, writeEvent } from "./sse";
 import {
-  FEEDBACK_PROMPT_VERSION,
   FEEDBACK_RESPONSE_SCHEMA,
   FEEDBACK_SYSTEM_PROMPT,
 } from "../providers/gemini";
@@ -216,8 +214,6 @@ export async function orchestrateFeedback(
     payload,
     system: FEEDBACK_SYSTEM_PROMPT,
     responseSchema: FEEDBACK_RESPONSE_SCHEMA,
-    // Reserved cache handle (explicit cachedContents deferred → inline system path, mirrors dialogue).
-    cacheKey: cacheKey("feedback", FEEDBACK_PROMPT_VERSION, modelId),
   };
 
   const parser = new IncrementalFeedbackParser();
