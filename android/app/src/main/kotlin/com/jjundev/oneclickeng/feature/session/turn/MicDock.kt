@@ -116,6 +116,7 @@ internal fun MicSessionDock(
         reduceMotion = reduceMotion,
         onMicTap = ::handleMicTap,
         onAdvance = viewModel::onAdvance,
+        onCancelSpeaking = viewModel::onCancelSpeaking,
         onToggleTextMode = viewModel::onToggleTextMode,
         onTextChange = viewModel::onTextChange,
         onSubmitText = viewModel::onSubmitText,
@@ -152,6 +153,7 @@ internal fun MicDock(
     reduceMotion: Boolean,
     onMicTap: () -> Unit,
     onAdvance: () -> Unit,
+    onCancelSpeaking: () -> Unit,
     onToggleTextMode: (Boolean) -> Unit,
     onTextChange: (String) -> Unit,
     onSubmitText: () -> Unit,
@@ -179,6 +181,7 @@ internal fun MicDock(
                 reduceMotion = reduceMotion,
                 onMicTap = onMicTap,
                 onAdvance = onAdvance,
+                onCancelSpeaking = onCancelSpeaking,
                 onToggleTextMode = onToggleTextMode,
             )
         }
@@ -194,6 +197,7 @@ private fun MicColumn(
     reduceMotion: Boolean,
     onMicTap: () -> Unit,
     onAdvance: () -> Unit,
+    onCancelSpeaking: () -> Unit,
     onToggleTextMode: (Boolean) -> Unit,
 ) {
     Column(
@@ -244,6 +248,16 @@ private fun MicColumn(
                 ) {
                     Text(text = "다음", style = OceTheme.typography.sectionLabel)
                 }
+            } else if (micState == MicState.Recording || micState == MicState.Analyzing) {
+                // 녹음 중·분석 중 모두 취소 가능 — 분석 중엔 채팅 전환이 어차피 막혀 있고(onSubmitText 가
+                // Analyzing 을 거른다), 대신 진행 중인 LLM 왕복을 버리고 처음부터 다시 말할 수 있어야 한다.
+                InputModeToggle(
+                    icon = null,
+                    label = "처음부터 말하기",
+                    onClick = onCancelSpeaking,
+                    // 마이크 모드: 상태 문구와 밀착(중앙정렬로 생긴 텍스트 위 여백 상쇄) — 토글은 도크 하단 고정.
+                    topGap = 0.dp,
+                )
             } else {
                 InputModeToggle(
                     icon = OceIcon.Keyboard,
@@ -267,8 +281,8 @@ private fun micStatusText(state: MicState): String? =
     }
 
 /**
- * 오답/마이크 실패 교정 배너([B] 에러 택소노미). 코랄 톤 카드 + [B] 배지 + error 아이콘 + 비난 없는 안내.
- * 프로토타입 micFail 배너 정합(feedback-correct 코랄 계열 색 소유).
+ * 오답/마이크 실패 교정 배너. 코랄 톤 카드 + error 아이콘 + 비난 없는 안내.
+ * 프로토타입 micFail 배너 정합(feedback-correct 코랄 계열 색 소유). [B] 배지는 사용자 요청으로 제거.
  */
 @Composable
 private fun MicFailBanner(message: String) {
@@ -284,17 +298,6 @@ private fun MicFailBanner(message: String) {
         horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = "B",
-            style = OceTheme.typography.helper.copy(fontWeight = FontWeight.ExtraBold, fontSize = 9.sp),
-            color = accent,
-            modifier =
-                Modifier
-                    .clip(OceTheme.shapes.radius4)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, accent.copy(alpha = 0.4f), OceTheme.shapes.radius4)
-                    .padding(horizontal = 5.dp, vertical = 2.dp),
-        )
         OneClickIcon(icon = OceIcon.Error, contentDescription = null, tint = accent, size = 18.dp)
         Text(
             text = message,
@@ -305,9 +308,10 @@ private fun MicFailBanner(message: String) {
 }
 
 /**
- * 입력 모드 전환 어피던스(마이크↔채팅 공용). 두 모드에서 **동일 스타일**(48dp 터치타깃 · 중앙정렬 ·
+ * 입력 모드 전환 어피던스(마이크↔채팅↔취소 공용). 두 모드에서 **동일 스타일**(48dp 터치타깃 · 중앙정렬 ·
  * radius8 리플 · tertiary 회색)이라, 각 도크의 마지막 자식으로서 화면 하단에서 같은 위치에 온다.
  * 마이크 모드: 키보드 아이콘 + "채팅으로 입력하기". 텍스트 모드: 마이크 아이콘 + "마이크로 말하기".
+ * 녹음 취소는 [icon] 없이 라벨만("처음부터 말하기") — 사용자 요청으로 아이콘 미부착.
  *
  * [topGap] 은 위 콘텐츠와의 간격만 조절한다 — 도크 하단 정착이라 토글 자체 위치는 불변이고 위 콘텐츠가
  * 당겨진다. 마이크 모드는 48dp 중앙정렬로 생기는 텍스트 위 여백을 상쇄하려 `0.dp` 를 넘겨 상태 문구와
@@ -315,7 +319,7 @@ private fun MicFailBanner(message: String) {
  */
 @Composable
 private fun InputModeToggle(
-    icon: OceIcon,
+    icon: OceIcon?,
     label: String,
     onClick: () -> Unit,
     topGap: Dp = OceTheme.spacing.md,
@@ -331,12 +335,14 @@ private fun InputModeToggle(
         horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        OneClickIcon(
-            icon = icon,
-            contentDescription = null,
-            tint = OceTheme.colors.textTertiary,
-            size = 18.dp,
-        )
+        if (icon != null) {
+            OneClickIcon(
+                icon = icon,
+                contentDescription = null,
+                tint = OceTheme.colors.textTertiary,
+                size = 18.dp,
+            )
+        }
         Text(
             text = label,
             style = OceTheme.typography.helper.copy(fontWeight = FontWeight.SemiBold),

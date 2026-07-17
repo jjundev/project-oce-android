@@ -20,8 +20,11 @@ import javax.inject.Singleton
  * Orchestrates speaking analysis (M1-06): wrap the captured PCM as WAV, base64-encode it,
  * POST `/llm task=speaking`, and surface `{transcript, feedbackMessage}` as typed state — a
  * Kotlin/coroutine state machine mirroring [com.jjundev.oneclickeng.feature.session.tts.TtsPlaybackCoordinator]
- * (watchdog + monotonic stale-token guard). Framework work (WAV/base64) is off the main
- * thread; the state is UI-facing.
+ * (watchdog + monotonic stale-token guard). WAV/base64 work runs inline on [scope]
+ * (`Dispatchers.Main.immediate`, see `TtsModule.provideAppScope`) — deliberately, not an
+ * oversight: it's ≤20s of 16kHz mono PCM (≤~640KB), a copy + base64 encode that finishes in
+ * low single-digit milliseconds on-device, well under a frame budget, and staying inline keeps
+ * the state machine deterministic under virtual time in tests (see [analyze]'s inline comment).
  *
  * `transcript` is retained in [transcript] so the slim feedback stage (M1-07) reuses it with
  * NO re-transcription (issue acceptance criterion). No numeric score exists anywhere here —

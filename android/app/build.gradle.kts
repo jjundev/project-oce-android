@@ -89,6 +89,7 @@ tasks.withType<Test>().configureEach {
             "**/TopicSelectDragBlockTest*",
             "**/GoogleSaveActionsTest*",
             "**/MicDockTogglePositionTest*",
+            "**/MicDockCancelSpeakingTest*",
             "**/DeepFeedbackRegionTest*",
             "**/SummaryScrollEndGateTest*",
             "**/SummaryScrollFabTest*",
@@ -110,6 +111,8 @@ tasks.withType<Test>().configureEach {
             "**/OverscrollRefreshBoxTest*",
             "**/HomePullRefreshTest*",
             "**/RecordsScreenPullRefreshTest*",
+            "**/RecordsSkeletonTest*",
+            "**/RecordsSkeletonMinHoldTest*",
         )
     }
 }

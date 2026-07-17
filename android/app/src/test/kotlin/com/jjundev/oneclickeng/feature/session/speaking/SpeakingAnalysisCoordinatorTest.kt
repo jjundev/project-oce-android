@@ -163,6 +163,24 @@ class SpeakingAnalysisCoordinatorTest {
             assertNull(coordinator.transcript())
         }
 
+    @Test
+    fun `reset during an in-flight analysis discards the late response`() =
+        runTest {
+            // 분석 중 "처음부터 말하기" 취소의 계약. 위 테스트는 분석이 **끝난 뒤** 리셋하지만, 취소는 왕복
+            // 중에 일어난다 — 뒤늦게 도착한 응답이 Result 로 새어나오면 GeneratedDialogueSessionViewModel 의
+            // triggerFeedback 이 돌아 취소한 턴의 피드백 시트가 떠오른다. 취소 후에는 Idle 로 남아야 한다.
+            val api = FakeLlmApi(response = result("late"), delayMs = 5_000)
+            val coordinator = SpeakingAnalysisCoordinator(api, coordScope())
+
+            coordinator.analyze(captured(), "s1")
+            runCurrent() // 요청 in-flight(응답 전)
+            coordinator.reset()
+            advanceUntilIdle() // in-flight 요청의 지연이 다 흐르도록 — 응답이 와도 무시돼야 한다
+
+            assertEquals(SpeakingAnalysisState.Idle, coordinator.state.value)
+            assertNull(coordinator.transcript())
+        }
+
     /** Coordinator scope on an unconfined dispatcher tied to the test scheduler, so launches
      *  run eagerly while virtual time still drives the watchdog. */
     private fun TestScope.coordScope(): CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
