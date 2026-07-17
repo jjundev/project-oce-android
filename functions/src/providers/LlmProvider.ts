@@ -40,13 +40,6 @@ export interface GenerateRequest {
   system?: string;
   /** JSON schema for structured output — `generationConfig.responseSchema` (M2-01). */
   responseSchema?: unknown;
-  /**
-   * Reserved cache handle key (task, promptVersion, modelId — backend-functions.md §6).
-   * The provider currently ignores it (explicit cachedContents deferred; inline path),
-   * but the orchestrator computes it so the future Firestore `config/cache` layer can
-   * key off it without a call-site change.
-   */
-  cacheKey?: string;
 }
 
 export interface LlmProvider {

@@ -18,10 +18,8 @@
  */
 import { modelFor } from "../config/models";
 import { LEVEL_TOKENS, isEven6to20 } from "../config/levels";
-import { cacheKey } from "./cacheKey";
 import { SseWritable, writeEvent } from "./sse";
 import {
-  DIALOGUE_PROMPT_VERSION,
   DIALOGUE_RESPONSE_SCHEMA,
   DIALOGUE_SYSTEM_PROMPT,
 } from "../providers/gemini";
@@ -328,8 +326,6 @@ export async function orchestrateDialogue(
     payload,
     system: DIALOGUE_SYSTEM_PROMPT,
     responseSchema: DIALOGUE_RESPONSE_SCHEMA,
-    // Reserved cache handle (explicit cachedContents deferred → inline system path, decision #15).
-    cacheKey: cacheKey("dialogue", DIALOGUE_PROMPT_VERSION, modelId),
   };
 
   const parser = new IncrementalDialogueParser();

@@ -11,7 +11,6 @@
  */
 import { modelFor } from "../config/models";
 import { SUMMARY_PROMPTS } from "../config/summary-prompts";
-import { cacheKey } from "./cacheKey";
 import { SseWritable, writeEvent } from "./sse";
 import { GenerateRequest, LlmProvider, RawJson } from "../providers/LlmProvider";
 import { SummaryCardKind } from "../types/sse";
@@ -162,8 +161,6 @@ export async function orchestrateSummary(
         payload: sliceFor(section, payload, totalScore),
         system: promptSpec.system,
         responseSchema: promptSpec.responseSchema,
-        // Reserved cache handle (explicit cachedContents deferred → inline path, #9).
-        cacheKey: cacheKey(`summary.${section}`, promptSpec.promptVersion, modelId),
       };
       try {
         const result = await provider.generateOnce(request);

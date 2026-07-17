@@ -388,8 +388,9 @@ export function buildSynthesisBody(
 
 /**
  * Speaking-analysis system prompt — B-1 content (speaking-analyze.md rules 1-4) inlined as
- * a server constant, mirroring how `buildSynthesisBody` inlines the tts prompt (config/
- * prompts + cachedContents migration is a documented follow-up, backend-functions.md §6).
+ * a server constant, mirroring how `buildSynthesisBody` inlines the tts prompt. Explicit
+ * `cachedContents` caching is dropped (infeasible under Express Mode, backend-functions.md §6);
+ * this stays inline permanently, not pending a migration.
  * The output is intentionally narrowed to `{transcript, feedbackMessage}` — NO numeric
  * score field (PRD A8/R3), enforced structurally by `responseSchema` below.
  */
@@ -704,13 +705,14 @@ function extractDeltaText(jsonLine: string): string {
   }
 }
 
-/** Bump when DIALOGUE_SYSTEM_PROMPT or DIALOGUE_RESPONSE_SCHEMA changes (part of the cache key). */
+/** Bump when DIALOGUE_SYSTEM_PROMPT or DIALOGUE_RESPONSE_SCHEMA changes — changelog marker only (no cache key consumes this, backend-functions.md §6). */
 export const DIALOGUE_PROMPT_VERSION = "2026-07-14";
 
 /**
  * dialogue.generate system prompt — B-1 content inlined as a server constant, mirroring
- * SPEAKING_SYSTEM_PROMPT (config/prompts + explicit cachedContents migration is a documented
- * follow-up, backend-functions.md §6). Ported from docs/design/prompts/dialogue-generate.md with
+ * SPEAKING_SYSTEM_PROMPT. Explicit `cachedContents` caching is dropped (infeasible under
+ * Express Mode, backend-functions.md §6); this stays inline permanently. Ported from
+ * docs/design/prompts/dialogue-generate.md with
  * the shared safety + difficulty-band prefix folded in (the _shared/* files are not bundled).
  */
 export const DIALOGUE_SYSTEM_PROMPT =
@@ -776,13 +778,14 @@ export const DIALOGUE_RESPONSE_SCHEMA: Record<string, unknown> = {
   ],
 };
 
-/** Bump when FEEDBACK_SYSTEM_PROMPT or FEEDBACK_RESPONSE_SCHEMA changes (part of the cache key). */
+/** Bump when FEEDBACK_SYSTEM_PROMPT or FEEDBACK_RESPONSE_SCHEMA changes — changelog marker only (no cache key consumes this, backend-functions.md §6). */
 export const FEEDBACK_PROMPT_VERSION = "2026-07-03";
 
 /**
  * feedback.slim system prompt — M1-07. B-1 content inlined as a server constant, mirroring
- * DIALOGUE_SYSTEM_PROMPT (config/prompts + explicit cachedContents migration is a documented
- * follow-up, backend-functions.md §6). Ported from docs/design/prompts/feedback-slim.md with the
+ * DIALOGUE_SYSTEM_PROMPT. Explicit `cachedContents` caching is dropped (infeasible under
+ * Express Mode, backend-functions.md §6); this stays inline permanently. Ported from
+ * docs/design/prompts/feedback-slim.md with the
  * shared safety + tone prefix folded in (the _shared/* files are not bundled). This is the PER-TURN
  * slim feedback (writingScore/grammar/naturalExpression); deep analysis is a separate call (M2-03).
  */
@@ -898,7 +901,7 @@ export const FEEDBACK_RESPONSE_SCHEMA: Record<string, unknown> = {
   propertyOrdering: ["writingScore", "grammar", "naturalExpression"],
 };
 
-/** Bump when FEEDBACK_DEEP_SYSTEM_PROMPT or FEEDBACK_DEEP_RESPONSE_SCHEMA changes (cache key). */
+/** Bump when FEEDBACK_DEEP_SYSTEM_PROMPT or FEEDBACK_DEEP_RESPONSE_SCHEMA changes — changelog marker only (no cache key consumes this, backend-functions.md §6). */
 export const FEEDBACK_DEEP_PROMPT_VERSION = "2026-07-10";
 
 /**

@@ -4,7 +4,6 @@ import {
   LlmProvider,
   RawJson,
 } from "../src/providers/LlmProvider";
-import { cacheKey } from "../src/llm/cacheKey";
 import { parseSummaryPayload, resolveTotalScore } from "../src/llm/summary";
 import { ErrorCode } from "../src/types/protocol";
 
@@ -282,15 +281,6 @@ describe("summary orchestration (SSE)", () => {
 });
 
 describe("summary payload parsing + helpers", () => {
-  it("cacheKey is distinct per sub-task", () => {
-    const keys = new Set([
-      cacheKey("summary.expressions", "v", "m"),
-      cacheKey("summary.words", "v", "m"),
-      cacheKey("summary.coaching", "v", "m"),
-    ]);
-    expect(keys.size).toBe(3);
-  });
-
   it("dedupes and validates the sections filter; drops unknown data types", () => {
     const parsed = parseSummaryPayload({
       words: ["a", 1, "b"],

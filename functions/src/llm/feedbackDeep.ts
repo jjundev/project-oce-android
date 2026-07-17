@@ -19,10 +19,8 @@
  * carries (mirrors feedbackSection.data.section, backend-functions.md:55).
  */
 import { modelFor } from "../config/models";
-import { cacheKey } from "./cacheKey";
 import { SseWritable, writeEvent } from "./sse";
 import {
-  FEEDBACK_DEEP_PROMPT_VERSION,
   FEEDBACK_DEEP_RESPONSE_SCHEMA,
   FEEDBACK_DEEP_SYSTEM_PROMPT,
 } from "../providers/gemini";
@@ -228,7 +226,6 @@ export async function orchestrateFeedbackDeep(
     payload,
     system: FEEDBACK_DEEP_SYSTEM_PROMPT,
     responseSchema: FEEDBACK_DEEP_RESPONSE_SCHEMA,
-    cacheKey: cacheKey("feedbackDeep", FEEDBACK_DEEP_PROMPT_VERSION, modelId),
   };
 
   const parser = new IncrementalFeedbackDeepParser();
