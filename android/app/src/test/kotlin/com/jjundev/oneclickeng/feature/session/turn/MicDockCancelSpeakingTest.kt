@@ -76,4 +76,30 @@ class MicDockCancelSpeakingTest {
         composeRule.onNodeWithText("채팅으로 입력하기", useUnmergedTree = true).assertExists()
         composeRule.onNodeWithText("처음부터 말하기", useUnmergedTree = true).assertDoesNotExist()
     }
+
+    @Test
+    fun analyzing_state_shows_cancel_label_instead_of_chat_toggle() {
+        setDock(MicState.Analyzing, onCancelSpeaking = {})
+
+        composeRule.onNodeWithText("처음부터 말하기", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithText("채팅으로 입력하기", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun tapping_cancel_label_while_analyzing_invokes_callback() {
+        var cancelCount = 0
+        setDock(MicState.Analyzing, onCancelSpeaking = { cancelCount++ })
+
+        composeRule.onNodeWithText("처음부터 말하기", useUnmergedTree = true).performClick()
+
+        assertEquals(1, cancelCount)
+    }
+
+    @Test
+    fun complete_state_keeps_next_button() {
+        setDock(MicState.Complete, onCancelSpeaking = {})
+
+        composeRule.onNodeWithText("다음").assertExists()
+        composeRule.onNodeWithText("처음부터 말하기", useUnmergedTree = true).assertDoesNotExist()
+    }
 }

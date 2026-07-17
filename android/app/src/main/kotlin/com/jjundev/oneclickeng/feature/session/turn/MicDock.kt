@@ -248,7 +248,9 @@ private fun MicColumn(
                 ) {
                     Text(text = "다음", style = OceTheme.typography.sectionLabel)
                 }
-            } else if (micState == MicState.Recording) {
+            } else if (micState == MicState.Recording || micState == MicState.Analyzing) {
+                // 녹음 중·분석 중 모두 취소 가능 — 분석 중엔 채팅 전환이 어차피 막혀 있고(onSubmitText 가
+                // Analyzing 을 거른다), 대신 진행 중인 LLM 왕복을 버리고 처음부터 다시 말할 수 있어야 한다.
                 InputModeToggle(
                     icon = null,
                     label = "처음부터 말하기",
