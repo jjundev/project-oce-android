@@ -5,6 +5,7 @@ import com.jjundev.oneclickeng.core.network.SummaryEvent
 import com.jjundev.oneclickeng.core.network.SummaryPayload
 import com.jjundev.oneclickeng.core.network.SummaryRequest
 import com.jjundev.oneclickeng.core.network.SummaryStream
+import com.jjundev.oneclickeng.core.settings.SummarySaveSettingsRepository
 import com.jjundev.oneclickeng.feature.gamification.GamificationTime
 import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
 import com.jjundev.oneclickeng.feature.session.saved.CardType
@@ -66,6 +67,7 @@ class SummaryCoordinator
         private val bookmarkSource: BookmarkSource,
         private val ledger: CompletionLedger,
         private val savedCardRepository: SavedCardRepository,
+        private val saveSettings: SummarySaveSettingsRepository,
         private val studytime: StudytimeRepository,
         private val scope: CoroutineScope,
     ) {
@@ -92,6 +94,10 @@ class SummaryCoordinator
         private var savedWordIndices = emptySet<Int>()
         private var savedExprIndices = emptySet<Int>()
         private var unsavedBookmarkIds = emptySet<String>()
+
+        // 저장 기본값(설정 화면). start() 가 [beginAttempt] 로 SSE 오픈을 이 값 확정 뒤로 미뤄, 카드 도착
+        // 시점과의 레이스를 없앤다.
+        private var saveByDefault = false
 
         // Per-section accumulators. Before the first `done`, arrived cards set Ready but the bundle
         // still shows BundleLoading (single skeleton) until [sectioned] flips.
@@ -146,7 +152,21 @@ class SummaryCoordinator
             loadBookmarks(sessionId)
 
             emit()
-            launchAttempt(sections = null)
+            beginAttempt(sessionId)
+        }
+
+        /**
+         * 저장 기본값 설정을 1회 읽은 뒤 SSE 를 연다. 표현/단어 카드가 [onEvent] 로 도착하는 시점에
+         * [saveByDefault] 가 이미 확정돼 있어야 자동 저장 여부를 놓치지 않는다 — 네트워크(SSE)보다 로컬
+         * DataStore 읽기가 사실상 항상 먼저 끝나지만, 순서를 코드로 보장해 레이스를 없앤다. 대기 중 다시
+         * [start]/[reset] 이 호출되면 sessionId 불일치로 무시한다([loadBookmarks]/[recordAccrual] 과 동일한
+         * supersede 가드).
+         */
+        private fun beginAttempt(sessionId: String) {
+            scope.launch {
+                saveByDefault = saveSettings.current().saveByDefault
+                if (sessionId == this@SummaryCoordinator.sessionId) launchAttempt(sections = null)
+            }
         }
 
         /**
@@ -175,6 +195,7 @@ class SummaryCoordinator
             savedWordIndices = emptySet()
             savedExprIndices = emptySet()
             unsavedBookmarkIds = emptySet()
+            saveByDefault = false
             _state.value = EMPTY
         }
 
@@ -228,6 +249,27 @@ class SummaryCoordinator
                 savedCardRepository.setDeleted(cardId, CardType.SENTENCE, deleted = true)
             }
             emit()
+        }
+
+        /**
+         * 저장 기본값 ON 일 때 표현 카드 도착 즉시 전 항목을 저장한다. [toggleSaveExpression] 과 같은
+         * cardId 규칙([SavedCardId.forSummary])을 써서 이후 수동 토글(해제)이 정확히 같은 문서를 가리킨다.
+         */
+        private fun autoSaveExpressions(items: List<ExpressionCard>) {
+            val id = sessionId ?: return
+            savedExprIndices = items.indices.toSet()
+            items.forEachIndexed { index, card ->
+                savedCardRepository.save(SavedCardId.forSummary(id, CardType.EXPRESSION, index), card.toSavedCard())
+            }
+        }
+
+        /** [autoSaveExpressions] 와 동형(WORD). */
+        private fun autoSaveWords(items: List<WordCard>) {
+            val id = sessionId ?: return
+            savedWordIndices = items.indices.toSet()
+            items.forEachIndexed { index, card ->
+                savedCardRepository.save(SavedCardId.forSummary(id, CardType.WORD, index), card.toSavedCard())
+            }
         }
 
         private fun loadBookmarks(sessionId: String) {
@@ -301,11 +343,15 @@ class SummaryCoordinator
         ) {
             when (event) {
                 is SummaryEvent.Card.Expression -> {
-                    expression = SummarySectionState.Ready(event.items.take(MAX_EXPRESSIONS).map { it.toDomain() })
+                    val items = event.items.take(MAX_EXPRESSIONS).map { it.toDomain() }
+                    expression = SummarySectionState.Ready(items)
+                    if (saveByDefault) autoSaveExpressions(items)
                     afterCard(token)
                 }
                 is SummaryEvent.Card.Word -> {
-                    word = SummarySectionState.Ready(event.items.take(MAX_WORDS).map { it.toDomain() })
+                    val items = event.items.take(MAX_WORDS).map { it.toDomain() }
+                    word = SummarySectionState.Ready(items)
+                    if (saveByDefault) autoSaveWords(items)
                     afterCard(token)
                 }
                 is SummaryEvent.Card.Coaching -> {

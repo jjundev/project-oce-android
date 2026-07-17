@@ -9,6 +9,7 @@ import com.jjundev.oneclickeng.core.network.SummaryRequest
 import com.jjundev.oneclickeng.core.network.SummaryStream
 import com.jjundev.oneclickeng.core.network.WordExampleDto
 import com.jjundev.oneclickeng.core.network.WordItemDto
+import com.jjundev.oneclickeng.core.settings.FakeSummarySaveSettingsRepository
 import com.jjundev.oneclickeng.feature.gamification.AccrualSnapshot
 import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
 import com.jjundev.oneclickeng.feature.session.feedback.TurnFeedbackBuffer
@@ -141,8 +142,9 @@ class SummaryCoordinatorTest {
         bookmarks: FakeBookmarkSource = FakeBookmarkSource(),
         ledger: FakeLedger = FakeLedger(),
         savedCards: FakeSavedCardRepository = FakeSavedCardRepository(),
+        saveSettings: FakeSummarySaveSettingsRepository = FakeSummarySaveSettingsRepository(),
         studytime: FakeStudytimeRepository = FakeStudytimeRepository(),
-    ) = SummaryCoordinator(stream, store(), bookmarks, ledger, savedCards, studytime, scope)
+    ) = SummaryCoordinator(stream, store(), bookmarks, ledger, savedCards, saveSettings, studytime, scope)
 
     private val accrual = AccrualStrip(streakDays = 3, xp = 40)
 
@@ -541,5 +543,71 @@ class SummaryCoordinatorTest {
             runCurrent()
 
             assertEquals(listOf("expressions", "words"), stream.requests.last().payload.sections)
+        }
+
+    @Test
+    fun `expression and word cards are auto-saved for every index when save-by-default is enabled`() =
+        runTest {
+            val stream = FakeSummaryStream()
+            val repo = FakeSavedCardRepository()
+            val saveSettings = FakeSummarySaveSettingsRepository(initial = true)
+            val coordinator = coordinator(coordScope(), stream, savedCards = repo, saveSettings = saveSettings)
+
+            coordinator.begin() // sessionId=s1
+            runCurrent()
+            stream.push(SummaryEvent.Card.Expression(listOf(expressionItem(), expressionItem())))
+            stream.push(SummaryEvent.Card.Word(listOf(wordItem(), wordItem())))
+            stream.push(done())
+            runCurrent()
+
+            assertEquals(setOf(0, 1), coordinator.state.value.savedExprIndices)
+            assertEquals(setOf(0, 1), coordinator.state.value.savedWordIndices)
+            assertEquals(4, repo.saves.size)
+            assertEquals(
+                setOf("s1__EXPRESSION__0", "s1__EXPRESSION__1", "s1__WORD__0", "s1__WORD__1"),
+                repo.saves.map { it.cardId }.toSet(),
+            )
+        }
+
+    @Test
+    fun `cards stay unsaved by default when save-by-default is disabled`() =
+        runTest {
+            val stream = FakeSummaryStream()
+            val repo = FakeSavedCardRepository()
+            val coordinator = coordinator(coordScope(), stream, savedCards = repo) // saveSettings defaults false
+
+            coordinator.begin()
+            runCurrent()
+            stream.push(wordCard())
+            stream.push(expressionCard())
+            stream.push(done())
+            runCurrent()
+
+            assertTrue(coordinator.state.value.savedWordIndices.isEmpty())
+            assertTrue(coordinator.state.value.savedExprIndices.isEmpty())
+            assertTrue(repo.saves.isEmpty())
+        }
+
+    @Test
+    fun `a card auto-saved by the default-on setting can still be manually un-saved`() =
+        runTest {
+            val stream = FakeSummaryStream()
+            val repo = FakeSavedCardRepository()
+            val saveSettings = FakeSummarySaveSettingsRepository(initial = true)
+            val coordinator = coordinator(coordScope(), stream, savedCards = repo, saveSettings = saveSettings)
+
+            coordinator.begin()
+            runCurrent()
+            stream.push(wordCard())
+            stream.push(done())
+            runCurrent()
+            assertEquals(setOf(0), coordinator.state.value.savedWordIndices)
+
+            coordinator.toggleSaveWord(0)
+            runCurrent()
+
+            assertTrue(coordinator.state.value.savedWordIndices.isEmpty())
+            assertEquals(1, repo.deletes.size)
+            assertEquals("s1__WORD__0", repo.deletes.first().cardId)
         }
 }
