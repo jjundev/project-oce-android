@@ -236,4 +236,39 @@ class StudytimeStoreTest {
 
             scope.cancel()
         }
+
+    @Test
+    fun `reconcileFromServer adopts a larger server total after a guest-to-google merge`() =
+        runTest {
+            val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
+            val store = newStore(scope)
+            store.accrue("s1", 300, "2026-07-04") // local total = 300 (this device's guest-only portion)
+
+            // Server total after merge = pre-existing target total (2200s, studied on another device)
+            // + this device's guest total (300s), per merge.ts:resolveStudytimeTotal.
+            store.reconcileFromServer(serverTotalSeconds = 2500)
+
+            val snap = store.snapshot()
+            assertEquals(2500L, snap.totalSeconds)
+            assertFalse("adopted value already matches server — no re-push needed", snap.unsynced)
+
+            scope.cancel()
+        }
+
+    @Test
+    fun `reconcileFromServer is a no-op when local total already covers the server value`() =
+        runTest {
+            val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
+            val store = newStore(scope)
+            store.accrue("s1", 300, "2026-07-04")
+            store.accrue("s2", 400, "2026-07-05") // local total = 700, unsynced = true
+
+            store.reconcileFromServer(serverTotalSeconds = 500) // stale/behind read
+
+            val snap = store.snapshot()
+            assertEquals(700L, snap.totalSeconds)
+            assertTrue("local ahead of server — still needs its own push", snap.unsynced)
+
+            scope.cancel()
+        }
 }
