@@ -112,7 +112,7 @@ interface LlmProvider {
 1. **표현 필터**(one-shot `generateOnce`) → `summaryCard{kind:expression}` emit.
 2. **단어 추출**(one-shot `generateOnce`) → `summaryCard{kind:word}` emit.
 3. **코칭**(one-shot `generateOnce`) → `summaryCard{kind:coaching}` emit.
-- 캐시는 세 내부 task(`summary.expressions`, `summary.words`, `summary.coaching`)로 분리(§6 키 규칙).
+- 프롬프트/모델은 세 내부 task(`summary.expressions`, `summary.words`, `summary.coaching`)로 분리(config/summary-prompts.ts) — 캐시 키 규칙은 없음(§6, 명시적 캐싱 폐기).
 - **부분 실패:** 종료 `event:done {expressions: ok|failed, words: ok|failed, coaching: ok|failed}`로 클라가 "비어있음" vs "실패→재시도" 구분. 재시도 시 성공 섹션은 재사용하고 실패 섹션만 재호출한다.
 
 ---
@@ -123,7 +123,6 @@ interface LlmProvider {
 sessions/{sessionId}     # 서버 전용 ephemeral — {uid, createdAt, expiresAt, turnCount, callCount}; TTL on expiresAt
 idempotency/{key}        # 서버 전용 — startIntent dedup → {sessionId, createdAt, expiresAt}; TTL
 config/models            # 서버 전용 — task별 모델 ID(라이브 스왑)
-config/cache             # 서버 전용 — cachedContents 핸들(키 task+promptVersion+modelId)
 ```
 전부 Admin SDK만 기록·읽기(클라 default-deny). TTL 정책 2개(`sessions.expiresAt`, `idempotency.expiresAt`).
 
