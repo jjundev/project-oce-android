@@ -144,6 +144,14 @@ class SummaryCoordinator
             attemptsWord = 0
             attemptsCoaching = 0
 
+            // stale-guard: neutralize any live prior stream synchronously. Before [beginAttempt]
+            // existed this bump/cancel happened inside launchAttempt, called synchronously from here —
+            // airtight the instant start() returned. launchAttempt is now deferred behind a settings
+            // read, so without this, a card from the PRIOR session could arrive and pass the token
+            // guard while the new sessionId is already live, persisting it under the wrong cardId.
+            sessionToken++
+            currentJob?.cancel()
+
             // 완주 적립 시도(요약 진입 시점, #20). fire-and-forget · 멱등.
             ledger.recordCompletion(sessionId = sessionId, difficulty = difficulty, modeId = modeId)
             // studytime 적립 + 적립 스트립 산출(M3-05). 비동기 — 완료 시 accrual 갱신.
@@ -160,12 +168,21 @@ class SummaryCoordinator
          * [saveByDefault] 가 이미 확정돼 있어야 자동 저장 여부를 놓치지 않는다 — 네트워크(SSE)보다 로컬
          * DataStore 읽기가 사실상 항상 먼저 끝나지만, 순서를 코드로 보장해 레이스를 없앤다. 대기 중 다시
          * [start]/[reset] 이 호출되면 sessionId 불일치로 무시한다([loadBookmarks]/[recordAccrual] 과 동일한
-         * supersede 가드).
+         * supersede 가드) — [saveByDefault] 대입도 가드 안쪽에서만 일어나, [reset] 이 지운 값을 뒤늦게
+         * 덮어쓰지 않는다.
+         *
+         * 설정 읽기는 SSE 오픈의 하드 프리컨디션이 아니다: DataStore 읽기가 IOException/CorruptionException
+         * 으로 실패해도 "저장 안 함"(false)으로 낙관 폴백해 그대로 진행한다 — [start] 에서 [launchAttempt]
+         * 까지 아무것도 던지거나 멈추지 않던 이전 불변을 유지한다(스트림 미오픈·워치독 미기동으로 화면이
+         * 영구 스켈레톤에 멈추는 것을 방지).
          */
         private fun beginAttempt(sessionId: String) {
             scope.launch {
-                saveByDefault = saveSettings.current().saveByDefault
-                if (sessionId == this@SummaryCoordinator.sessionId) launchAttempt(sections = null)
+                val resolved = runCatching { saveSettings.current().saveByDefault }.getOrDefault(false)
+                if (sessionId == this@SummaryCoordinator.sessionId) {
+                    saveByDefault = resolved
+                    launchAttempt(sections = null)
+                }
             }
         }
 

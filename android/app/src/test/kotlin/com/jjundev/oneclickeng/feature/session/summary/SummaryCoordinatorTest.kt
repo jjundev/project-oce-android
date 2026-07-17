@@ -10,16 +10,20 @@ import com.jjundev.oneclickeng.core.network.SummaryStream
 import com.jjundev.oneclickeng.core.network.WordExampleDto
 import com.jjundev.oneclickeng.core.network.WordItemDto
 import com.jjundev.oneclickeng.core.settings.FakeSummarySaveSettingsRepository
+import com.jjundev.oneclickeng.core.settings.SummarySaveSettings
+import com.jjundev.oneclickeng.core.settings.SummarySaveSettingsRepository
 import com.jjundev.oneclickeng.feature.gamification.AccrualSnapshot
 import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
 import com.jjundev.oneclickeng.feature.session.feedback.TurnFeedbackBuffer
 import com.jjundev.oneclickeng.feature.session.saved.CardType
 import com.jjundev.oneclickeng.feature.session.saved.FakeSavedCardRepository
 import com.jjundev.oneclickeng.feature.session.saved.SavedCard
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -116,6 +120,35 @@ private class FakeStudytimeRepository(
     override suspend fun resetMetrics() = Unit
 }
 
+/**
+ * [SummarySaveSettingsRepository] 페이크로 [current] 가 [release] 호출 전까지 진짜로 suspend 한다.
+ * [FakeSummarySaveSettingsRepository.current] 는 `= state.value`(suspension point 없음)라
+ * UnconfinedTestDispatcher 하에서 [SummaryCoordinator.beginAttempt] 의 `scope.launch` 가 동기적으로 끝까지
+ * 돌아버려, beginAttempt 가 닫으려는 레이스 윈도우(설정 읽기 ~ SSE 오픈 사이)를 전혀 exercise 하지 못한다 —
+ * 프로덕션의 DataStore 읽기는 실제로 IO 로 홉하며 suspend 한다. [FakeSummarySaveSettingsRepository] 자체는
+ * 건드리지 않는다(Task 3 테스트가 그 비-suspend 동작에 의존).
+ */
+private class GatedSummarySaveSettingsRepository(
+    initial: Boolean = false,
+) : SummarySaveSettingsRepository {
+    private val state = MutableStateFlow(SummarySaveSettings(initial))
+    private val gate = CompletableDeferred<Unit>()
+
+    override val settings: Flow<SummarySaveSettings> = state
+
+    override suspend fun current(): SummarySaveSettings {
+        gate.await()
+        return state.value
+    }
+
+    override suspend fun setSaveByDefault(saveByDefault: Boolean) {
+        state.value = SummarySaveSettings(saveByDefault)
+    }
+
+    /** Unblocks any pending/future [current] call. */
+    fun release() = gate.complete(Unit)
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class SummaryCoordinatorTest {
     private fun TestScope.coordScope(): CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
@@ -142,7 +175,7 @@ class SummaryCoordinatorTest {
         bookmarks: FakeBookmarkSource = FakeBookmarkSource(),
         ledger: FakeLedger = FakeLedger(),
         savedCards: FakeSavedCardRepository = FakeSavedCardRepository(),
-        saveSettings: FakeSummarySaveSettingsRepository = FakeSummarySaveSettingsRepository(),
+        saveSettings: SummarySaveSettingsRepository = FakeSummarySaveSettingsRepository(),
         studytime: FakeStudytimeRepository = FakeStudytimeRepository(),
     ) = SummaryCoordinator(stream, store(), bookmarks, ledger, savedCards, saveSettings, studytime, scope)
 
@@ -609,5 +642,33 @@ class SummaryCoordinatorTest {
             assertTrue(coordinator.state.value.savedWordIndices.isEmpty())
             assertEquals(1, repo.deletes.size)
             assertEquals("s1__WORD__0", repo.deletes.first().cardId)
+        }
+
+    @Test
+    fun `beginAttempt defers opening the SSE until the settings read resolves, then still auto-saves`() =
+        runTest {
+            val stream = FakeSummaryStream()
+            val repo = FakeSavedCardRepository()
+            val saveSettings = GatedSummarySaveSettingsRepository(initial = true)
+            val coordinator = coordinator(coordScope(), stream, savedCards = repo, saveSettings = saveSettings)
+
+            coordinator.begin() // sessionId=s1
+            runCurrent()
+            // The settings read hasn't resolved yet — the SSE must not be open, proving beginAttempt's
+            // deferral is real (not a no-op under this dispatcher, unlike FakeSummarySaveSettingsRepository).
+            assertTrue("SSE must stay closed while the settings read is pending", stream.requests.isEmpty())
+
+            saveSettings.release()
+            runCurrent()
+            assertEquals(1, stream.requests.size)
+
+            stream.push(wordCard())
+            stream.push(done())
+            runCurrent()
+
+            // Cards pushed after the settings read is released are still auto-saved.
+            assertEquals(setOf(0), coordinator.state.value.savedWordIndices)
+            assertEquals(1, repo.saves.size)
+            assertEquals("s1__WORD__0", repo.saves.first().cardId)
         }
 }
