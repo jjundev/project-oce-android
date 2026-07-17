@@ -16,8 +16,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * 발화 취소("처음부터 말하기") 어피던스 검증. Recording 상태에서는 하단 토글이 "채팅으로 입력하기" 대신
- * "처음부터 말하기"로 바뀌고, 탭하면 [onCancelSpeaking] 콜백이 호출돼야 한다(다른 상태는 기존 문구 유지).
+ * 발화 취소("처음부터 말하기") 어피던스 검증. Recording·Analyzing 상태에서는 하단 토글이 "채팅으로 입력하기"
+ * 대신 "처음부터 말하기"로 바뀌고, 탭하면 [onCancelSpeaking] 콜백이 호출돼야 한다. Ready 는 기존 채팅 토글을,
+ * Complete 는 "다음" 버튼을 그대로 유지한다.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = RobolectricDeviceQualifiers.Pixel5, application = Application::class)

@@ -565,7 +565,9 @@ class GeneratedDialogueSessionViewModel
          * - Analyzing: 진행 중인 전사/LLM 왕복을 [SpeakingAnalysisCoordinator.reset] 으로 취소한다. 취소된
          *   요청은 Result 를 내지 않으므로 [onAnalysisState] → [triggerFeedback] 이 돌지 않고, 따라서 취소한
          *   턴의 피드백 시트가 뒤늦게 떠오르지 않는다(시트는 [triggerFeedback] → feedback.start 로만 뜬다).
-         *   reset 과 응답 기록이 겹치는 좁은 창은 [onAnalysisState] 의 `micState != Analyzing` 가드가 흡수한다.
+         *   [onAnalysisState] 의 `micState != Analyzing` 가드는 방어적 2중화다 — 현재 배선(코디네이터 scope 가
+         *   Main.immediate, 토큰 검사와 `_state` 기록 사이에 중단점 없음)에서는 취소와 응답 기록이 겹칠 수
+         *   없어 도달 불가지만, 그 scope 가 메인 밖으로 옮겨져도 안전하도록 남겨둔다.
          *
          * micState 를 launch 밖에서 **먼저** 뒤집는 건 재탭 창을 즉시 닫기 위함이다(안에서 뒤집으면 stop() 이
          * 끝나기 전 마이크 재탭이 [stopRecording] 을 타 취소한 녹음을 도로 제출한다). Ready 로 되돌리면
