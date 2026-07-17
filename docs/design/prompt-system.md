@@ -11,7 +11,7 @@
 - 모든 프롬프트는 **서버 보관·버전드**(`config/prompts`), 클라 비번들 — 프롬프트=IP, [firestore-schema.md](firestore-schema.md) §2/§6.
 - 모든 LLM 호출은 **백엔드 LLM 프록시 경유**(키 서버, 벤더 추상화 시임, [PRD.md](../../PRD.md) §10.2). v1 모델은 전부 **Gemini Flash 계열**.
 - 출력은 **호출별 구조화 JSON**(`responseMimeType=application/json` + `responseSchema`). 학습자-대면 텍스트는 한국어(해요체), 영어 학습 콘텐츠만 영어.
-- **캐싱:** Gemini 2.5+ **암묵 캐싱(implicit, 기본 on)** 이 1차 — 콜별 **전체 시스템 프롬프트**(공유 prefix + 콜 고유부)를 요청 머리에 동일하게 두면 반복 호출 간 캐시 히트. **explicit `cachedContents`** 는 캐시 단위가 바닥(**1024 토큰/2.5 Flash, 2048/2.5 Pro**)을 명확히 넘을 때만(예: `feedback.*`의 톤+8오류+난이도 ≈ 7k 토큰).
+- **캐싱:** 명시적 `cachedContents`는 폐기됨 — 프로젝트+리전 스코프 리소스라 이 백엔드의 Vertex AI Express Mode(API 키, 프로젝트 ID 없음) 인증과 근본적으로 호환 불가([backend-functions.md](backend-functions.md) §6). Gemini 2.5+/3.x의 **암묵 캐싱(implicit, 기본 on)**에만 의존한다 — 콜별 **전체 시스템 프롬프트**(공유 prefix + 콜 고유부)를 요청 머리에 동일하게 두면 반복 호출 간 캐시 히트가 기대되나, 코드 계측으로 검증하지는 않았다(의도적 결정, [backend-functions.md](backend-functions.md) §6).
 - **점진 렌더:** 백엔드가 부분 JSON에서 완성 객체만 추출해 SSE emit([PRD.md](../../PRD.md) §10.1 B1). `responseSchema`(검증)와 중괄호-깊이 파서(점진 emit)는 **직교** — 스트림 콜도 둘 다 쓴다.
 
 > ⚠️ **모델 고정 주의:** 위 캐싱·키순서 보장은 **Gemini 2.5+ 문서 기준**. 실제 모델 ID(옛 `gemini-3.1-flash-lite-preview` 등) 확정 후 그 모델에서 동작 재확인할 것.

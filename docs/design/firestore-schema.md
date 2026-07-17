@@ -35,8 +35,7 @@ config/
   ├─ topics                      # 내보낸 카탈로그(서버/운영용); Android 클라이언트는 읽지 않음
   ├─ limits                      # 서버 전용 — dailyFreeSessions 등
   ├─ prompts                     # 서버 전용 — 프롬프트 버전/본문(B-1)
-  ├─ models                      # 서버 전용 — task별 모델 ID(라이브 스왑) [backend-functions.md §6]
-  └─ cache                       # 서버 전용 — cachedContents 핸들(키 task+promptVersion+modelId) [§6]
+  └─ models                      # 서버 전용 — task별 모델 ID(라이브 스왑) [backend-functions.md §6]
 sessions/{sessionId}             # 서버 전용 ephemeral — {uid, createdAt, expiresAt, turnCount, callCount}; TTL on expiresAt [backend §8]
 idempotency/{key}                # 서버 전용 — startIntent dedup → {sessionId, createdAt, expiresAt}; TTL [backend §7]
 ```
