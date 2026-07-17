@@ -99,6 +99,7 @@ class RecordsViewModel
                     endReached = false,
                 )
             loadFirstPage(cardType)
+            refreshLifetime()
         }
 
         /** 기록 destination의 최초 resume는 init 조회가 담당하므로 소비하고, 이후 resume마다 최신 목록을 읽는다. */
@@ -123,6 +124,14 @@ class RecordsViewModel
         private fun loadFirstPage(cardType: CardType) {
             typeStates[cardType] = typeStates.getValue(cardType).copy(loaded = true)
             loadPage(cardType, after = null)
+        }
+
+        /** 재진입/당겨서-새로고침마다 서버 확정 누적치로 갱신한다(카운트업 애니메이션은 건드리지 않음 — 세션당 1회 게이트). */
+        private fun refreshLifetime() {
+            viewModelScope.launch {
+                lifetime = lifetimeStatsSource.lifetime()
+                publish()
+            }
         }
 
         private fun loadPage(

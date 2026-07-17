@@ -216,6 +216,30 @@ class RecordsViewModelTest {
             advanceUntilIdle()
             assertEquals(7, viewModel.uiState.value.dueCount)
         }
+
+    @Test
+    fun `refresh refetches lifetime stats from the source`() =
+        runTest(dispatcher) {
+            val lifetimeSource = FakeLifetimeStatsSource(LifetimeStats(xp = 100, studyMinutes = 30, studyDays = 3))
+            val viewModel =
+                RecordsViewModel(
+                    FakeQuerySource(),
+                    FakeSavedCardRepository(),
+                    lifetimeSource,
+                    RecordingHistoryAnalytics(),
+                    HistoryCountUpGate(),
+                    com.jjundev.oneclickeng.feature.review.FakeReviewSource(),
+                    object : com.jjundev.oneclickeng.feature.review.data.ReviewClock { override fun nowMs() = 0L },
+                )
+            advanceUntilIdle()
+            assertEquals(100, viewModel.uiState.value.lifetime?.xp)
+
+            lifetimeSource.value = LifetimeStats(xp = 250, studyMinutes = 60, studyDays = 5)
+            viewModel.refresh()
+            advanceUntilIdle()
+
+            assertEquals(250, viewModel.uiState.value.lifetime?.xp)
+        }
 }
 
 private class FakeQuerySource(
@@ -245,7 +269,7 @@ private class FakeQuerySource(
     }
 }
 
-private class FakeLifetimeStatsSource(private val value: LifetimeStats?) : LifetimeStatsSource {
+private class FakeLifetimeStatsSource(var value: LifetimeStats?) : LifetimeStatsSource {
     override suspend fun lifetime(): LifetimeStats? = value
 }
 
