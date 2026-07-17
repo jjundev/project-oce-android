@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -166,20 +167,34 @@ class SummaryCoordinator
         /**
          * 저장 기본값 설정을 1회 읽은 뒤 SSE 를 연다. 표현/단어 카드가 [onEvent] 로 도착하는 시점에
          * [saveByDefault] 가 이미 확정돼 있어야 자동 저장 여부를 놓치지 않는다 — 네트워크(SSE)보다 로컬
-         * DataStore 읽기가 사실상 항상 먼저 끝나지만, 순서를 코드로 보장해 레이스를 없앤다. 대기 중 다시
-         * [start]/[reset] 이 호출되면 sessionId 불일치로 무시한다([loadBookmarks]/[recordAccrual] 과 동일한
-         * supersede 가드) — [saveByDefault] 대입도 가드 안쪽에서만 일어나, [reset] 이 지운 값을 뒤늦게
-         * 덮어쓰지 않는다.
+         * DataStore 읽기가 사실상 항상 먼저 끝나지만, 순서를 코드로 보장해 레이스를 없앤다.
          *
-         * 설정 읽기는 SSE 오픈의 하드 프리컨디션이 아니다: DataStore 읽기가 IOException/CorruptionException
-         * 으로 실패해도 "저장 안 함"(false)으로 낙관 폴백해 그대로 진행한다 — [start] 에서 [launchAttempt]
-         * 까지 아무것도 던지거나 멈추지 않던 이전 불변을 유지한다(스트림 미오픈·워치독 미기동으로 화면이
-         * 영구 스켈레톤에 멈추는 것을 방지).
+         * **가드는 sessionId 가 아니라 `sessionToken` 스냅샷이다.** [loadBookmarks]/[recordAccrual] 은
+         * sessionId 동일성만 가드해도 충분하다 — 그쪽이 지키는 일은 멱등 상태 대입이라, 같은 sessionId 로
+         * 다시 [start] 된 경우 최신 데이터로 한 번 더 덮어써도 무해하다. 반면 여기서 가드하는 일은 SSE
+         * 스트림을 여는 부수효과라, 같은 sessionId 로 `start→reset→start` 가 인터리브되면(예: 요약 화면
+         * leave→re-enter) sessionId 비교만으로는 두 번째 대기 중인 읽기도 통과시켜 스트림을 두 번 열어버린다
+         * (취소되는 쪽도 백엔드에는 이미 유료 Gemini 생성 요청을 하나 태운 뒤다). `sessionToken` 은 [start]
+         * 가 호출될 때마다 bump 되므로, [beginAttempt] 진입 시점에 캡처해두면 각 호출은 자신을 낳은 그
+         * [start] 에만 유효하다 — sessionId 비교는 부가 방어로 남긴다.
+         *
+         * 설정 읽기는 SSE 오픈의 하드 프리컨디션이 아니다: DataStore 읽기가 IOException(-계열인
+         * CorruptionException 포함)으로 실패해도 "저장 안 함"(false)으로 낙관 폴백해 그대로 진행한다 —
+         * [start] 에서 [launchAttempt] 까지 아무것도 던지지 않던 이전 불변을 유지한다. 단, **멈추지 않는다는
+         * 것까지는 보장하지 않는다**: `saveSettings.current()` 가 예외 없이 영영 반환하지 않으면
+         * [launchAttempt] 도 워치독도 기동하지 않아 화면이 스켈레톤에 멈춘다 — DataStore 읽기는 실전에서
+         * 사실상 항상 끝나므로 현재는 이 경우를 별도로 방어하지 않는다.
          */
         private fun beginAttempt(sessionId: String) {
+            val token = sessionToken // captured synchronously, right after start()'s bump.
             scope.launch {
-                val resolved = runCatching { saveSettings.current().saveByDefault }.getOrDefault(false)
-                if (sessionId == this@SummaryCoordinator.sessionId) {
+                val resolved =
+                    try {
+                        saveSettings.current().saveByDefault
+                    } catch (_: IOException) {
+                        false
+                    }
+                if (token == sessionToken && sessionId == this@SummaryCoordinator.sessionId) {
                     saveByDefault = resolved
                     launchAttempt(sections = null)
                 }
