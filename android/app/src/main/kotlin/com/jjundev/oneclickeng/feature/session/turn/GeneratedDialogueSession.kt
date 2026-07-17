@@ -559,7 +559,7 @@ class GeneratedDialogueSessionViewModel
         }
 
         /**
-         * 도크 "다시 말하기" 탭 — 녹음 취소. [stopRecording] 과 달리 결과를 버리고 Analyzing/분석에 진입하지
+         * 도크 "처음부터 말하기" 탭 — 녹음 취소. [stopRecording] 과 달리 결과를 버리고 Analyzing/분석에 진입하지
          * 않는다. Ready 로 되돌리면 [MicButton] 이 이미 tappable(enabled=Ready||Recording)이라 재녹음은
          * 추가 배선 없이 바로 가능하다.
          */
