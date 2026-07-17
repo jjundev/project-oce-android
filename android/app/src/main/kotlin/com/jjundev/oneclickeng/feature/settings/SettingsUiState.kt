@@ -49,6 +49,8 @@ sealed interface SettingsMessage {
 
     data object PurgeFailed : SettingsMessage
 
+    data object MetricsReset : SettingsMessage
+
     data object MetricsResetFailed : SettingsMessage
 
     data object DeleteFailed : SettingsMessage

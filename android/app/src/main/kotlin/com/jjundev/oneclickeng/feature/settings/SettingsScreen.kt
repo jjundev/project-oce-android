@@ -881,6 +881,7 @@ private fun settingsMessageText(message: SettingsMessage): String =
         is SettingsMessage.CardsPurged -> stringResource(R.string.settings_msg_cards_purged, message.count)
         SettingsMessage.NoCardsToPurge -> stringResource(R.string.settings_msg_no_cards_to_purge)
         SettingsMessage.PurgeFailed -> stringResource(R.string.settings_msg_purge_failed)
+        SettingsMessage.MetricsReset -> stringResource(R.string.settings_msg_metrics_reset)
         SettingsMessage.MetricsResetFailed -> stringResource(R.string.settings_msg_reset_failed)
         SettingsMessage.DeleteFailed -> stringResource(R.string.settings_msg_delete_failed)
         SettingsMessage.LogoutFailed -> stringResource(R.string.settings_msg_logout_failed)

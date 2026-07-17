@@ -196,11 +196,17 @@ class SettingsViewModel
             _uiState.update { it.copy(metricsResetInFlight = true) }
             viewModelScope.launch {
                 val result = runCatching { studytimeRepository.resetMetrics() }
-                result.onSuccess { analytics.metricsReset() }
                 _uiState.update {
                     it.copy(
                         metricsResetInFlight = false,
-                        message = if (result.isFailure) SettingsMessage.MetricsResetFailed else it.message,
+                        message =
+                            result.fold(
+                                onSuccess = {
+                                    analytics.metricsReset()
+                                    SettingsMessage.MetricsReset
+                                },
+                                onFailure = { SettingsMessage.MetricsResetFailed },
+                            ),
                     )
                 }
             }
