@@ -565,10 +565,8 @@ class GeneratedDialogueSessionViewModel
          */
         fun onCancelRecording() {
             if (micState != MicState.Recording) return
-            viewModelScope.launch {
-                recording.stop()
-                micState = MicState.Ready
-            }
+            micState = MicState.Ready
+            viewModelScope.launch { recording.stop() }
         }
 
         // 우리 분석(micState=Analyzing)에만 반응 — Singleton 의 이전 세션 잔여 상태 오반응 차단.
