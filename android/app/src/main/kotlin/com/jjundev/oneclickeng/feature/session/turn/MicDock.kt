@@ -116,6 +116,7 @@ internal fun MicSessionDock(
         reduceMotion = reduceMotion,
         onMicTap = ::handleMicTap,
         onAdvance = viewModel::onAdvance,
+        onCancelRecording = viewModel::onCancelRecording,
         onToggleTextMode = viewModel::onToggleTextMode,
         onTextChange = viewModel::onTextChange,
         onSubmitText = viewModel::onSubmitText,
@@ -152,6 +153,7 @@ internal fun MicDock(
     reduceMotion: Boolean,
     onMicTap: () -> Unit,
     onAdvance: () -> Unit,
+    onCancelRecording: () -> Unit,
     onToggleTextMode: (Boolean) -> Unit,
     onTextChange: (String) -> Unit,
     onSubmitText: () -> Unit,
@@ -179,6 +181,7 @@ internal fun MicDock(
                 reduceMotion = reduceMotion,
                 onMicTap = onMicTap,
                 onAdvance = onAdvance,
+                onCancelRecording = onCancelRecording,
                 onToggleTextMode = onToggleTextMode,
             )
         }
@@ -194,6 +197,7 @@ private fun MicColumn(
     reduceMotion: Boolean,
     onMicTap: () -> Unit,
     onAdvance: () -> Unit,
+    onCancelRecording: () -> Unit,
     onToggleTextMode: (Boolean) -> Unit,
 ) {
     Column(
@@ -244,6 +248,14 @@ private fun MicColumn(
                 ) {
                     Text(text = "다음", style = OceTheme.typography.sectionLabel)
                 }
+            } else if (micState == MicState.Recording) {
+                InputModeToggle(
+                    icon = OceIcon.Refresh,
+                    label = "다시 말하기",
+                    onClick = onCancelRecording,
+                    // 마이크 모드: 상태 문구와 밀착(중앙정렬로 생긴 텍스트 위 여백 상쇄) — 토글은 도크 하단 고정.
+                    topGap = 0.dp,
+                )
             } else {
                 InputModeToggle(
                     icon = OceIcon.Keyboard,
