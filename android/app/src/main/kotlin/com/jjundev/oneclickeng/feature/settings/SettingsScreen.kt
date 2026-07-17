@@ -223,9 +223,11 @@ fun SettingsScreen(
                     awaitPointerEventScope {
                         while (true) {
                             val event = awaitPointerEvent(PointerEventPass.Initial)
-                            val down = event.changes.firstOrNull { it.changedToDownIgnoreConsumed() } ?: continue
-                            val bounds = snackbarBounds ?: continue
-                            if (!bounds.contains(down.position)) {
+                            val down = event.changes.firstOrNull { it.changedToDownIgnoreConsumed() }
+                            val bounds = snackbarBounds
+                            // 스낵바 밖을 처음 누르면 닫는다. down/bounds 가 없으면 이 이벤트는 그냥 흘려보낸다
+                            // (조기 continue 대신 단일 조건 — detekt LoopWithTooManyJumpStatements).
+                            if (down != null && bounds != null && !bounds.contains(down.position)) {
                                 snackbarHostState.currentSnackbarData?.dismiss()
                             }
                         }

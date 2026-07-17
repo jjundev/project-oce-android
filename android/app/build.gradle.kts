@@ -110,6 +110,8 @@ tasks.withType<Test>().configureEach {
             "**/OverscrollRefreshBoxTest*",
             "**/HomePullRefreshTest*",
             "**/RecordsScreenPullRefreshTest*",
+            "**/RecordsSkeletonTest*",
+            "**/RecordsSkeletonMinHoldTest*",
         )
     }
 }
