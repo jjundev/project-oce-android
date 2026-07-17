@@ -39,7 +39,9 @@ import javax.inject.Inject
  * [limitHolder] 를 주입하는 것만으로 그 Singleton 이 인스턴스화돼 코디네이터 상태 관측을 시작한다 — 홈은
  * 부트 시작 목적지라 어떤 생성 시도보다 먼저 살아있다.
  */
-@Suppress("LongParameterList") // DI: 허브 상태 소스 5종 + profile.level 해소(#6 이관, 세션 설정 화면 폐기) 조립.
+// LongParameterList: DI 허브 상태 소스 5종 + profile.level 해소(#6 이관, 세션 설정 화면 폐기) 조립.
+// TooManyFunctions: 허브가 소유한 액션 표면(CTA·resume·레벨/길이·상황 선택·새로고침)이 각각 얇은 위임.
+@Suppress("LongParameterList", "TooManyFunctions")
 @HiltViewModel
 class HomeViewModel
     @Inject
@@ -111,6 +113,22 @@ class HomeViewModel
 
         init {
             analytics.homeView()
+            refreshOnResume()
+            viewModelScope.launch {
+                val level =
+                    runCatching { authRepository.currentUid?.let { profileRepository.readLevel(it) } }
+                        .onFailure { Log.d(TAG, "readLevel failed — defaulting normal: ${it.message}") }
+                        .getOrNull()
+                defaultLevel.value = level ?: FALLBACK_LEVEL
+            }
+        }
+
+        /**
+         * 화면 재개마다 다시 부른다([RecordsResumeEffect] 선례). [gamification] 은 init 1회성 suspend 읽기라,
+         * 이 훅이 없으면 세션 완료 직후 홈으로 돌아와도 stale 한 "오늘 0분"이 남는다(HomeViewModel 은
+         * 백스택 엔트리에 스코프돼 탭 왕복으로 재생성되지 않음).
+         */
+        fun refreshOnResume() {
             viewModelScope.launch {
                 val snapshot = studytimeStore.snapshot()
                 gamification.value =
@@ -118,13 +136,6 @@ class HomeViewModel
                         studyMinutes = (snapshot.todaySeconds / 60).toInt(),
                         streak = snapshot.streak,
                     )
-            }
-            viewModelScope.launch {
-                val level =
-                    runCatching { authRepository.currentUid?.let { profileRepository.readLevel(it) } }
-                        .onFailure { Log.d(TAG, "readLevel failed — defaulting normal: ${it.message}") }
-                        .getOrNull()
-                defaultLevel.value = level ?: FALLBACK_LEVEL
             }
         }
 

@@ -36,11 +36,13 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
@@ -66,6 +68,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jjundev.oneclickeng.core.session.SessionLevel
 import com.jjundev.oneclickeng.feature.home.topic.TopicCatalog
@@ -153,6 +158,9 @@ fun HomeScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val reminderState by reminderViewModel.uiState.collectAsStateWithLifecycle()
+
+    HomeResumeEffect(onResume = viewModel::refreshOnResume)
+
     var topicSheetVisible by remember { mutableStateOf(false) }
     var timeSheetVisible by remember { mutableStateOf(false) }
     var gridMode by remember { mutableStateOf(false) }
@@ -244,6 +252,27 @@ fun HomeScreen(
         )
     }
     HomeReminderHost()
+}
+
+/**
+ * [RecordsResumeEffect] 선례와 동일 패턴 — 화면이 다시 보일 때([Lifecycle.Event.ON_RESUME]) [onResume] 을
+ * 호출한다. `HomeViewModel.gamification` 은 init 1회성 suspend 읽기라, 이 훅 없이는 세션 완료 후 홈으로
+ * 돌아와도 "오늘 N분"이 갱신되지 않는다(홈 VM 은 탭 백스택 엔트리에 스코프돼 재생성되지 않음).
+ */
+@Composable
+internal fun HomeResumeEffect(onResume: () -> Unit) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val currentOnResume by rememberUpdatedState(onResume)
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                currentOnResume()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 }
 
 /**
