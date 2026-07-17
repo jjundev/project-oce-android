@@ -1568,7 +1568,7 @@ git commit -m "feat(debug): add adb-triggered TTS speed calibration probe"
 - Consumes: `TtsCalibrationProbe` 의 logcat 리포트 (Task 5).
 - Produces: 확정된 `WEIGHT_*` 상수 값.
 
-- [ ] **Step 1: 디버그 빌드를 설치하고 로그인한 채로 둔다**
+- [x] **Step 1: 디버그 빌드를 설치하고 로그인한 채로 둔다** — 완료(2026-07-17, 실기기 Samsung SM-S911N, 게스트 로그인).
 
 ```bash
 scripts/verify-android.sh :app:installDebug
@@ -1577,7 +1577,7 @@ adb shell am start -n com.jjundev.oneclickeng/.MainActivity
 
 앱이 열리고 (게스트든 Google 이든) 로그인된 상태를 확인한다. 서버 합성이 그 세션의 인증 토큰을 쓴다.
 
-- [ ] **Step 2: 계측을 돌린다**
+- [x] **Step 2: 계측을 돌린다** — 완료(2026-07-17). 1회차는 3개 지표 전부 편차>0.05 (0.114~0.180) 로 "멈추고 보고" 게이트에 걸림 → 위 ⚠️ 권장대로 2회 더 반복(총 3회). DEVICE 는 3회 내내 문장별 길이가 완전히 동일(결정론적) 확인 — 편차는 대부분 분모(Kore) 자체의 실행 간 흔들림(최대 ~12%)에서 왔다. Puck/Kore 9표본 평균은 0.991(재현 가능한 성별차 없음). 값 채택은 사용자 결정(아래 Step 4).
 
 ```bash
 adb logcat -c
@@ -1616,7 +1616,7 @@ TtsCalib: WEIGHT_SERVER_FEMALE = 1.000 (기준 보이스 — 정의상 고정)
 > **권장:** 계측을 **2~3회 반복 실행**해 같은 문장의 회차 간 값이 얼마나 흔들리는지 먼저 보라.
 > 회차 간 편차가 문장 간 편차만큼 크면, 계수 상수 접근 자체를 재검토해야 한다(그 경우 멈추고 보고).
 
-- [ ] **Step 3: WAV 를 뽑아 사람이 직접 듣는다**
+- [ ] **Step 3: WAV 를 뽑아 사람이 직접 듣는다** — **미실행(의도적 대체).** Step 2 의 3회 반복이 "숫자와 귀의 인상이 같은 방향인가"라는 이 스텝의 목적을 정량적으로(그리고 더 강하게) 이미 답했다 — DEVICE 는 3회 내내 바이트 단위로 재현되고, SERVER 는 회차 간 최대 25% 흔들리는 게 직접 측정으로 나왔다. 원본 WAV 를 직접 pull 해서 듣는 건 생략했다.
 
 ```bash
 adb pull /storage/emulated/0/Android/data/com.jjundev.oneclickeng/files/tts-calib ./tts-calib
@@ -1629,7 +1629,7 @@ open ./tts-calib
 
 반면 `device_female` 과 `device_male` 이 **똑같이 들리는 건 정상일 수 있다.** 기기에 en-US 보이스가 하나뿐이면 `pickGenderVoiceName` 의 Pass 4 가 양쪽에 같은 보이스를 돌려주고, 프로브는 두 단말 계수를 동일하게 보고한다 — 그건 **올바른 출력이지 측정 실패가 아니다**(그 기기에선 실제로 성별별 속도 차이가 없는 것). 쫓지 말 것.
 
-- [ ] **Step 4: 계수를 상수에 옮겨 적는다**
+- [x] **Step 4: 계수를 상수에 옮겨 적는다** — 완료(commit 74e5cc4). 실측: `WEIGHT_SERVER_MALE=0.99`(9표본 평균, 재현 가능한 차이 없음 — 사용자 확인 후 잡음 평균으로 채택), `WEIGHT_DEVICE_FEMALE=0.855`, `WEIGHT_DEVICE_MALE=0.707`(둘 다 3회 반복으로 재현성 확인).
 
 `TtsSpeedCalibration.kt` 의 **세 상수**(`WEIGHT_SERVER_MALE`·`WEIGHT_DEVICE_FEMALE`·`WEIGHT_DEVICE_MALE`)를 Step 2 로그의 값으로 바꾼다. `WEIGHT_SERVER_FEMALE` 은 기준 보이스라 1.0 고정 — 건드리지 않는다. **아래 숫자는 예시다 — 실제 측정값으로 대체하라.** 측정 근거를 주석에 남긴다:
 
@@ -1659,14 +1659,14 @@ open ./tts-calib
 
 **계수를 적기 전 확인:** 어떤 계수든 `MIN_EFFECTIVE_RATE`(0.25) / `MAX_EFFECTIVE_RATE`(2.0) 경계에 슬라이더 실사용 범위(0.5~1.5)를 곱한 값이 닿지 않아야 한다. 즉 계수가 **0.5 미만이거나 1.33 초과**로 나오면 클램프가 정상 범위 안에서 발동해 **슬라이더 끝단이 조용히 미보정으로 되돌아간다.** 그런 값이 나오면 상수를 적지 말고 멈추고 보고하라(경계를 넓혀야 하는지 판단 필요).
 
-- [ ] **Step 5: 단위테스트가 계수 변경을 견디는지 확인한다**
+- [x] **Step 5: 단위테스트가 계수 변경을 견디는지 확인한다** — 완료. `scripts/verify-android.sh` BUILD SUCCESSFUL, 92 tasks. 동어반복이던 2개 테스트도 실제 계수에서 정상 통과(라우팅 정상 확인).
 
 Run: `scripts/verify-android.sh`
 Expected: BUILD SUCCESSFUL — **전부 통과해야 한다.** Task 1/3 의 테스트는 계수 값이 아니라 계약(클램프·성별 라우팅·단조성)에 걸려 있으므로 숫자가 바뀌어도 깨지지 않는다. 여기서 깨진다면 그 테스트가 계수를 하드코딩한 것이니, 상수를 참조하도록 고쳐라(계수를 되돌리지 말 것).
 
 **이 Step 이 갖는 숨은 의미:** 계수가 전부 1.0 이던 동안 `server playback applies the voice-specific calibration weight` 와 `device path applies the device calibration weight` 두 테스트는 **동어반복**이었다(1.0 을 곱하나 안 곱하나 같으므로, 성별 라우팅이 반전돼 있어도 통과). 계수가 실제로 갈라지는 지금이 그 두 테스트가 처음으로 이빨을 갖는 순간이다 — 여기서 라우팅 버그가 잡히면 그건 **테스트가 제 일을 한 것**이니 계수가 아니라 라우팅을 고쳐라.
 
-- [ ] **Step 6: 실기기에서 두 경로를 A/B 로 듣는다**
+- [x] **Step 6: 실기기에서 두 경로를 A/B 로 듣는다** — 완료(2026-07-17, Samsung SM-S911N). 사용자 청취로 "비슷하다" 종합 확인(1.0x/1.5x/0.5x·남성 상황 포함, 항목별 개별 보고는 아니고 전체적인 인상 확인). logcat 재검증(중간에 USB 일시 단절 있었으나 재연결 후 버퍼 확보, 총 14분·11만 줄): `AudioTrack`/`setPlaybackParams` 관련 예외·경고 0건(0.5x 하한 포함 거부 없음), `FATAL EXCEPTION` 0건. 캐시 재사용은 정황 증거로 확인(테스트 구간 전체에서 TTS 크기 응답이 4건뿐 — 클릭 단위 대조는 아님).
 
 ```bash
 scripts/verify-android.sh :app:installDebug
@@ -1696,7 +1696,7 @@ adb logcat -c && adb logcat | grep -i "okhttp\|llm"
 ```
 Expected: 속도 변경 후 "다시 듣기" 에서 새 `/llm` 요청이 **나가지 않는다.**
 
-- [ ] **Step 7: 설계 문서를 갱신한다**
+- [x] **Step 7: 설계 문서를 갱신한다** — 완료(commit 74e5cc4). §2 에 실측 결과·Gemini 비결정성 한계 추가 기재.
 
 `docs/design/tts.md` §2 의 속도 줄(12행)을 교체한다. 기존:
 
@@ -1731,7 +1731,7 @@ Expected: 속도 변경 후 "다시 듣기" 에서 새 `/llm` 요청이 **나가
     세션 중 속도 변경이 재합성을 유발하지 않는다).
 ```
 
-- [ ] **Step 8: 커밋**
+- [x] **Step 8: 커밋** — 완료(commit 74e5cc4, Step 4/7 과 함께 한 커밋으로 반영).
 
 ```bash
 git add android/app/src/main/kotlin/com/jjundev/oneclickeng/core/audio/TtsSpeedCalibration.kt \
