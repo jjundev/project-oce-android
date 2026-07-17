@@ -6,6 +6,7 @@ import com.jjundev.oneclickeng.core.auth.AccountRepository
 import com.jjundev.oneclickeng.core.auth.AuthRepository
 import com.jjundev.oneclickeng.core.auth.PendingMergeStore
 import com.jjundev.oneclickeng.core.auth.ProfileRepository
+import com.jjundev.oneclickeng.core.settings.SummarySaveSettingsRepository
 import com.jjundev.oneclickeng.core.settings.TtsQuality
 import com.jjundev.oneclickeng.core.settings.TtsSettingsRepository
 import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
@@ -41,6 +42,7 @@ class SettingsViewModel
         private val cardPurgeRepository: CardPurgeRepository,
         private val accountRepository: AccountRepository,
         private val pendingMergeStore: PendingMergeStore,
+        private val summarySaveSettings: SummarySaveSettingsRepository,
         private val analytics: SettingsAnalytics,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(SettingsUiState())
@@ -49,10 +51,14 @@ class SettingsViewModel
         private var nicknameSaveJob: Job? = null
 
         init {
-            // 음성·알림은 라이브 Flow. 첫 방출 시 loading=false.
+            // 음성·알림·요약저장 은 라이브 Flow. 첫 방출 시 loading=false.
             viewModelScope.launch {
-                combine(ttsSettings.settings, reminderOrchestrator.config) { tts, reminder -> tts to reminder }
-                    .collect { (tts, reminder) ->
+                combine(
+                    ttsSettings.settings,
+                    reminderOrchestrator.config,
+                    summarySaveSettings.settings,
+                ) { tts, reminder, summarySave -> Triple(tts, reminder, summarySave) }
+                    .collect { (tts, reminder, summarySave) ->
                         _uiState.update {
                             it.copy(
                                 ttsQuality = tts.quality,
@@ -61,6 +67,7 @@ class SettingsViewModel
                                 reminderEnabled = reminder.enabled,
                                 reminderHour = reminder.hour,
                                 reminderMinute = reminder.minute,
+                                summarySaveByDefault = summarySave.saveByDefault,
                                 loading = false,
                             )
                         }
@@ -118,6 +125,13 @@ class SettingsViewModel
         fun onMuteChange(muted: Boolean) {
             viewModelScope.launch { ttsSettings.setMuted(muted) }
             analytics.muteToggled(muted)
+        }
+
+        // ----- 요약 저장 기본값 -----
+
+        fun onSummarySaveDefaultChange(saveByDefault: Boolean) {
+            viewModelScope.launch { summarySaveSettings.setSaveByDefault(saveByDefault) }
+            analytics.summarySaveDefaultToggled(saveByDefault)
         }
 
         // ----- 알림 -----
