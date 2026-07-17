@@ -62,7 +62,16 @@ class TtsCalibrationProbe
 
         @Suppress("TooGenericExceptionCaught")
         suspend fun run() {
-            val outDir = File(context.getExternalFilesDir(null), "tts-calib").apply { mkdirs() }
+            val baseDir = context.getExternalFilesDir(null)
+            if (baseDir == null) {
+                Log.e(
+                    CALIB_TAG,
+                    "외부 저장소를 사용할 수 없습니다(getExternalFilesDir == null) — " +
+                        "WAV 를 덤프할 수 없어 계측을 중단합니다.",
+                )
+                return
+            }
+            val outDir = File(baseDir, "tts-calib").apply { mkdirs() }
             Log.i(CALIB_TAG, "=== 발화 속도 보정 계측 시작 (기준 = Gemini Kore 자연 속도) ===")
             Log.i(CALIB_TAG, "wav dir = $outDir")
 
@@ -230,6 +239,29 @@ class TtsCalibrationProbe
             }
             val mean = ratios.average()
             val spread = ratios.maxOrNull()!! - ratios.minOrNull()!!
+            if (ratios.size < referenceLines.size) {
+                // 일부 문장만 측정됐다 — 이 경우 spread 는 일관성 신호로 신뢰할 수 없다.
+                // 특히 n=1 이면 max-min 이 항상 0.000 이 되어 "완벽히 일관됨"처럼 보이지만
+                // 실제로는 문장 하나짜리 미검증 값이다. Log.i 성공 라인과 절대 헷갈리면 안 되므로
+                // Log.w + 명시적 경고 문구로 구분한다.
+                Log.w(
+                    CALIB_TAG,
+                    String.format(
+                        Locale.US,
+                        "%s = %.3f  (n=%d, 문장 간 편차=%.3f) — 경고: 부분 측정치입니다. " +
+                            "문장 %d개 중 %d개만 측정되어 이 편차 값은 유효한 일관성 신호가 아닙니다" +
+                            "(표본이 1개면 편차는 항상 0.000으로 계산됩니다). " +
+                            "이 값을 상수로 옮기지 말고 재측정하세요.",
+                        name,
+                        mean,
+                        ratios.size,
+                        spread,
+                        referenceLines.size,
+                        ratios.size,
+                    ),
+                )
+                return
+            }
             Log.i(
                 CALIB_TAG,
                 // Locale.US 명시: detekt ImplicitDefaultLocale 위반 방지 + 기기 로케일이 소수점을
