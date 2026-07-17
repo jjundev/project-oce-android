@@ -907,6 +907,40 @@ internal class SessionTurnProgress(
     }
 }
 
+/**
+ * 말풍선 스피커 버튼의 "현재 재생 중" 표시 상태(순수 상태 머신, [GeneratedDialogueSessionViewModel] 이 소유).
+ * 상대역 텍스트와 학습자 순번은 상호 배타적이다 — [TtsPlaybackCoordinator] 는 항상 한 번에 하나만 재생하므로
+ * 하나를 세팅하면 다른 하나는 자동으로 비운다. 식별 기준은 각각 [TtsCacheKey]/`playTurn(text, ...)` 이 이미
+ * 쓰는 영문 텍스트, [learnerOrdinalAt] 이 이미 쓰는 0-based 순번과 동일해 새 id 개념을 만들지 않는다.
+ */
+@Stable
+internal class PlayingIndicatorState {
+    var opponentText: String? by mutableStateOf(null)
+        private set
+
+    var learnerOrdinal: Int? by mutableStateOf(null)
+        private set
+
+    fun isOpponentPlaying(text: String): Boolean = opponentText == text
+
+    fun isLearnerPlaying(ordinal: Int): Boolean = learnerOrdinal == ordinal
+
+    fun startOpponent(text: String) {
+        opponentText = text
+        learnerOrdinal = null
+    }
+
+    fun startLearner(ordinal: Int) {
+        learnerOrdinal = ordinal
+        opponentText = null
+    }
+
+    fun clear() {
+        opponentText = null
+        learnerOrdinal = null
+    }
+}
+
 // 턴머신 전이 헬퍼 + M1-08 SavedState export/seed 로 메서드가 많다(상태 머신 클래스, 의도적).
 @Suppress("TooManyFunctions")
 @Stable
