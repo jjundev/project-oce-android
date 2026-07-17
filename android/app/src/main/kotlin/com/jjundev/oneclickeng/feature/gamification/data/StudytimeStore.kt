@@ -132,6 +132,25 @@ class StudytimeStore
         }
 
         /**
+         * Reconcile the local authority with the server's post-merge total (M3-03 게스트→Google 이관).
+         * The server merge is ADDITIVE — target's post-merge total = pre-existing target total + this
+         * device's guest total ([functions/src/merge/merge.ts] `resolveStudytimeTotal`) — so this device's
+         * local total only ever reflects ITS OWN portion; after a merge the server total can exceed it.
+         * Adopts [serverTotalSeconds] only when it's the LARGER value (never regresses a local total that
+         * has since grown further from new sessions) and marks the state synced when it does (the local
+         * total now already matches what's on the server, so the next [drain]/push has nothing new to send).
+         */
+        suspend fun reconcileFromServer(serverTotalSeconds: Long) {
+            dataStore.edit { p ->
+                val local = p[KEY_TOTAL] ?: 0L
+                if (serverTotalSeconds > local) {
+                    p[KEY_TOTAL] = serverTotalSeconds
+                    p[KEY_UNSYNCED] = false
+                }
+            }
+        }
+
+        /**
          * Zero the local gamification authority for a 누적 기록 초기화 (M3-09, FR-22). Sets `KEY_TOTAL = 0`
          * (non-null → blocks any re-seed, see [seedIfEmpty]), zeroes today/streak, clears the last-study
          * date, and marks the state SYNCED (`KEY_UNSYNCED = false`) so the next [State.unsynced]-gated
