@@ -137,6 +137,9 @@ fun GeneratedDialogueSessionRoute(
             learnerClipIndices = viewModel.learnerClipIndices,
             onPlayLearnerClip = { index -> viewModel.playLearnerClip(index) },
             onSpeakOpponent = { text -> viewModel.speakOpponent(text) },
+            // 지금 소리 나는 중인 말풍선(Task 3 PlayingIndicatorState) — 스피커 버튼 시각 표시용.
+            playingOpponentText = viewModel.playingIndicator.opponentText,
+            playingLearnerOrdinal = viewModel.playingIndicator.learnerOrdinal,
         )
 
         // 턴 피드백 시트는 드래그 없는 고정 오버레이라 대화 콘텐츠의 형제로 얹는다. Idle 이면 스스로 아무것도
@@ -243,6 +246,9 @@ class GeneratedDialogueSessionViewModel
         internal val turnState = GeneratedDialogueState()
         private val progress = SessionTurnProgress(turnState, ::persistResume)
 
+        /** 말풍선 스피커 버튼의 "재생 중" 표시(Task 3). turnState 와 마찬가지로 Route 가 직접 읽는다. */
+        internal val playingIndicator = PlayingIndicatorState()
+
         /** 실시간 파형(Recording 시 도크가 소비). */
         val waveform = recording.waveform
 
@@ -348,6 +354,13 @@ class GeneratedDialogueSessionViewModel
             viewModelScope.launch {
                 tts.state.collect { if (it == PlaybackState.ERROR_TEXT_ONLY) onOpponentTtsDone() }
             }
+            // 재생이 자연 종료/실패로 끝나면 재생 중 표시도 내린다(LOADING/PLAYING 중엔 유지 — 합성 대기도
+            // "이 말풍선이 지금 소리 낼 차례" 로 본다). stop() 도 IDLE 을 거치므로 여기서 함께 처리된다.
+            viewModelScope.launch {
+                tts.state.collect {
+                    if (it != PlaybackState.LOADING && it != PlaybackState.PLAYING) playingIndicator.clear()
+                }
+            }
             // 상대역 오디오가 실제 재생을 시작하는 순간(코디네이터 audioReady: 디바이스 엔진 onStart / 서버 PCM
             // 재생 시작) 말풍선을 표시한다. 그 전까지는 스켈레톤이 유지돼 첫 오디오 API 로딩(디바이스 엔진 init)
             // 동안 "표시된 대사 + 침묵"이 아니라 "타이핑 중"으로 보인다. OpponentTurn 가드는 progress 안에 있어
@@ -450,6 +463,7 @@ class GeneratedDialogueSessionViewModel
         /** 상대역 대사 자동발화(Route 가 commitReveal 직후 호출). 음질 설정을 따른다 — SERVER 면 서버(Gemini)
          *  합성(8초 워치독 후 단말 폴백), DEVICE 면 단말 TTS. 완료 시 completions→자동진행. */
         fun speakOpponent(text: String) {
+            playingIndicator.startOpponent(text)
             tts.playTurn(text, gender = opponentSpeaker?.gender, advanceOnDone = true)
         }
 
@@ -464,10 +478,17 @@ class GeneratedDialogueSessionViewModel
         }
 
         /** 말풍선 "다시 듣기" 재발화. 자동발화 중(OpponentTurn)엔 no-op — 라이브 발화 취소·조기전진을 막는다.
-         *  음질 설정을 따라 재합성한다(SERVER 면 서버 재합성 — 캐시 재사용 아님, 결정 A). advanceOnDone=false 라
-         *  재발화 완료가 턴 전진을 구동하지 않는다(경쟁 봉인, 결정 #9). */
+         *  이미 이 텍스트가 재생 중이면(재탭) 시작 대신 [TtsPlaybackCoordinator.stop] 으로 중지한다(스피커
+         *  재탭=중지, 요구사항). 그 외엔 음질 설정을 따라 재합성한다(SERVER 면 서버 재합성 — 캐시 재사용
+         *  아님, 결정 A). advanceOnDone=false 라 재발화 완료가 턴 전진을 구동하지 않는다(경쟁 봉인, 결정 #9). */
         fun replayOpponent(text: String) {
             if (turnState.turnPhase == TurnPhase.OpponentTurn) return
+            if (playingIndicator.isOpponentPlaying(text)) {
+                tts.stop()
+                playingIndicator.clear()
+                return
+            }
+            playingIndicator.startOpponent(text)
             tts.playTurn(text, gender = opponentSpeaker?.gender, advanceOnDone = false)
         }
 
@@ -477,10 +498,21 @@ class GeneratedDialogueSessionViewModel
          * 은 `startNewSession()` 으로 진행 중 재생을 취소하는데, 그때 취소되는 상대 자동발화(`playTurn`,
          * advanceOnDone=true)는 완료 신호(completions)를 못 내 [onOpponentTtsDone]→completeOpponentTurn 이
          * 영영 호출되지 않아 턴이 OpponentTurn 에 갇힌다. 이 가드가 그 교착을 봉인한다(회귀 방지).
+         *
+         * 이미 이 순번이 재생 중이면(재탭) 시작 대신 [TtsPlaybackCoordinator.stop] 으로 중지한다(스피커
+         * 재탭=중지, [replayOpponent] 와 동일 규약).
          */
         fun playLearnerClip(index: Int) {
             if (turnState.turnPhase == TurnPhase.OpponentTurn) return
-            learnerClips[index]?.let { tts.playClip(it.pcm, it.sampleRate) }
+            if (playingIndicator.isLearnerPlaying(index)) {
+                tts.stop()
+                playingIndicator.clear()
+                return
+            }
+            learnerClips[index]?.let { clip ->
+                playingIndicator.startLearner(index)
+                tts.playClip(clip.pcm, clip.sampleRate)
+            }
         }
 
         /**
@@ -819,6 +851,11 @@ internal fun GeneratedDialogueSessionContent(
     onPlayLearnerClip: (Int) -> Unit = {},
     // 상대역 대사 합성/발화 시작 콜백. Route 는 viewModel.speakOpponent 로 연결한다. 미주입(테스트)이면 no-op.
     onSpeakOpponent: (String) -> Unit = {},
+    // 현재 재생 중인 상대역 말풍선의 영문 텍스트(Task 3 PlayingIndicatorState). 미주입(프리뷰·테스트)이면
+    // null(어떤 말풍선도 재생 중 표시 없음, 기존 렌더 유지).
+    playingOpponentText: String? = null,
+    // 현재 재생 중인 학습자 클립의 0-based 순번. 미주입(프리뷰·테스트)이면 null.
+    playingLearnerOrdinal: Int? = null,
     // 상대역 말풍선 reveal 전 최소 스켈레톤 노출 dwell(ms). 이 시간 경과 후에만 onSpeakOpponent 를 호출한다.
     minSkeletonMs: Long = DEFAULT_OPPONENT_SKELETON_FLOOR_MS,
 ) {
@@ -861,6 +898,8 @@ internal fun GeneratedDialogueSessionContent(
         opponentSpeaker = opponentSpeaker,
         learnerClipIndices = learnerClipIndices,
         onPlayLearnerClip = onPlayLearnerClip,
+        playingOpponentText = playingOpponentText,
+        playingLearnerOrdinal = playingLearnerOrdinal,
     )
 }
 
