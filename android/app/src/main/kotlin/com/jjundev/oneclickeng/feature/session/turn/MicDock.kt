@@ -279,8 +279,8 @@ private fun micStatusText(state: MicState): String? =
     }
 
 /**
- * 오답/마이크 실패 교정 배너([B] 에러 택소노미). 코랄 톤 카드 + [B] 배지 + error 아이콘 + 비난 없는 안내.
- * 프로토타입 micFail 배너 정합(feedback-correct 코랄 계열 색 소유).
+ * 오답/마이크 실패 교정 배너. 코랄 톤 카드 + error 아이콘 + 비난 없는 안내.
+ * 프로토타입 micFail 배너 정합(feedback-correct 코랄 계열 색 소유). [B] 배지는 사용자 요청으로 제거.
  */
 @Composable
 private fun MicFailBanner(message: String) {
@@ -296,17 +296,6 @@ private fun MicFailBanner(message: String) {
         horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = "B",
-            style = OceTheme.typography.helper.copy(fontWeight = FontWeight.ExtraBold, fontSize = 9.sp),
-            color = accent,
-            modifier =
-                Modifier
-                    .clip(OceTheme.shapes.radius4)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, accent.copy(alpha = 0.4f), OceTheme.shapes.radius4)
-                    .padding(horizontal = 5.dp, vertical = 2.dp),
-        )
         OneClickIcon(icon = OceIcon.Error, contentDescription = null, tint = accent, size = 18.dp)
         Text(
             text = message,
