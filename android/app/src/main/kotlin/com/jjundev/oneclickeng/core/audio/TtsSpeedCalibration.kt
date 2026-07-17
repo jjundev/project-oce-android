@@ -19,14 +19,42 @@ object TtsSpeedCalibration {
     /** 기준 보이스(Gemini `Kore`, gender != male)의 계수 — 정의상 1.0. */
     const val WEIGHT_SERVER_FEMALE = 1.0f
 
-    /** Gemini `Puck`(gender == male) 계수 — Task 6 실측으로 대체. */
-    const val WEIGHT_SERVER_MALE = 1.0f
+    /**
+     * Gemini `Puck`(gender == male) 계수.
+     *
+     * 실측 2026-07-17(`TtsCalibrationProbe`, 참조 문장 3개 × **3회 반복**, 실기기 Samsung SM-S911N).
+     * **주의 — 이 값은 안정된 배수가 아니라 잡음 속 평균이다.** 같은 문장을 3회 반복 측정한 결과, Kore
+     * 자체의 합성 길이가 동일 텍스트에서도 회차마다 최대 11.6% 흔들렸고(예: line3 4.510~5.100초),
+     * Puck/Kore 비율은 회차별로 0.867~1.160 까지 벌어졌다(9개 표본 평균 0.991). 즉 Gemini TTS 는
+     * **중립 속도로 고정해도 호출마다 실제 발화 길이가 비결정적**이다 — 이건 이 브랜치가 애초에 없애려던
+     * "Gemini 가 라인마다 속도를 다르게 따른다"는 문제가 프롬프트 힌트 제거 후에도 백엔드 자체에 남아있다는
+     * 뜻이며, 클라이언트 상수로는 근본적으로 고칠 수 없다. 9개 표본 평균이 1.0 에 가까워(재현 가능한
+     * 성별 간 속도차가 통계적으로 유의하지 않음) 이 값은 사실상 "보정 없음"에 가깝다. 개별 발화는 이
+     * 상수를 곱해도 여전히 Gemini 자체 잡음만큼(±10~20%) 빠르거나 느리게 들릴 수 있다 — 그건 회귀가
+     * 아니라 알려진 백엔드 한계다.
+     */
+    const val WEIGHT_SERVER_MALE = 0.99f
 
-    /** 온디바이스 Android TTS, 여성 보이스 계수 — Task 6 실측으로 대체. */
-    const val WEIGHT_DEVICE_FEMALE = 1.0f
+    /**
+     * 온디바이스 Android TTS, 여성 보이스 계수.
+     *
+     * 실측 2026-07-17(`TtsCalibrationProbe`, 참조 문장 3개 × 3회 반복, 실기기 Samsung SM-S911N).
+     * 단말 합성은 **완전히 결정론적**임을 3회 반복으로 확인했다(문장별 길이가 회차 간 1ms 차이도 없이
+     * 동일) — 위 [WEIGHT_SERVER_MALE] 의 잡음과 달리 이 값은 재현 가능한 신호다. 계산은 회차별 Kore
+     * 길이의 3회 평균을 분모로 써서(Gemini 쪽 잡음이 분모에 섞여 들어오는 것을 줄임) 문장별 비율을
+     * 낸 뒤 평균했다(문장 간 잔여 편차 ≈0.12 — 실제 문장 리듬 차이로 보이며 0.05 기준은 넘지만, 지금
+     * 계수 없음 상태보다는 훨씬 낫다). 기기·엔진이 바뀌면 재측정 대상.
+     */
+    const val WEIGHT_DEVICE_FEMALE = 0.855f
 
-    /** 온디바이스 Android TTS, 남성 보이스 계수 — Task 6 실측으로 대체. */
-    const val WEIGHT_DEVICE_MALE = 1.0f
+    /**
+     * 온디바이스 Android TTS, 남성 보이스 계수.
+     *
+     * 실측 2026-07-17(`TtsCalibrationProbe`, 참조 문장 3개 × 3회 반복, 실기기 Samsung SM-S911N).
+     * [WEIGHT_DEVICE_FEMALE] 과 동일한 방법(3회 평균 Kore 분모)으로 측정했다 — 이쪽도 단말 합성
+     * 자체는 결정론적으로 재현됐다(문장 간 잔여 편차 ≈0.09). 기기·엔진이 바뀌면 재측정 대상.
+     */
+    const val WEIGHT_DEVICE_MALE = 0.707f
 
     /**
      * 보정 후 배속의 상·하한. **정상 범위 안에서는 절대 걸리지 않아야 한다** — 걸리면 클램프가
