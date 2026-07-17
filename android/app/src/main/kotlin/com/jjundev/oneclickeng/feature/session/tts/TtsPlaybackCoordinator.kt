@@ -193,7 +193,10 @@ class TtsPlaybackCoordinator
                         finish(token, PlaybackState.IDLE, advance = false)
                         return@launch
                     }
-                    playPcm(token, pcm, sampleRate)
+                    // 학습자 자기 녹음은 절대 보정하지 않는다 — 자기 목소리를 왜곡하면 안 되므로
+                    // 항상 원속도(1.0)로 명시한다([playPcm]엔 이제 기본값이 없다: 아무 값도 안 넘기면
+                    // 컴파일 에러가 나야, 미보정 재생이 조용한 기본 동작이 되는 걸 막는다).
+                    playPcm(token, pcm, sampleRate, speed = 1.0f)
                 }
         }
 
@@ -379,7 +382,7 @@ class TtsPlaybackCoordinator
             token: Long,
             pcm: ByteArray,
             sampleRate: Int,
-            speed: Float = 1.0f,
+            speed: Float,
         ) {
             if (token != sessionToken) return
             _state.value = PlaybackState.PLAYING
@@ -407,7 +410,7 @@ class TtsPlaybackCoordinator
             // audio actually begins, so the opponent skeleton stays up until then.
             val result =
                 withTimeoutOrNull(DEVICE_WATCHDOG_MS) {
-                    deviceTts.speak(text, gender, TtsSpeedCalibration.deviceSpeechRate(userRate)) {
+                    deviceTts.speak(text, gender, TtsSpeedCalibration.deviceSpeechRate(userRate, gender)) {
                         onPlaybackStarted(token)
                     }
                 }

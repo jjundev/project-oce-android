@@ -28,8 +28,21 @@ class TtsSpeedCalibrationTest {
     }
 
     @Test
-    fun `device rate at 1x is the device weight`() {
-        assertEquals(TtsSpeedCalibration.WEIGHT_DEVICE, TtsSpeedCalibration.deviceSpeechRate(1.0f), TOLERANCE)
+    fun `device male gender routes to the device male weight and is case-insensitive`() {
+        val lower = TtsSpeedCalibration.deviceSpeechRate(1.0f, "male")
+        val upper = TtsSpeedCalibration.deviceSpeechRate(1.0f, "MALE")
+
+        assertEquals(lower, upper, TOLERANCE)
+        assertEquals(TtsSpeedCalibration.WEIGHT_DEVICE_MALE, lower, TOLERANCE)
+    }
+
+    @Test
+    fun `device null and non-male genders route to the device female weight`() {
+        val expected = TtsSpeedCalibration.WEIGHT_DEVICE_FEMALE
+
+        assertEquals(expected, TtsSpeedCalibration.deviceSpeechRate(1.0f, null), TOLERANCE)
+        assertEquals(expected, TtsSpeedCalibration.deviceSpeechRate(1.0f, "female"), TOLERANCE)
+        assertEquals(expected, TtsSpeedCalibration.deviceSpeechRate(1.0f, "unknown"), TOLERANCE)
     }
 
     @Test
@@ -44,8 +57,16 @@ class TtsSpeedCalibrationTest {
             TtsSpeedCalibration.serverPlaybackSpeed(0.001f, null),
             TOLERANCE,
         )
-        assertEquals(TtsSpeedCalibration.MAX_EFFECTIVE_RATE, TtsSpeedCalibration.deviceSpeechRate(99f), TOLERANCE)
-        assertEquals(TtsSpeedCalibration.MIN_EFFECTIVE_RATE, TtsSpeedCalibration.deviceSpeechRate(0.001f), TOLERANCE)
+        assertEquals(
+            TtsSpeedCalibration.MAX_EFFECTIVE_RATE,
+            TtsSpeedCalibration.deviceSpeechRate(99f, null),
+            TOLERANCE,
+        )
+        assertEquals(
+            TtsSpeedCalibration.MIN_EFFECTIVE_RATE,
+            TtsSpeedCalibration.deviceSpeechRate(0.001f, null),
+            TOLERANCE,
+        )
     }
 
     @Test

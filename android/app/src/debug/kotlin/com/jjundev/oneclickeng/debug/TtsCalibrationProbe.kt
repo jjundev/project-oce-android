@@ -27,10 +27,12 @@ internal const val CALIB_TAG = "TtsCalib"
 /**
  * 발화 속도 보정 계수 실측 프로브 — **디버그 전용**.
  *
- * 같은 참조 문장을 세 소스(Gemini `Kore`, Gemini `Puck`, 온디바이스 TTS)로 **중립 속도**에 합성해
- * 무음 트림 후 길이를 재고, 기준(`Kore`) 대비 비율로 계수를 계산한다. 결과는 logcat(`TtsCalib`)에
- * 찍고 WAV 를 외부 files 디렉터리에 덤프한다 — 숫자는 계수 산출용, WAV 는 사람이 직접 들어
- * "정말 같은 속도로 들리는지" 확인하는 용도다.
+ * 같은 참조 문장을 네 보이스(Gemini `Kore`, Gemini `Puck`, 온디바이스 TTS 여성/남성)로 **중립 속도**에
+ * 합성해 무음 트림 후 길이를 재고, 기준(`Kore`) 대비 비율로 계수를 계산한다. 온디바이스도 서버와
+ * 대칭으로 성별별로 측정한다 — `playFromDevice` 가 턴의 gender 로 보이스를 고르므로(`AndroidDeviceTts.
+ * selectGenderVoice`), 한 계수로 두 보이스를 덮으면 측정에 쓰이지 않은 쪽이 어긋난다. 결과는
+ * logcat(`TtsCalib`)에 찍고 WAV 를 외부 files 디렉터리에 덤프한다 — 숫자는 계수 산출용, WAV 는
+ * 사람이 직접 들어 "정말 같은 속도로 들리는지" 확인하는 용도다.
  *
  * 산출된 계수는 `TtsSpeedCalibration.WEIGHT_*` 상수에 **손으로** 옮겨 적는다. 자동 반영하지 않는
  * 이유: 계수는 빌드 타임 상수여야 하고(런타임 측정은 매 실행 네트워크 비용), 사람의 청취 확인을
@@ -53,11 +55,12 @@ class TtsCalibrationProbe
                 "No problem at all. Your order will be ready in about five minutes.",
             )
 
-        /** 한 문장에 대한 세 소스의 발화 길이(초). 잰 데 실패하면 null. */
+        /** 한 문장에 대한 네 소스의 발화 길이(초). 잰 데 실패하면 null. */
         private data class LineDurations(
             val kore: Double?,
             val puck: Double?,
-            val device: Double?,
+            val deviceFemale: Double?,
+            val deviceMale: Double?,
         )
 
         @Suppress("TooGenericExceptionCaught")
@@ -81,13 +84,14 @@ class TtsCalibrationProbe
                     Log.i(
                         CALIB_TAG,
                         "line ${index + 1} | kore=${fmt(durations.kore)} puck=${fmt(durations.puck)} " +
-                            "device=${fmt(durations.device)}",
+                            "deviceFemale=${fmt(durations.deviceFemale)} deviceMale=${fmt(durations.deviceMale)}",
                     )
                     durations
                 }
 
             report("WEIGHT_SERVER_MALE", measured) { it.puck }
-            report("WEIGHT_DEVICE", measured) { it.device }
+            report("WEIGHT_DEVICE_FEMALE", measured) { it.deviceFemale }
+            report("WEIGHT_DEVICE_MALE", measured) { it.deviceMale }
             Log.i(CALIB_TAG, "WEIGHT_SERVER_FEMALE = 1.000 (기준 보이스 — 정의상 고정)")
             Log.i(CALIB_TAG, "=== 계측 끝 — 위 값을 TtsSpeedCalibration 상수에 옮겨 적으세요 ===")
         }
@@ -101,7 +105,8 @@ class TtsCalibrationProbe
             return LineDurations(
                 kore = measureServer(line, gender = "female", File(outDir, "line${slot}_kore.wav")),
                 puck = measureServer(line, gender = "male", File(outDir, "line${slot}_puck.wav")),
-                device = measureDevice(line, gender = "female", File(outDir, "line${slot}_device.wav")),
+                deviceFemale = measureDevice(line, gender = "female", File(outDir, "line${slot}_device_female.wav")),
+                deviceMale = measureDevice(line, gender = "male", File(outDir, "line${slot}_device_male.wav")),
             )
         }
 

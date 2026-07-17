@@ -490,7 +490,7 @@ class TtsPlaybackCoordinatorTest {
             coordinator.playTurn("Hello", "male")
             advanceUntilIdle()
 
-            assertEquals(TtsSpeedCalibration.deviceSpeechRate(1.2f), device.lastRate!!, SPEED_TOLERANCE)
+            assertEquals(TtsSpeedCalibration.deviceSpeechRate(1.2f, "male"), device.lastRate!!, SPEED_TOLERANCE)
         }
 
     @Test
