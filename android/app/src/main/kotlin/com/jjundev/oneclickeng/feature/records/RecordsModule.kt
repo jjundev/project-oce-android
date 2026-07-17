@@ -9,7 +9,7 @@ import javax.inject.Singleton
 /**
  * 기록 탭(M2-05) seam 바인딩.
  * - [SavedCardQuerySource] → [FirestoreSavedCardQuerySource] (읽기: 3종 커서 증분).
- * - [LifetimeStatsSource] → [StubLifetimeStatsSource] (M3-05 배선 전 스텁 — 헤더 정적 0).
+ * - [LifetimeStatsSource] → [FirestoreLifetimeStatsSource] (서버 progress + 로컬 studytime 합성).
  * - [HistoryAnalytics] → [FirebaseHistoryAnalytics].
  */
 @Module
@@ -21,7 +21,7 @@ abstract class RecordsModule {
 
     @Binds
     @Singleton
-    abstract fun bindLifetimeStatsSource(impl: StubLifetimeStatsSource): LifetimeStatsSource
+    abstract fun bindLifetimeStatsSource(impl: FirestoreLifetimeStatsSource): LifetimeStatsSource
 
     @Binds
     @Singleton
