@@ -3,6 +3,7 @@ package com.jjundev.oneclickeng.core.audio
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.util.Log
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
@@ -30,6 +31,7 @@ class PcmAudioPlayer
         override suspend fun play(
             pcm: ByteArray,
             sampleRateHz: Int,
+            speed: Float,
         ) {
             stop()
             val token = playbackToken.incrementAndGet()
@@ -47,7 +49,9 @@ class PcmAudioPlayer
                 synchronized(lock) { track = audioTrack }
 
                 // 2 bytes per 16-bit sample — marker at the last frame signals completion.
+                // 마커는 *소스 프레임* 기준이라 배속을 걸어도 그대로 유효하다(벽시계만 짧아진다).
                 audioTrack.setNotificationMarkerPosition(pcm.size / 2)
+                applySpeed(audioTrack, speed)
                 audioTrack.setPlaybackPositionUpdateListener(
                     object : AudioTrack.OnPlaybackPositionUpdateListener {
                         override fun onMarkerReached(t: AudioTrack) {
@@ -104,6 +108,20 @@ class PcmAudioPlayer
                 .setTransferMode(AudioTrack.MODE_STATIC)
                 .build()
 
+        /**
+         * 재생 배속 적용. [android.media.PlaybackParams] 는 피치를 보존하는 시간축 신축(Sonic)이라
+         * 목소리 톤이 변하지 않는다. 기기가 지원하지 않는 값이면 IllegalArgumentException 을 던지므로,
+         * 실패하면 배속 없이(1.0x) 재생을 이어간다 — 속도가 조금 틀린 게 무음보다 낫다.
+         */
+        private fun applySpeed(
+            track: AudioTrack,
+            speed: Float,
+        ) {
+            if (speed == 1.0f) return
+            runCatching { track.playbackParams = track.playbackParams.setSpeed(speed) }
+                .onFailure { Log.w(TAG, "device rejected playback speed $speed — falling back to 1.0x", it) }
+        }
+
         private fun releaseTrack() {
             val toRelease: AudioTrack?
             synchronized(lock) {
@@ -115,5 +133,9 @@ class PcmAudioPlayer
                 setPlaybackPositionUpdateListener(null)
                 release()
             }
+        }
+
+        private companion object {
+            const val TAG = "PcmAudioPlayer"
         }
     }

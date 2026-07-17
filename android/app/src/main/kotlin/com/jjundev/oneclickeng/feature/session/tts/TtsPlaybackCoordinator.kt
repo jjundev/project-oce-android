@@ -1,6 +1,7 @@
 package com.jjundev.oneclickeng.feature.session.tts
 
 import com.jjundev.oneclickeng.core.audio.PcmPlayer
+import com.jjundev.oneclickeng.core.audio.TtsSpeedCalibration
 import com.jjundev.oneclickeng.core.network.LlmApi
 import com.jjundev.oneclickeng.core.network.TtsPayload
 import com.jjundev.oneclickeng.core.network.TtsRequest
@@ -22,13 +23,13 @@ import java.util.Base64
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Cache key for a synthesized opponent line — server output depends only on
- *  (text, gender, rate). Rate is part of the key so a mid-session speed change
- *  re-synthesizes instead of playing stale-speed audio. */
+/** Cache key for a synthesized opponent line. 서버 오디오는 이제 항상 중립 속도로 합성되고
+ *  ([TtsPlaybackCoordinator.NEUTRAL_SYNTHESIS_RATE]) 배속은 재생 시점에 걸리므로
+ *  ([TtsSpeedCalibration]), 출력은 (text, gender) 에만 의존한다 — 합성 1회가 모든 슬라이더 값을
+ *  커버하고, 세션 중 속도를 바꿔도 재합성 없이 캐시에서 다시 재생된다. */
 internal data class TtsCacheKey(
     val text: String,
     val gender: String?,
-    val speechRate: Float,
 )
 
 /**
@@ -87,9 +88,14 @@ class TtsPlaybackCoordinator
         @Volatile
         private var lastSampleRate = 0
 
+        // replay 가 *현재* 설정으로 배속을 다시 계산하려면 마지막 서버 턴의 성별이 필요하다
+        // (보정 계수가 보이스별이므로 — TtsSpeedCalibration). [lastPcm] 과 수명이 같다.
+        @Volatile
+        private var lastGender: String? = null
+
         private class CachedAudio(val pcm: ByteArray, val sampleRate: Int)
 
-        // Session-scoped synthesis cache: opponent-line PCM keyed by (text, gender, rate).
+        // Session-scoped synthesis cache: opponent-line PCM keyed by (text, gender).
         // accessOrder=true + removeEldestEntry makes it LRU-bounded. All access is on the
         // coordinator's single-threaded Main scope, so no locking is needed (see Global
         // Constraints). Populated by obtainAudio; cleared by clearCache (Task 2) on screen exit.
@@ -135,6 +141,7 @@ class TtsPlaybackCoordinator
                         return@launch
                     }
                     lastPcm = null
+                    lastGender = null
                     _state.value = PlaybackState.LOADING
                     if (!deviceOnly && settings.quality == TtsQuality.SERVER) {
                         if (playFromServer(token, text, gender, settings.speechRate)) return@launch
@@ -144,13 +151,16 @@ class TtsPlaybackCoordinator
                 }
         }
 
-        /** Replay the current turn's audio from memory — no re-synthesis (plan #18). */
+        /** Replay the current turn's audio from memory — no re-synthesis (plan #18).
+         *  배속은 *현재* 설정으로 다시 계산하므로, 턴 재생 뒤 속도를 바꾸고 "다시 듣기" 하면
+         *  새 속도로 나온다(재합성 없이). */
         fun replay() {
             val token = startNewSession()
             currentJob =
                 scope.launch {
                     // Re-read mute: if muted mid-turn, replay is a no-op that still advances (#14).
-                    if (settingsRepo.current().muted) {
+                    val settings = settingsRepo.current()
+                    if (settings.muted) {
                         finish(token, PlaybackState.IDLE, advance = true)
                         return@launch
                     }
@@ -160,7 +170,7 @@ class TtsPlaybackCoordinator
                         finish(token, PlaybackState.IDLE, advance = true)
                         return@launch
                     }
-                    playPcm(token, pcm, rate)
+                    playPcm(token, pcm, rate, TtsSpeedCalibration.serverPlaybackSpeed(settings.speechRate, lastGender))
                 }
         }
 
@@ -183,7 +193,10 @@ class TtsPlaybackCoordinator
                         finish(token, PlaybackState.IDLE, advance = false)
                         return@launch
                     }
-                    playPcm(token, pcm, sampleRate)
+                    // 학습자 자기 녹음은 절대 보정하지 않는다 — 자기 목소리를 왜곡하면 안 되므로
+                    // 항상 원속도(1.0)로 명시한다([playPcm]엔 이제 기본값이 없다: 아무 값도 안 넘기면
+                    // 컴파일 에러가 나야, 미보정 재생이 조용한 기본 동작이 되는 걸 막는다).
+                    playPcm(token, pcm, sampleRate, speed = 1.0f)
                 }
         }
 
@@ -199,7 +212,7 @@ class TtsPlaybackCoordinator
                 scope.launch {
                     val settings = settingsRepo.current()
                     if (settings.muted || settings.quality != TtsQuality.SERVER) return@launch
-                    obtainAudio(text, gender, settings.speechRate) // result cached as a side effect
+                    obtainAudio(text, gender) // result cached as a side effect
                 }
             prefetchJobs.add(job)
             job.invokeOnCompletion { prefetchJobs.remove(job) }
@@ -221,7 +234,7 @@ class TtsPlaybackCoordinator
                 scope.launch {
                     val settings = settingsRepo.current()
                     if (settings.muted || settings.quality != TtsQuality.SERVER) return@launch
-                    synthesize(WARM_UP_TEXT, gender = null, rate = settings.speechRate) // discarded on purpose
+                    synthesize(WARM_UP_TEXT, gender = null) // discarded on purpose
                 }
         }
 
@@ -243,8 +256,8 @@ class TtsPlaybackCoordinator
             // preheats the model, so the retry typically lands (~5-6s). The loading gate covers this
             // wait; succeeding here is what keeps the first line on the natural voice. `||` short-
             // circuits, so the retry only runs when the first attempt failed.
-            return obtainAudio(text, gender, settings.speechRate) != null ||
-                obtainAudio(text, gender, settings.speechRate) != null
+            return obtainAudio(text, gender) != null ||
+                obtainAudio(text, gender) != null
         }
 
         /** Drop all cached and in-flight synthesis (call on leaving the dialogue screen).
@@ -281,17 +294,28 @@ class TtsPlaybackCoordinator
         /** Server synthesis + base64 decode under the watchdog. Returns null on
          *  timeout / network / HTTP / malformed / undecodable payload (caller falls back
          *  to device, or — for prefetch — simply skips). Never touches player/state/token,
-         *  so it is safe to call from a background prefetch. */
+         *  so it is safe to call from a background prefetch.
+         *
+         *  와이어의 speechRate 는 항상 [NEUTRAL_SYNTHESIS_RATE] 다 — 사용자 배속은 여기가 아니라
+         *  재생 시점에 걸린다([TtsSpeedCalibration]). */
         @Suppress("TooGenericExceptionCaught", "SwallowedException")
         private suspend fun synthesize(
             text: String,
             gender: String?,
-            rate: Float,
         ): CachedAudio? {
             val response =
                 withTimeoutOrNull(SYNTH_WATCHDOG_MS) {
                     try {
-                        api.tts(TtsRequest(payload = TtsPayload(text = text, gender = gender, speechRate = rate)))
+                        api.tts(
+                            TtsRequest(
+                                payload =
+                                    TtsPayload(
+                                        text = text,
+                                        gender = gender,
+                                        speechRate = NEUTRAL_SYNTHESIS_RATE,
+                                    ),
+                            ),
+                        )
                     } catch (e: kotlinx.coroutines.CancellationException) {
                         throw e
                     } catch (e: Exception) {
@@ -317,13 +341,12 @@ class TtsPlaybackCoordinator
         private suspend fun obtainAudio(
             text: String,
             gender: String?,
-            rate: Float,
         ): CachedAudio? {
-            val key = TtsCacheKey(text, gender, rate)
+            val key = TtsCacheKey(text, gender)
             cache[key]?.let { return it }
             val deferred =
                 inFlight[key] ?: scope.async {
-                    synthesize(text, gender, rate)?.also { cache[key] = it }
+                    synthesize(text, gender)?.also { cache[key] = it }
                 }.also { d ->
                     inFlight[key] = d
                     d.invokeOnCompletion { inFlight.remove(key, d) } // identity remove; tied to the job, not awaiters
@@ -333,22 +356,24 @@ class TtsPlaybackCoordinator
 
         /** @return true if the server path terminally handled the turn (played or swallowed
          *  as stale); false if synthesis failed and the caller should try device TTS.
-         *  A cache hit / in-flight join plays without a fresh network call. */
+         *  A cache hit / in-flight join plays without a fresh network call.
+         *  [userRate] 는 슬라이더 값 — 합성이 아니라 재생 배속 계산에 쓰인다. */
         @Suppress("ReturnCount")
         private suspend fun playFromServer(
             token: Long,
             text: String,
             gender: String?,
-            rate: Float,
+            userRate: Float,
         ): Boolean {
             // Live playback waits at most SERVER_WATCHDOG_MS for the audio, then falls back to
             // device. The synthesis is a sibling job on `scope`, so this timeout only abandons the
             // *wait* — the cold synthesis finishes in the background and caches for the next need.
-            val audio = withTimeoutOrNull(SERVER_WATCHDOG_MS) { obtainAudio(text, gender, rate) } ?: return false
+            val audio = withTimeoutOrNull(SERVER_WATCHDOG_MS) { obtainAudio(text, gender) } ?: return false
             if (token != sessionToken) return true // stale: swallow, don't advance
             lastPcm = audio.pcm
             lastSampleRate = audio.sampleRate
-            playPcm(token, audio.pcm, audio.sampleRate)
+            lastGender = gender
+            playPcm(token, audio.pcm, audio.sampleRate, TtsSpeedCalibration.serverPlaybackSpeed(userRate, gender))
             return true
         }
 
@@ -357,12 +382,13 @@ class TtsPlaybackCoordinator
             token: Long,
             pcm: ByteArray,
             sampleRate: Int,
+            speed: Float,
         ) {
             if (token != sessionToken) return
             _state.value = PlaybackState.PLAYING
             _audioReady.tryEmit(Unit)
             try {
-                player.play(pcm, sampleRate)
+                player.play(pcm, sampleRate, speed)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -376,7 +402,7 @@ class TtsPlaybackCoordinator
             token: Long,
             text: String,
             gender: String?,
-            rate: Float,
+            userRate: Float,
         ) {
             if (token != sessionToken) return
             // No premature PLAYING here: the device engine may still be initializing on the first
@@ -384,7 +410,9 @@ class TtsPlaybackCoordinator
             // audio actually begins, so the opponent skeleton stays up until then.
             val result =
                 withTimeoutOrNull(DEVICE_WATCHDOG_MS) {
-                    deviceTts.speak(text, gender, rate) { onPlaybackStarted(token) }
+                    deviceTts.speak(text, gender, TtsSpeedCalibration.deviceSpeechRate(userRate, gender)) {
+                        onPlaybackStarted(token)
+                    }
                 }
             if (token != sessionToken) return
             when (result) {
@@ -435,5 +463,11 @@ class TtsPlaybackCoordinator
             // Throwaway text for [warmUpModel] — one short word is enough to make the server issue a
             // real TTS request; the audio is discarded, so keep it minimal (cost is per audio token).
             const val WARM_UP_TEXT = "Hi"
+
+            // 서버로 나가는 speechRate 는 항상 이 값이다. Gemini TTS 는 구조적 속도 파라미터가 없어
+            // 서버가 이 숫자를 산문 힌트에 끼워 넣을 뿐이고(gemini.ts buildSynthesisBody), 모델은 그걸
+            // 느슨하게만 따른다. 중립으로 고정해 합성을 결정론적으로 만들고, 실제 배속은 재생 시점에
+            // 건다(TtsSpeedCalibration). 와이어 필드 자체는 서버 계약이라 남겨 둔다(백엔드 미배포).
+            const val NEUTRAL_SYNTHESIS_RATE = 1.0f
         }
     }

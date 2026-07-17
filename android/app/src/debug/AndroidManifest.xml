@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  디버그 변이 전용. 발화 속도 보정 계수 실측 프로브를 adb 로 트리거한다.
+  릴리스 매니페스트에는 병합되지 않으므로 출시 APK 에 이 리시버는 없다.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <receiver
+            android:name="com.jjundev.oneclickeng.debug.TtsCalibrationReceiver"
+            android:exported="true" />
+    </application>
+</manifest>

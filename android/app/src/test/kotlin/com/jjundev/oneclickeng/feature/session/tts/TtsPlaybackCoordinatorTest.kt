@@ -1,6 +1,7 @@
 package com.jjundev.oneclickeng.feature.session.tts
 
 import com.jjundev.oneclickeng.core.audio.PcmPlayer
+import com.jjundev.oneclickeng.core.audio.TtsSpeedCalibration
 import com.jjundev.oneclickeng.core.network.LlmApi
 import com.jjundev.oneclickeng.core.network.SpeakingRequest
 import com.jjundev.oneclickeng.core.network.SpeakingResponse
@@ -43,9 +44,13 @@ private class FakeLlmApi(
 ) : LlmApi {
     var callCount = 0
 
+    /** 마지막으로 나간 tts 요청 — 와이어에 실린 speechRate 단언용. */
+    var lastRequest: TtsRequest? = null
+
     @Suppress("TooGenericExceptionThrown") // models an opaque server abort — real callers see no typed cause either.
     override suspend fun tts(body: TtsRequest): TtsResponse {
         callCount++
+        lastRequest = body
         if (delayMs > 0) delay(delayMs)
         if (callCount <= failFirst) throw RuntimeException("cold synth aborted by server")
         error?.let { throw it }
@@ -58,12 +63,17 @@ private class FakeLlmApi(
 private class FakePcmPlayer(var throwOnPlay: Boolean = false) : PcmPlayer {
     val played = mutableListOf<Pair<ByteArray, Int>>()
 
+    /** 재생 호출별 배속(= [played] 와 같은 인덱스). Task 3 의 보정 단언이 쓴다. */
+    val speeds = mutableListOf<Float>()
+
     override suspend fun play(
         pcm: ByteArray,
         sampleRateHz: Int,
+        speed: Float,
     ) {
         if (throwOnPlay) error("playback boom")
         played += pcm to sampleRateHz
+        speeds += speed
     }
 
     override fun stop() = Unit
@@ -75,6 +85,9 @@ private class FakeDeviceTts(
 ) : DeviceTts {
     var callCount = 0
 
+    /** 엔진에 실제로 넘어간 배속 — 보정 단언용. */
+    var lastRate: Float? = null
+
     override suspend fun speak(
         text: String,
         gender: String?,
@@ -82,6 +95,7 @@ private class FakeDeviceTts(
         onStart: () -> Unit,
     ): DeviceTtsResult {
         callCount++
+        lastRate = speechRate
         if (delayMs > 0) delay(delayMs)
         // Faithful to AndroidDeviceTts: onStart fires only when audio actually begins — i.e. the
         // engine initialized and the utterance started. LANGUAGE_MISSING / ERROR return before that.
@@ -403,11 +417,12 @@ class TtsPlaybackCoordinatorTest {
         }
 
     @Test
-    fun `cache key includes speech rate so a rate change re-synthesizes`() =
+    fun `a rate change reuses the cached synthesis instead of re-synthesizing`() =
         runTest {
             val api = FakeLlmApi()
             val settings = FakeSettings(TtsSettings(quality = TtsQuality.SERVER, speechRate = 1.0f))
-            val coordinator = TtsPlaybackCoordinator(api, FakePcmPlayer(), FakeDeviceTts(), settings, coordScope())
+            val player = FakePcmPlayer()
+            val coordinator = TtsPlaybackCoordinator(api, player, FakeDeviceTts(), settings, coordScope())
 
             coordinator.playTurn("Hello", null)
             advanceUntilIdle()
@@ -415,7 +430,102 @@ class TtsPlaybackCoordinatorTest {
             coordinator.playTurn("Hello", null)
             advanceUntilIdle()
 
-            assertEquals(2, api.callCount) // different rate → different key → fresh synthesis
+            // 서버 오디오는 이제 중립으로 합성되고 배속은 재생 시점에 걸린다 → 키에 rate 가 없다.
+            assertEquals(1, api.callCount)
+            // 그래도 두 번째 재생은 새 속도로 나가야 한다.
+            assertEquals(
+                TtsSpeedCalibration.serverPlaybackSpeed(1.0f, null),
+                player.speeds[0],
+                SPEED_TOLERANCE,
+            )
+            assertEquals(
+                TtsSpeedCalibration.serverPlaybackSpeed(1.5f, null),
+                player.speeds[1],
+                SPEED_TOLERANCE,
+            )
+        }
+
+    @Test
+    fun `server synthesis always requests the neutral rate whatever the slider says`() =
+        runTest {
+            val api = FakeLlmApi()
+            val settings = FakeSettings(TtsSettings(quality = TtsQuality.SERVER, speechRate = 1.4f))
+            val coordinator = TtsPlaybackCoordinator(api, FakePcmPlayer(), FakeDeviceTts(), settings, coordScope())
+
+            coordinator.playTurn("Hello", "male")
+            advanceUntilIdle()
+
+            // Gemini 에 속도를 부탁하지 않는다 — 힌트는 늘 중립이고 배속은 클라가 건다.
+            assertEquals(
+                TtsPlaybackCoordinator.NEUTRAL_SYNTHESIS_RATE,
+                api.lastRequest!!.payload.speechRate,
+                SPEED_TOLERANCE,
+            )
+        }
+
+    @Test
+    fun `server playback applies the voice-specific calibration weight`() =
+        runTest {
+            val player = FakePcmPlayer()
+            val settings = FakeSettings(TtsSettings(quality = TtsQuality.SERVER, speechRate = 1.2f))
+            val coordinator = TtsPlaybackCoordinator(FakeLlmApi(), player, FakeDeviceTts(), settings, coordScope())
+
+            coordinator.playTurn("Hello", "male")
+            advanceUntilIdle()
+
+            assertEquals(
+                TtsSpeedCalibration.serverPlaybackSpeed(1.2f, "male"),
+                player.speeds.single(),
+                SPEED_TOLERANCE,
+            )
+        }
+
+    @Test
+    fun `device path applies the device calibration weight`() =
+        runTest {
+            val device = FakeDeviceTts()
+            val settings = FakeSettings(TtsSettings(quality = TtsQuality.DEVICE, speechRate = 1.2f))
+            val coordinator = TtsPlaybackCoordinator(FakeLlmApi(), FakePcmPlayer(), device, settings, coordScope())
+
+            coordinator.playTurn("Hello", "male")
+            advanceUntilIdle()
+
+            assertEquals(TtsSpeedCalibration.deviceSpeechRate(1.2f, "male"), device.lastRate!!, SPEED_TOLERANCE)
+        }
+
+    @Test
+    fun `replay honors a speed changed after the turn played`() =
+        runTest {
+            val player = FakePcmPlayer()
+            val settings = FakeSettings(TtsSettings(quality = TtsQuality.SERVER, speechRate = 1.0f))
+            val coordinator = TtsPlaybackCoordinator(FakeLlmApi(), player, FakeDeviceTts(), settings, coordScope())
+
+            coordinator.playTurn("Hello", "male")
+            advanceUntilIdle()
+            settings.setSpeechRate(1.5f)
+            coordinator.replay()
+            advanceUntilIdle()
+
+            // replay 는 캐시된 중립 PCM 을 *현재* 설정으로 다시 배속한다(마지막 턴의 성별 계수로).
+            assertEquals(
+                TtsSpeedCalibration.serverPlaybackSpeed(1.5f, "male"),
+                player.speeds.last(),
+                SPEED_TOLERANCE,
+            )
+        }
+
+    @Test
+    fun `self clip plays at unmodified speed`() =
+        runTest {
+            val player = FakePcmPlayer()
+            val settings = FakeSettings(TtsSettings(quality = TtsQuality.SERVER, speechRate = 1.5f))
+            val coordinator = TtsPlaybackCoordinator(FakeLlmApi(), player, FakeDeviceTts(), settings, coordScope())
+
+            coordinator.playClip(byteArrayOf(9, 9), 16000)
+            advanceUntilIdle()
+
+            // 학습자 자기 녹음은 보정 대상이 아니다 — 자기 목소리를 왜곡하지 않는다.
+            assertEquals(1.0f, player.speeds.single(), SPEED_TOLERANCE)
         }
 
     @Test
@@ -847,4 +957,8 @@ class TtsPlaybackCoordinatorTest {
             assertEquals(1, ready.size)
             assertEquals(PlaybackState.IDLE, coordinator.state.value)
         }
+
+    private companion object {
+        const val SPEED_TOLERANCE = 1e-4f
+    }
 }
