@@ -189,6 +189,8 @@ private class RecordingStudytime : StudytimeRepository {
         drainCount++
     }
 
+    override suspend fun reconcileAfterMerge() = Unit
+
     override suspend fun resetMetrics() = Unit
 }
 

@@ -58,6 +58,16 @@ interface StudytimeRepository {
     suspend fun drain()
 
     /**
+     * Force-reconcile the local studytime authority after a successful guest→Google merge (M3-03). The
+     * server-side merge adds this device's (guest) total onto the target account's pre-existing total
+     * (`merge.ts` `resolveStudytimeTotal`) — a total this device never otherwise observes. Re-reads the
+     * server's post-merge `totalSeconds` and adopts it if larger than the local total. A no-op if signed
+     * out or offline; the display may understate the merged total until a later successful call (the next
+     * app-start `seedFromServerIfEmpty`/`drain` pass does not retry this — see the follow-up note below).
+     */
+    suspend fun reconcileAfterMerge()
+
+    /**
      * 누적 기록 초기화(M3-09, FR-22). Local-first: zero the local authority (StudytimeStore) and the
      * reminder cache mirror FIRST, then call the `resetMetrics` callable to zero the server. Throws if the
      * callable fails — the caller surfaces an error; the local state is already zeroed (user sees the
@@ -129,6 +139,21 @@ class FirestoreStudytimeRepository
         override suspend fun drain() {
             val state = store.snapshot()
             if (state.unsynced && state.todayDayKey != null) pushStudytime(state)
+        }
+
+        @Suppress("TooGenericExceptionCaught")
+        override suspend fun reconcileAfterMerge() {
+            val uid = authRepository.currentUid ?: return
+            try {
+                val studytime =
+                    firestore
+                        .collection(USERS).document(uid)
+                        .collection(GAMIFICATION).document(STUDYTIME)
+                        .get().await()
+                store.reconcileFromServer(studytime.getLong(FIELD_TOTAL_SECONDS) ?: 0L)
+            } catch (e: Exception) {
+                Log.d(TAG, "post-merge studytime reconcile skipped (offline/permission): ${e.message}")
+            }
         }
 
         override suspend fun resetMetrics() {

@@ -110,6 +110,8 @@ private class FakeStudytimeRepository(
 
     override suspend fun drain() = Unit
 
+    override suspend fun reconcileAfterMerge() = Unit
+
     override suspend fun resetMetrics() = Unit
 }
 

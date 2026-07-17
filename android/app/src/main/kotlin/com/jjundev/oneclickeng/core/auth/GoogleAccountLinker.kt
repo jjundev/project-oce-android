@@ -5,6 +5,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.functions.FirebaseFunctions
+import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -81,6 +82,7 @@ class FirebaseGoogleAccountLinker
         private val auth: FirebaseAuth,
         private val functions: FirebaseFunctions,
         private val pendingStore: PendingMergeStore,
+        private val studytimeRepository: StudytimeRepository,
     ) : GoogleAccountLinker {
         @Suppress("ReturnCount", "TooGenericExceptionCaught")
         override suspend fun linkGuest(googleIdToken: String): LinkOutcome {
@@ -120,10 +122,11 @@ class FirebaseGoogleAccountLinker
             }
             pendingStore.setTargetUid(targetUid)
 
-            // FR-3b (c)(d): 이관 콜러블 호출 → 성공 시 마커 삭제.
+            // FR-3b (c)(d): 이관 콜러블 호출 → 성공 시 마커 삭제 + 로컬 studytime 재동기화.
             return try {
                 callMergeGuestData(guestToken)
                 pendingStore.clear()
+                studytimeRepository.reconcileAfterMerge()
                 LinkOutcome.Merged
             } catch (e: Exception) {
                 Log.w(TAG, "mergeGuestData failed after signIn — pending kept for retry", e)
@@ -142,6 +145,7 @@ class FirebaseGoogleAccountLinker
                     try {
                         callMergeGuestData(pending.guestToken)
                         pendingStore.clear()
+                        studytimeRepository.reconcileAfterMerge()
                         LinkOutcome.Merged
                     } catch (e: Exception) {
                         Log.w(TAG, "pending mergeGuestData retry failed — kept for next launch", e)
