@@ -58,12 +58,17 @@ private class FakeLlmApi(
 private class FakePcmPlayer(var throwOnPlay: Boolean = false) : PcmPlayer {
     val played = mutableListOf<Pair<ByteArray, Int>>()
 
+    /** 재생 호출별 배속(= [played] 와 같은 인덱스). Task 3 의 보정 단언이 쓴다. */
+    val speeds = mutableListOf<Float>()
+
     override suspend fun play(
         pcm: ByteArray,
         sampleRateHz: Int,
+        speed: Float,
     ) {
         if (throwOnPlay) error("playback boom")
         played += pcm to sampleRateHz
+        speeds += speed
     }
 
     override fun stop() = Unit

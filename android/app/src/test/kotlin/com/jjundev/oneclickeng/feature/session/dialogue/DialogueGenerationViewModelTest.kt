@@ -122,7 +122,7 @@ private class CountingTtsApi : LlmApi {
 }
 
 private class NoopPcmPlayer : PcmPlayer {
-    override suspend fun play(pcm: ByteArray, sampleRateHz: Int) = Unit
+    override suspend fun play(pcm: ByteArray, sampleRateHz: Int, speed: Float) = Unit
     override fun stop() = Unit
 }
 
