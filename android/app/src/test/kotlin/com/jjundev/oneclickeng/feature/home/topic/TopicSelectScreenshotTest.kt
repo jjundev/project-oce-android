@@ -93,7 +93,7 @@ class TopicSelectScreenshotTest {
                             Modifier
                                 .align(Alignment.BottomCenter)
                                 .fillMaxWidth()
-                                .fillMaxHeight(0.7f),
+                                .fillMaxHeight(TOPIC_SHEET_HEIGHT_FRACTION),
                         color = MaterialTheme.colorScheme.surface,
                         shape = OceTheme.shapes.radius24,
                     ) {
@@ -168,13 +168,40 @@ private val screenshotTopics =
             icon = OceIcon.PartlyCloudyDay,
         ),
         Topic(
-            id = "hotel-checkin",
-            emoji = "🏨",
-            titleKo = "호텔 체크인",
-            group = TopicGroup.Travel,
+            id = "hobby-intro",
+            emoji = "🎸",
+            titleKo = "취미·자기소개",
+            group = TopicGroup.Daily,
+            beginnerFriendly = false,
+            promptSeed = "introducing yourself and talking about hobbies",
+            icon = OceIcon.Interests,
+        ),
+        Topic(
+            id = "restaurant",
+            emoji = "🍽️",
+            titleKo = "레스토랑 주문·예약",
+            group = TopicGroup.Daily,
             beginnerFriendly = true,
-            promptSeed = "checking in",
-            icon = OceIcon.Hotel,
+            promptSeed = "ordering food or booking a table at a restaurant",
+            icon = OceIcon.Restaurant,
+        ),
+        Topic(
+            id = "greeting-neighbor",
+            emoji = "👋",
+            titleKo = "이웃에게 인사하기",
+            group = TopicGroup.Daily,
+            beginnerFriendly = false,
+            promptSeed = "greeting a new neighbor",
+            icon = OceIcon.WavingHand,
+        ),
+        Topic(
+            id = "weekend-plans",
+            emoji = "🗓️",
+            titleKo = "주말 계획 묻기",
+            group = TopicGroup.Daily,
+            beginnerFriendly = false,
+            promptSeed = "asking a friend about their weekend plans",
+            icon = OceIcon.Event,
         ),
     )
 

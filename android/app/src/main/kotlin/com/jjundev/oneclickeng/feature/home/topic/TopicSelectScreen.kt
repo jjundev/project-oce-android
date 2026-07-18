@@ -78,14 +78,14 @@ fun TopicSelectSheet(
             topics = topics,
             onTopicChosen = onTopicChosen,
             onDismiss = onDismiss,
-            modifier = Modifier.fillMaxHeight(SHEET_HEIGHT_FRACTION),
+        modifier = Modifier.fillMaxHeight(TOPIC_SHEET_HEIGHT_FRACTION),
             selectedTopicId = selectedTopicId,
         )
     }
 }
 
-/** 시트가 차지하는 화면 높이 비율(프로토 정합 ~70%). */
-private const val SHEET_HEIGHT_FRACTION = 0.7f
+/** 시트가 차지하는 화면 높이 비율. 주제 선택에서 여러 후보를 즉시 비교할 수 있게 한다. */
+internal const val TOPIC_SHEET_HEIGHT_FRACTION = 0.7f
 
 /** 시트 콘텐츠(stateless) — ModalBottomSheet 래핑 없이 렌더하는 스크린샷·프리뷰 seam. 프로덕션은 [TopicSelectSheet]. */
 @Composable

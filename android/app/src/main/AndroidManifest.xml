@@ -14,11 +14,13 @@
     <!-- M3-07 로컬 학습 리마인더 알림. API 33+ 에서만 런타임 요청(그 이하 불필요). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- 런처 아이콘은 M0-04(icon-vectors)에서 추가한다. 지금은 시스템 기본 아이콘을 사용. -->
+    <!-- M0-04: adaptive launcher icon은 vector foreground + 토큰 기반 background로 제공한다. -->
     <application
         android:name=".OceApp"
         android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.OceApp">
 
