@@ -37,6 +37,7 @@ const {
   FEEDBACK_DEEP_RESPONSE_SCHEMA,
 } = require("../lib/providers/gemini");
 const { modelFor } = require("../lib/config/models");
+const { populationStdDev } = require("./stats");
 
 /** Mirrors the unexported GEMINI_BASE_URL in src/providers/gemini.ts:67. */
 const BASE_URL = "https://aiplatform.googleapis.com/v1/publishers/google";
@@ -185,6 +186,18 @@ function get(obj, ...keys) {
  * calls that both transported and parsed successfully — so unequal sample sizes across
  * temperatures (e.g. from a quota burst, Fix 5) stay visible instead of silently skewing
  * the score-spread comparison.
+ *
+ * Reports two distinct spread statistics per temperature, both computed per-case first
+ * and then averaged/maxed across cases:
+ *   - max-min: simple and legible, but it grows mechanically as `--repeats` grows (more
+ *     draws → higher odds of an outlier) and a single wild outlier dominates it at small
+ *     sample sizes. Two runs at different `--repeats` are NOT comparable on this column.
+ *   - population standard deviation (populationStdDev in ./stats.js): stable under the
+ *     repeat count it was actually computed from, since it is a spread-of-all-the-data
+ *     statistic rather than a spread-of-the-two-extremes statistic. This is the column to
+ *     compare across temperatures.
+ * Both are skipped (not counted as zero) for a case with fewer than two successful scores
+ * at that temperature — see populationStdDev's contract.
  */
 function summarise(runs, temp) {
   const at = runs.filter((r) => r.temp === temp);
@@ -209,6 +222,7 @@ function summarise(runs, temp) {
 
   // score spread per case: how far apart repeats of the SAME input land
   const spreads = [];
+  const stdDevs = [];
   const byCase = new Map();
   for (const r of at) {
     if (r.error || r.parseError) continue;
@@ -218,12 +232,18 @@ function summarise(runs, temp) {
     byCase.get(r.caseId).push(s);
   }
   for (const scores of byCase.values()) {
-    if (scores.length > 1) spreads.push(Math.max(...scores) - Math.min(...scores));
+    if (scores.length < 2) continue; // fewer than 2 calls: no variance evidence, skip
+    spreads.push(Math.max(...scores) - Math.min(...scores));
+    stdDevs.push(populationStdDev(scores));
   }
   const meanSpread = spreads.length
     ? (spreads.reduce((a, b) => a + b, 0) / spreads.length).toFixed(1)
     : "n/a";
   const maxSpread = spreads.length ? String(Math.max(...spreads)) : "n/a";
+  const meanStdDev = stdDevs.length
+    ? (stdDevs.reduce((a, b) => a + b, 0) / stdDevs.length).toFixed(1)
+    : "n/a";
+  const maxStdDev = stdDevs.length ? Math.max(...stdDevs).toFixed(1) : "n/a";
   return {
     total: at.length,
     transportFailed,
@@ -234,6 +254,8 @@ function summarise(runs, temp) {
     warns,
     meanSpread,
     maxSpread,
+    meanStdDev,
+    maxStdDev,
   };
 }
 
@@ -255,13 +277,13 @@ function writeReport(opts, cases, runs, model) {
   L.push("## 요약");
   L.push("");
   L.push(
-    "| temperature | 호출 | 전송 실패 | 파싱 실패 | 검증됨 | 구조 위반 | 기대치 불일치 | warn 위반 | 점수 스프레드(평균) | 점수 스프레드(최대) |"
+    "| temperature | 호출 | 전송 실패 | 파싱 실패 | 검증됨 | 구조 위반 | 기대치 불일치 | warn 위반 | 표준편차(평균) | 표준편차(최대) | 점수 스프레드(평균) | 점수 스프레드(최대) |"
   );
-  L.push("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+  L.push("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
   for (const temp of opts.temps) {
     const s = summarise(runs, temp);
     L.push(
-      `| ${temp} | ${s.total} | ${s.transportFailed} | ${s.parseFailed} | ${s.validated} | ${s.structuralErrors} | ${s.expectMismatches} | ${s.warns} | ${s.meanSpread} | ${s.maxSpread} |`
+      `| ${temp} | ${s.total} | ${s.transportFailed} | ${s.parseFailed} | ${s.validated} | ${s.structuralErrors} | ${s.expectMismatches} | ${s.warns} | ${s.meanStdDev} | ${s.maxStdDev} | ${s.meanSpread} | ${s.maxSpread} |`
     );
   }
   L.push("");
@@ -274,14 +296,22 @@ function writeReport(opts, cases, runs, model) {
     "위반, 섹션 순서 뒤바뀜 등)이고, `기대치 불일치`는 각 케이스의 `expect.*`가 실패한 것 — 이는 채점 결과에 대한 " +
     "주관적 판단이며 일부는 설계상 논쟁의 여지가 있다(예: `ab-possible-to-sit`는 과잉 교정이 아니라고 보지만 이는 " +
     "논쟁 가능한 주장이다). 두 열을 하나로 합치면 매 온도에서 상수처럼 반복되는 기대치 불일치가 진짜 온도 신호를 " +
-    "덮어버리므로 분리했다. `점수 스프레드` = 같은 입력을 반복 호출했을 때 나온 점수의 최대-최소 차이. 피드백은 " +
-    "채점이므로 이 값이 작을수록 좋다."
+    "덮어버리므로 분리했다. `표준편차`와 `점수 스프레드`는 둘 다 같은 입력을 반복 호출했을 때 점수가 얼마나 " +
+    "흩어지는지를 잰다(케이스별로 계산한 뒤 평균/최대를 취함) — 하지만 용도가 다르다. **온도끼리 비교할 때는 " +
+    "`표준편차`를 봐라.** `점수 스프레드`(최대-최소)는 `--repeats`가 커질수록 기계적으로 커지고(뽑는 횟수가 많을수록 " +
+    "극단값을 뽑을 확률도 올라간다) 표본이 작을 때는 이상치 하나에 값 전체가 좌우되므로, **`--repeats` 값이 다른 " +
+    "두 번의 스윕을 `점수 스프레드`로 비교하면 안 된다**. 대신 `표준편차`(모집단 표준편차, n으로 나눔 — 각 온도의 " +
+    "반복 호출은 더 큰 모집단에서 뽑은 표본이 아니라 그 자체로 관측 전체이므로)는 반복 횟수에 이런 식으로 좌우되지 " +
+    "않아 온도 간 비교에 쓸 수 있다. `점수 스프레드`는 여전히 유용하다 — 표준편차가 낮아도 반복 중 단 한 번 크게 " +
+    "튄 이상치가 있는지는 `점수 스프레드`(최대)에서만 바로 보인다. 두 통계 모두 성공한 호출이 2개 미만인 케이스는 " +
+    "분산 근거가 없으므로 0이 아니라 아예 집계에서 제외한다(모든 반복이 실패한 케이스를 \"안정적\"으로 잘못 읽지 " +
+    "않기 위함)."
   );
   L.push("");
 
   if (isDeep) {
     L.push(
-      "**deep 태스크 안내**: deep 응답에는 `writingScore`가 없으므로 점수 스프레드는 항상 `n/a`다 — 점수를 억지로 " +
+      "**deep 태스크 안내**: deep 응답에는 `writingScore`가 없으므로 표준편차·점수 스프레드는 항상 `n/a`다 — 점수를 억지로 " +
       "만들어내지 않는다. deep에서 온도를 고르는 지표는 위 요약 표의 **온도별 위반율**(`구조 위반` · `기대치 불일치`) " +
       "이다. 특히 스키마가 강제하지 않고 프롬프트로만 요구하는 카디널리티 규칙 — `toneStyle.levels`가 정확히 5개, " +
       "`paraphrasing`이 정확히 3개, `venn.items`가 1-3개 — 이 온도 상승에 가장 먼저 깨지는 규칙이다. " +
@@ -508,7 +538,7 @@ async function main() {
   for (const temp of opts.temps) {
     const s = summarise(runs, temp);
     console.log(
-      `  t=${temp}: 검증됨 ${s.validated}/${s.total} · 구조 위반 ${s.structuralErrors} · 기대치 불일치 ${s.expectMismatches} · warn ${s.warns} · 점수 스프레드 평균 ${s.meanSpread} / 최대 ${s.maxSpread}`
+      `  t=${temp}: 검증됨 ${s.validated}/${s.total} · 구조 위반 ${s.structuralErrors} · 기대치 불일치 ${s.expectMismatches} · warn ${s.warns} · 표준편차 평균 ${s.meanStdDev} / 최대 ${s.maxStdDev} · 점수 스프레드 평균 ${s.meanSpread} / 최대 ${s.maxSpread}`
     );
   }
 }
