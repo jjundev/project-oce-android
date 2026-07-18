@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.jjundev.oneclickeng.feature.reminder.ReminderLogic
 import com.jjundev.oneclickeng.feature.reminder.di.ReminderPrefs
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -31,6 +32,10 @@ data class ReminderConfig(
 data class ReminderCache(
     val lastStudyDate: LocalDate?,
     val streak: Int?,
+    /** B3: 마지막 완주가 마일스톤 임계값([ReminderLogic.MILESTONE_THRESHOLDS])에 닿았으면 그 값, 아니면 null. */
+    val milestoneStreak: Int? = null,
+    /** B1: 자동 저장된 표현/단어 중 가장 최근 것의 표시 텍스트. */
+    val lastSavedReviewText: String? = null,
 )
 
 /**
@@ -44,6 +49,7 @@ data class ReminderCache(
  * 이 seam 은 [com.jjundev.oneclickeng.feature.reminder.ReminderOrchestrator] 내부 저장소 adapter 이다.
  * UI/Worker/Application 같은 lifecycle adapter 는 이 저장소가 아니라 product seam 인 orchestrator 를 주입한다.
  */
+@Suppress("TooManyFunctions")
 interface ReminderStore {
     /** 설정 행/스케줄러가 관측하는 라이브 설정 스트림. */
     val config: Flow<ReminderConfig>
@@ -81,6 +87,12 @@ interface ReminderStore {
     /** Worker 가 읽는 캐시 스냅샷. */
     suspend fun cacheSnapshot(): ReminderCache
 
+    /** B1(복습): 자동 저장된 표현/단어 중 가장 최근 것을 리마인더 body 후보로 미러링한다(§5.1 확장). */
+    suspend fun recordSavedReviewText(text: String)
+
+    /** B3(마일스톤): 다음 리마인더가 축하 문구를 1회 소비한 뒤 정상 분기로 복귀시킨다. */
+    suspend fun clearMilestone()
+
     /**
      * 누적 기록 초기화(M3-09, FR-22) 시 streak/lastStudyDate 캐시 미러를 비운다. 초기화로 streak=0 이 되므로
      * 리마인더 카피가 stale streak 을 참조하지 않게 한다. on/off·시각 설정은 건드리지 않는다.
@@ -109,7 +121,20 @@ class DataStoreReminderRepository
                 prefs[KEY_COMPLETED_SESSIONS] = count + 1
                 prefs[KEY_STREAK_CACHE] = streak
                 prefs[KEY_LAST_STUDY_DATE_CACHE] = lastStudyDate.toString()
+                if (streak in ReminderLogic.MILESTONE_THRESHOLDS) {
+                    prefs[KEY_MILESTONE_STREAK] = streak
+                } else {
+                    prefs.remove(KEY_MILESTONE_STREAK)
+                }
             }
+        }
+
+        override suspend fun recordSavedReviewText(text: String) {
+            dataStore.edit { it[KEY_LAST_SAVED_REVIEW_TEXT] = text }
+        }
+
+        override suspend fun clearMilestone() {
+            dataStore.edit { it.remove(KEY_MILESTONE_STREAK) }
         }
 
         override suspend fun shouldPromptOptIn(): Boolean {
@@ -151,6 +176,8 @@ class DataStoreReminderRepository
                         runCatching { LocalDate.parse(iso) }.getOrNull()
                     },
                 streak = prefs[KEY_STREAK_CACHE],
+                milestoneStreak = prefs[KEY_MILESTONE_STREAK],
+                lastSavedReviewText = prefs[KEY_LAST_SAVED_REVIEW_TEXT],
             )
         }
 
@@ -158,6 +185,7 @@ class DataStoreReminderRepository
             dataStore.edit { prefs ->
                 prefs.remove(KEY_STREAK_CACHE)
                 prefs.remove(KEY_LAST_STUDY_DATE_CACHE)
+                prefs.remove(KEY_MILESTONE_STREAK)
             }
         }
 
@@ -177,5 +205,7 @@ class DataStoreReminderRepository
             val KEY_COMPLETED_SESSIONS = intPreferencesKey("reminder_completed_session_count")
             val KEY_OPT_IN_RESOLVED = booleanPreferencesKey("reminder_opt_in_resolved")
             val KEY_PERMISSION_ASKED = booleanPreferencesKey("reminder_notif_permission_asked")
+            val KEY_MILESTONE_STREAK = intPreferencesKey("reminder_milestone_streak")
+            val KEY_LAST_SAVED_REVIEW_TEXT = stringPreferencesKey("reminder_last_saved_review_text")
         }
     }

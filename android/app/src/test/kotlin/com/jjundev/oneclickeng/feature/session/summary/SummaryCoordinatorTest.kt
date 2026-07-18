@@ -14,10 +14,15 @@ import com.jjundev.oneclickeng.core.settings.SummarySaveSettings
 import com.jjundev.oneclickeng.core.settings.SummarySaveSettingsRepository
 import com.jjundev.oneclickeng.feature.gamification.AccrualSnapshot
 import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
+import com.jjundev.oneclickeng.feature.reminder.ReminderOrchestrator
+import com.jjundev.oneclickeng.feature.reminder.ReminderPromptDecision
+import com.jjundev.oneclickeng.feature.reminder.ReminderRunResult
+import com.jjundev.oneclickeng.feature.reminder.data.ReminderConfig
 import com.jjundev.oneclickeng.feature.session.feedback.TurnFeedbackBuffer
 import com.jjundev.oneclickeng.feature.session.saved.CardType
 import com.jjundev.oneclickeng.feature.session.saved.FakeSavedCardRepository
 import com.jjundev.oneclickeng.feature.session.saved.SavedCard
+import java.time.LocalDate
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -120,6 +125,46 @@ private class FakeStudytimeRepository(
     override suspend fun resetMetrics() = Unit
 }
 
+private class FakeReminderOrchestrator : ReminderOrchestrator {
+    val reviewTexts = mutableListOf<String>()
+
+    override val config: Flow<ReminderConfig> = MutableStateFlow(ReminderConfig.DISABLED)
+
+    override suspend fun evaluateOptInPrompt(): ReminderPromptDecision = ReminderPromptDecision.DoNotShow
+
+    override suspend fun acceptOptIn() = Unit
+
+    override suspend fun dismissOptIn() = Unit
+
+    override suspend fun enableReminder() = Unit
+
+    override suspend fun disableReminder() = Unit
+
+    override suspend fun setReminderTime(
+        hour: Int,
+        minute: Int,
+    ) = Unit
+
+    override suspend fun markPermissionAsked() = Unit
+
+    override suspend fun repairSchedule() = Unit
+
+    override suspend fun handleTimezoneChanged() = Unit
+
+    override suspend fun runDueReminder(): ReminderRunResult = ReminderRunResult.DisabledNoOp
+
+    override suspend fun recordSessionCompleted(
+        streak: Int,
+        lastStudyDate: LocalDate,
+    ) = Unit
+
+    override suspend fun recordSavedReviewText(text: String) {
+        reviewTexts += text
+    }
+
+    override suspend fun clearProgressCache() = Unit
+}
+
 /**
  * [SummarySaveSettingsRepository] 페이크로 [current] 가 [release] 호출 전까지 진짜로 suspend 한다.
  * [FakeSummarySaveSettingsRepository.current] 는 `= state.value`(suspension point 없음)라
@@ -183,7 +228,18 @@ class SummaryCoordinatorTest {
         savedCards: FakeSavedCardRepository = FakeSavedCardRepository(),
         saveSettings: SummarySaveSettingsRepository = FakeSummarySaveSettingsRepository(),
         studytime: FakeStudytimeRepository = FakeStudytimeRepository(),
-    ) = SummaryCoordinator(stream, store(), bookmarks, ledger, savedCards, saveSettings, studytime, scope)
+        reminderOrchestrator: FakeReminderOrchestrator = FakeReminderOrchestrator(),
+    ) = SummaryCoordinator(
+        stream,
+        store(),
+        bookmarks,
+        ledger,
+        savedCards,
+        saveSettings,
+        studytime,
+        reminderOrchestrator,
+        scope,
+    )
 
     private val accrual = AccrualStrip(streakDays = 3, xp = 40)
 
@@ -606,6 +662,28 @@ class SummaryCoordinatorTest {
                 setOf("s1__EXPRESSION__0", "s1__EXPRESSION__1", "s1__WORD__0", "s1__WORD__1"),
                 repo.saves.map { it.cardId }.toSet(),
             )
+        }
+
+    @Test
+    fun `auto-saving an expression mirrors its corrected text into the reminder orchestrator`() =
+        runTest {
+            val stream = FakeSummaryStream()
+            val saveSettings = FakeSummarySaveSettingsRepository(initial = true)
+            val reminderOrchestrator = FakeReminderOrchestrator()
+            val coordinator =
+                coordinator(
+                    coordScope(),
+                    stream,
+                    saveSettings = saveSettings,
+                    reminderOrchestrator = reminderOrchestrator,
+                )
+
+            coordinator.begin()
+            runCurrent()
+            stream.push(SummaryEvent.Card.Expression(listOf(expressionItem())))
+            runCurrent()
+
+            assertEquals(listOf("Could I grab a coffee?"), reminderOrchestrator.reviewTexts)
         }
 
     @Test

@@ -44,6 +44,9 @@ interface ReminderOrchestrator {
         lastStudyDate: LocalDate,
     )
 
+    /** B1: 자동 저장된 표현/단어 텍스트를 리마인더 body 후보로 넘긴다. */
+    suspend fun recordSavedReviewText(text: String)
+
     /** 누적 기록 초기화(M3-09) 시 streak/lastStudyDate 캐시 미러를 비운다. */
     suspend fun clearProgressCache()
 }
@@ -167,10 +170,12 @@ class DefaultReminderOrchestrator
                     ReminderLogic.FireDecision.FIRE_CACHE_MISS -> {
                         analytics.fireSkipped(ReminderSkipReason.CACHE_MISS)
                         notificationSink.post(cache, today)
+                        if (cache.milestoneStreak != null) store.clearMilestone()
                         ReminderRunResult.FiredCacheMiss
                     }
                     ReminderLogic.FireDecision.FIRE -> {
                         notificationSink.post(cache, today)
+                        if (cache.milestoneStreak != null) store.clearMilestone()
                         ReminderRunResult.Fired
                     }
                 }
@@ -183,6 +188,10 @@ class DefaultReminderOrchestrator
             lastStudyDate: LocalDate,
         ) {
             store.recordSessionCompleted(streak, lastStudyDate)
+        }
+
+        override suspend fun recordSavedReviewText(text: String) {
+            store.recordSavedReviewText(text)
         }
 
         override suspend fun clearProgressCache() {
