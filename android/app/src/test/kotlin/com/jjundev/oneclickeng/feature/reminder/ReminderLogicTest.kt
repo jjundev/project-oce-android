@@ -65,33 +65,143 @@ class ReminderLogicTest {
         )
     }
 
-    // --- buildContent (§5.1) -------------------------------------------------
+    // --- buildContent (§5.1, pool + review/situation/milestone) --------------
 
     @Test
     fun `streak zero yields neutral start invite`() {
-        val content = ReminderLogic.buildContent(streak = 0, lastStudyDate = null, today = LocalDate.of(2026, 7, 3))
+        val content =
+            ReminderLogic.buildContent(
+                streak = 0,
+                lastStudyDate = null,
+                today = LocalDate.of(2026, 7, 3),
+                pickVariant = { 0 },
+            )
         assertEquals("딸깍영어", content.title)
         assertEquals("오늘 시작하면 1일째예요", content.body)
     }
 
     @Test
     fun `cache miss yields neutral start invite`() {
-        val content = ReminderLogic.buildContent(streak = null, lastStudyDate = null, today = LocalDate.of(2026, 7, 3))
+        val content =
+            ReminderLogic.buildContent(
+                streak = null,
+                lastStudyDate = null,
+                today = LocalDate.of(2026, 7, 3),
+                pickVariant = { 0 },
+            )
         assertEquals("오늘 시작하면 1일째예요", content.body)
     }
 
     @Test
     fun `gap of one day shows future streak number`() {
         val today = LocalDate.of(2026, 7, 3)
-        val content = ReminderLogic.buildContent(streak = 5, lastStudyDate = today.minusDays(1), today = today)
+        val content =
+            ReminderLogic.buildContent(
+                streak = 5,
+                lastStudyDate = today.minusDays(1),
+                today = today,
+                pickVariant = { 0 },
+            )
         assertEquals("🔥 5일째 — 오늘 이어가면 6일째예요", content.body)
     }
 
     @Test
     fun `gap of two or more falls to neutral invite without number`() {
         val today = LocalDate.of(2026, 7, 3)
-        val content = ReminderLogic.buildContent(streak = 5, lastStudyDate = today.minusDays(2), today = today)
+        val content =
+            ReminderLogic.buildContent(
+                streak = 5,
+                lastStudyDate = today.minusDays(2),
+                today = today,
+                pickVariant = { 0 },
+            )
         assertEquals("🔥 오늘 5분 이어가볼까요?", content.body)
+    }
+
+    @Test
+    fun `pool includes alternate copy at other indices for the same branch`() {
+        val today = LocalDate.of(2026, 7, 3)
+        val content =
+            ReminderLogic.buildContent(
+                streak = 5,
+                lastStudyDate = today.minusDays(1),
+                today = today,
+                pickVariant = { 1 },
+            )
+        assertEquals("🔥 어제 이어서, 오늘도 5분 가볼까요?", content.body)
+    }
+
+    @Test
+    fun `review variant is appended and selectable when a saved expression is cached`() {
+        val today = LocalDate.of(2026, 7, 3)
+        val content =
+            ReminderLogic.buildContent(
+                streak = 5,
+                lastStudyDate = today.minusDays(1),
+                today = today,
+                lastSavedReviewText = "Could I grab a coffee?",
+                // branch pool has 3 variants (indices 0-2); index 3 is the review variant appended after.
+                pickVariant = { 3 },
+            )
+        assertEquals("저장한 표현 'Could I grab a coffee?', 오늘 한 번 더 써볼까요?", content.body)
+    }
+
+    @Test
+    fun `situation variant is appended and selectable when a recommended situation is supplied`() {
+        val today = LocalDate.of(2026, 7, 3)
+        val content =
+            ReminderLogic.buildContent(
+                streak = 0,
+                lastStudyDate = null,
+                today = today,
+                recommendedSituationTitle = "카페에서 주문하기",
+                // branch pool has 3 variants (indices 0-2); index 3 is the situation variant appended after.
+                pickVariant = { 3 },
+            )
+        assertEquals("오늘은 '카페에서 주문하기' 어때요?", content.body)
+    }
+
+    @Test
+    fun `milestone overrides the branch pool regardless of streak or gap`() {
+        val today = LocalDate.of(2026, 7, 3)
+        val content =
+            ReminderLogic.buildContent(
+                streak = 7,
+                lastStudyDate = today.minusDays(5),
+                today = today,
+                milestoneStreak = 7,
+                pickVariant = { 0 },
+            )
+        assertEquals("🔥 일주일을 채웠어요 — 오늘도 이어가볼까요?", content.body)
+    }
+
+    @Test
+    fun `milestone body covers every configured threshold`() {
+        val today = LocalDate.of(2026, 7, 3)
+        val expected =
+            mapOf(
+                1 to "🔥 어제 1일째를 시작했어요 — 오늘 이어가볼까요?",
+                3 to "🔥 3일째까지 왔어요 — 오늘도 이어가볼까요?",
+                7 to "🔥 일주일을 채웠어요 — 오늘도 이어가볼까요?",
+                14 to "🔥 2주 연속, 대단해요 — 오늘도 가볼까요?",
+                30 to "🔥 한 달을 채웠어요 — 오늘도 이어가볼까요?",
+            )
+        expected.forEach { (threshold, body) ->
+            val content =
+                ReminderLogic.buildContent(
+                    streak = threshold,
+                    lastStudyDate = today.minusDays(1),
+                    today = today,
+                    milestoneStreak = threshold,
+                    pickVariant = { 0 },
+                )
+            assertEquals(body, content.body)
+        }
+    }
+
+    @Test
+    fun `milestone thresholds match the completion screen thresholds`() {
+        assertEquals(setOf(1, 3, 7, 14, 30), ReminderLogic.MILESTONE_THRESHOLDS)
     }
 
     // --- computeInitialDelay (§4, device-local wall-clock) -------------------
