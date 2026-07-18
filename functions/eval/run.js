@@ -375,8 +375,14 @@ function writeReport(opts, cases, runs, model) {
     );
     L.push("");
 
+    // Denominator is the number of repeats ACTUALLY COMPARED (both calls succeeded and
+    // parsed) — not opts.repeats (Defect 2). A repeat whose call failed contributes
+    // nothing to either the pass or the fail count; it must not be silently folded into
+    // "N repeats all differed".
     const pairRows = [];
-    let identicalCount = 0;
+    let comparedCount = 0;
+    let identicalExplanationCount = 0;
+    let identicalSuggestionCount = 0;
     for (let repeat = 1; repeat <= opts.repeats; repeat++) {
       const findRun = (caseId) =>
         runs.find(
@@ -393,23 +399,49 @@ function writeReport(opts, cases, runs, model) {
         pairRows.push(`| ${repeat} | — | — | — | 호출 실패 |`);
         continue;
       }
+      comparedCount++;
       const violations = compareLevelSensitivity(lo.json, hi.json);
+      // Match the EXACT check ids. `level.explanation.missing` / `level.naturalExpression.missing`
+      // (Defect 4: the field was absent/empty on one or both sides — nothing was compared)
+      // must NOT be treated the same as `level.explanation` / `level.naturalExpression`
+      // (the field was present on both sides and textually identical). Exact `===`
+      // matching keeps the `.missing` variant from masquerading as "identical".
+      const explanationMissing = violations.some((v) => v.check === "level.explanation.missing");
+      const suggestionMissing = violations.some((v) => v.check === "level.naturalExpression.missing");
       const sameExplanation = violations.some((v) => v.check === "level.explanation");
       const sameSuggestion = violations.some((v) => v.check === "level.naturalExpression");
       const scoreMoved = violations.some((v) => v.check === "level.score");
-      if (sameExplanation) identicalCount++;
+      if (sameExplanation) identicalExplanationCount++;
+      if (sameSuggestion) identicalSuggestionCount++;
+      const explanationCell = explanationMissing ? "— 필드 없음" : sameExplanation ? "✗ 동일" : "✓ 다름";
+      const suggestionCell = suggestionMissing ? "— 필드 없음" : sameSuggestion ? "✗ 동일" : "✓ 다름";
       pairRows.push(
-        `| ${repeat} | ${sameExplanation ? "✗ 동일" : "✓ 다름"} | ${sameSuggestion ? "✗ 동일" : "✓ 다름"} | ` +
+        `| ${repeat} | ${explanationCell} | ${suggestionCell} | ` +
         `${scoreOf(lo.json)} / ${scoreOf(hi.json)}${scoreMoved ? " ⚠ 점수가 레벨을 탐" : ""} | ` +
         `${violations.filter((v) => v.severity === "error").length}건 |`
       );
     }
 
-    L.push(
-      identicalCount === 0
-        ? `**판정: 통과 — ${opts.repeats}회 모두 설명이 레벨에 따라 달라졌다.**`
-        : `**판정: 실패 — ${opts.repeats}회 중 ${identicalCount}회에서 설명이 두 레벨에 걸쳐 동일했다.**`
-    );
+    // Three distinct, mutually exclusive verdicts (Defect 1 & 3):
+    //   - nothing compared: every call failed or failed to parse — this is NOT evidence
+    //     either way, so it must not read as a pass ("통과") or a fail ("실패").
+    //   - any identical: the explanation OR the suggestion came back identical on at
+    //     least one compared repeat — a genuine level-insensitivity finding either way
+    //     (the section's own opening text requires BOTH signals to differ).
+    //   - all differed: every compared repeat had both signals differ.
+    let verdictLine;
+    if (comparedCount === 0) {
+      verdictLine =
+        "**판정 불가 — 모든 호출이 실패했거나 파싱에 실패해 비교 가능한 짝이 하나도 없었다.**";
+    } else if (identicalExplanationCount > 0 || identicalSuggestionCount > 0) {
+      verdictLine =
+        `**판정: 실패 — 비교된 ${comparedCount}회 중 설명이 동일했던 횟수 ${identicalExplanationCount}회, ` +
+        `제안 문장이 동일했던 횟수 ${identicalSuggestionCount}회.**`;
+    } else {
+      verdictLine =
+        `**판정: 통과 — 비교된 ${comparedCount}회 모두 설명과 제안 문장이 레벨에 따라 달라졌다.**`;
+    }
+    L.push(verdictLine);
     L.push("");
     L.push("| # | 설명 | 제안 문장 | 점수 (낮은 레벨 / 높은 레벨) | error |");
     L.push("| --- | --- | --- | --- | --- |");
