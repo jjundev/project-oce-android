@@ -7,6 +7,7 @@ import {
   scoreOf,
   countIncorrectSegments,
   findHasipsioSentences,
+  compareLevelSensitivity,
 } from "../src/eval/validate";
 
 describe("golden case set", () => {
@@ -525,5 +526,70 @@ describe("findHasipsioSentences", () => {
     expect(
       findHasipsioSentences("지난 일은 met을 써요. 이렇게 쓰면 훨씬 자연스러워요!")
     ).toEqual([]);
+  });
+});
+
+describe("compareLevelSensitivity", () => {
+  /** a response that differs from GOOD_SLIM in explanation and suggested phrasing */
+  function variant(explanation: string, suggestion: string) {
+    const v = clone(GOOD_SLIM);
+    v.grammar.explanation = explanation;
+    v.naturalExpression.segments = [{ text: suggestion, type: "normal" }];
+    return v;
+  }
+
+  it("passes when explanation and suggestion both differ across levels", () => {
+    const starter = variant("지난 일은 met을 써요.", "I met my friend.");
+    const expert = variant("과거 시제 일치를 위해 met이 맞아요.", "I caught up with my friend.");
+    expect(compareLevelSensitivity(starter, expert)).toEqual([]);
+  });
+
+  it("fails when the explanation is identical at both levels", () => {
+    // This is the exact 2026-07-18 finding: lv-starter and lv-expert came back
+    // character-for-character identical, proving `level` was ignored entirely.
+    const same = variant("지난 일은 met을 써요.", "I met my friend.");
+    const violations = compareLevelSensitivity(clone(same), clone(same));
+    expect(violations.some((v) => v.check === "level.explanation" && v.severity === "error")).toBe(true);
+  });
+
+  it("fails when the suggested phrasing is identical at both levels", () => {
+    const starter = variant("쉬운 설명이에요.", "I met my friend.");
+    const expert = variant("정밀한 설명이에요.", "I met my friend.");
+    const violations = compareLevelSensitivity(starter, expert);
+    expect(violations.some((v) => v.check === "level.naturalExpression" && v.severity === "error")).toBe(true);
+    expect(violations.some((v) => v.check === "level.explanation")).toBe(false);
+  });
+
+  it("ignores surrounding whitespace when comparing", () => {
+    const starter = variant("같은 설명이에요.", "I met my friend.");
+    const expert = variant("  같은 설명이에요.  ", "I met my friend.");
+    expect(compareLevelSensitivity(starter, expert).some((v) => v.check === "level.explanation")).toBe(true);
+  });
+
+  it("warns — does not fail — when the score moves with level", () => {
+    // Scoring is meant to be absolute so a learner's number stays comparable when they
+    // change level. A drift is a defect, but a 1-point wobble is not worth a hard gate.
+    const starter = variant("쉬운 설명이에요.", "I met my friend.");
+    const expert = variant("정밀한 설명이에요.", "I caught up with my friend.");
+    expert.writingScore.score = 70;
+    const violations = compareLevelSensitivity(starter, expert);
+    expect(violations.some((v) => v.check === "level.score" && v.severity === "warn")).toBe(true);
+    expect(violations.some((v) => v.severity === "error")).toBe(false);
+  });
+
+  it("reports a shape problem rather than throwing", () => {
+    expect(compareLevelSensitivity(null, GOOD_SLIM).some((v) => v.check === "level.shape")).toBe(true);
+    expect(compareLevelSensitivity(GOOD_SLIM, "nope").some((v) => v.check === "level.shape")).toBe(true);
+  });
+
+  it("reports a missing explanation instead of calling it a difference", () => {
+    const broken = clone(GOOD_SLIM) as Record<string, unknown>;
+    delete (broken.grammar as Record<string, unknown>).explanation;
+    const violations = compareLevelSensitivity(broken, GOOD_SLIM);
+    expect(
+      violations.some(
+        (v) => v.check === "level.explanation" && v.detail.includes("missing")
+      )
+    ).toBe(true);
   });
 });

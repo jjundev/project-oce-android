@@ -496,3 +496,84 @@ function checkVennItems(
     }
   });
 }
+
+/** `grammar.explanation`, trimmed; null when absent or not a string. */
+function explanationOf(json: Record<string, unknown>): string | null {
+  const grammar = json.grammar;
+  if (!isRecord(grammar) || typeof grammar.explanation !== "string") return null;
+  const text = grammar.explanation.trim();
+  return text === "" ? null : text;
+}
+
+/** The suggested natural phrasing, reassembled from `naturalExpression.segments`. */
+function suggestionOf(json: Record<string, unknown>): string | null {
+  const ne = json.naturalExpression;
+  if (!isRecord(ne) || !Array.isArray(ne.segments)) return null;
+  const text = ne.segments
+    .map((s) => (isRecord(s) && typeof s.text === "string" ? s.text : ""))
+    .join("")
+    .trim();
+  return text === "" ? null : text;
+}
+
+/**
+ * Compare two slim responses to the SAME English sentence submitted at two different
+ * `level`s. This is the one check `validateSlim` structurally cannot express: it takes a
+ * single response, and level-awareness is only observable in the DIFFERENCE between a pair.
+ *
+ * What level must change, and what it must not:
+ *   - `grammar.explanation` and the suggested phrasing MUST adapt — a starter needs simpler
+ *     Korean and an easier alternative sentence than an expert. Identical output across the
+ *     pair is the signature of `level` being ignored outright (exactly what the 2026-07-18
+ *     sweep found: the two responses were character-for-character identical).
+ *   - `writingScore.score` must NOT move. The score judges the English itself, so the same
+ *     sentence scores the same at every level — otherwise a learner who changes level sees
+ *     their number jump for no reason they can perceive. A drift is a `warn` rather than an
+ *     `error` because a one-point wobble is model noise, not evidence of level-scaled grading.
+ *
+ * `lower`/`higher` name the lower- and higher-level response; the checks are symmetric and
+ * the order only shapes the message.
+ */
+export function compareLevelSensitivity(lower: unknown, higher: unknown): Violation[] {
+  const { out, err, warn } = makeCollector();
+  if (!isRecord(lower) || !isRecord(higher)) {
+    err("level.shape", "one or both responses are not JSON objects");
+    return out;
+  }
+
+  const lowerExplanation = explanationOf(lower);
+  const higherExplanation = explanationOf(higher);
+  if (lowerExplanation === null || higherExplanation === null) {
+    err("level.explanation", "grammar.explanation is missing from one or both responses");
+  } else if (lowerExplanation === higherExplanation) {
+    err(
+      "level.explanation",
+      `identical explanation at both levels — level is being ignored: ${lowerExplanation}`
+    );
+  }
+
+  const lowerSuggestion = suggestionOf(lower);
+  const higherSuggestion = suggestionOf(higher);
+  if (lowerSuggestion === null || higherSuggestion === null) {
+    err(
+      "level.naturalExpression",
+      "naturalExpression.segments is missing from one or both responses"
+    );
+  } else if (lowerSuggestion === higherSuggestion) {
+    err(
+      "level.naturalExpression",
+      `identical suggested phrasing at both levels — level is being ignored: ${lowerSuggestion}`
+    );
+  }
+
+  const lowerScore = scoreOf(lower);
+  const higherScore = scoreOf(higher);
+  if (lowerScore !== null && higherScore !== null && lowerScore !== higherScore) {
+    warn(
+      "level.score",
+      `score moved with level (${lowerScore} vs ${higherScore}) — scoring is meant to be absolute so a learner's number stays comparable across levels`
+    );
+  }
+
+  return out;
+}
