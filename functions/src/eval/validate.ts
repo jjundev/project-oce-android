@@ -69,14 +69,21 @@ function isRecord(v: unknown): v is Record<string, unknown> {
  * `-ㅂ니다` contractions (합니다/됩니다/줍니다/…). The prompt requires 해요체 throughout;
  * the 2026-07-18 sweep found these in 135 of 153 flagged strings, `-입니다` alone being 52%.
  *
- * `-답니다`/`-랍니다` also end in `니다` but are DELIBERATELY allowed — they are a warm,
- * conversational ending that suits the app's voice, not deferential formal speech. They were
- * 18 of those 153 flags and every one was a false positive. The negative lookbehind is the
- * whole mechanism separating them from `-ㅂ니다`, and it must survive every split/boundary
- * change below: both HASIPSIO_ENDING and HASIPSIO_MID_BOUNDARY carry the identical
- * `(?<![답랍])` guard, so 답니다/랍니다 stay exempt no matter where in the string they land.
+ * The negative lookbehind `(?<![답랍아])` exempts three preceding syllables:
+ * - `답` and `랍`: `-답니다`/`-랍니다` are deliberately allowed as warm, conversational
+ *   endings that suit the app's voice, not deferential formal speech. They were 18 of 153
+ *   flags and every one was a false positive.
+ * - `아`: the plain-form copula `아니다` ("is not"). Exempting `아니다` prevents
+ *   mislabeling 반말 (plain form) as 하십시오체 — they are different register failures
+ *   with different causes. No 하십시오체 conjugation ever places a bare `아` immediately
+ *   before `니다` (the -ㅂ니다 contraction always fuses, e.g. 닙니다 not 아닙니다 in
+ *   deferential form). The honorific copula `아닙니다` still flags correctly.
+ *
+ * This guard must survive every split/boundary change below: both HASIPSIO_ENDING and
+ * HASIPSIO_MID_BOUNDARY carry the identical `(?<![답랍아])` guard, so all three exemptions
+ * stay in effect no matter where in the string they land.
  */
-const HASIPSIO_ENDING = /(?<![답랍])니다$/u;
+const HASIPSIO_ENDING = /(?<![답랍아])니다$/u;
 
 /**
  * A 하십시오체 ending is also a real clause boundary when it's followed by whitespace
@@ -86,9 +93,9 @@ const HASIPSIO_ENDING = /(?<![답랍])니다$/u;
  * end — exactly the whole-string-end-only miss the sentence splitter was built to eliminate,
  * just triggered by absent punctuation instead of clause order. Used to insert a synthetic
  * split point so the run-on is tested as two ordinary sentences instead of needing a second
- * detection path; carries the same 답/랍 exemption as HASIPSIO_ENDING.
+ * detection path; carries the same 답/랍/아 exemptions as HASIPSIO_ENDING.
  */
-const HASIPSIO_MID_BOUNDARY = /(?<![답랍])니다(?=\s)/gu;
+const HASIPSIO_MID_BOUNDARY = /(?<![답랍아])니다(?=\s)/gu;
 
 /**
  * Quote marks (straight and curly) that may wrap a whole reported sentence. Stripped so a

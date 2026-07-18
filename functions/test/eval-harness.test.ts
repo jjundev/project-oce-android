@@ -465,4 +465,53 @@ describe("findHasipsioSentences", () => {
     expect(() => findHasipsioSentences("그냥 텍스트임")).not.toThrow();
     expect(findHasipsioSentences("그냥 텍스트임")).toEqual([]);
   });
+
+  // ── Fix round 2: Finding 1 — plain-form copula 아니다 must not be misread as 하십시오체 ──
+  it("does not flag the plain-form copula 아니다", () => {
+    // 아니다 is 반말 (plain form), not 하십시오체 — mislabeling it as deferential
+    // sends the fixer after the wrong problem. The exemption is safe because no
+    // 하십시오체 conjugation places a bare 아 before 니다.
+    expect(findHasipsioSentences("이건 사과가 아니다 배예요")).toEqual([]);
+    expect(findHasipsioSentences("그건 오류가 아니다")).toEqual([]);
+  });
+
+  it("still flags the honorific copula 아닙니다 in sentence-final position", () => {
+    // Exempting 아니다 must not affect the deferential form 아닙니다.
+    // The syllable before 니다 in 아닙니다 is 닙, not 아, so the lookbehind does not
+    // block it. This is the critical regression guard.
+    expect(findHasipsioSentences("그건 오류가 아닙니다.")).toEqual(["그건 오류가 아닙니다"]);
+  });
+
+  it("still flags the honorific copula 아닙니다 in mid-boundary position", () => {
+    // Same regression guard but for the mid-boundary matcher — 아니다 exemption
+    // must not leak into allowing 아닙니다 when it is followed by whitespace.
+    expect(findHasipsioSentences("그건 오류가 아닙니다 다시 확인해요")).toEqual([
+      "그건 오류가 아닙니다",
+    ]);
+  });
+
+  it("keeps all prior 하십시오체 families working correctly", () => {
+    // Regression guards: the 아니다 exemption did not accidentally broaden
+    // the other exemptions or damage the core detection.
+    expect(findHasipsioSentences("잘하셨습니다~")).toEqual(["잘하셨습니다"]);
+    expect(findHasipsioSentences("정말 잘하셨습니다 다음에 또 만나요")).toEqual([
+      "정말 잘하셨습니다",
+    ]);
+    expect(findHasipsioSentences("아주 좋은 표현입니다. 그대로 쓰시면 돼요.")).toEqual([
+      "아주 좋은 표현입니다",
+    ]);
+  });
+
+  it("keeps all 답니다/랍니다 exemptions working in every position", () => {
+    // Regression guards: the 아 addition did not damage the 답/랍 exemption.
+    expect(findHasipsioSentences("충분하답니다!")).toEqual([]);
+    expect(findHasipsioSentences("방식이랍니다.")).toEqual([]);
+    expect(findHasipsioSentences("그렇게 하면 충분하답니다 다음번에도 써보세요")).toEqual([]);
+  });
+
+  it("keeps a fully-해요체 multi-sentence line clean (regression)", () => {
+    expect(
+      findHasipsioSentences("지난 일은 met을 써요. 이렇게 쓰면 훨씬 자연스러워요!")
+    ).toEqual([]);
+  });
 });
