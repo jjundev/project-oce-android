@@ -27,6 +27,7 @@ const {
   validateDeep,
   scoreOf,
   countIncorrectSegments,
+  compareLevelSensitivity,
 } = require("../lib/eval/validate");
 const {
   buildGenerateBody,
@@ -352,44 +353,85 @@ function writeReport(opts, cases, runs, model) {
     L.push("");
   }
 
-  // ── 레벨 민감도 (Fix 6): lv-starter/lv-expert side by side, lowest temp only ─────
+  // ── 레벨 민감도: lv-starter/lv-expert를 반복별로 짝지어 자동 판정 ────────────────
+  // Compares repeat i of the lower level against repeat i of the higher level, for every
+  // repeat — not one sampled pair. With FEEDBACK_TEMPERATURE at 0 the model is near
+  // deterministic, so a single pair could look identical (or different) by luck; judging
+  // all of them turns "level is ignored" from an impression into a count.
   const levelVariancePair = cases.filter((c) => c.category === "level-variance");
-  if (levelVariancePair.length === 2) {
+  if (levelVariancePair.length === 2 && !isDeep) {
+    const [lowerCase, higherCase] = levelVariancePair;
     L.push("## 레벨 민감도 (level-variance)");
     L.push("");
     L.push(
-      `\`${levelVariancePair[0].id}\`와 \`${levelVariancePair[1].id}\`는 영어 문장이 완전히 동일하고 \`level\`만 ` +
-      "다르다 — 프롬프트는 `level`을 전혀 언급하지 않으므로, 두 출력이 비슷하다는 것은 레벨 인지 채점이 " +
-      "구현되지 않았다는 증거다."
+      `\`${lowerCase.id}\`(level=\`${lowerCase.payload.level}\`)와 \`${higherCase.id}\`(level=\`${higherCase.payload.level}\`)는 ` +
+      "영어 문장이 완전히 동일하고 `level`만 다르다. 레벨이 반영된다면 **설명과 제안 문장이 서로 달라야** 하고, " +
+      "**점수는 같아야** 한다 — 점수는 영어 자체에 대한 절대 평가라 학습자가 레벨을 바꿔도 흔들리면 안 된다."
     );
     L.push("");
     L.push(
-      `**이 비교는 스윕의 가장 낮은 온도(t=${lowestTemp})에서만 의미가 있다** — 온도가 높아질수록 두 출력의 차이는 ` +
-      "레벨 인지가 아니라 단순 샘플링 노이즈와 뒤섞인다(confound). 따라서 \"두 출력이 비슷하다\"는 관찰은 " +
-      `t=${lowestTemp}에서만 레벨 인지 부재의 증거로 읽어야 하고, 더 높은 온도에서의 차이/유사는 이 질문에 답하지 못한다.`
+      `**이 비교는 스윕의 가장 낮은 온도(t=${lowestTemp})에서만 의미가 있다** — 온도가 높아지면 두 출력의 차이가 ` +
+      "레벨 인지인지 단순 샘플링 노이즈인지 구분할 수 없다(confound)."
     );
     L.push("");
+
+    const pairRows = [];
+    let identicalCount = 0;
+    for (let repeat = 1; repeat <= opts.repeats; repeat++) {
+      const findRun = (caseId) =>
+        runs.find(
+          (x) =>
+            x.caseId === caseId &&
+            x.temp === lowestTemp &&
+            x.repeat === repeat &&
+            !x.error &&
+            !x.parseError
+        );
+      const lo = findRun(lowerCase.id);
+      const hi = findRun(higherCase.id);
+      if (!lo || !hi) {
+        pairRows.push(`| ${repeat} | — | — | — | 호출 실패 |`);
+        continue;
+      }
+      const violations = compareLevelSensitivity(lo.json, hi.json);
+      const sameExplanation = violations.some((v) => v.check === "level.explanation");
+      const sameSuggestion = violations.some((v) => v.check === "level.naturalExpression");
+      const scoreMoved = violations.some((v) => v.check === "level.score");
+      if (sameExplanation) identicalCount++;
+      pairRows.push(
+        `| ${repeat} | ${sameExplanation ? "✗ 동일" : "✓ 다름"} | ${sameSuggestion ? "✗ 동일" : "✓ 다름"} | ` +
+        `${scoreOf(lo.json)} / ${scoreOf(hi.json)}${scoreMoved ? " ⚠ 점수가 레벨을 탐" : ""} | ` +
+        `${violations.filter((v) => v.severity === "error").length}건 |`
+      );
+    }
+
+    L.push(
+      identicalCount === 0
+        ? `**판정: 통과 — ${opts.repeats}회 모두 설명이 레벨에 따라 달라졌다.**`
+        : `**판정: 실패 — ${opts.repeats}회 중 ${identicalCount}회에서 설명이 두 레벨에 걸쳐 동일했다.**`
+    );
+    L.push("");
+    L.push("| # | 설명 | 제안 문장 | 점수 (낮은 레벨 / 높은 레벨) | error |");
+    L.push("| --- | --- | --- | --- | --- |");
+    for (const row of pairRows) L.push(row);
+    L.push("");
+
     for (const c of levelVariancePair) {
       const r = runs.find(
         (x) => x.caseId === c.id && x.temp === lowestTemp && !x.error && !x.parseError
       );
-      L.push(`### \`${c.id}\` (level=\`${c.payload.level}\`) — t=${lowestTemp}`);
+      L.push(`### \`${c.id}\` (level=\`${c.payload.level}\`) — t=${lowestTemp}, 반복 1`);
       L.push("");
       if (!r) {
         L.push("_이 온도에서 모든 반복 호출이 실패했거나 파싱에 실패했다._");
         L.push("");
         continue;
       }
-      if (isDeep) {
-        L.push("```json");
-        L.push(JSON.stringify(r.json, null, 2));
-        L.push("```");
-      } else {
-        const score = scoreOf(r.json);
-        L.push(`- 점수: **${score === null ? "—" : score}** · incorrect 세그먼트 ${countIncorrectSegments(r.json)}개`);
-        L.push(`- 교정: ${renderSegments(get(r.json, "grammar", "correctedSentence", "segments"))}`);
-        L.push(`- 설명: ${get(r.json, "grammar", "explanation") || "—"}`);
-      }
+      const score = scoreOf(r.json);
+      L.push(`- 점수: **${score === null ? "—" : score}** · incorrect 세그먼트 ${countIncorrectSegments(r.json)}개`);
+      L.push(`- 교정: ${renderSegments(get(r.json, "grammar", "correctedSentence", "segments"))}`);
+      L.push(`- 설명: ${get(r.json, "grammar", "explanation") || "—"}`);
+      L.push(`- 제안: ${renderSegments(get(r.json, "naturalExpression", "segments"))}`);
       L.push("");
     }
   }
