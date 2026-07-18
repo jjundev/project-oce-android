@@ -5,3 +5,4 @@ lib/
 .env.local
 ui-debug.log
 firebase-debug.log
+eval/out/
