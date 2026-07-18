@@ -8,6 +8,7 @@ import com.jjundev.oneclickeng.core.network.SummaryStream
 import com.jjundev.oneclickeng.core.settings.SummarySaveSettingsRepository
 import com.jjundev.oneclickeng.feature.gamification.GamificationTime
 import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
+import com.jjundev.oneclickeng.feature.reminder.ReminderOrchestrator
 import com.jjundev.oneclickeng.feature.session.saved.CardType
 import com.jjundev.oneclickeng.feature.session.saved.SavedCard
 import com.jjundev.oneclickeng.feature.session.saved.SavedCardId
@@ -70,6 +71,7 @@ class SummaryCoordinator
         private val savedCardRepository: SavedCardRepository,
         private val saveSettings: SummarySaveSettingsRepository,
         private val studytime: StudytimeRepository,
+        private val reminderOrchestrator: ReminderOrchestrator,
         private val scope: CoroutineScope,
     ) {
         private val _state = MutableStateFlow(EMPTY)
@@ -293,6 +295,9 @@ class SummaryCoordinator
             items.forEachIndexed { index, card ->
                 savedCardRepository.save(SavedCardId.forSummary(id, CardType.EXPRESSION, index), card.toSavedCard())
             }
+            items.firstOrNull()?.let { first ->
+                scope.launch { reminderOrchestrator.recordSavedReviewText(first.after) }
+            }
         }
 
         /** [autoSaveExpressions] 와 동형(WORD). */
@@ -301,6 +306,9 @@ class SummaryCoordinator
             savedWordIndices = items.indices.toSet()
             items.forEachIndexed { index, card ->
                 savedCardRepository.save(SavedCardId.forSummary(id, CardType.WORD, index), card.toSavedCard())
+            }
+            items.firstOrNull()?.let { first ->
+                scope.launch { reminderOrchestrator.recordSavedReviewText(first.en) }
             }
         }
 
