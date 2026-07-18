@@ -5,9 +5,9 @@
  * prompt-system.md:106 left temperature as an explicit `needs-you` assumption
  * (대본 0.8 / 피드백·요약 0.3) and it was never wired — every task ran on Gemini's
  * undocumented default. This table wires it for the feedback family ONLY: those two
- * are the tasks the eval harness (src/eval/) actually measures. dialogue and summary
- * stay unset until they have eval coverage of their own, so this change cannot
- * regress behaviour nothing here observes.
+ * are the primary target tasks for evaluation (the eval harness will be built in a
+ * later task). dialogue and summary stay unset until they have eval coverage of their
+ * own, so this change cannot regress behaviour nothing here observes.
  */
 import { Task } from "../types/protocol";
 
@@ -19,7 +19,9 @@ export interface GenerationTuning {
 /**
  * Slim + deep feedback temperature. Feedback is a GRADING call — the same learner
  * sentence should score the same on a re-run — so it wants low variance, not variety.
- * Confirmed by the temperature sweep in eval/run.js; see docs/design/prompt-system.md §9.
+ * This value (0.3) is currently the assumed target inherited from
+ * docs/design/prompt-system.md §9, pending confirmation by a temperature sweep
+ * that a later task will build and run.
  */
 export const FEEDBACK_TEMPERATURE = 0.3;
 
