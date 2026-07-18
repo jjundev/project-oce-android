@@ -112,10 +112,17 @@ export const CASES: readonly EvalCase[] = [
   {
     id: "ab-possible-to-sit",
     category: "awkward-but-correct",
-    note: "문법적으로 흠이 없지만 원어민은 이렇게 말하지 않는다. 과잉 문법 교정 없이 자연스러움만 다뤄야 한다.",
+    note: "문법적으로 흠이 없지만 원어민은 이렇게 말하지 않는다(장황하고 격식적). 과잉 문법 교정 없이 자연스러움만 다뤄야 한다.",
+    // `userEnglish` used to be "...sit on this seat?" — the 2026-07-18 temperature sweep
+    // showed the model marking `on` → `in` at every temperature (0, 0.3, 0.7), citing
+    // "좌석은 보통 'in'을 사용해요". The model was right: "sit in this seat" is the
+    // idiomatic preposition, so that sentence had a real grammar error and this case was
+    // scoring a correct model correction as a `noIncorrectSegments` failure — a constant
+    // false negative masking real temperature signal. Fixed to the grammatically correct
+    // "sit in this seat", which is merely stilted/wordy, not wrong. Do not restore "on".
     payload: {
       koreanPrompt: "이 자리에 앉아도 될까요?",
-      userEnglish: "Is it possible for me to sit on this seat?",
+      userEnglish: "Is it possible for me to sit in this seat?",
       referenceEnglish: "Is this seat taken?",
       level: "normal",
     },
