@@ -1,4 +1,5 @@
 import { buildGenerateBody, buildRepairBody } from "../src/providers/gemini";
+import { tuningFor, GENERATION_TUNING, FEEDBACK_TEMPERATURE } from "../src/config/generation";
 
 describe("buildGenerateBody — current behaviour (characterisation)", () => {
   it("wraps the payload as one user text part with role", () => {
@@ -58,5 +59,42 @@ describe("buildRepairBody — current behaviour (characterisation)", () => {
       responseMimeType: "application/json",
       responseSchema: schema,
     });
+  });
+});
+
+describe("tuningFor", () => {
+  it("gives feedback and feedbackDeep the confirmed feedback temperature", () => {
+    expect(tuningFor("feedback")).toEqual({ temperature: FEEDBACK_TEMPERATURE });
+    expect(tuningFor("feedbackDeep")).toEqual({ temperature: FEEDBACK_TEMPERATURE });
+  });
+
+  it("leaves dialogue, summary, speaking and tts unset (provider default)", () => {
+    // Out of scope for this plan — they have no eval coverage, so setting a
+    // temperature for them could regress behaviour nothing here measures.
+    expect(tuningFor("dialogue")).toEqual({});
+    expect(tuningFor("summary")).toEqual({});
+    expect(tuningFor("speaking")).toEqual({});
+    expect(tuningFor("tts")).toEqual({});
+  });
+
+  it("normalises a sub-task id to its family", () => {
+    // "summary.expressions" is not in the closed Task map (gemini.ts:203-205).
+    expect(tuningFor("summary.expressions")).toEqual(tuningFor("summary"));
+  });
+
+  it("falls back to empty tuning for an unknown task", () => {
+    expect(tuningFor("nonsense")).toEqual({});
+    expect(tuningFor("")).toEqual({});
+  });
+
+  it("keeps the feedback temperature within the valid Gemini range", () => {
+    expect(FEEDBACK_TEMPERATURE).toBeGreaterThanOrEqual(0);
+    expect(FEEDBACK_TEMPERATURE).toBeLessThanOrEqual(2);
+  });
+
+  it("covers every task in the closed Task map", () => {
+    expect(Object.keys(GENERATION_TUNING).sort()).toEqual(
+      ["dialogue", "feedback", "feedbackDeep", "speaking", "summary", "tts"].sort()
+    );
   });
 });
