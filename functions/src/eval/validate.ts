@@ -72,22 +72,59 @@ function isRecord(v: unknown): v is Record<string, unknown> {
  * `-답니다`/`-랍니다` also end in `니다` but are DELIBERATELY allowed — they are a warm,
  * conversational ending that suits the app's voice, not deferential formal speech. They were
  * 18 of those 153 flags and every one was a false positive. The negative lookbehind is the
- * whole mechanism separating them from `-ㅂ니다`.
+ * whole mechanism separating them from `-ㅂ니다`, and it must survive every split/boundary
+ * change below: both HASIPSIO_ENDING and HASIPSIO_MID_BOUNDARY carry the identical
+ * `(?<![답랍])` guard, so 답니다/랍니다 stay exempt no matter where in the string they land.
  */
 const HASIPSIO_ENDING = /(?<![답랍])니다$/u;
 
-/** Split a Korean line into sentences on terminal punctuation, dropping empty fragments. */
+/**
+ * A 하십시오체 ending is also a real clause boundary when it's followed by whitespace
+ * instead of terminal punctuation — LLM output plausibly drops the period between two short
+ * clauses ("정말 잘하셨습니다 다음에 또 만나요"). Without this, the leading 하십시오체
+ * clause gets swallowed into one giant "sentence" whose `$` anchor only ever tests the very
+ * end — exactly the whole-string-end-only miss the sentence splitter was built to eliminate,
+ * just triggered by absent punctuation instead of clause order. Used to insert a synthetic
+ * split point so the run-on is tested as two ordinary sentences instead of needing a second
+ * detection path; carries the same 답/랍 exemption as HASIPSIO_ENDING.
+ */
+const HASIPSIO_MID_BOUNDARY = /(?<![답랍])니다(?=\s)/gu;
+
+/**
+ * Quote marks (straight and curly) that may wrap a whole reported sentence. Stripped so a
+ * quoted 하십시오체 ending (`"정말 잘하셨습니다"`) still lands its `니다` on the `$` anchor
+ * instead of being masked by the trailing quote character.
+ */
+const WRAPPING_QUOTES = /^["'“”‘’]+|["'“”‘’]+$/gu;
+
+/**
+ * Split a Korean line into sentences, dropping empty fragments.
+ *
+ * Splits on terminal punctuation (`.` `!` `?` `…`) AND on a trailing `~` — the previous
+ * whole-string detector explicitly stripped `~` before testing, since a bare tilde is common
+ * in this app's warm, casual register and must not defeat the check. Also splits on an
+ * implicit boundary right after any 하십시오체 ending that's followed by whitespace rather
+ * than punctuation (see HASIPSIO_MID_BOUNDARY), so a punctuation-free run of clauses can't
+ * hide an offending clause behind a trailing 해요체 one.
+ *
+ * Known limitation: this is a punctuation split, not a real tokenizer, so a decimal number
+ * or a "Mr."-style abbreviation can fragment the reported sentence text. Detection still
+ * fires on whichever fragment carries the actual 하십시오체 ending — only the message may
+ * read as a truncated clause rather than the full original sentence.
+ */
 function splitSentences(s: string): string[] {
-  return s
-    .split(/[.!?…]+/u)
-    .map((part) => part.trim())
+  const withImplicitBoundaries = s.replace(HASIPSIO_MID_BOUNDARY, "니다.");
+  return withImplicitBoundaries
+    .split(/[.!?…~]+/u)
+    .map((part) => part.trim().replace(WRAPPING_QUOTES, "").trim())
     .filter((part) => part !== "");
 }
 
 /**
  * The sentences in `s` that end in 하십시오체; empty when the line is fully 해요체.
  *
- * Scans EVERY sentence. The previous detector tested only the end of the whole string, so
+ * Scans EVERY sentence produced by splitSentences (see there for what counts as a sentence
+ * boundary). The original detector tested only the end of the whole string, so
  * "표현입니다. 그대로 쓰시면 돼요." — 하십시오체 first, 해요체 last — went entirely
  * uncounted, meaning it silently undercounted the mixed-register problem it existed to
  * measure. Returning the offending sentences (not just a boolean) lets the report name

@@ -406,4 +406,63 @@ describe("findHasipsioSentences", () => {
     expect(findHasipsioSentences("   ")).toEqual([]);
     expect(findHasipsioSentences("...")).toEqual([]);
   });
+
+  // ── Fix round 1: Finding 1 — a trailing tilde must not defeat the check ────────────
+  it("strips a trailing tilde, so a 하십시오체 ending followed by ~ is still flagged", () => {
+    expect(findHasipsioSentences("잘하셨습니다~")).toEqual(["잘하셨습니다"]);
+    expect(findHasipsioSentences("잘하셨습니다~~")).toEqual(["잘하셨습니다"]);
+  });
+
+  it("does not flag 해요체 with a trailing tilde", () => {
+    expect(findHasipsioSentences("잘했어요~")).toEqual([]);
+    expect(findHasipsioSentences("자연스러워요~~")).toEqual([]);
+  });
+
+  // ── Fix round 1: Finding 2 — clauses with no terminal punctuation between them ─────
+  it("flags a 하십시오체 clause even when no punctuation separates it from what follows", () => {
+    expect(findHasipsioSentences("정말 잘하셨습니다 다음에 또 만나요")).toEqual([
+      "정말 잘하셨습니다",
+    ]);
+  });
+
+  it("still allows 답니다/랍니다 in every position, including mid-string before whitespace", () => {
+    expect(findHasipsioSentences("충분하답니다!")).toEqual([]);
+    expect(findHasipsioSentences("방식이랍니다.")).toEqual([]);
+    expect(findHasipsioSentences("전달된답니다")).toEqual([]);
+  });
+
+  it("keeps the already-working non-final-sentence and multi-offender cases correct", () => {
+    expect(findHasipsioSentences("아주 좋은 표현입니다. 그대로 쓰시면 돼요.")).toEqual([
+      "아주 좋은 표현입니다",
+    ]);
+    expect(
+      findHasipsioSentences("문법이 완벽합니다. 잘하셨어요. 아주 좋은 표현입니다.")
+    ).toEqual(["문법이 완벽합니다", "아주 좋은 표현입니다"]);
+  });
+
+  it("keeps a fully-해요체 multi-sentence line clean", () => {
+    expect(
+      findHasipsioSentences("지난 일은 met을 써요. 이렇게 쓰면 훨씬 자연스러워요!")
+    ).toEqual([]);
+  });
+
+  it("flags every required 하십시오체 form", () => {
+    expect(findHasipsioSentences("표현입니다.")).toHaveLength(1);
+    expect(findHasipsioSentences("잘하셨습니다.")).toHaveLength(1);
+    expect(findHasipsioSentences("줍니다.")).toHaveLength(1);
+    expect(findHasipsioSentences("됩니다.")).toHaveLength(1);
+    expect(findHasipsioSentences("좋습니다.")).toHaveLength(1);
+    expect(findHasipsioSentences("훌륭합니다.")).toHaveLength(1);
+  });
+
+  // ── Optional minor fix: a quote-wrapped ending should not slip through ─────────────
+  it("flags a 하십시오체 ending wrapped in quotes", () => {
+    expect(findHasipsioSentences('"정말 잘하셨습니다"')).toEqual(["정말 잘하셨습니다"]);
+  });
+
+  it("handles input with no terminal punctuation at all without crashing", () => {
+    expect(findHasipsioSentences("~")).toEqual([]);
+    expect(() => findHasipsioSentences("그냥 텍스트임")).not.toThrow();
+    expect(findHasipsioSentences("그냥 텍스트임")).toEqual([]);
+  });
 });
