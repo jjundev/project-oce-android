@@ -154,5 +154,11 @@ class OnboardingViewModelTest {
         override fun googleLinkConflictMerged(sessionId: String) = Unit
 
         override fun googleLinkFailed(sessionId: String) = Unit
+
+        override fun reauthLinkSucceeded() = Unit
+
+        override fun reauthLinkConflictMerged() = Unit
+
+        override fun reauthLinkFailed() = Unit
     }
 }
