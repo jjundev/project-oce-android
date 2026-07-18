@@ -2,8 +2,8 @@ import { GeminiProvider, StreamFetchFn } from "../src/providers/gemini";
 import { GenerateRequest } from "../src/providers/LlmProvider";
 
 /**
- * Fix 1 (config/generation.ts) made every task behaviour-neutral — no task's
- * `GENERATION_TUNING` entry carries a temperature — but that was only ever verified
+ * config/generation.ts wires the eval-confirmed feedback temperature (0) into
+ * `GENERATION_TUNING.feedback`/`.feedbackDeep`, but that was only ever verified
  * transitively through `tuningFor` unit tests (generation-config.test.ts). This file
  * pins the SAME property at the actual call site: `GeminiProvider.generateStream` builds
  * its request body via `buildGenerateBody(..., tuningFor(req.task))`, so a stub transport
@@ -51,18 +51,16 @@ describe("GeminiProvider — behaviour-neutrality pinned at the call site", () =
     expect(body.generationConfig).not.toHaveProperty("temperature");
   });
 
-  it("ALSO emits a request body with no temperature key for task=feedback", async () => {
-    // Given Fix 1, every task is temperature-free right now — feedback included. This
-    // assertion is what will FAIL the moment a future change puts
-    // `{ temperature: FEEDBACK_TEMPERATURE }` back into GENERATION_TUNING.feedback
-    // (config/generation.ts) once the sweep confirms the value — that's intentional:
-    // whoever flips it is forced to look at this test and update it deliberately,
-    // rather than the behaviour change slipping through unnoticed.
+  it("emits a request body with temperature: 0 on the wire for task=feedback", async () => {
+    // The 2026-07-18 sweep confirmed FEEDBACK_TEMPERATURE = 0 (config/generation.ts),
+    // so GENERATION_TUNING.feedback now carries it. `temperature: 0` must actually reach
+    // the wire (not be dropped by a falsy-value bug) — that's what this asserts, at the
+    // real call site rather than transitively through tuningFor alone.
     const { fetchFn, bodies } = captureStreamFetch();
     await drive("feedback", fetchFn);
 
     expect(bodies).toHaveLength(1);
     const body = JSON.parse(bodies[0]) as { generationConfig?: Record<string, unknown> };
-    expect(body.generationConfig).not.toHaveProperty("temperature");
+    expect(body.generationConfig).toHaveProperty("temperature", 0);
   });
 });

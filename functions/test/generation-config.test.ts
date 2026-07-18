@@ -86,28 +86,37 @@ describe("buildRepairBody — current behaviour (characterisation)", () => {
 });
 
 describe("tuningFor", () => {
-  it("leaves feedback and feedbackDeep on the provider default — the temperature is staged, not applied", () => {
-    // This branch ships as pure measurement infrastructure with ZERO production
-    // behaviour change: FEEDBACK_TEMPERATURE is the candidate a later sweep will
-    // validate, but nothing in GENERATION_TUNING applies it yet.
-    expect(tuningFor("feedback")).toEqual({});
-    expect(tuningFor("feedbackDeep")).toEqual({});
+  it("applies the confirmed feedback temperature to feedback and feedbackDeep only", () => {
+    // Confirmed by the 2026-07-18 sweep (280 calls, stddev 0.6 at t=0 vs 1.2-1.4
+    // elsewhere) — see config/generation.ts. FEEDBACK_TEMPERATURE is 0, a falsy value,
+    // so assert the actual number rather than just "is defined": a `!== undefined`
+    // regression at the tuning-table level would still pass a definedness-only check.
+    expect(FEEDBACK_TEMPERATURE).toBe(0);
+    expect(tuningFor("feedback")).toEqual({ temperature: 0 });
+    expect(tuningFor("feedbackDeep")).toEqual({ temperature: 0 });
+    expect(tuningFor("feedback").temperature).toBe(FEEDBACK_TEMPERATURE);
+    expect(tuningFor("feedbackDeep").temperature).toBe(FEEDBACK_TEMPERATURE);
   });
 
   it("leaves dialogue, summary, speaking and tts unset (provider default)", () => {
-    // Out of scope for this plan — they have no eval coverage, so setting a
-    // temperature for them could regress behaviour nothing here measures.
+    // They have no eval coverage, so setting a temperature for them could regress
+    // behaviour nothing here measures.
     expect(tuningFor("dialogue")).toEqual({});
     expect(tuningFor("summary")).toEqual({});
     expect(tuningFor("speaking")).toEqual({});
     expect(tuningFor("tts")).toEqual({});
   });
 
-  it("gives every task in GENERATION_TUNING empty tuning right now — the property that makes this branch behaviour-neutral", () => {
-    // If a future edit turns a temperature on for a task without intending to, this
-    // is the test that should fail loudly.
+  it("carries a temperature for exactly feedback and feedbackDeep in GENERATION_TUNING", () => {
+    // If a future edit turns a temperature on/off for the wrong task, this fails loudly.
+    const withTemperature = ["feedback", "feedbackDeep"];
     for (const task of Object.keys(GENERATION_TUNING)) {
-      expect(GENERATION_TUNING[task as keyof typeof GENERATION_TUNING]).toEqual({});
+      const tuning = GENERATION_TUNING[task as keyof typeof GENERATION_TUNING];
+      if (withTemperature.includes(task)) {
+        expect(tuning).toEqual({ temperature: 0 });
+      } else {
+        expect(tuning).toEqual({});
+      }
     }
   });
 
