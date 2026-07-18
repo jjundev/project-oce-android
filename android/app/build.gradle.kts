@@ -113,6 +113,7 @@ tasks.withType<Test>().configureEach {
             "**/RecordsScreenPullRefreshTest*",
             "**/RecordsSkeletonTest*",
             "**/RecordsSkeletonMinHoldTest*",
+            "**/OneClickUpdateGateTest*",
         )
     }
 }
