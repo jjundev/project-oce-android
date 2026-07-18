@@ -328,6 +328,10 @@ private class FakeReminderStore(
 
     override suspend fun cacheSnapshot(): ReminderCache = cacheValue
 
+    override suspend fun recordSavedReviewText(text: String) = Unit
+
+    override suspend fun clearMilestone() = Unit
+
     override suspend fun resetProgressCache() {
         cacheValue = ReminderCache(lastStudyDate = null, streak = null)
     }

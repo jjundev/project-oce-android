@@ -71,6 +71,69 @@ class ReminderRepositoryTest {
         }
 
     @Test
+    fun `recordSessionCompleted sets milestone cache on a threshold streak`() =
+        runTest {
+            val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
+            val repo = newRepo(scope)
+
+            repo.recordSessionCompleted(streak = 7, lastStudyDate = LocalDate.of(2026, 7, 3))
+
+            assertEquals(7, repo.cacheSnapshot().milestoneStreak)
+            scope.cancel()
+        }
+
+    @Test
+    fun `recordSessionCompleted clears milestone cache on a non-threshold streak`() =
+        runTest {
+            val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
+            val repo = newRepo(scope)
+
+            repo.recordSessionCompleted(streak = 7, lastStudyDate = LocalDate.of(2026, 7, 3))
+            repo.recordSessionCompleted(streak = 8, lastStudyDate = LocalDate.of(2026, 7, 4))
+
+            assertEquals(null, repo.cacheSnapshot().milestoneStreak)
+            scope.cancel()
+        }
+
+    @Test
+    fun `clearMilestone removes the cached milestone`() =
+        runTest {
+            val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
+            val repo = newRepo(scope)
+
+            repo.recordSessionCompleted(streak = 3, lastStudyDate = LocalDate.of(2026, 7, 3))
+            repo.clearMilestone()
+
+            assertEquals(null, repo.cacheSnapshot().milestoneStreak)
+            scope.cancel()
+        }
+
+    @Test
+    fun `recordSavedReviewText persists into cache snapshot`() =
+        runTest {
+            val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
+            val repo = newRepo(scope)
+
+            repo.recordSavedReviewText("Could I grab a coffee?")
+
+            assertEquals("Could I grab a coffee?", repo.cacheSnapshot().lastSavedReviewText)
+            scope.cancel()
+        }
+
+    @Test
+    fun `resetProgressCache also clears the milestone cache`() =
+        runTest {
+            val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
+            val repo = newRepo(scope)
+
+            repo.recordSessionCompleted(streak = 14, lastStudyDate = LocalDate.of(2026, 7, 3))
+            repo.resetProgressCache()
+
+            assertEquals(null, repo.cacheSnapshot().milestoneStreak)
+            scope.cancel()
+        }
+
+    @Test
     fun `config defaults to disabled at 20 00 and setters persist`() =
         runTest {
             val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
