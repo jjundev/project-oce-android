@@ -258,6 +258,68 @@ class ReminderOrchestratorTest {
             assertEquals(listOf(CompletionCall(streak = 5, date = date)), store.completionCalls)
         }
 
+    @Test
+    fun `record saved review text delegates to store`() =
+        runTest {
+            val store = FakeReminderStore()
+
+            orchestrator(store).recordSavedReviewText("Could I grab a coffee?")
+
+            assertEquals(listOf("Could I grab a coffee?"), store.reviewTexts)
+        }
+
+    @Test
+    fun `due reminder fire clears a cached milestone after posting`() =
+        runTest {
+            val today = LocalDate.now(ReminderLogic.KST)
+            val store =
+                FakeReminderStore(
+                    configValue = ReminderConfig(enabled = true, hour = 20, minute = 0),
+                    cacheValue =
+                        ReminderCache(
+                            lastStudyDate = today.minusDays(1),
+                            streak = 7,
+                            milestoneStreak = 7,
+                        ),
+                )
+            val notifications = RecordingNotificationSink()
+
+            orchestrator(store, notifications = notifications).runDueReminder()
+
+            assertEquals(1, notifications.posts.size)
+            assertEquals(1, store.clearMilestoneCalls)
+        }
+
+    @Test
+    fun `due reminder skip does not clear a cached milestone`() =
+        runTest {
+            val today = LocalDate.now(ReminderLogic.KST)
+            val store =
+                FakeReminderStore(
+                    configValue = ReminderConfig(enabled = true, hour = 20, minute = 0),
+                    cacheValue = ReminderCache(lastStudyDate = today, streak = 7, milestoneStreak = 7),
+                )
+
+            orchestrator(store).runDueReminder()
+
+            assertEquals(0, store.clearMilestoneCalls)
+        }
+
+    @Test
+    fun `due reminder fire without a cached milestone does not call clear`() =
+        runTest {
+            val today = LocalDate.now(ReminderLogic.KST)
+            val store =
+                FakeReminderStore(
+                    configValue = ReminderConfig(enabled = true, hour = 20, minute = 0),
+                    cacheValue = ReminderCache(lastStudyDate = today.minusDays(1), streak = 3),
+                )
+
+            orchestrator(store).runDueReminder()
+
+            assertEquals(0, store.clearMilestoneCalls)
+        }
+
     private fun orchestrator(
         store: FakeReminderStore = FakeReminderStore(),
         schedule: RecordingReminderSchedule = RecordingReminderSchedule(),
@@ -285,6 +347,8 @@ private class FakeReminderStore(
     var optInResolved = false
     var permissionAsked = false
     val completionCalls = mutableListOf<CompletionCall>()
+    val reviewTexts = mutableListOf<String>()
+    var clearMilestoneCalls = 0
 
     var configValue: ReminderConfig
         get() = configFlow.value
@@ -328,9 +392,14 @@ private class FakeReminderStore(
 
     override suspend fun cacheSnapshot(): ReminderCache = cacheValue
 
-    override suspend fun recordSavedReviewText(text: String) = Unit
+    override suspend fun recordSavedReviewText(text: String) {
+        reviewTexts += text
+    }
 
-    override suspend fun clearMilestone() = Unit
+    override suspend fun clearMilestone() {
+        clearMilestoneCalls += 1
+        cacheValue = cacheValue.copy(milestoneStreak = null)
+    }
 
     override suspend fun resetProgressCache() {
         cacheValue = ReminderCache(lastStudyDate = null, streak = null)

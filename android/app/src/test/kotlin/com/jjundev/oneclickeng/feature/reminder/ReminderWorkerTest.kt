@@ -90,5 +90,7 @@ private class RecordingReminderOrchestrator : ReminderOrchestrator {
         lastStudyDate: LocalDate,
     ) = Unit
 
+    override suspend fun recordSavedReviewText(text: String) = Unit
+
     override suspend fun clearProgressCache() = Unit
 }
