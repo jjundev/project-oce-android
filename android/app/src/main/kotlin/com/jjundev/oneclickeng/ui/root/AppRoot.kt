@@ -1,6 +1,9 @@
 package com.jjundev.oneclickeng.ui.root
 
 import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -10,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -17,6 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -36,6 +43,7 @@ import com.jjundev.oneclickeng.ui.component.BlockingGateSurface
 import com.jjundev.oneclickeng.ui.component.OneClickBlockingGate
 import com.jjundev.oneclickeng.ui.component.OneClickOfflineBanner
 import com.jjundev.oneclickeng.ui.component.OneClickProgressRing
+import com.jjundev.oneclickeng.ui.component.OneClickUpdateGate
 import com.jjundev.oneclickeng.ui.component.ProgressRingMode
 import com.jjundev.oneclickeng.ui.foundation.OceBottomNav
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
@@ -58,12 +66,51 @@ const val MAIN_TABS_ROUTE = "main_tabs"
  * @param startRoute 명시 시작 목적지 override(테스트 seam). null 이면 부트 게이트로 결정한다.
  * @param pendingNav 알림 탭 nav 명령(M3-07). [MainTabsScaffold] 로 전달돼 홈 이동으로 소비된다.
  */
+@Suppress("CyclomaticComplexMethod", "ReturnCount")
 @Composable
 fun AppRoot(
     startRoute: String? = null,
     pendingNav: String? = null,
     onNavConsumed: () -> Unit = {},
 ) {
+    val updateGateViewModel = hiltViewModel<UpdateGateViewModel>()
+    val updateGateState by updateGateViewModel.state.collectAsStateWithLifecycle()
+    val updateContext = LocalContext.current
+    val updateLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+            // 사용자가 강제 업데이트를 취소/실패시키면 archive MainActivity 와 동일하게 앱을 종료한다.
+            if (result.resultCode != Activity.RESULT_OK) {
+                (updateContext as? Activity)?.finish()
+            }
+        }
+    LaunchedEffect(updateGateState) {
+        if (updateGateState == UpdateGateState.Required) {
+            updateGateViewModel.launchUpdate(updateLauncher)
+        }
+    }
+    val updateLifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(updateLifecycleOwner) {
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    updateGateViewModel.onResumeCheck()
+                }
+            }
+        updateLifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { updateLifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    when (updateGateState) {
+        UpdateGateState.Checking -> {
+            BootSplash()
+            return
+        }
+        UpdateGateState.Required -> {
+            OneClickUpdateGate(onUpdateNow = { updateGateViewModel.launchUpdate(updateLauncher) })
+            return
+        }
+        UpdateGateState.NotRequired -> Unit
+    }
+
     val appViewModel = hiltViewModel<AppViewModel>()
     val bootState by appViewModel.uiState.collectAsStateWithLifecycle()
     val isOnline by appViewModel.isOnline.collectAsStateWithLifecycle()
