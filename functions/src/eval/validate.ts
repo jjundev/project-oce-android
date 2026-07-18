@@ -64,9 +64,37 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-/** 해요체 heuristic — 해요체 lines end in 요/죠 once terminal punctuation is stripped. */
-function endsHaeyo(s: string): boolean {
-  return /[요죠]$/u.test(s.trim().replace(/[!?.…~\s]+$/u, ""));
+/**
+ * Sentence-final 하십시오체 (deferential formal) endings: `-입니다`, `-습니다`, and the
+ * `-ㅂ니다` contractions (합니다/됩니다/줍니다/…). The prompt requires 해요체 throughout;
+ * the 2026-07-18 sweep found these in 135 of 153 flagged strings, `-입니다` alone being 52%.
+ *
+ * `-답니다`/`-랍니다` also end in `니다` but are DELIBERATELY allowed — they are a warm,
+ * conversational ending that suits the app's voice, not deferential formal speech. They were
+ * 18 of those 153 flags and every one was a false positive. The negative lookbehind is the
+ * whole mechanism separating them from `-ㅂ니다`.
+ */
+const HASIPSIO_ENDING = /(?<![답랍])니다$/u;
+
+/** Split a Korean line into sentences on terminal punctuation, dropping empty fragments. */
+function splitSentences(s: string): string[] {
+  return s
+    .split(/[.!?…]+/u)
+    .map((part) => part.trim())
+    .filter((part) => part !== "");
+}
+
+/**
+ * The sentences in `s` that end in 하십시오체; empty when the line is fully 해요체.
+ *
+ * Scans EVERY sentence. The previous detector tested only the end of the whole string, so
+ * "표현입니다. 그대로 쓰시면 돼요." — 하십시오체 first, 해요체 last — went entirely
+ * uncounted, meaning it silently undercounted the mixed-register problem it existed to
+ * measure. Returning the offending sentences (not just a boolean) lets the report name
+ * exactly which clause drifted.
+ */
+export function findHasipsioSentences(s: string): string[] {
+  return splitSentences(s).filter((sentence) => HASIPSIO_ENDING.test(sentence));
 }
 
 function makeCollector(): { out: Violation[]; err: (c: string, d: string) => void; warn: (c: string, d: string) => void } {
@@ -132,7 +160,7 @@ function checkSectionOrder(
   }
 }
 
-/** Learner-facing Korean: non-empty, actually Hangul, and (softly) 해요체. */
+/** Learner-facing Korean: non-empty, actually Hangul, and free of 하십시오체. */
 function checkKoreanString(
   value: unknown,
   check: string,
@@ -147,8 +175,9 @@ function checkKoreanString(
     err(check, `not Korean: ${value}`);
     return;
   }
-  if (!endsHaeyo(value)) {
-    warn("haeyo", `${check} may not be 해요체: ${value}`);
+  const offenders = findHasipsioSentences(value);
+  if (offenders.length > 0) {
+    warn("haeyo", `${check} uses 하십시오체 (해요체 required): ${offenders.join(" / ")}`);
   }
 }
 

@@ -6,6 +6,7 @@ import {
   validateDeep,
   scoreOf,
   countIncorrectSegments,
+  findHasipsioSentences,
 } from "../src/eval/validate";
 
 describe("golden case set", () => {
@@ -142,12 +143,30 @@ describe("validateSlim", () => {
     expect(validateSlim(bad).some((v) => v.check === "grammar.explanation")).toBe(true);
   });
 
-  it("warns — but does not fail — on a Korean line that is not 해요체", () => {
+  it("warns on a line that ends in 하십시오체", () => {
     const bad = clone(GOOD_SLIM);
-    bad.writingScore.encouragementMessage = "훌륭하다";
+    bad.writingScore.encouragementMessage = "정말 잘하셨습니다.";
     const violations = validateSlim(bad);
     expect(violations.some((v) => v.check === "haeyo" && v.severity === "warn")).toBe(true);
     expect(violations.some((v) => v.severity === "error")).toBe(false);
+  });
+
+  it("warns when 하십시오체 appears in a NON-final sentence", () => {
+    // The old detector only tested the end of the whole string, so this direction of
+    // mixed register went completely uncounted.
+    const bad = clone(GOOD_SLIM);
+    bad.grammar.explanation = "아주 좋은 표현입니다. 그대로 쓰시면 돼요.";
+    expect(validateSlim(bad).some((v) => v.check === "haeyo")).toBe(true);
+  });
+
+  it("does not warn on 답니다 / 랍니다 — warm, not deferential", () => {
+    const ok = clone(GOOD_SLIM);
+    ok.grammar.explanation = "중복을 피하면 훨씬 깔끔해진답니다.";
+    expect(validateSlim(ok).some((v) => v.check === "haeyo")).toBe(false);
+
+    const ok2 = clone(GOOD_SLIM);
+    ok2.naturalExpression.reason.description = "원어민이 가장 선호하는 방식이랍니다.";
+    expect(validateSlim(ok2).some((v) => v.check === "haeyo")).toBe(false);
   });
 
   it("flags over-correction when the case expects none", () => {
@@ -341,5 +360,50 @@ describe("validateDeep", () => {
     const bad = clone(GOOD_DEEP);
     bad.conceptualBridge.venn.intersection.items = ["하나", "둘", "셋", "넷"];
     expect(validateDeep(bad).some((v) => v.check === "venn.items")).toBe(true);
+  });
+});
+
+describe("findHasipsioSentences", () => {
+  it("returns nothing for a fully 해요체 line", () => {
+    expect(findHasipsioSentences("지난 일을 말할 때는 met을 써요.")).toEqual([]);
+    expect(findHasipsioSentences("정말 잘했어요! 자연스러운 표현이에요.")).toEqual([]);
+  });
+
+  it("catches every 하십시오체 family the sweep actually produced", () => {
+    // -입니다 was 52% of all flagged strings on 2026-07-18; -습니다 and -ㅂ니다 the rest.
+    expect(findHasipsioSentences("아주 자연스러운 표현입니다.")).toHaveLength(1);
+    expect(findHasipsioSentences("정말 잘하셨습니다.")).toHaveLength(1);
+    expect(findHasipsioSentences("훨씬 부드러운 인상을 줍니다.")).toHaveLength(1);
+    expect(findHasipsioSentences("문장이 훨씬 깔끔해집니다.")).toHaveLength(1);
+    expect(findHasipsioSentences("아주 좋습니다.")).toHaveLength(1);
+  });
+
+  it("allows 답니다 and 랍니다", () => {
+    expect(findHasipsioSentences("하나만 써도 충분하답니다!")).toEqual([]);
+    expect(findHasipsioSentences("원어민이 선호하는 방식이랍니다.")).toEqual([]);
+  });
+
+  it("scans every sentence, not just the last", () => {
+    const mixed = "아주 좋은 표현입니다. 그대로 쓰시면 돼요.";
+    expect(findHasipsioSentences(mixed)).toEqual(["아주 좋은 표현입니다"]);
+  });
+
+  it("returns each offending sentence, so a mixed line reports all of them", () => {
+    const line = "문법이 완벽합니다. 잘하셨어요. 아주 좋은 표현입니다.";
+    expect(findHasipsioSentences(line)).toEqual([
+      "문법이 완벽합니다",
+      "아주 좋은 표현입니다",
+    ]);
+  });
+
+  it("handles a line with no terminal punctuation", () => {
+    expect(findHasipsioSentences("아주 자연스러운 표현입니다")).toHaveLength(1);
+    expect(findHasipsioSentences("아주 자연스러운 표현이에요")).toEqual([]);
+  });
+
+  it("ignores empty and whitespace-only input", () => {
+    expect(findHasipsioSentences("")).toEqual([]);
+    expect(findHasipsioSentences("   ")).toEqual([]);
+    expect(findHasipsioSentences("...")).toEqual([]);
   });
 });
