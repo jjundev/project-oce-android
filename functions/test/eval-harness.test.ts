@@ -582,14 +582,40 @@ describe("compareLevelSensitivity", () => {
     expect(compareLevelSensitivity(GOOD_SLIM, "nope").some((v) => v.check === "level.shape")).toBe(true);
   });
 
-  it("reports a missing explanation instead of calling it a difference", () => {
+  it("reports a missing explanation under a distinct id, not the identical-explanation id", () => {
     const broken = clone(GOOD_SLIM) as Record<string, unknown>;
     delete (broken.grammar as Record<string, unknown>).explanation;
     const violations = compareLevelSensitivity(broken, GOOD_SLIM);
     expect(
       violations.some(
-        (v) => v.check === "level.explanation" && v.detail.includes("missing")
+        (v) => v.check === "level.explanation.missing" && v.severity === "error" && v.detail.includes("missing")
       )
     ).toBe(true);
+    // Must NOT also fire the plain id — that id means "present on both sides and equal",
+    // which is not what happened here.
+    expect(violations.some((v) => v.check === "level.explanation")).toBe(false);
+  });
+
+  it("reports an empty explanation the same way as a missing one", () => {
+    const broken = clone(GOOD_SLIM) as Record<string, unknown>;
+    (broken.grammar as Record<string, unknown>).explanation = "   ";
+    const violations = compareLevelSensitivity(broken, GOOD_SLIM);
+    expect(violations.some((v) => v.check === "level.explanation.missing")).toBe(true);
+    expect(violations.some((v) => v.check === "level.explanation")).toBe(false);
+  });
+
+  it("reports a missing suggested phrasing under a distinct id, not the identical-suggestion id", () => {
+    const broken = clone(GOOD_SLIM) as Record<string, unknown>;
+    delete (broken.naturalExpression as Record<string, unknown>).segments;
+    const violations = compareLevelSensitivity(broken, GOOD_SLIM);
+    expect(
+      violations.some(
+        (v) =>
+          v.check === "level.naturalExpression.missing" &&
+          v.severity === "error" &&
+          v.detail.includes("missing")
+      )
+    ).toBe(true);
+    expect(violations.some((v) => v.check === "level.naturalExpression")).toBe(false);
   });
 });

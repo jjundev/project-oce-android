@@ -533,6 +533,18 @@ function suggestionOf(json: Record<string, unknown>): string | null {
  *
  * `lower`/`higher` name the lower- and higher-level response; the checks are symmetric and
  * the order only shapes the message.
+ *
+ * `level.explanation` and `level.naturalExpression` are deliberately split from their
+ * `.missing` counterparts (`level.explanation.missing` / `level.naturalExpression.missing`).
+ * These are two DIFFERENT findings that a consumer must be able to tell apart:
+ *   - the plain id means "present on both sides and textually identical" — the finding
+ *     this comparison exists to surface (level is being ignored).
+ *   - the `.missing` id means "absent/empty on one or both sides" — we could not compare
+ *     at all, which says nothing about whether level is respected.
+ * A consumer (eval/run.js) that keys its "was this identical?" logic off the check id
+ * would, if the two conditions shared one id, count an empty field as a level-insensitivity
+ * finding — reporting "the explanation was identical" when nothing was ever compared. Both
+ * stay `error` severity; only the id and message differ.
  */
 export function compareLevelSensitivity(lower: unknown, higher: unknown): Violation[] {
   const { out, err, warn } = makeCollector();
@@ -544,7 +556,7 @@ export function compareLevelSensitivity(lower: unknown, higher: unknown): Violat
   const lowerExplanation = explanationOf(lower);
   const higherExplanation = explanationOf(higher);
   if (lowerExplanation === null || higherExplanation === null) {
-    err("level.explanation", "grammar.explanation is missing from one or both responses");
+    err("level.explanation.missing", "grammar.explanation is missing from one or both responses");
   } else if (lowerExplanation === higherExplanation) {
     err(
       "level.explanation",
@@ -556,7 +568,7 @@ export function compareLevelSensitivity(lower: unknown, higher: unknown): Violat
   const higherSuggestion = suggestionOf(higher);
   if (lowerSuggestion === null || higherSuggestion === null) {
     err(
-      "level.naturalExpression",
+      "level.naturalExpression.missing",
       "naturalExpression.segments is missing from one or both responses"
     );
   } else if (lowerSuggestion === higherSuggestion) {
