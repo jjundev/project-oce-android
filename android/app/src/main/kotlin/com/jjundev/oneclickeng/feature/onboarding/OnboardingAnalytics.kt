@@ -8,6 +8,7 @@ import javax.inject.Inject
  * [NoOpOnboardingAnalytics] 기본 바인딩만 싣고, 실제 Firebase 디스패치는 분석 계측 마일스톤(M4-01)이 소유한다.
  * PII 경계: enum/bool/id 만 — 사용자 입력 텍스트는 절대 싣지 않는다.
  */
+@Suppress("TooManyFunctions")
 interface OnboardingAnalytics {
     /** 온보딩 진입(레벨 화면 최초 컴포지션). [isReturning] = 레벨 없이 재진입한 보정 온보딩 여부. */
     fun onboardingStarted(isReturning: Boolean)
@@ -47,6 +48,7 @@ interface OnboardingAnalytics {
 }
 
 /** M4-01 이 실제 디스패치를 배선하기 전까지의 기본 no-op 바인딩. */
+@Suppress("TooManyFunctions")
 class NoOpOnboardingAnalytics
     @Inject
     constructor() : OnboardingAnalytics {
