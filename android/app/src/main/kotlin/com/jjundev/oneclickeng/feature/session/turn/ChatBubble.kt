@@ -113,6 +113,7 @@ fun LearnerTurn(
     text: String,
     modifier: Modifier = Modifier,
     hasAudio: Boolean = false,
+    isPlaying: Boolean = false,
     onReplay: () -> Unit = {},
 ) {
     if (!hasAudio) {
@@ -132,15 +133,19 @@ fun LearnerTurn(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             // 스피커 버튼을 첫 줄 높이(23dp) 래퍼에 center — 아이콘 center 를 텍스트 첫 줄 center 에 맞춘다.
-            // primary 말풍선 위에서 어울리게 반투명 흰 원 + 흰 아이콘으로 색을 덮어쓴다.
+            // primary 말풍선 위에서 어울리게 반투명 흰 원 + 흰 아이콘으로 색을 덮어쓴다. 재생 중엔 같은
+            // onPrimary 톤을 더 진하게(0.20→0.35) 써 primary 배경 위에서도 눈에 띄게 한다(GraphicEq 아이콘과 함께).
             Box(
                 modifier = Modifier.height(BubbleFirstLineHeight),
                 contentAlignment = Alignment.Center,
             ) {
                 ReplayButton(
                     onReplay = onReplay,
+                    isPlaying = isPlaying,
                     container = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.20f),
                     tint = MaterialTheme.colorScheme.onPrimary,
+                    playingContainer = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.35f),
+                    playingTint = MaterialTheme.colorScheme.onPrimary,
                 )
             }
             // 폭은 고정이 아닌 상대값(80%) — 텍스트는 버튼/간격/패딩을 제외한 나머지에서 자연스럽게 래핑된다.
@@ -168,6 +173,7 @@ fun OpponentTurn(
     speaker: String = "Emma",
     korean: String = "",
     translationShown: Boolean = false,
+    isPlaying: Boolean = false,
     onReplay: () -> Unit = {},
     onToggleTranslation: () -> Unit = {},
 ) {
@@ -191,6 +197,7 @@ fun OpponentTurn(
                     korean = korean,
                     translationShown = translationShown,
                     maxBubbleWidth = maxBubbleWidth,
+                    isPlaying = isPlaying,
                     onReplay = onReplay,
                     onToggleTranslation = onToggleTranslation,
                 )
@@ -205,6 +212,7 @@ private fun OpponentBubble(
     korean: String,
     translationShown: Boolean,
     maxBubbleWidth: Dp,
+    isPlaying: Boolean,
     onReplay: () -> Unit,
     onToggleTranslation: () -> Unit,
 ) {
@@ -247,7 +255,7 @@ private fun OpponentBubble(
             modifier = Modifier.height(BubbleFirstLineHeight),
             contentAlignment = Alignment.Center,
         ) {
-            ReplayButton(onReplay = onReplay)
+            ReplayButton(onReplay = onReplay, isPlaying = isPlaying)
         }
     }
 }
@@ -278,26 +286,34 @@ private fun TurnAvatar(
  * 말풍선 안 `다시 듣기` TTS 버튼(28dp, 원형). 아이콘은 장식 — 라벨은 버튼이 보유.
  * 기본색은 상대역 말풍선(surface 배경) 기준이고, 학습자 primary 말풍선은 [container]/[tint] 로 덮어써
  * 배경 위에서 어울리는 색을 준다.
+ *
+ * [isPlaying] 이면 이 버튼이 붙은 말풍선이 지금 소리 나는 중이다: 아이콘을 [OceIcon.GraphicEq](정적, 장식용
+ * 사운드웨이브 글리프)로, 라벨을 `재생 중지`로 바꾼다. 색만 바꾸지 않고 아이콘 자체를 교체하는 건 A2
+ * 비색 신호 규약(OneClickIcon.kt:39-46, "fill 상태는 부모가 OceIcon 상수를 교체해 표현") 정합이다.
+ * [playingContainer]/[playingTint] 는 재생 중 배경/아이콘 색으로, 호출부가 자기 말풍선 배경에 맞춰 오버라이드한다.
  */
 @Composable
 private fun ReplayButton(
     onReplay: () -> Unit,
+    isPlaying: Boolean = false,
     container: Color = MaterialTheme.colorScheme.background,
     tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    playingContainer: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+    playingTint: Color = MaterialTheme.colorScheme.primary,
 ) {
     Box(
         modifier =
             Modifier
                 .size(28.dp)
                 .clip(OceTheme.shapes.pill)
-                .background(container)
+                .background(if (isPlaying) playingContainer else container)
                 .clickable(onClick = onReplay),
         contentAlignment = Alignment.Center,
     ) {
         OneClickIcon(
-            icon = OceIcon.VolumeUp,
-            contentDescription = "다시 듣기",
-            tint = tint,
+            icon = if (isPlaying) OceIcon.GraphicEq else OceIcon.VolumeUp,
+            contentDescription = if (isPlaying) "재생 중지" else "다시 듣기",
+            tint = if (isPlaying) playingTint else tint,
             size = 16.dp,
         )
     }

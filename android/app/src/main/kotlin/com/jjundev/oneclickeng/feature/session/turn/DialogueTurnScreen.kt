@@ -150,6 +150,13 @@ internal fun DialogueTurnContent(
     learnerClipIndices: Set<Int> = emptySet(),
     // 학습자 말풍선 스피커 탭 → 해당 순번 클립 재생. 미주입이면 no-op.
     onPlayLearnerClip: (Int) -> Unit = {},
+    // 현재 TTS 로 재생 중인 상대역 말풍선의 영문 텍스트(같은 텍스트의 말풍선만 스피커 버튼이 "재생 중" 표시로
+    // 바뀐다 — TtsCacheKey/playTurn(text, ...)과 동일 식별 기준). null 이면 재생 중인 상대역 말풍선이 없다.
+    // 미주입(스텁·프리뷰·스크린샷)이면 null(기존 렌더 유지).
+    playingOpponentText: String? = null,
+    // 현재 재생 중인 학습자 자기 녹음 클립의 0-based 순번([learnerOrdinalAt] 과 동일 식별 기준). null 이면
+    // 재생 중인 학습자 클립이 없다.
+    playingLearnerOrdinal: Int? = null,
 ) {
     // reduceMotion 게이트(스켈레톤 진입 페이드·입력 독 슬라이드업). 무상태 렌더도 시스템 설정을 읽지만,
     // 슬라이드업은 초기 visible=true 시 애니메이션이 없고 스켈레톤은 opponentTyping=false 라 프리뷰/테스트는 정적.
@@ -212,6 +219,7 @@ internal fun DialogueTurnContent(
                                 speaker = opponentSpeaker,
                                 korean = message.korean,
                                 translationShown = shownTranslations[index] == true,
+                                isPlaying = playingOpponentText == message.english,
                                 onReplay = { onReplay(message.english) },
                                 onToggleTranslation = {
                                     shownTranslations[index] = !(shownTranslations[index] ?: false)
@@ -222,6 +230,7 @@ internal fun DialogueTurnContent(
                             LearnerTurn(
                                 text = message.english,
                                 hasAudio = ordinal in learnerClipIndices,
+                                isPlaying = playingLearnerOrdinal == ordinal,
                                 onReplay = { onPlayLearnerClip(ordinal) },
                             )
                         }

@@ -61,6 +61,14 @@ class DialogueTurnScreenshotTest {
     fun session_opponent_dark() = captureOpponent(name = "session_opponent_dark", dark = true)
 
     @Test
+    fun session_opponent_playing_light() {
+        captureOpponentPlaying(name = "session_opponent_playing_light", dark = false)
+    }
+
+    @Test
+    fun session_opponent_playing_dark() = captureOpponentPlaying(name = "session_opponent_playing_dark", dark = true)
+
+    @Test
     fun session_opponent_translated_light() {
         composeRule.setContent {
             OceTheme(darkTheme = false) {
@@ -134,6 +142,22 @@ class DialogueTurnScreenshotTest {
                 onSubmitStub = {},
                 onViewSummary = {},
                 header = header,
+            )
+        }
+    }
+
+    private fun captureOpponentPlaying(name: String, dark: Boolean) {
+        capture(name, dark) {
+            DialogueTurnContent(
+                messages = opponentMessages,
+                turnPhase = TurnPhase.OpponentTurn,
+                sessionPhase = SessionPhase.InTurn,
+                currentTask = null,
+                listState = rememberLazyListState(),
+                onSubmitStub = {},
+                onViewSummary = {},
+                header = header,
+                playingOpponentText = opponentMessages.first().english,
             )
         }
     }
