@@ -103,7 +103,8 @@
 
 **핵심 결정:** 서버 버전드 프롬프트 · 호출별 JSON+responseSchema · 공유 톤/난이도/8오류/안전 prefix + 암묵 캐싱 · 슬림(턴)/깊이(온디맨드) 분할 · 스피킹 숫자 제거(전사+격려만) · 색 탈-LLM · 클라 버퍼 요약 입력 · 3티어(A2/B1/B1+).
 
-**가정(needs-you/튜닝):** temperature(대본 0.8/피드백·요약 0.3)·max-tokens·실제 문안 authoring·deep coaching 배열 vs 문자열(→ 레거시 `{positive, toImprove}` 채택).
+**확정(2026-07-18):** feedback/feedbackDeep temperature = `0` — `functions/eval/`의 골든셋 14케이스 × 온도(0/0.1/0.2/0.3) × 5회 반복(280콜, `gemini-3.1-flash-lite`)으로 측정해 확정했다. 모든 온도에서 구조 위반 0건·기대치 불일치 0건이었고, 점수 표준편차(평균)는 t=0에서 0.6, 그 외 온도에서 1.2–1.4로 t=0이 분산을 절반 가까이 줄였다(0.1~0.3 세 온도는 서로 통계적으로 구분 안 됨). 이전에 스윕 범위에서 빠진 t=0.7에서는 학습자 오류를 아예 놓친 사례가 있어 더 높은 온도는 추가 탐색하지 않았다. `functions/src/config/generation.ts`가 SoT이며, 이 결정은 아래 두 줄 전에 있던 `피드백·요약 0.3` 가정(미검증)을 대체한다. dialogue/summary는 여전히 eval 커버리지가 없어 미설정(프로바이더 기본값)이며 아직 needs-you다.
+**가정(needs-you/튜닝):** dialogue/summary temperature·max-tokens·실제 문안 authoring·deep coaching 배열 vs 문자열(→ 레거시 `{positive, toImprove}` 채택).
 
 **grill-review 이력:** R1 Blocker 4(① 스피킹에 정답 주입→전사 편향 ② 요약 입력 누적 미정의 ③ 캐시 바닥 ④ responseSchema/스트림 이분법) → 수정 → R2 **0 Blocker SHIP**. 잔여 5 Advisory(캐시 바닥 수치 1024/2048·모델 ID 고정·coaching `{positive,toImprove}` 레거시 계약·propertyOrdering·스피킹 출력 좁힘+totalScore 전달) 전부 반영.
 
