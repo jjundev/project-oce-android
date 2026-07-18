@@ -1,6 +1,7 @@
 package com.jjundev.oneclickeng.core.update
 
 import android.content.Context
+import android.util.Log
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import com.google.android.play.core.appupdate.AppUpdateManager
@@ -32,6 +33,7 @@ class PlayAppUpdateChecker
     ) : AppUpdateChecker {
         private val manager: AppUpdateManager = AppUpdateManagerFactory.create(context)
 
+        @Suppress("TooGenericExceptionCaught")
         override suspend fun isImmediateUpdateRequired(): Boolean =
             try {
                 val info = manager.appUpdateInfo.await()
@@ -42,15 +44,18 @@ class PlayAppUpdateChecker
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                Log.w(TAG, "Failed to query app update info — fail-open", e)
                 false
             }
 
+        @Suppress("TooGenericExceptionCaught")
         override suspend fun isUpdateInProgress(): Boolean =
             try {
                 isImmediateUpdateInProgress(manager.appUpdateInfo.await().updateAvailability())
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                Log.w(TAG, "Failed to check update in progress — fail-open", e)
                 false
             }
 
@@ -61,6 +66,10 @@ class PlayAppUpdateChecker
                 launcher,
                 AppUpdateOptions.newBuilder(AppUpdateType.IMMEDIATE).build(),
             )
+        }
+
+        private companion object {
+            const val TAG = "PlayAppUpdateChecker"
         }
     }
 
