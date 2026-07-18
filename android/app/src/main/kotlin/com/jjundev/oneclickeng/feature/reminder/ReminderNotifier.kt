@@ -13,6 +13,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.jjundev.oneclickeng.MainActivity
 import com.jjundev.oneclickeng.R
+import com.jjundev.oneclickeng.feature.home.topic.TopicCatalog
 import com.jjundev.oneclickeng.feature.reminder.data.ReminderCache
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.LocalDate
@@ -59,7 +60,17 @@ class ReminderNotifier
                 return
             }
             ensureChannel()
-            val content = ReminderLogic.buildContent(cache.streak, cache.lastStudyDate, today)
+            val situationTitle =
+                TopicCatalog.recommended(dayIndex = today.toEpochDay(), count = 1).firstOrNull()?.titleKo
+            val content =
+                ReminderLogic.buildContent(
+                    streak = cache.streak,
+                    lastStudyDate = cache.lastStudyDate,
+                    today = today,
+                    milestoneStreak = cache.milestoneStreak,
+                    lastSavedReviewText = cache.lastSavedReviewText,
+                    recommendedSituationTitle = situationTitle,
+                )
             val notification =
                 NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_local_fire_department)
