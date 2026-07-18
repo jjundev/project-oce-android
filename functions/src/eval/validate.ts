@@ -208,8 +208,7 @@ function checkSectionOrder(
 function checkKoreanString(
   value: unknown,
   check: string,
-  err: (c: string, d: string) => void,
-  warn: (c: string, d: string) => void
+  err: (c: string, d: string) => void
 ): void {
   if (typeof value !== "string" || value.trim() === "") {
     err(check, "missing or empty");
@@ -221,7 +220,11 @@ function checkKoreanString(
   }
   const offenders = findHasipsioSentences(value);
   if (offenders.length > 0) {
-    warn("haeyo", `${check} uses 하십시오체 (해요체 required): ${offenders.join(" / ")}`);
+    // `error`, not `warn`: 해요체 is a rule FEEDBACK_SYSTEM_PROMPT states outright, so
+    // breaking it is a defect. It is counted in its own column (run.js `toneErrors`), NOT
+    // folded into structural errors — a drifted register and a broken schema are different
+    // kinds of failure and each hides the other when summed.
+    err("haeyo", `${check} uses 하십시오체 (해요체 required): ${offenders.join(" / ")}`);
   }
 }
 
@@ -266,7 +269,7 @@ export function countIncorrectSegments(json: unknown): number {
 }
 
 export function validateSlim(json: unknown, expected: CaseExpectation = {}): Violation[] {
-  const { out, err, warn } = makeCollector();
+  const { out, err } = makeCollector();
   if (!isRecord(json)) {
     err("shape", "top level is not a JSON object");
     return out;
@@ -293,7 +296,7 @@ export function validateSlim(json: unknown, expected: CaseExpectation = {}): Vio
         err("expect.scoreMax", `score ${score} above expected maximum ${expected.scoreMax}`);
       }
     }
-    checkKoreanString(ws.encouragementMessage, "writingScore.encouragementMessage", err, warn);
+    checkKoreanString(ws.encouragementMessage, "writingScore.encouragementMessage", err);
   }
 
   // ── grammar ───────────────────────────────────────────────────────────────
@@ -307,7 +310,7 @@ export function validateSlim(json: unknown, expected: CaseExpectation = {}): Vio
     } else {
       checkSegments(cs.segments, "grammar.segments", GRAMMAR_SEGMENT_TYPES, err);
     }
-    checkKoreanString(grammar.explanation, "grammar.explanation", err, warn);
+    checkKoreanString(grammar.explanation, "grammar.explanation", err);
   }
 
   const incorrect = countIncorrectSegments(json);
@@ -334,7 +337,7 @@ export function validateSlim(json: unknown, expected: CaseExpectation = {}): Vio
       if (typeof reason.keyword !== "string" || reason.keyword.trim() === "") {
         err("naturalExpression.reason.keyword", "missing or empty");
       }
-      checkKoreanString(reason.description, "naturalExpression.reason.description", err, warn);
+      checkKoreanString(reason.description, "naturalExpression.reason.description", err);
     }
   }
 
@@ -342,7 +345,7 @@ export function validateSlim(json: unknown, expected: CaseExpectation = {}): Vio
 }
 
 export function validateDeep(json: unknown): Violation[] {
-  const { out, err, warn } = makeCollector();
+  const { out, err } = makeCollector();
   if (!isRecord(json)) {
     err("shape", "top level is not a JSON object");
     return out;
@@ -355,8 +358,8 @@ export function validateDeep(json: unknown): Violation[] {
   if (!isRecord(cb)) {
     err("conceptualBridge", "missing");
   } else {
-    checkKoreanString(cb.literalTranslation, "conceptualBridge.literalTranslation", err, warn);
-    checkKoreanString(cb.explanation, "conceptualBridge.explanation", err, warn);
+    checkKoreanString(cb.literalTranslation, "conceptualBridge.literalTranslation", err);
+    checkKoreanString(cb.explanation, "conceptualBridge.explanation", err);
     const venn = cb.venn;
     if (!isRecord(venn)) {
       err("venn", "missing");

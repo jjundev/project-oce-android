@@ -143,23 +143,24 @@ describe("validateSlim", () => {
     expect(validateSlim(bad).some((v) => v.check === "grammar.explanation")).toBe(true);
   });
 
-  it("warns on a line that ends in 하십시오체", () => {
+  it("fails — not merely warns — on a line that ends in 하십시오체", () => {
+    // Tone is a rule the prompt states outright, so breaking it is a failure, not a note.
     const bad = clone(GOOD_SLIM);
     bad.writingScore.encouragementMessage = "정말 잘하셨습니다.";
     const violations = validateSlim(bad);
-    expect(violations.some((v) => v.check === "haeyo" && v.severity === "warn")).toBe(true);
-    expect(violations.some((v) => v.severity === "error")).toBe(false);
+    expect(violations.some((v) => v.check === "haeyo" && v.severity === "error")).toBe(true);
   });
 
-  it("warns when 하십시오체 appears in a NON-final sentence", () => {
+  it("fails when 하십시오체 appears in a NON-final sentence", () => {
     // The old detector only tested the end of the whole string, so this direction of
     // mixed register went completely uncounted.
     const bad = clone(GOOD_SLIM);
     bad.grammar.explanation = "아주 좋은 표현입니다. 그대로 쓰시면 돼요.";
-    expect(validateSlim(bad).some((v) => v.check === "haeyo")).toBe(true);
+    const violations = validateSlim(bad);
+    expect(violations.some((v) => v.check === "haeyo" && v.severity === "error")).toBe(true);
   });
 
-  it("does not warn on 답니다 / 랍니다 — warm, not deferential", () => {
+  it("accepts 답니다 / 랍니다 — warm, not deferential", () => {
     const ok = clone(GOOD_SLIM);
     ok.grammar.explanation = "중복을 피하면 훨씬 깔끔해진답니다.";
     expect(validateSlim(ok).some((v) => v.check === "haeyo")).toBe(false);
@@ -167,6 +168,17 @@ describe("validateSlim", () => {
     const ok2 = clone(GOOD_SLIM);
     ok2.naturalExpression.reason.description = "원어민이 가장 선호하는 방식이랍니다.";
     expect(validateSlim(ok2).some((v) => v.check === "haeyo")).toBe(false);
+  });
+
+  it("keeps a multi-sentence 해요체 response clean", () => {
+    // Guards against the tone check becoming so strict it fires on good output — a noisy
+    // gate gets ignored, which is worse than a lenient one. Multi-sentence specifically,
+    // because sentence splitting is the new machinery and the existing well-formed-response
+    // test only ever exercises single-sentence strings.
+    const ok = clone(GOOD_SLIM);
+    ok.grammar.explanation = "지난 일은 met을 써요. 이렇게 쓰면 훨씬 자연스러워요!";
+    ok.writingScore.encouragementMessage = "잘했어요! 거의 다 맞았어요.";
+    expect(validateSlim(ok)).toEqual([]);
   });
 
   it("flags over-correction when the case expects none", () => {

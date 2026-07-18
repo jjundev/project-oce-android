@@ -206,12 +206,18 @@ function summarise(runs, temp) {
   const validated = at.length - transportFailed - parseFailed;
 
   let structuralErrors = 0;
+  let toneErrors = 0;
   let expectMismatches = 0;
   let warns = 0;
   for (const r of at) {
     for (const v of r.violations) {
+      // Order matters: `haeyo` is severity "error" since the tone promotion, so it must be
+      // pulled out BEFORE the generic error branch or it lands in `structuralErrors` and
+      // masks genuine schema breakage.
       if (v.check.startsWith("expect.")) {
         expectMismatches++;
+      } else if (v.check === "haeyo") {
+        toneErrors++;
       } else if (v.severity === "error") {
         structuralErrors++;
       } else {
@@ -250,6 +256,7 @@ function summarise(runs, temp) {
     parseFailed,
     validated,
     structuralErrors,
+    toneErrors,
     expectMismatches,
     warns,
     meanSpread,
@@ -277,13 +284,13 @@ function writeReport(opts, cases, runs, model) {
   L.push("## 요약");
   L.push("");
   L.push(
-    "| temperature | 호출 | 전송 실패 | 파싱 실패 | 검증됨 | 구조 위반 | 기대치 불일치 | warn 위반 | 표준편차(평균) | 표준편차(최대) | 점수 스프레드(평균) | 점수 스프레드(최대) |"
+    "| temperature | 호출 | 전송 실패 | 파싱 실패 | 검증됨 | 구조 위반 | 말투 위반 | 기대치 불일치 | warn 위반 | 표준편차(평균) | 표준편차(최대) | 점수 스프레드(평균) | 점수 스프레드(최대) |"
   );
-  L.push("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+  L.push("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
   for (const temp of opts.temps) {
     const s = summarise(runs, temp);
     L.push(
-      `| ${temp} | ${s.total} | ${s.transportFailed} | ${s.parseFailed} | ${s.validated} | ${s.structuralErrors} | ${s.expectMismatches} | ${s.warns} | ${s.meanStdDev} | ${s.maxStdDev} | ${s.meanSpread} | ${s.maxSpread} |`
+      `| ${temp} | ${s.total} | ${s.transportFailed} | ${s.parseFailed} | ${s.validated} | ${s.structuralErrors} | ${s.toneErrors} | ${s.expectMismatches} | ${s.warns} | ${s.meanStdDev} | ${s.maxStdDev} | ${s.meanSpread} | ${s.maxSpread} |`
     );
   }
   L.push("");
@@ -293,7 +300,12 @@ function writeReport(opts, cases, runs, model) {
     "경로에는 복구(repair) 단계가 없으므로(복구는 generateOnce 단발 호출 전용) 이 숫자가 production에서 실제로 " +
     "벌어질 파싱 성공률이다. `검증됨`은 전송·파싱 모두 성공해 구조 검증까지 돌린 호출 수 — 온도 간 표본 크기가 " +
     "달라지면(quota burst 등) 여기서 드러난다. `구조 위반`은 모델이 하드 룰을 어긴 진짜 결함(색상 누출, 스키마 " +
-    "위반, 섹션 순서 뒤바뀜 등)이고, `기대치 불일치`는 각 케이스의 `expect.*`가 실패한 것 — 이는 채점 결과에 대한 " +
+    "위반, 섹션 순서 뒤바뀜 등)이고, " +
+    "`말투 위반`은 학습자에게 보이는 한국어가 해요체를 벗어나 하십시오체(`-입니다`/`-습니다`/`-ㅂ니다`)로 끝난 " +
+    "문장 수다 — 프롬프트가 명시적으로 요구한 규칙이라 error로 집계하되, 스키마가 깨진 것과는 다른 종류의 " +
+    "결함이므로 `구조 위반`과 열을 나눴다(섞으면 서로를 가린다). `-답니다`/`-랍니다`는 다정한 구어 종결어미라 " +
+    "의도적으로 허용하며 위반으로 세지 않는다. " +
+    "`기대치 불일치`는 각 케이스의 `expect.*`가 실패한 것 — 이는 채점 결과에 대한 " +
     "주관적 판단이며 일부는 설계상 논쟁의 여지가 있다(예: `ab-possible-to-sit`는 과잉 교정이 아니라고 보지만 이는 " +
     "논쟁 가능한 주장이다). 두 열을 하나로 합치면 매 온도에서 상수처럼 반복되는 기대치 불일치가 진짜 온도 신호를 " +
     "덮어버리므로 분리했다. `표준편차`와 `점수 스프레드`는 둘 다 같은 입력을 반복 호출했을 때 점수가 얼마나 " +
@@ -538,7 +550,7 @@ async function main() {
   for (const temp of opts.temps) {
     const s = summarise(runs, temp);
     console.log(
-      `  t=${temp}: 검증됨 ${s.validated}/${s.total} · 구조 위반 ${s.structuralErrors} · 기대치 불일치 ${s.expectMismatches} · warn ${s.warns} · 표준편차 평균 ${s.meanStdDev} / 최대 ${s.maxStdDev} · 점수 스프레드 평균 ${s.meanSpread} / 최대 ${s.maxSpread}`
+      `  t=${temp}: 검증됨 ${s.validated}/${s.total} · 구조 위반 ${s.structuralErrors} · 말투 위반 ${s.toneErrors} · 기대치 불일치 ${s.expectMismatches} · warn ${s.warns} · 표준편차 평균 ${s.meanStdDev} / 최대 ${s.maxStdDev} · 점수 스프레드 평균 ${s.meanSpread} / 최대 ${s.maxSpread}`
     );
   }
 }
