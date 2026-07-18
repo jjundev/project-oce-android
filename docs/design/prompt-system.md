@@ -106,6 +106,10 @@
 **확정(2026-07-18):** feedback/feedbackDeep temperature = `0` — `functions/eval/`의 골든셋 14케이스 × 온도(0/0.1/0.2/0.3) × 5회 반복(280콜, `gemini-3.1-flash-lite`)으로 측정해 확정했다. 모든 온도에서 구조 위반 0건·기대치 불일치 0건이었고, 점수 표준편차(평균)는 t=0에서 0.6, 그 외 온도에서 1.2–1.4로 t=0이 분산을 절반 가까이 줄였다(0.1~0.3 세 온도는 서로 통계적으로 구분 안 됨). 이전에 스윕 범위에서 빠진 t=0.7에서는 학습자 오류를 아예 놓친 사례가 있어 더 높은 온도는 추가 탐색하지 않았다. `functions/src/config/generation.ts`가 SoT이며, 이 결정은 아래 두 줄 전에 있던 `피드백·요약 0.3` 가정(미검증)을 대체한다. dialogue/summary는 여전히 eval 커버리지가 없어 미설정(프로바이더 기본값)이며 아직 needs-you다.
 **가정(needs-you/튜닝):** dialogue/summary temperature·max-tokens·실제 문안 authoring·deep coaching 배열 vs 문자열(→ 레거시 `{positive, toImprove}` 채택).
 
+**확정(2026-07-18, 프롬프트 문안):** feedback 프롬프트에 (a) 금지 어미를 이름으로 지목한 해요체 규칙(`-입니다`/`-습니다`/`-ㅂ니다` 금지, `-답니다`/`-랍니다`는 허용, 칭찬 문맥을 명시 경고), (b) 5레벨 LEVEL 블록(`explanation`/`reason.description`과 제안 문장만 레벨에 따라 적응시키고 `writingScore.score`는 절대 유지) (c) `korean-error-reference`의 8개 오류 계열을 COMMON ERRORS로 접어 넣었다. `functions/eval/`로 동일 명령(`--temps=0 --repeats=5 --task=feedback`, 70콜)을 수정 전후로 재서 측정: 말투 위반 40건 → 0건, 레벨 민감도 실패(비교된 5회 중 설명 동일 0회·제안 문장 동일 5회) → 통과(5회 모두 설명·제안 문장이 레벨에 따라 달라짐), 구조 위반은 전후 모두 0건 유지. 리포트: `functions/eval/out/feedback-2026-07-18T12-56-04-939Z.md`(기준선), `functions/eval/out/feedback-2026-07-18T13-23-07-699Z.md`(수정 후). `FEEDBACK_PROMPT_VERSION = "2026-07-18"`.
+
+부수 효과로 점수가 14케이스 중 8케이스에서 5~10점 하향 이동했고(상향은 0건), COMMON ERRORS 블록이 새로 접히면서 모델이 콩글리시·관사·전치사 같은 오류 계열을 이전엔 넘어가던 사례에서도 잡아내 더 엄격하게 채점한 것이 원인으로 보인다. 사용자에게 보이고 채점 밴드를 재조정하지 않은 채 수용하기로 한 의도적 결정이다 — "hand phone"이 95점을 받던 것이 과했다는 판단이며, 아직 사용자가 없어 기준선을 옮기기 가장 저렴한 시점이라는 점도 근거로 들었다.
+
 **grill-review 이력:** R1 Blocker 4(① 스피킹에 정답 주입→전사 편향 ② 요약 입력 누적 미정의 ③ 캐시 바닥 ④ responseSchema/스트림 이분법) → 수정 → R2 **0 Blocker SHIP**. 잔여 5 Advisory(캐시 바닥 수치 1024/2048·모델 ID 고정·coaching `{positive,toImprove}` 레거시 계약·propertyOrdering·스피킹 출력 좁힘+totalScore 전달) 전부 반영.
 
 ---
