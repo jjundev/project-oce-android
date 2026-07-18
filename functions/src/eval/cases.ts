@@ -194,9 +194,10 @@ export const CASES: readonly EvalCase[] = [
   },
 
   // ── level-variance — identical English, different level ─────────────────────
-  // FEEDBACK_SYSTEM_PROMPT never mentions `level`; it only rides along in the payload
-  // JSON. These two exist to make that visible: near-identical output across the pair
-  // is evidence that level-aware grading is unimplemented, not that it failed.
+  // These two carry identical English and differ only in `level`. FEEDBACK_SYSTEM_PROMPT now
+  // instructs the model to adapt its explanation and suggested phrasing to `level` while
+  // holding the score absolute (2026-07-18), so identical output across the pair means the
+  // instruction is not landing — compareLevelSensitivity in ./validate.ts is what judges it.
   {
     id: "lv-starter",
     category: "level-variance",
