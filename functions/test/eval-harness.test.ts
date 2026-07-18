@@ -9,8 +9,8 @@ import {
 } from "../src/eval/validate";
 
 describe("golden case set", () => {
-  it("has 13 cases", () => {
-    expect(CASES).toHaveLength(13);
+  it("has 14 cases", () => {
+    expect(CASES).toHaveLength(14);
   });
 
   it("gives every case a unique id", () => {

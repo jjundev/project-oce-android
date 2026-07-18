@@ -57,6 +57,18 @@ export const CASES: readonly EvalCase[] = [
     },
     expect: { requiresIncorrectSegments: true, scoreMax: 89 },
   },
+  {
+    id: "ab-move-meeting",
+    category: "typo-grammar",
+    note: "'the next week'의 불필요한 관사. 거의 맞는 문장에서 미세한 차이를 잡아내는지.",
+    payload: {
+      koreanPrompt: "회의를 다음 주로 미룰 수 있을까요?",
+      userEnglish: "Can we move the meeting to the next week?",
+      referenceEnglish: "Could we push the meeting to next week?",
+      level: "normal",
+    },
+    expect: { requiresIncorrectSegments: true },
+  },
 
   // ── konglish — grammatical but not what a native would say ──────────────────
   {
@@ -107,19 +119,19 @@ export const CASES: readonly EvalCase[] = [
       referenceEnglish: "Is this seat taken?",
       level: "normal",
     },
-    expect: {},
+    expect: { noIncorrectSegments: true },
   },
   {
-    id: "ab-move-meeting",
+    id: "ab-formal-repeat",
     category: "awkward-but-correct",
-    note: "'the next week'의 불필요한 관사. 거의 맞는 문장에서 미세한 차이를 잡아내는지.",
+    note: "문법·어휘에 오류가 전혀 없지만 지나치게 격식적이고 장황하다. 고칠 것이 없으므로 문법 교정 없이 더 간결한 표현만 제안해야 한다.",
     payload: {
-      koreanPrompt: "회의를 다음 주로 미룰 수 있을까요?",
-      userEnglish: "Can we move the meeting to the next week?",
-      referenceEnglish: "Could we push the meeting to next week?",
+      koreanPrompt: "다시 한번 말씀해 주시겠어요?",
+      userEnglish: "I would like to request that you say that again.",
+      referenceEnglish: "Could you say that again?",
       level: "normal",
     },
-    expect: {},
+    expect: { noIncorrectSegments: true },
   },
 
   // ── already-good — the over-correction trap ─────────────────────────────────
