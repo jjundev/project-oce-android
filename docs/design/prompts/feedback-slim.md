@@ -1,7 +1,7 @@
 <!--
 CALL: feedback.slim | model: Gemini Flash | stream: yes (per section) | responseSchema: yes
   propertyOrdering: writingScore -> grammar -> naturalExpression  (deterministic progressive emit)
-PREPEND (cached): _shared/safety-scope.md, _shared/tone-and-style.md, _shared/difficulty-bands.md, _shared/korean-error-reference.md
+PREPEND (cached): _shared/safety-scope.md, _shared/tone-and-style.md, _shared/difficulty-bands.md (rewritten for five levels in the server constant — see the FEEDBACK_SYSTEM_PROMPT JSDoc in gemini.ts), _shared/korean-error-reference.md
 INPUT (variable): { "koreanPrompt": "the Korean line the learner had to say", "userEnglish": "transcript / typed English", "referenceEnglish": "the script's natural English line for this turn", "level": "starter|easy|normal|hard|expert" }
 This is the PER-TURN slim feedback (old sentence_feedback Steps 1,2,4). Deep analysis (bridge/venn/tone/paraphrase) is a separate on-demand call.
 -->
