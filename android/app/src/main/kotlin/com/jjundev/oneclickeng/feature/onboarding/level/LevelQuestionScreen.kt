@@ -139,54 +139,55 @@ private fun GoogleReauthEntryLink(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    OneClickCard(
-        modifier = modifier.fillMaxWidth().clickable(onClick = onClick),
+    // 레벨 카드와 치수(패딩·아이콘 박스·폰트 크기)는 동일하게 맞추되, 레벨 선택지의 4번째 항목으로 오인되지
+    // 않도록 흰 배경+테두리 카드 대신 브랜드 톤 채움(테두리 없음)으로 시각적으로 구분한다.
+    Row(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(OceTheme.shapes.radius16)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = ICON_BG_ALPHA))
+                .clickable(onClick = onClick)
+                .padding(horizontal = OceTheme.spacing.lg, vertical = OceTheme.spacing.xl),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
     ) {
-        Row(
+        Box(
             modifier =
                 Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = OceTheme.spacing.lg, vertical = OceTheme.spacing.xl),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
+                    .size(48.dp)
+                    .clip(OceTheme.shapes.radius12)
+                    .background(MaterialTheme.colorScheme.surface),
+            contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(48.dp)
-                        .clip(OceTheme.shapes.radius12)
-                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = NEUTRAL_ICON_BG_ALPHA)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Image(
-                    painter = painterResource(com.google.android.gms.base.R.drawable.googleg_standard_color_18),
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
-            ) {
-                Text(
-                    text = "Google로 로그인",
-                    // 레벨 카드 제목과 동일(sectionLabel·Bold·17sp) — 카드 룩 통일.
-                    style = OceTheme.typography.sectionLabel.copy(fontSize = 17.sp),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = "이미 계정이 있으신가요?",
-                    style = OceTheme.typography.helper,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            OneClickIcon(
-                icon = OceIcon.ChevronRight,
+            Image(
+                painter = painterResource(com.google.android.gms.base.R.drawable.googleg_standard_color_18),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                size = OceIconSize.ListDisclosure,
+                modifier = Modifier.size(24.dp),
             )
         }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
+        ) {
+            Text(
+                text = "Google로 로그인",
+                // 레벨 카드 제목과 동일 크기(sectionLabel·Bold·17sp), 색만 브랜드 톤으로 구분.
+                style = OceTheme.typography.sectionLabel.copy(fontSize = 17.sp),
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = "이미 계정이 있으신가요?",
+                style = OceTheme.typography.helper,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        OneClickIcon(
+            icon = OceIcon.ChevronRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            size = OceIconSize.ListDisclosure,
+        )
     }
 }
 
