@@ -26,7 +26,7 @@ interface SummarySaveSettingsRepository {
     suspend fun setSaveByDefault(saveByDefault: Boolean)
 }
 
-/** DataStore 구현. 누락 키는 [SummarySaveSettings] 기본값(false)으로 폴백. */
+/** DataStore 구현. 누락 키는 [SummarySaveSettings] 기본값(true)으로 폴백. */
 @Singleton
 class DataStoreSummarySaveSettingsRepository
     @Inject
@@ -42,7 +42,7 @@ class DataStoreSummarySaveSettingsRepository
         }
 
         private fun toSettings(prefs: Preferences): SummarySaveSettings =
-            SummarySaveSettings(saveByDefault = prefs[KEY_SAVE_BY_DEFAULT] ?: false)
+            SummarySaveSettings(saveByDefault = prefs[KEY_SAVE_BY_DEFAULT] ?: true)
 
         companion object {
             val KEY_SAVE_BY_DEFAULT = booleanPreferencesKey("summary_save_by_default")

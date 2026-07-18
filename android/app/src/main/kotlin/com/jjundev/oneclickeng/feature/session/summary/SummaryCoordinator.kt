@@ -179,7 +179,7 @@ class SummaryCoordinator
          * [start] 에만 유효하다 — sessionId 비교는 부가 방어로 남긴다.
          *
          * 설정 읽기는 SSE 오픈의 하드 프리컨디션이 아니다: DataStore 읽기가 IOException(-계열인
-         * CorruptionException 포함)으로 실패해도 "저장 안 함"(false)으로 낙관 폴백해 그대로 진행한다 —
+         * CorruptionException 포함)으로 실패해도 기본값 "저장"(true)으로 폴백해 그대로 진행한다 —
          * [start] 에서 [launchAttempt] 까지 아무것도 던지지 않던 이전 불변을 유지한다. 단, **멈추지 않는다는
          * 것까지는 보장하지 않는다**: `saveSettings.current()` 가 예외 없이 영영 반환하지 않으면
          * [launchAttempt] 도 워치독도 기동하지 않아 화면이 스켈레톤에 멈춘다 — DataStore 읽기는 실전에서
@@ -192,7 +192,7 @@ class SummaryCoordinator
                     try {
                         saveSettings.current().saveByDefault
                     } catch (_: IOException) {
-                        false
+                        true
                     }
                 if (token == sessionToken && sessionId == this@SummaryCoordinator.sessionId) {
                     saveByDefault = resolved

@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -32,12 +32,12 @@ class SummarySaveSettingsRepositoryTest {
     }
 
     @Test
-    fun `defaults to save-by-default false`() =
+    fun `defaults to save-by-default true`() =
         runTest {
             val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
             val repo = newRepo(scope)
 
-            assertFalse(repo.current().saveByDefault)
+            assertTrue(repo.current().saveByDefault)
 
             scope.cancel()
         }
@@ -48,10 +48,10 @@ class SummarySaveSettingsRepositoryTest {
             val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + Job())
             val repo = newRepo(scope)
 
-            repo.setSaveByDefault(true)
+            repo.setSaveByDefault(false)
 
-            assertEquals(true, repo.current().saveByDefault)
-            assertEquals(true, repo.settings.first().saveByDefault)
+            assertEquals(false, repo.current().saveByDefault)
+            assertEquals(false, repo.settings.first().saveByDefault)
 
             scope.cancel()
         }
