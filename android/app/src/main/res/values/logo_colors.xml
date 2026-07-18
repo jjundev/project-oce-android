@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Launcher icon platform-resource mirror of the canonical Compose tokens.
+      Source of truth: docs/design/design_system_src/design-tokens.md §2.1–2.2.
+      VectorDrawable cannot consume Compose Color values directly.
+    -->
+    <color name="logo_brand_primary">#FF39A0ED</color>
+    <color name="logo_brand_primary_pressed">#FF2B7FBB</color>
+    <color name="logo_surface_background">#FFF3F4F6</color>
+    <color name="logo_feedback_correct">#FFEF767A</color>
+</resources>
