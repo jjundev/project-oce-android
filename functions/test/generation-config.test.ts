@@ -38,6 +38,21 @@ describe("buildGenerateBody — current behaviour (characterisation)", () => {
       { role: "user", parts: [{ text: "{}" }] },
     ]);
   });
+
+  it("adds temperature only when tuning provides it", () => {
+    expect(buildGenerateBody({}, undefined, undefined, { temperature: 0.3 }).generationConfig)
+      .toEqual({ responseMimeType: "application/json", temperature: 0.3 });
+    // an empty tuning object must not introduce the key at all
+    expect(buildGenerateBody({}, undefined, undefined, {}).generationConfig)
+      .toEqual({ responseMimeType: "application/json" });
+    expect(buildGenerateBody({}, undefined, undefined, undefined).generationConfig)
+      .toEqual({ responseMimeType: "application/json" });
+  });
+
+  it("keeps temperature 0 — a falsy but meaningful value", () => {
+    expect(buildGenerateBody({}, undefined, undefined, { temperature: 0 }).generationConfig)
+      .toEqual({ responseMimeType: "application/json", temperature: 0 });
+  });
 });
 
 describe("buildRepairBody — current behaviour (characterisation)", () => {
@@ -58,6 +73,14 @@ describe("buildRepairBody — current behaviour (characterisation)", () => {
     expect(body.generationConfig).toEqual({
       responseMimeType: "application/json",
       responseSchema: schema,
+    });
+  });
+
+  it("carries tuning through to the repair attempt", () => {
+    const body = buildRepairBody({}, "sys", undefined, "bad", "err", { temperature: 0.3 });
+    expect(body.generationConfig).toEqual({
+      responseMimeType: "application/json",
+      temperature: 0.3,
     });
   });
 });

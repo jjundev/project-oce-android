@@ -11,6 +11,7 @@
  * re-verified against current Gemini docs before production (plan decision #4/#9).
  */
 import { modelFor } from "../config/models";
+import { GenerationTuning, tuningFor } from "../config/generation";
 import { ErrorCode, Task } from "../types/protocol";
 import {
   GenerateRequest,
@@ -139,7 +140,7 @@ export class GeminiProvider implements LlmProvider {
     const model = req.modelId || this.config.modelFor(req.task);
     const url = `${GEMINI_BASE_URL}/models/${model}:streamGenerateContent?alt=sse`;
     const body = JSON.stringify(
-      buildGenerateBody(req.payload, req.system, req.responseSchema)
+      buildGenerateBody(req.payload, req.system, req.responseSchema, tuningFor(req.task))
     );
 
     let lastError = "";
@@ -227,7 +228,7 @@ export class GeminiProvider implements LlmProvider {
     const url = `${GEMINI_BASE_URL}/models/${req.modelId}:generateContent`;
     const firstText = await this.requestText(
       url,
-      buildGenerateBody(req.payload, req.system, req.responseSchema)
+      buildGenerateBody(req.payload, req.system, req.responseSchema, tuningFor(req.task))
     );
     try {
       return extractJson(firstText);
@@ -239,7 +240,8 @@ export class GeminiProvider implements LlmProvider {
           req.system,
           req.responseSchema,
           firstText,
-          parseError instanceof Error ? parseError.message : String(parseError)
+          parseError instanceof Error ? parseError.message : String(parseError),
+          tuningFor(req.task)
         )
       );
       return extractJson(repaired);
@@ -563,17 +565,25 @@ export function createGeminiProvider(apiKey: string): GeminiProvider {
 /**
  * Build a Gemini `:generateContent` body for structured JSON output (M2-01). The payload
  * slice is sent as one user text part; the resolved prompt goes in `systemInstruction`.
+ * `tuning` carries sampling parameters (config/generation.ts); an omitted or empty tuning
+ * leaves `generationConfig` exactly as it was before tuning existed, so the provider
+ * default still applies to every task that opts out.
  */
 export function buildGenerateBody(
   payload: unknown,
   system?: string,
-  responseSchema?: unknown
+  responseSchema?: unknown,
+  tuning?: GenerationTuning
 ): Record<string, unknown> {
   const generationConfig: Record<string, unknown> = {
     responseMimeType: "application/json",
   };
   if (responseSchema !== undefined) {
     generationConfig.responseSchema = responseSchema;
+  }
+  // explicit undefined check — temperature 0 is meaningful and must survive
+  if (tuning?.temperature !== undefined) {
+    generationConfig.temperature = tuning.temperature;
   }
   const body: Record<string, unknown> = {
     contents: [{ role: "user", parts: [{ text: JSON.stringify(payload ?? {}) }] }],
@@ -594,9 +604,10 @@ export function buildRepairBody(
   system: string | undefined,
   responseSchema: unknown,
   badOutput: string,
-  parseError: string
+  parseError: string,
+  tuning?: GenerationTuning
 ): Record<string, unknown> {
-  const body = buildGenerateBody(payload, system, responseSchema);
+  const body = buildGenerateBody(payload, system, responseSchema, tuning);
   (body.contents as unknown[]).push(
     { role: "model", parts: [{ text: badOutput }] },
     {
