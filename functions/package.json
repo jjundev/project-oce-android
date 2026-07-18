@@ -14,6 +14,7 @@
     "test": "jest",
     "serve": "npm run build && firebase emulators:start --only functions",
     "smoke": "npm run build && firebase emulators:exec --only functions \"echo emulator up — hit http://127.0.0.1:5001 for /llm\"",
+    "eval": "npm run build && node eval/run.js",
     "deploy": "firebase deploy --only functions"
   },
   "dependencies": {
