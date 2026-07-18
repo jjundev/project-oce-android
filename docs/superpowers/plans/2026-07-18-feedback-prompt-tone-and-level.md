@@ -2,6 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **실행 중 달라진 점:** 이 계획은 최초 실행이 끝난 뒤 후속 수정 라운드를 거쳤고, 아래 태스크 본문은 그 라운드들을 흡수하지 않은 채 커밋됐다. 태스크 본문을 "지금 코드가 그렇다"가 아니라 "당시 의도"로 읽을 것 — 실제로 달라진 지점은 다음과 같다:
+> - **Task 3의 코드 스니펫**은 `grammar.explanation`/`naturalExpression.segments`가 없거나 빈 경우를 각각 `level.explanation`/`level.naturalExpression`의 "동일" id로 보고하지만, 실제로 출고된 것은 별도 id인 `level.explanation.missing`/`level.naturalExpression.missing`이다 — "동일했다"(비교했더니 같았다)와 "비교 자체가 불가능했다"는 서로 다른 발견이라 id를 나눴다.
+> - **Task 4의 검증 판정 블록**은 `identicalCount`를 `opts.repeats`로 나눠 "N회 중 M회 동일"로 표시하고 verdictLine이 이분법(통과/실패)이지만, 실제로 출고된 러너는 (a) 분모를 `opts.repeats`가 아니라 실제로 비교된 반복 수(`comparedCount`)로 쓰고 (b) 호출 실패와 별개로 응답이 비교 불가능했던 반복까지 분리해 "판정 불가/실패/통과"의 세 값 판정으로 재작성됐다(이후 리뷰 라운드에서 더 다듬어짐 — `functions/eval/run.js` 참고).
+> - **Task 6 Step 3의 코드 스니펫**은 `naturalExpression.segments`의 (b)절을 "keep it within reach at the learner's level" 정도의 bounded 표현으로 제시하지만, 실제로 출고된 문구(커밋 `82f370f`)는 `referenceEnglish`를 기준으로 레벨에 따라 이동하고 hard/expert에서는 그것을 넘어서라고 지시하며 "starter와 expert가 같은 제안 문장으로 돌아오면 안 된다"는 차등 조항을 명시한다 — bounded 버전은 실제로 배포된 적이 없다.
+>
+> 세 지점 모두 실제 동작의 근거는 `functions/src/eval/validate.ts`, `functions/eval/run.js`, `functions/src/providers/gemini.ts`의 현재 코드와 `docs/design/prompt-system.md`의 측정 기록이다.
+
 **Goal:** 이슈 [#108](https://github.com/jjundev/project-oce-android/issues/108)의 두 문제 — 턴 피드백이 해요체를 벗어나 하십시오체를 섞어 쓰는 것과 `level`을 완전히 무시하는 것 — 을 eval 하네스가 **자동으로 실패로 잡을 수 있게** 만든 뒤, 그 측정 위에서 프롬프트 문안을 고친다.
 
 **Architecture:** 순서가 핵심이다. 현재 하네스는 이 두 문제를 **제대로 측정하지 못한다** — 말투 검사는 문자열의 마지막 어미 하나만 보므로 혼용의 절반을 놓치고([validate.ts:67-70](functions/src/eval/validate.ts:67)), 게다가 위반이 아닌 `-답니다`를 위반으로 세며, 등급이 `warn`이라 몇 건이 나오든 "통과"로 보인다. 레벨 민감도는 자동 검사가 아예 없고 사람이 리포트를 눈으로 볼 뿐이다. 그래서 (1) 검사기를 먼저 정확하게 고치고, (2) 말투를 `error`로 승격하되 구조 결함과 별도 열로 집계하고, (3) 응답 **쌍**을 비교하는 새 검사(`compareLevelSensitivity`)를 만들어 러너에 붙인 다음, (4) **새 검사기로 기준선을 한 번 측정하고**, (5) 그제서야 프롬프트를 고치고, (6) 같은 검사기로 다시 재서 개선을 증명한다. 기준선을 새 검사기로 다시 재는 이유는, 옛 검사기가 만든 153건에는 오탐(`-답니다` 18건)이 섞여 있고 미탐(역순 혼용)도 있어 전후 비교가 성립하지 않기 때문이다.
