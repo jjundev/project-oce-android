@@ -2,6 +2,7 @@ package com.jjundev.oneclickeng.feature.onboarding.google
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jjundev.oneclickeng.core.auth.AccountResetBus
 import com.jjundev.oneclickeng.core.auth.GoogleAccountLinker
 import com.jjundev.oneclickeng.core.auth.LinkOutcome
 import com.jjundev.oneclickeng.feature.onboarding.OnboardingAnalytics
@@ -40,6 +41,7 @@ class GoogleLinkViewModel
     constructor(
         private val linker: GoogleAccountLinker,
         private val analytics: OnboardingAnalytics,
+        private val accountResetBus: AccountResetBus,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<LinkUiState>(LinkUiState.Idle)
         val uiState: StateFlow<LinkUiState> = _uiState.asStateFlow()
@@ -104,6 +106,65 @@ class GoogleLinkViewModel
                             LinkUiState.Error(afterSignIn = true)
                         }
                     }
+            }
+        }
+
+        /**
+         * 자격증명 취득 자체가 실패한 재인증 흐름(취소 제외) — signIn 이전이므로 게스트 유지. sessionId 없는
+         * 재인증 문맥 버전([onCredentialFailed] 은 세션 완주 흐름 전용).
+         */
+        fun onCredentialFailedForReauth() {
+            analytics.reauthLinkFailed()
+            _uiState.value = LinkUiState.Error(afterSignIn = false)
+        }
+
+        /**
+         * raw Google ID 토큰으로 재인증(로그아웃 후 복귀) 흐름을 수행한다. 성공([LinkOutcome.Promoted]/
+         * [LinkOutcome.Merged]) 시 [AccountResetBus.signal] 로 앱 전역 부트 게이트를 재평가시킨다 — 새로
+         * 로그인된 UID 의 `profile.level` 유무에 따라 [com.jjundev.oneclickeng.ui.root.AppViewModel] 이
+         * 온보딩 계속/홈 진입을 스스로 가른다(이 뷰모델은 어느 쪽인지 알 필요가 없다).
+         */
+        fun linkGoogleForReauth(googleIdToken: String) {
+            _uiState.value = LinkUiState.Linking
+            viewModelScope.launch {
+                when (linker.linkGuest(googleIdToken)) {
+                    LinkOutcome.Promoted -> {
+                        analytics.reauthLinkSucceeded()
+                        _uiState.value = LinkUiState.Success
+                        accountResetBus.signal()
+                    }
+                    LinkOutcome.Merged -> {
+                        analytics.reauthLinkConflictMerged()
+                        _uiState.value = LinkUiState.Success
+                        accountResetBus.signal()
+                    }
+                    LinkOutcome.FailedAsGuest -> {
+                        analytics.reauthLinkFailed()
+                        _uiState.value = LinkUiState.Error(afterSignIn = false)
+                    }
+                    LinkOutcome.FailedAfterSignIn -> {
+                        analytics.reauthLinkFailed()
+                        _uiState.value = LinkUiState.Error(afterSignIn = true)
+                    }
+                }
+            }
+        }
+
+        /** signIn 후 merge 실패 상태에서의 재시도(재인증 문맥, sessionId 없음). 성공 시 부트 게이트 재평가. */
+        fun retryMergeForReauth() {
+            _uiState.value = LinkUiState.Linking
+            viewModelScope.launch {
+                when (linker.retryPendingMerge()) {
+                    LinkOutcome.Merged -> {
+                        analytics.reauthLinkConflictMerged()
+                        _uiState.value = LinkUiState.Success
+                        accountResetBus.signal()
+                    }
+                    else -> {
+                        analytics.reauthLinkFailed()
+                        _uiState.value = LinkUiState.Error(afterSignIn = true)
+                    }
+                }
             }
         }
     }

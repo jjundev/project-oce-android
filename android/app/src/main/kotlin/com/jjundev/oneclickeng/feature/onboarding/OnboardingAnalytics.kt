@@ -35,6 +35,15 @@ interface OnboardingAnalytics {
 
     /** 연결/이관 실패(취소 제외 — 네트워크·머지 오류). */
     fun googleLinkFailed(sessionId: String)
+
+    /** 재인증(로그아웃 후 복귀) 흐름 — FR-3a 인플레이스 승격 성공. 세션 문맥이 없어 sessionId 를 받지 않는다. */
+    fun reauthLinkSucceeded()
+
+    /** 재인증 흐름 — FR-3b 충돌 후 mergeGuestData 이관 성공. */
+    fun reauthLinkConflictMerged()
+
+    /** 재인증 흐름 — 연결/이관 실패(취소 제외). */
+    fun reauthLinkFailed()
 }
 
 /** M4-01 이 실제 디스패치를 배선하기 전까지의 기본 no-op 바인딩. */
@@ -59,4 +68,10 @@ class NoOpOnboardingAnalytics
         override fun googleLinkConflictMerged(sessionId: String) = Unit
 
         override fun googleLinkFailed(sessionId: String) = Unit
+
+        override fun reauthLinkSucceeded() = Unit
+
+        override fun reauthLinkConflictMerged() = Unit
+
+        override fun reauthLinkFailed() = Unit
     }

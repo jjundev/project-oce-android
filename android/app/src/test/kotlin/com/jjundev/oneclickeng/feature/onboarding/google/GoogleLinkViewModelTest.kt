@@ -1,11 +1,13 @@
 package com.jjundev.oneclickeng.feature.onboarding.google
 
 import android.app.Application
+import com.jjundev.oneclickeng.core.auth.AccountResetBus
 import com.jjundev.oneclickeng.core.auth.GoogleAccountLinker
 import com.jjundev.oneclickeng.core.auth.LinkOutcome
 import com.jjundev.oneclickeng.feature.onboarding.OnboardingAnalytics
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -13,6 +15,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -39,7 +42,8 @@ class GoogleLinkViewModelTest {
     private fun vm(
         linker: GoogleAccountLinker,
         analytics: OnboardingAnalytics = RecordingAnalytics(),
-    ) = GoogleLinkViewModel(linker, analytics)
+        resetBus: AccountResetBus = AccountResetBus(),
+    ) = GoogleLinkViewModel(linker, analytics, resetBus)
 
     @Test
     fun `FR-3a promotion maps to Success and logs succeeded`() =
@@ -112,6 +116,108 @@ class GoogleLinkViewModelTest {
         }
 
     @Test
+    fun `reauth link promotion sets Success, logs reauth_succeeded, and signals account reset`() =
+        runTest(dispatcher) {
+            val analytics = RecordingAnalytics()
+            val resetBus = AccountResetBus()
+            var signaled = false
+            val collector = launch { resetBus.events.collect { signaled = true } }
+            val model = vm(FakeLinker(LinkOutcome.Promoted), analytics, resetBus)
+
+            model.linkGoogleForReauth("token")
+            advanceUntilIdle()
+
+            assertEquals(LinkUiState.Success, model.uiState.value)
+            assertEquals(listOf("reauth_succeeded"), analytics.events)
+            assertTrue(signaled)
+            collector.cancel()
+        }
+
+    @Test
+    fun `reauth link merge sets Success, logs reauth_merged, and signals account reset`() =
+        runTest(dispatcher) {
+            val analytics = RecordingAnalytics()
+            val resetBus = AccountResetBus()
+            var signaled = false
+            val collector = launch { resetBus.events.collect { signaled = true } }
+            val model = vm(FakeLinker(LinkOutcome.Merged), analytics, resetBus)
+
+            model.linkGoogleForReauth("token")
+            advanceUntilIdle()
+
+            assertEquals(LinkUiState.Success, model.uiState.value)
+            assertEquals(listOf("reauth_merged"), analytics.events)
+            assertTrue(signaled)
+            collector.cancel()
+        }
+
+    @Test
+    fun `reauth link failure before sign-in is a retryable guest error and does not signal reset`() =
+        runTest(dispatcher) {
+            val analytics = RecordingAnalytics()
+            val resetBus = AccountResetBus()
+            var signaled = false
+            val collector = launch { resetBus.events.collect { signaled = true } }
+            val model = vm(FakeLinker(LinkOutcome.FailedAsGuest), analytics, resetBus)
+
+            model.linkGoogleForReauth("token")
+            advanceUntilIdle()
+
+            assertEquals(LinkUiState.Error(afterSignIn = false), model.uiState.value)
+            assertEquals(listOf("reauth_failed"), analytics.events)
+            assertEquals(false, signaled)
+            collector.cancel()
+        }
+
+    @Test
+    fun `reauth merge failure after sign-in is a post-sign-in error and does not signal reset`() =
+        runTest(dispatcher) {
+            val resetBus = AccountResetBus()
+            var signaled = false
+            val collector = launch { resetBus.events.collect { signaled = true } }
+            val model = vm(FakeLinker(LinkOutcome.FailedAfterSignIn), resetBus = resetBus)
+
+            model.linkGoogleForReauth("token")
+            advanceUntilIdle()
+
+            assertEquals(LinkUiState.Error(afterSignIn = true), model.uiState.value)
+            assertEquals(false, signaled)
+            collector.cancel()
+        }
+
+    @Test
+    fun `retryMergeForReauth success sets Success and signals account reset`() =
+        runTest(dispatcher) {
+            val resetBus = AccountResetBus()
+            var signaled = false
+            val collector = launch { resetBus.events.collect { signaled = true } }
+            val model = vm(FakeLinker(retry = LinkOutcome.Merged), resetBus = resetBus)
+
+            model.retryMergeForReauth()
+            advanceUntilIdle()
+
+            assertEquals(LinkUiState.Success, model.uiState.value)
+            assertTrue(signaled)
+            collector.cancel()
+        }
+
+    @Test
+    fun `retryMergeForReauth still-failing stays post-sign-in error without signaling`() =
+        runTest(dispatcher) {
+            val resetBus = AccountResetBus()
+            var signaled = false
+            val collector = launch { resetBus.events.collect { signaled = true } }
+            val model = vm(FakeLinker(retry = LinkOutcome.FailedAfterSignIn), resetBus = resetBus)
+
+            model.retryMergeForReauth()
+            advanceUntilIdle()
+
+            assertEquals(LinkUiState.Error(afterSignIn = true), model.uiState.value)
+            assertEquals(false, signaled)
+            collector.cancel()
+        }
+
+    @Test
     fun `credential cancel returns to Idle without an error`() {
         val model = vm(FakeLinker(LinkOutcome.Promoted))
 
@@ -159,6 +265,18 @@ class GoogleLinkViewModelTest {
 
         override fun googleLinkFailed(sessionId: String) {
             events += "failed:$sessionId"
+        }
+
+        override fun reauthLinkSucceeded() {
+            events += "reauth_succeeded"
+        }
+
+        override fun reauthLinkConflictMerged() {
+            events += "reauth_merged"
+        }
+
+        override fun reauthLinkFailed() {
+            events += "reauth_failed"
         }
     }
 }
