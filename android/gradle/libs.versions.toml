@@ -16,6 +16,8 @@ navigationCompose = "2.8.5"
 hiltNavigationCompose = "1.2.0"
 # androidx.hilt — hilt-work(@HiltWorker WorkerFactory) + 그 KSP 컴파일러(dagger hilt-compiler 와 별개). M3-07.
 androidxHilt = "1.2.0"
+# Play Core 인앱 업데이트(강제 업데이트 게이트, archive MainActivity.checkForAppUpdate 이식). archive 와 동일 버전 고정.
+playAppUpdate = "2.1.0"
 # WorkManager — 로컬 리마인더 자기재예약 OneTime 체인(M3-07). 부팅 후 영속 작업 자동 재enqueue(2.1+).
 work = "2.10.0"
 
@@ -70,6 +72,9 @@ androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navig
 # @HiltWorker 통합: hilt-work(런타임 HiltWorkerFactory) + hilt-compiler(KSP, dagger 컴파일러와 별개). M3-07.
 androidx-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "androidxHilt" }
 androidx-hilt-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "androidxHilt" }
+# 강제 업데이트 게이트(core/update) — Play Core Task<AppUpdateInfo> API. split(2.x) 라이브러리라
+# com.google.android.gms.tasks.Task 를 반환 — 이미 있는 kotlinx-coroutines-play-services 의 .await() 재사용.
+play-app-update = { group = "com.google.android.play", name = "app-update", version.ref = "playAppUpdate" }
 
 # WorkManager(M3-07) — 로컬 리마인더 스케줄링 + work-testing(TestListenableWorkerBuilder).
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }

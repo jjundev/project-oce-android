@@ -181,6 +181,9 @@ dependencies {
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
 
+    // 강제 업데이트 게이트(core/update) — archive MainActivity.checkForAppUpdate 이식.
+    implementation(libs.play.app.update)
+
     // 네트워크 / 직렬화 / 비동기 / 저장 (M1-05)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
