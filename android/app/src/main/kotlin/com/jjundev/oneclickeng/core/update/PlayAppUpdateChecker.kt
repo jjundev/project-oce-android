@@ -9,6 +9,7 @@ import com.google.android.play.core.appupdate.AppUpdateOptions
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.UpdateAvailability
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -32,18 +33,26 @@ class PlayAppUpdateChecker
         private val manager: AppUpdateManager = AppUpdateManagerFactory.create(context)
 
         override suspend fun isImmediateUpdateRequired(): Boolean =
-            runCatching {
+            try {
                 val info = manager.appUpdateInfo.await()
                 isImmediateUpdateAvailable(
                     availability = info.updateAvailability(),
                     isImmediateAllowed = info.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE),
                 )
-            }.getOrDefault(false)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                false
+            }
 
         override suspend fun isUpdateInProgress(): Boolean =
-            runCatching {
+            try {
                 isImmediateUpdateInProgress(manager.appUpdateInfo.await().updateAvailability())
-            }.getOrDefault(false)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                false
+            }
 
         override suspend fun launchImmediateUpdate(launcher: ActivityResultLauncher<IntentSenderRequest>) {
             val info = manager.appUpdateInfo.await()
