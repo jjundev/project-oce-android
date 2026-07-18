@@ -86,9 +86,12 @@ describe("buildRepairBody — current behaviour (characterisation)", () => {
 });
 
 describe("tuningFor", () => {
-  it("gives feedback and feedbackDeep the confirmed feedback temperature", () => {
-    expect(tuningFor("feedback")).toEqual({ temperature: FEEDBACK_TEMPERATURE });
-    expect(tuningFor("feedbackDeep")).toEqual({ temperature: FEEDBACK_TEMPERATURE });
+  it("leaves feedback and feedbackDeep on the provider default — the temperature is staged, not applied", () => {
+    // This branch ships as pure measurement infrastructure with ZERO production
+    // behaviour change: FEEDBACK_TEMPERATURE is the candidate a later sweep will
+    // validate, but nothing in GENERATION_TUNING applies it yet.
+    expect(tuningFor("feedback")).toEqual({});
+    expect(tuningFor("feedbackDeep")).toEqual({});
   });
 
   it("leaves dialogue, summary, speaking and tts unset (provider default)", () => {
@@ -100,6 +103,14 @@ describe("tuningFor", () => {
     expect(tuningFor("tts")).toEqual({});
   });
 
+  it("gives every task in GENERATION_TUNING empty tuning right now — the property that makes this branch behaviour-neutral", () => {
+    // If a future edit turns a temperature on for a task without intending to, this
+    // is the test that should fail loudly.
+    for (const task of Object.keys(GENERATION_TUNING)) {
+      expect(GENERATION_TUNING[task as keyof typeof GENERATION_TUNING]).toEqual({});
+    }
+  });
+
   it("normalises a sub-task id to its family", () => {
     // "summary.expressions" is not in the closed Task map (gemini.ts:203-205).
     expect(tuningFor("summary.expressions")).toEqual(tuningFor("summary"));
@@ -108,6 +119,21 @@ describe("tuningFor", () => {
   it("falls back to empty tuning for an unknown task", () => {
     expect(tuningFor("nonsense")).toEqual({});
     expect(tuningFor("")).toEqual({});
+  });
+
+  it("does not fall through to Object.prototype for a task named after a prototype property", () => {
+    // tuningFor used to index GENERATION_TUNING as a plain object literal, so
+    // tuningFor("__proto__") returned Object.prototype instead of {}.
+    expect(tuningFor("__proto__")).toEqual({});
+    expect(tuningFor("toString")).toEqual({});
+    expect(tuningFor("constructor")).toEqual({});
+  });
+
+  it("returns a tuning object a caller cannot mutate the shared table through", () => {
+    const first = tuningFor("dialogue");
+    (first as { temperature?: number }).temperature = 0.9;
+    expect(tuningFor("dialogue")).toEqual({});
+    expect(GENERATION_TUNING.dialogue).toEqual({});
   });
 
   it("keeps the feedback temperature within the valid Gemini range", () => {
