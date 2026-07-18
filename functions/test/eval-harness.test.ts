@@ -7,6 +7,7 @@ import {
   scoreOf,
   countIncorrectSegments,
   findHasipsioSentences,
+  findHaeyoRegisterDrift,
   compareLevelSensitivity,
 } from "../src/eval/validate";
 
@@ -529,6 +530,83 @@ describe("findHasipsioSentences", () => {
   });
 });
 
+describe("findHaeyoRegisterDrift", () => {
+  it("returns nothing for a fully 해요체 line", () => {
+    expect(findHaeyoRegisterDrift("지난 일을 말할 때는 met을 써요.")).toEqual([]);
+    expect(findHaeyoRegisterDrift("정말 잘했어요! 자연스러운 표현이에요.")).toEqual([]);
+  });
+
+  // Restores the coverage the deleted whitelist test used to guard: a plain-form/해라체
+  // ending ("훌륭하다") is not 하십시오체, so HASIPSIO_ENDING's blacklist never caught it —
+  // but it is just as much a departure from the prompt's 해요체 requirement, and this
+  // whitelist-based check exists specifically to catch that direction of drift.
+  it("flags a 해라체/plain-form ending ('훌륭하다') that HASIPSIO_ENDING cannot see", () => {
+    expect(findHaeyoRegisterDrift("훌륭하다")).toEqual(["훌륭하다"]);
+    expect(findHasipsioSentences("훌륭하다")).toEqual([]); // confirms the blacklist misses it
+  });
+
+  it("flags plain 반말 endings", () => {
+    expect(findHaeyoRegisterDrift("정말 잘했어")).toEqual(["정말 잘했어"]);
+  });
+
+  it("also flags 하십시오체 endings — the two checks are expected to overlap", () => {
+    expect(findHaeyoRegisterDrift("정말 잘하셨습니다.")).toEqual(["정말 잘하셨습니다"]);
+  });
+
+  it("accepts 답니다 / 랍니다 — same exemption as HASIPSIO_ENDING, kept in lockstep", () => {
+    expect(findHaeyoRegisterDrift("하나만 써도 충분하답니다!")).toEqual([]);
+    expect(findHaeyoRegisterDrift("원어민이 선호하는 방식이랍니다.")).toEqual([]);
+  });
+
+  it("accepts 죠 endings, not just 요", () => {
+    expect(findHaeyoRegisterDrift("이게 더 자연스럽죠.")).toEqual([]);
+  });
+
+  it("does not flag a Korean sentence that embeds an English example quote", () => {
+    // The quoted English sits mid-sentence but the sentence itself still ends in 해요체
+    // (예요) — this is the common shape (explanation quoting the suggested phrasing).
+    expect(findHaeyoRegisterDrift('자연스러운 표현은 "Let\'s grab a coffee"예요.')).toEqual([]);
+  });
+
+  it("does not flag a fragment that is pure English example text (no Hangul at all)", () => {
+    // splitSentences is a punctuation splitter, not a tokenizer (documented limitation on
+    // findHasipsioSentences above) — an English quote containing its own terminal punctuation
+    // (e.g. a "?") can fragment away from its Korean sentence. When that happens the
+    // resulting fragment has no Hangul in it at all, so the HANGUL.test guard skips it
+    // outright rather than judging English prose by a Korean-register rule.
+    expect(findHaeyoRegisterDrift("Could I get a coffee, please?")).toEqual([]);
+  });
+
+  it("keeps a multi-sentence 해요체 response clean", () => {
+    expect(
+      findHaeyoRegisterDrift("지난 일은 met을 써요. 이렇게 쓰면 훨씬 자연스러워요!")
+    ).toEqual([]);
+  });
+
+  it("ignores empty and whitespace-only input", () => {
+    expect(findHaeyoRegisterDrift("")).toEqual([]);
+    expect(findHaeyoRegisterDrift("   ")).toEqual([]);
+  });
+});
+
+describe("validateSlim — haeyo.register", () => {
+  it("warns, and does not fail, on a 해라체/반말 line HASIPSIO_ENDING cannot see", () => {
+    const bad = clone(GOOD_SLIM);
+    bad.grammar.explanation = "훌륭하다";
+    const violations = validateSlim(bad);
+    expect(violations.some((v) => v.check === "haeyo.register" && v.severity === "warn")).toBe(true);
+    expect(violations.some((v) => v.check === "haeyo" && v.severity === "error")).toBe(false);
+  });
+
+  it("does not fire on ordinary 해요체 output, -답니다/-랍니다, or strings with English examples", () => {
+    const ok = clone(GOOD_SLIM);
+    ok.grammar.explanation = "중복을 피하면 훨씬 깔끔해진답니다.";
+    ok.naturalExpression.reason.description = "원어민이 가장 선호하는 방식이랍니다.";
+    ok.writingScore.encouragementMessage = '"Could I get a coffee, please?"처럼 말하면 더 자연스러워요.';
+    expect(validateSlim(ok).some((v) => v.check === "haeyo.register")).toBe(false);
+  });
+});
+
 describe("compareLevelSensitivity", () => {
   /** a response that differs from GOOD_SLIM in explanation and suggested phrasing */
   function variant(explanation: string, suggestion: string) {
@@ -545,8 +623,13 @@ describe("compareLevelSensitivity", () => {
   });
 
   it("fails when the explanation is identical at both levels", () => {
-    // This is the exact 2026-07-18 finding: lv-starter and lv-expert came back
-    // character-for-character identical, proving `level` was ignored entirely.
+    // This test uses the same object for both sides on purpose (both fields identical), but
+    // that is a synthetic worst case for exercising this branch — it is NOT what the
+    // corrected 2026-07-18 baseline measured. That baseline found "비교된 5회 중 설명 동일
+    // 0회 · 제안 문장 동일 5회" (docs/design/prompt-system.md): grammar.explanation already
+    // varied every repeat even before the prompt mentioned `level`, and only the suggested
+    // sentence was level-blind. (An earlier, pre-fix-round sweep did show both fields fully
+    // identical, but that number predates a harness correction.)
     const same = variant("지난 일은 met을 써요.", "I met my friend.");
     const violations = compareLevelSensitivity(clone(same), clone(same));
     expect(violations.some((v) => v.check === "level.explanation" && v.severity === "error")).toBe(true);

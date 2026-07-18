@@ -141,6 +141,52 @@ export function findHasipsioSentences(s: string): string[] {
   return splitSentences(s).filter((sentence) => HASIPSIO_ENDING.test(sentence));
 }
 
+/**
+ * Sentence-final endings this WHITELIST accepts without flagging: 해요체 (anything ending in
+ * the syllable `요` or `죠` — covers `-아요`/`-어요`/`-네요`/`-거든요`/`-예요`/`-이죠`/… without
+ * enumerating every conjugation) plus the two conversational endings HASIPSIO_ENDING already
+ * carves out, `-답니다`/`-랍니다` — carried over verbatim so the two checks never disagree about
+ * what counts as warm-but-acceptable.
+ */
+const HAEYO_OR_ALLOWED_ENDING = /(?:[요죠]|답니다|랍니다)$/u;
+
+/**
+ * `haeyo.register` (warn) restores the coverage the 하십시오체-only blacklist above cannot
+ * offer: HASIPSIO_ENDING only catches ONE drift direction — `-입니다`/`-습니다`/`-ㅂ니다`. It
+ * says nothing about 반말 (plain form, e.g. "훌륭하다") or 해라체, which a prompt edit pushing
+ * toward *casualness* (a plausible direction for this app's warm voice) could just as easily
+ * drift into, and the 하십시오체-only gate would report a clean sweep while that happened. This
+ * is a WHITELIST — a Korean sentence must end in an accepted 해요체 ending or one of the two
+ * allowed conversational endings, or it is flagged — which is strictly broader than the
+ * blacklist above (every 하십시오체 ending also fails this whitelist, so `haeyo.register` also
+ * refires on the same sentences `haeyo` does; that overlap is expected, not a bug).
+ *
+ * Calibration / false-positive reasoning — why this is `warn`, not `error`:
+ * - This whitelist has never been run against a live sweep, so its false-positive rate on real
+ *   model output is unmeasured, unlike HASIPSIO_ENDING's blacklist (measured at 135/153 true
+ *   positives on the 2026-07-18 sweep, see its own comment). Promoting an unmeasured heuristic
+ *   straight to `error` risks failing an otherwise-clean sweep on a false alarm, and a noisy
+ *   gate gets ignored — exactly what this file's header comment warns a machine gate must not
+ *   become. `warn` lets it surface drift in the report without being able to fail a sweep.
+ * - English example text is the biggest false-positive risk and is handled structurally, not by
+ *   a special case: `splitSentences` fragments a field on sentence punctuation, and a fragment
+ *   that is a bare English quote or example (e.g. an explanation quoting `"Could I get a
+ *   coffee?"`) ends in an English word, not 요/죠/답니다/랍니다 — but it is skipped entirely by
+ *   the `HANGUL.test` guard below, because it contains no Hangul syllable at all. Only fragments
+ *   that are actually Korean prose are judged.
+ * - `-답니다`/`-랍니다` end in `니다`, not `요`/`죠`, so without the explicit alternation this
+ *   whitelist would flag the exact warm endings the prompt and HASIPSIO_ENDING both allow — the
+ *   two checks would then disagree on identical input. The alternation keeps them in lockstep.
+ * - Quoted fragments embedded mid-sentence (`이 표현은 "already good"처럼...`) do not reach the
+ *   end-anchor unless the quote IS the sentence end, in which case the wrapping-quote strip in
+ *   `splitSentences` already applies before this check runs, same as it does for `haeyo`.
+ */
+export function findHaeyoRegisterDrift(s: string): string[] {
+  return splitSentences(s).filter(
+    (sentence) => HANGUL.test(sentence) && !HAEYO_OR_ALLOWED_ENDING.test(sentence)
+  );
+}
+
 function makeCollector(): { out: Violation[]; err: (c: string, d: string) => void; warn: (c: string, d: string) => void } {
   const out: Violation[] = [];
   return {
@@ -208,7 +254,8 @@ function checkSectionOrder(
 function checkKoreanString(
   value: unknown,
   check: string,
-  err: (c: string, d: string) => void
+  err: (c: string, d: string) => void,
+  warn: (c: string, d: string) => void
 ): void {
   if (typeof value !== "string" || value.trim() === "") {
     err(check, "missing or empty");
@@ -225,6 +272,18 @@ function checkKoreanString(
     // folded into structural errors — a drifted register and a broken schema are different
     // kinds of failure and each hides the other when summed.
     err("haeyo", `${check} uses 하십시오체 (해요체 required): ${offenders.join(" / ")}`);
+  }
+  // `warn`, not `error` (see findHaeyoRegisterDrift's comment for the full calibration): this
+  // is a broader, unmeasured heuristic layered ON TOP of `haeyo` above — it can and does refire
+  // on the same 하십시오체 sentences, and additionally catches 반말/해라체 drift that `haeyo`
+  // structurally cannot. Reported under its own id so it never contaminates what `haeyo` (and
+  // run.js's `말투 위반` column) means.
+  const driftOffenders = findHaeyoRegisterDrift(value);
+  if (driftOffenders.length > 0) {
+    warn(
+      "haeyo.register",
+      `${check} drifts from 해요체 (허용된 종결어미 아님): ${driftOffenders.join(" / ")}`
+    );
   }
 }
 
@@ -269,7 +328,7 @@ export function countIncorrectSegments(json: unknown): number {
 }
 
 export function validateSlim(json: unknown, expected: CaseExpectation = {}): Violation[] {
-  const { out, err } = makeCollector();
+  const { out, err, warn } = makeCollector();
   if (!isRecord(json)) {
     err("shape", "top level is not a JSON object");
     return out;
@@ -296,7 +355,7 @@ export function validateSlim(json: unknown, expected: CaseExpectation = {}): Vio
         err("expect.scoreMax", `score ${score} above expected maximum ${expected.scoreMax}`);
       }
     }
-    checkKoreanString(ws.encouragementMessage, "writingScore.encouragementMessage", err);
+    checkKoreanString(ws.encouragementMessage, "writingScore.encouragementMessage", err, warn);
   }
 
   // ── grammar ───────────────────────────────────────────────────────────────
@@ -310,7 +369,7 @@ export function validateSlim(json: unknown, expected: CaseExpectation = {}): Vio
     } else {
       checkSegments(cs.segments, "grammar.segments", GRAMMAR_SEGMENT_TYPES, err);
     }
-    checkKoreanString(grammar.explanation, "grammar.explanation", err);
+    checkKoreanString(grammar.explanation, "grammar.explanation", err, warn);
   }
 
   const incorrect = countIncorrectSegments(json);
@@ -337,7 +396,7 @@ export function validateSlim(json: unknown, expected: CaseExpectation = {}): Vio
       if (typeof reason.keyword !== "string" || reason.keyword.trim() === "") {
         err("naturalExpression.reason.keyword", "missing or empty");
       }
-      checkKoreanString(reason.description, "naturalExpression.reason.description", err);
+      checkKoreanString(reason.description, "naturalExpression.reason.description", err, warn);
     }
   }
 
@@ -345,7 +404,7 @@ export function validateSlim(json: unknown, expected: CaseExpectation = {}): Vio
 }
 
 export function validateDeep(json: unknown): Violation[] {
-  const { out, err } = makeCollector();
+  const { out, err, warn } = makeCollector();
   if (!isRecord(json)) {
     err("shape", "top level is not a JSON object");
     return out;
@@ -358,8 +417,8 @@ export function validateDeep(json: unknown): Violation[] {
   if (!isRecord(cb)) {
     err("conceptualBridge", "missing");
   } else {
-    checkKoreanString(cb.literalTranslation, "conceptualBridge.literalTranslation", err);
-    checkKoreanString(cb.explanation, "conceptualBridge.explanation", err);
+    checkKoreanString(cb.literalTranslation, "conceptualBridge.literalTranslation", err, warn);
+    checkKoreanString(cb.explanation, "conceptualBridge.explanation", err, warn);
     const venn = cb.venn;
     if (!isRecord(venn)) {
       err("venn", "missing");
@@ -524,8 +583,13 @@ function suggestionOf(json: Record<string, unknown>): string | null {
  * What level must change, and what it must not:
  *   - `grammar.explanation` and the suggested phrasing MUST adapt — a starter needs simpler
  *     Korean and an easier alternative sentence than an expert. Identical output across the
- *     pair is the signature of `level` being ignored outright (exactly what the 2026-07-18
- *     sweep found: the two responses were character-for-character identical).
+ *     pair is the signature of `level` being ignored. The CORRECTED 2026-07-18 baseline (see
+ *     docs/design/prompt-system.md) found this at only ONE of the two fields: "비교된 5회 중
+ *     설명 동일 0회 · 제안 문장 동일 5회" — `grammar.explanation` already varied every repeat
+ *     even before the prompt mentioned `level` at all, and only the suggested sentence
+ *     (`naturalExpression`) was level-blind. (An earlier, pre-fix-round sweep did show BOTH
+ *     fields fully identical, but that number predates a harness correction and is not the one
+ *     to cite.)
  *   - `writingScore.score` must NOT move. The score judges the English itself, so the same
  *     sentence scores the same at every level — otherwise a learner who changes level sees
  *     their number jump for no reason they can perceive. A drift is a `warn` rather than an
@@ -545,6 +609,16 @@ function suggestionOf(json: Record<string, unknown>): string | null {
  * would, if the two conditions shared one id, count an empty field as a level-insensitivity
  * finding — reporting "the explanation was identical" when nothing was ever compared. Both
  * stay `error` severity; only the id and message differ.
+ *
+ * IMPORTANT — what a pass here does and does not prove: FEEDBACK_SYSTEM_PROMPT (gemini.ts)
+ * now instructs, near-verbatim, "the same English submitted at starter and at expert must
+ * NEVER come back with the same suggested sentence" — the exact condition
+ * `level.naturalExpression` fails on. The instrument and the instruction are the same
+ * sentence. A pass therefore demonstrates INSTRUCTION COMPLIANCE (the model is doing what it
+ * was told), not that the suggestion's difficulty is actually level-appropriate for the
+ * learner — that remains a human read of the report's rendered output. It is still a
+ * valuable regression alarm (a future prompt edit that weakens or drops the instruction would
+ * be caught immediately), just not independent evidence that `level` is being handled well.
  */
 export function compareLevelSensitivity(lower: unknown, higher: unknown): Violation[] {
   const { out, err, warn } = makeCollector();

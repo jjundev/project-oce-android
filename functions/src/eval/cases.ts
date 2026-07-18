@@ -196,8 +196,12 @@ export const CASES: readonly EvalCase[] = [
   // ── level-variance — identical English, different level ─────────────────────
   // These two carry identical English and differ only in `level`. FEEDBACK_SYSTEM_PROMPT now
   // instructs the model to adapt its explanation and suggested phrasing to `level` while
-  // holding the score absolute (2026-07-18), so identical output across the pair means the
-  // instruction is not landing — compareLevelSensitivity in ./validate.ts is what judges it.
+  // holding the score absolute (2026-07-18) — compareLevelSensitivity in ./validate.ts is
+  // what judges it. The corrected 2026-07-18 baseline (docs/design/prompt-system.md) found
+  // "비교된 5회 중 설명 동일 0회 · 제안 문장 동일 5회": grammar.explanation already varied at
+  // every repeat even before the prompt mentioned `level` at all, so only the suggested
+  // sentence (naturalExpression) was the level-blind signal — not both fields identically, as
+  // an earlier, pre-fix-round sweep had suggested.
   {
     id: "lv-starter",
     category: "level-variance",
