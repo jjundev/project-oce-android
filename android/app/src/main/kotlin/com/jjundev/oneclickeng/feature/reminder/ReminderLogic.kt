@@ -69,6 +69,7 @@ object ReminderLogic {
      * - [pickVariant] 는 프로덕션에서 `Random.nextInt`, 테스트에서 고정 인덱스를 주입하는 seam이다
      *   (`ReminderScheduler.nowProvider` 와 동일한 스타일).
      */
+    @Suppress("LongParameterList")
     fun buildContent(
         streak: Int?,
         lastStudyDate: LocalDate?,

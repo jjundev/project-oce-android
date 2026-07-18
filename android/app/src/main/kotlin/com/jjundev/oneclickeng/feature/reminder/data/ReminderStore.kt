@@ -49,6 +49,7 @@ data class ReminderCache(
  * 이 seam 은 [com.jjundev.oneclickeng.feature.reminder.ReminderOrchestrator] 내부 저장소 adapter 이다.
  * UI/Worker/Application 같은 lifecycle adapter 는 이 저장소가 아니라 product seam 인 orchestrator 를 주입한다.
  */
+@Suppress("TooManyFunctions")
 interface ReminderStore {
     /** 설정 행/스케줄러가 관측하는 라이브 설정 스트림. */
     val config: Flow<ReminderConfig>
