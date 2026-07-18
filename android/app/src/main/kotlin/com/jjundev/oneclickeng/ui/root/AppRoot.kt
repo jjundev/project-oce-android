@@ -63,7 +63,8 @@ const val MAIN_TABS_ROUTE = "main_tabs"
  * ([AppViewModel.uiState]): Loading=splash / NeedsOnboarding=온보딩 / MainReady=3탭. 홈 CTA·이어하기는 outer
  * NavController 를 통해 세션 그래프로 진입하고, 종료 시 그래프만 pop 해 3탭 셸을 보존한다.
  *
- * @param startRoute 명시 시작 목적지 override(테스트 seam). null 이면 부트 게이트로 결정한다.
+ * @param startRoute 명시 시작 목적지 override(테스트 seam) — non-null 이면 강제 업데이트 게이트
+ * ([UpdateGateViewModel]) 도 건너뛴다. null 이면 부트 게이트로 결정한다.
  * @param pendingNav 알림 탭 nav 명령(M3-07). [MainTabsScaffold] 로 전달돼 홈 이동으로 소비된다.
  */
 @Suppress("CyclomaticComplexMethod", "ReturnCount")
@@ -73,42 +74,44 @@ fun AppRoot(
     pendingNav: String? = null,
     onNavConsumed: () -> Unit = {},
 ) {
-    val updateGateViewModel = hiltViewModel<UpdateGateViewModel>()
-    val updateGateState by updateGateViewModel.state.collectAsStateWithLifecycle()
-    val updateContext = LocalContext.current
-    val updateLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
-            // 사용자가 강제 업데이트를 취소/실패시키면 archive MainActivity 와 동일하게 앱을 종료한다.
-            if (result.resultCode != Activity.RESULT_OK) {
-                (updateContext as? Activity)?.finish()
-            }
-        }
-    LaunchedEffect(updateGateState) {
-        if (updateGateState == UpdateGateState.Required) {
-            updateGateViewModel.launchUpdate(updateLauncher)
-        }
-    }
-    val updateLifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(updateLifecycleOwner) {
-        val observer =
-            LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_RESUME) {
-                    updateGateViewModel.onResumeCheck()
+    if (startRoute == null) {
+        val updateGateViewModel = hiltViewModel<UpdateGateViewModel>()
+        val updateGateState by updateGateViewModel.state.collectAsStateWithLifecycle()
+        val updateContext = LocalContext.current
+        val updateLauncher =
+            rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+                // 사용자가 강제 업데이트를 취소/실패시키면 archive MainActivity 와 동일하게 앱을 종료한다.
+                if (result.resultCode != Activity.RESULT_OK) {
+                    (updateContext as? Activity)?.finish()
                 }
             }
-        updateLifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { updateLifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-    when (updateGateState) {
-        UpdateGateState.Checking -> {
-            BootSplash()
-            return
+        LaunchedEffect(updateGateState) {
+            if (updateGateState == UpdateGateState.Required) {
+                updateGateViewModel.launchUpdate(updateLauncher)
+            }
         }
-        UpdateGateState.Required -> {
-            OneClickUpdateGate(onUpdateNow = { updateGateViewModel.launchUpdate(updateLauncher) })
-            return
+        val updateLifecycleOwner = LocalLifecycleOwner.current
+        DisposableEffect(updateLifecycleOwner) {
+            val observer =
+                LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) {
+                        updateGateViewModel.onResumeCheck(updateLauncher)
+                    }
+                }
+            updateLifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { updateLifecycleOwner.lifecycle.removeObserver(observer) }
         }
-        UpdateGateState.NotRequired -> Unit
+        when (updateGateState) {
+            UpdateGateState.Checking -> {
+                BootSplash()
+                return
+            }
+            UpdateGateState.Required -> {
+                OneClickUpdateGate(onUpdateNow = { updateGateViewModel.launchUpdate(updateLauncher) })
+                return
+            }
+            UpdateGateState.NotRequired -> Unit
+        }
     }
 
     val appViewModel = hiltViewModel<AppViewModel>()

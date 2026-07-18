@@ -49,9 +49,23 @@ class UpdateGateViewModelTest {
         val model = UpdateGateViewModel(checker)
         assertEquals(UpdateGateState.NotRequired, model.state.value)
 
-        model.onResumeCheck()
+        model.onResumeCheck(NoOpLauncher)
 
         assertEquals(UpdateGateState.Required, model.state.value)
+        assertEquals(1, checker.launchCalls)
+    }
+
+    @Test
+    fun `resume check launches the update even when state is already Required`() {
+        val checker = FakeAppUpdateChecker(immediateRequired = true, inProgress = true)
+        val model = UpdateGateViewModel(checker)
+        assertEquals(UpdateGateState.Required, model.state.value)
+        val launchesBeforeResume = checker.launchCalls
+
+        model.onResumeCheck(NoOpLauncher)
+
+        assertEquals(UpdateGateState.Required, model.state.value)
+        assertEquals(launchesBeforeResume + 1, checker.launchCalls)
     }
 
     @Test
@@ -60,7 +74,7 @@ class UpdateGateViewModelTest {
         val model = UpdateGateViewModel(checker)
         assertEquals(UpdateGateState.Checking, model.state.value)
 
-        model.onResumeCheck()
+        model.onResumeCheck(NoOpLauncher)
 
         assertEquals(0, checker.inProgressCalls)
     }

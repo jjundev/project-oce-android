@@ -44,14 +44,18 @@ class UpdateGateViewModel
 
         /**
          * [AppRoot] 의 ON_RESUME 훅(archive `onResume` 이식). 최초 판정이 끝나기 전(=[UpdateGateState.Checking])
-         * 이면 아직 결정할 게 없으니 no-op. 이미 진행 중인 업데이트가 있으면 다시 [UpdateGateState.Required]
-         * 로 세팅해 [AppRoot] 의 재개 트리거를 유도한다.
+         * 이면 아직 결정할 게 없으니 no-op. 이미 진행 중인 업데이트가 있으면 [UpdateGateState.Required] 로
+         * 세팅하고 [launchUpdate] 를 직접 호출한다 — `Required` 는 data object 라 이미 `Required` 상태일 때
+         * (백그라운드로 갔다가 돌아온 흔한 경우) `_state.value = Required` 는 StateFlow 를 emit 하지 않으므로
+         * [AppRoot] 의 `LaunchedEffect(updateGateState)` 만으로는 재트리거되지 않는다 — 그래서 여기서 직접
+         * 호출한다. [launchUpdate] 자체의 in-flight 가드가 중복 실행을 막는다.
          */
-        fun onResumeCheck() {
+        fun onResumeCheck(launcher: ActivityResultLauncher<IntentSenderRequest>) {
             if (_state.value == UpdateGateState.Checking) return
             viewModelScope.launch {
                 if (runCatching { updateChecker.isUpdateInProgress() }.getOrDefault(false)) {
                     _state.value = UpdateGateState.Required
+                    launchUpdate(launcher)
                 }
             }
         }
