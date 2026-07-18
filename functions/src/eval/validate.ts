@@ -29,11 +29,36 @@ export interface Violation {
 
 const HANGUL = /[가-힣]/;
 const HEX_COLOR = /#[0-9a-fA-F]{3,8}\b/;
-const COLOR_KEY = /"colou?r"\s*:/i;
+/** exact key "color"/"colour" OR a compound key ENDING in it (textColor, bgColour, ...). */
+const COLOR_KEY = /"[a-zA-Z0-9_]*colou?r"\s*:/i;
+/** rgb()/rgba()/hsl()/hsla() function syntax, wherever it appears in the serialized output. */
+const COLOR_FUNCTION = /\b(?:rgb|rgba|hsl|hsla)\(\s*[^)]*\)/i;
+/**
+ * Common CSS named colours. Matched ONLY as a JSON string value that is EXACTLY one of
+ * these words (see NAMED_COLOR_VALUE below) — never as a free-text scan. A learner
+ * sentence like "The red car is fast" or a Korean explanation that happens to use the
+ * English word "red" mid-sentence must NOT trip this: those are multi-word string
+ * values, so they never match the anchored `:"word"` pattern. Only a field whose ENTIRE
+ * value is a bare colour token (the shape a leaking style value would take) matches.
+ */
+const CSS_NAMED_COLORS = [
+  "red", "orange", "yellow", "green", "blue", "indigo", "violet", "purple",
+  "pink", "brown", "black", "white", "gray", "grey", "cyan", "magenta",
+  "teal", "navy", "maroon", "olive", "lime", "aqua", "silver", "gold",
+  "beige", "coral", "crimson", "turquoise", "salmon", "khaki", "lavender",
+  "plum", "orchid", "chocolate", "tan", "ivory", "azure", "mint",
+];
+const NAMED_COLOR_VALUE = new RegExp(`:\\s*"(?:${CSS_NAMED_COLORS.join("|")})"`, "i");
 const GRAMMAR_SEGMENT_TYPES = new Set(["normal", "incorrect", "correction", "highlight"]);
 const NATURAL_SEGMENT_TYPES = new Set(["normal", "highlight"]);
 /** feedback-deep.md: venn items are single words or short phrases, never sentences */
 const MAX_VENN_ITEM_WORDS = 4;
+/** feedback-deep.md: venn `items` (per-circle and intersection) are 1-3 short notes. */
+const MIN_VENN_ITEMS = 1;
+const MAX_VENN_ITEMS = 3;
+/** fixed top-level section order the streaming parsers rely on (see feedback.ts, feedback-deep.ts). */
+const SLIM_SECTION_ORDER = ["writingScore", "grammar", "naturalExpression"] as const;
+const DEEP_SECTION_ORDER = ["conceptualBridge", "toneStyle", "paraphrasing"] as const;
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -53,15 +78,57 @@ function makeCollector(): { out: Violation[]; err: (c: string, d: string) => voi
   };
 }
 
-/** Colours are computed client-side (feedback-slim.md, feedback-deep.md) — the model must emit none. */
+/**
+ * Colours are computed client-side (feedback-slim.md, feedback-deep.md) — the model must
+ * emit none. Both prompts carry an emphatic "NO colors anywhere" rule, and negative
+ * instructions like that are exactly what erodes first as sampling loosens, so this check
+ * is widened beyond bare hex codes / an exact `color`/`colour` key: it also catches
+ * compound keys ending in colour (`textColor`, `bgColour`), `rgb()`/`rgba()`/`hsl()`/
+ * `hsla()` function syntax, and bare named-colour string values (see NAMED_COLOR_VALUE's
+ * comment for why that last one is anchored rather than a free-text scan).
+ */
 function checkNoColor(root: Record<string, unknown>, err: (c: string, d: string) => void): void {
   const serialized = JSON.stringify(root);
   const hex = HEX_COLOR.exec(serialized);
   if (hex) {
     err("no-color", `hex colour in output: ${hex[0]}`);
   }
-  if (COLOR_KEY.test(serialized)) {
-    err("no-color", "a colour key is present in output");
+  const colorKey = COLOR_KEY.exec(serialized);
+  if (colorKey) {
+    err("no-color", `a colour key is present in output: ${colorKey[0]}`);
+  }
+  const colorFn = COLOR_FUNCTION.exec(serialized);
+  if (colorFn) {
+    err("no-color", `colour function syntax in output: ${colorFn[0]}`);
+  }
+  const namedColor = NAMED_COLOR_VALUE.exec(serialized);
+  if (namedColor) {
+    err("no-color", `named colour value in output: ${namedColor[0]}`);
+  }
+}
+
+/**
+ * Slim/deep both stream to the client via an incremental parser that relies on the
+ * schema's `propertyOrdering` (feedback.ts / IncrementalFeedbackParser): each top-level
+ * section is only safe to render once it — and everything before it — has arrived in
+ * order. `JSON.parse` preserves key insertion order, so the parsed object already carries
+ * this information; a temperature-induced reorder would silently degrade production from
+ * incremental rendering to one late burst, and nothing else here would catch it. Only
+ * keys that are actually PRESENT are compared (in relative order) against the fixed
+ * order — a genuinely missing section is already reported by the per-section checks above/
+ * below, so this must not double-report it.
+ */
+function checkSectionOrder(
+  root: Record<string, unknown>,
+  order: readonly string[],
+  err: (c: string, d: string) => void
+): void {
+  const expected = order.filter((k) => Object.prototype.hasOwnProperty.call(root, k));
+  const actual = Object.keys(root).filter((k) => (order as readonly string[]).includes(k));
+  const expectedLabel = expected.join(" → ") || "(none present)";
+  const actualLabel = actual.join(" → ") || "(none present)";
+  if (actualLabel !== expectedLabel) {
+    err("section-order", `expected order ${expectedLabel}, got ${actualLabel}`);
   }
 }
 
@@ -132,6 +199,7 @@ export function validateSlim(json: unknown, expected: CaseExpectation = {}): Vio
     return out;
   }
   checkNoColor(json, err);
+  checkSectionOrder(json, SLIM_SECTION_ORDER, err);
 
   // ── writingScore ──────────────────────────────────────────────────────────
   const ws = json.writingScore;
@@ -207,6 +275,7 @@ export function validateDeep(json: unknown): Violation[] {
     return out;
   }
   checkNoColor(json, err);
+  checkSectionOrder(json, DEEP_SECTION_ORDER, err);
 
   // ── conceptualBridge ──────────────────────────────────────────────────────
   const cb = json.conceptualBridge;
@@ -331,6 +400,14 @@ function checkVennItems(
   if (!Array.isArray(items)) {
     err(check, `${where}: items is not an array`);
     return;
+  }
+  // feedback-deep.md: `items` is 1-3 short meaning notes — an empty array is not a
+  // degenerate-but-valid case, it's the prompt's cardinality rule silently unmet.
+  if (items.length < MIN_VENN_ITEMS || items.length > MAX_VENN_ITEMS) {
+    err(
+      check,
+      `${where}: expected ${MIN_VENN_ITEMS}-${MAX_VENN_ITEMS} items, got ${items.length}`
+    );
   }
   items.forEach((item, i) => {
     if (typeof item !== "string" || item.trim() === "") {

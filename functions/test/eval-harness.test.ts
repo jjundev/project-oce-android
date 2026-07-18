@@ -168,6 +168,65 @@ describe("validateSlim", () => {
     expect(validateSlim(GOOD_SLIM, { scoreMax: 80 }).some((v) => v.check === "expect.scoreMax")).toBe(true);
     expect(validateSlim(GOOD_SLIM, { scoreMin: 80, scoreMax: 90 })).toEqual([]);
   });
+
+  // ── section order (Fix 2) — production streams sections in schema propertyOrdering
+  // order (feedback.ts IncrementalFeedbackParser); a reorder silently degrades that to
+  // one late burst, and nothing else here checks it. ─────────────────────────────────
+  it("passes when the three top-level sections are in the fixed writingScore → grammar → naturalExpression order", () => {
+    // GOOD_SLIM's own literal key order already matches — this is the control case.
+    expect(validateSlim(GOOD_SLIM).some((v) => v.check === "section-order")).toBe(false);
+  });
+
+  it("flags a reordered-but-otherwise-valid response", () => {
+    const reordered = {
+      grammar: GOOD_SLIM.grammar,
+      writingScore: GOOD_SLIM.writingScore,
+      naturalExpression: GOOD_SLIM.naturalExpression,
+    };
+    expect(validateSlim(reordered).some((v) => v.check === "section-order" && v.severity === "error")).toBe(true);
+  });
+
+  it("does not double-report a section that is simply absent as an order violation", () => {
+    const missingNatural = { writingScore: GOOD_SLIM.writingScore, grammar: GOOD_SLIM.grammar };
+    const violations = validateSlim(missingNatural);
+    expect(violations.some((v) => v.check === "naturalExpression")).toBe(true);
+    expect(violations.some((v) => v.check === "section-order")).toBe(false);
+  });
+
+  // ── widened colour check (Fix 9) ────────────────────────────────────────────────────
+  it("catches a compound key ending in Color/Colour (textColor, bgColour) even with a non-hex, non-named value", () => {
+    const bad1 = { ...clone(GOOD_SLIM), writingScore: { ...GOOD_SLIM.writingScore, textColor: "primary" } };
+    expect(validateSlim(bad1).some((v) => v.check === "no-color")).toBe(true);
+    const bad2 = { ...clone(GOOD_SLIM), writingScore: { ...GOOD_SLIM.writingScore, bgColour: "brand01" } };
+    expect(validateSlim(bad2).some((v) => v.check === "no-color")).toBe(true);
+  });
+
+  it("catches rgb()/rgba()/hsl()/hsla() function syntax regardless of key name", () => {
+    const rgb = { ...clone(GOOD_SLIM), writingScore: { ...GOOD_SLIM.writingScore, bg: "rgb(255,0,0)" } };
+    expect(validateSlim(rgb).some((v) => v.check === "no-color")).toBe(true);
+    const rgba = { ...clone(GOOD_SLIM), writingScore: { ...GOOD_SLIM.writingScore, bg: "rgba(0,0,0,0.5)" } };
+    expect(validateSlim(rgba).some((v) => v.check === "no-color")).toBe(true);
+    const hsl = { ...clone(GOOD_SLIM), writingScore: { ...GOOD_SLIM.writingScore, bg: "hsl(0,100%,50%)" } };
+    expect(validateSlim(hsl).some((v) => v.check === "no-color")).toBe(true);
+    const hsla = { ...clone(GOOD_SLIM), writingScore: { ...GOOD_SLIM.writingScore, bg: "hsla(0,100%,50%,0.5)" } };
+    expect(validateSlim(hsla).some((v) => v.check === "no-color")).toBe(true);
+  });
+
+  it("catches a bare named-colour string value", () => {
+    const bad = { ...clone(GOOD_SLIM), writingScore: { ...GOOD_SLIM.writingScore, bg: "Coral" } };
+    expect(validateSlim(bad).some((v) => v.check === "no-color")).toBe(true);
+  });
+
+  it("does NOT flag a legitimate learner-facing sentence that merely contains a colour word", () => {
+    // "red" appears mid-sentence, not as a bare colour-token value — must not trip the
+    // widened named-colour check (that's the calibration this check depends on).
+    const ok = clone(GOOD_SLIM);
+    ok.grammar.correctedSentence.segments = [
+      { text: "The red car is fast.", type: "normal" },
+    ];
+    const violations = validateSlim(ok);
+    expect(violations.some((v) => v.check === "no-color")).toBe(false);
+  });
 });
 
 describe("scoreOf / countIncorrectSegments", () => {
@@ -255,5 +314,32 @@ describe("validateDeep", () => {
     // cast at the leaf only — the surrounding object keeps its inferred type
     (bad.conceptualBridge.venn.leftCircle as Record<string, unknown>).color = "#00FF00";
     expect(validateDeep(bad).some((v) => v.check === "no-color")).toBe(true);
+  });
+
+  // ── section order (Fix 2) — deep streams conceptualBridge → toneStyle → paraphrasing. ──
+  it("passes when the three deep sections are in the fixed order", () => {
+    expect(validateDeep(GOOD_DEEP).some((v) => v.check === "section-order")).toBe(false);
+  });
+
+  it("flags a reordered-but-otherwise-valid deep response", () => {
+    const reordered = {
+      toneStyle: GOOD_DEEP.toneStyle,
+      conceptualBridge: GOOD_DEEP.conceptualBridge,
+      paraphrasing: GOOD_DEEP.paraphrasing,
+    };
+    expect(validateDeep(reordered).some((v) => v.check === "section-order" && v.severity === "error")).toBe(true);
+  });
+
+  // ── venn items cardinality (Fix 10) — 1-3 items, empty was silently accepted before. ──
+  it("rejects an empty venn items array", () => {
+    const bad = clone(GOOD_DEEP);
+    bad.conceptualBridge.venn.leftCircle.items = [];
+    expect(validateDeep(bad).some((v) => v.check === "venn.items")).toBe(true);
+  });
+
+  it("rejects a venn items array with more than three items", () => {
+    const bad = clone(GOOD_DEEP);
+    bad.conceptualBridge.venn.intersection.items = ["하나", "둘", "셋", "넷"];
+    expect(validateDeep(bad).some((v) => v.check === "venn.items")).toBe(true);
   });
 });
