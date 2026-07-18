@@ -1,7 +1,7 @@
 /**
  * Golden case set for the turn-feedback eval harness.
  *
- * Six categories, 13 cases. Each probes a distinct way a Korean learner's English can
+ * Six categories, 14 cases. Each probes a distinct way a Korean learner's English can
  * be wrong (or right), because the failure modes need different things from the model:
  * catching a tense slip is not the same skill as declining to "fix" a sentence that is
  * already native-sounding. `expect` holds only what is MECHANICALLY checkable — whether
@@ -11,7 +11,7 @@
  * Pure data. No network, no I/O — test/eval-harness.test.ts validates it offline.
  */
 import type { FeedbackRequestPayload } from "../llm/feedback";
-import { CaseExpectation } from "./validate";
+import type { CaseExpectation } from "./validate";
 
 export type EvalCategory =
   | "typo-grammar"
@@ -58,7 +58,7 @@ export const CASES: readonly EvalCase[] = [
     expect: { requiresIncorrectSegments: true, scoreMax: 89 },
   },
   {
-    id: "ab-move-meeting",
+    id: "tg-move-meeting",
     category: "typo-grammar",
     note: "'the next week'의 불필요한 관사. 거의 맞는 문장에서 미세한 차이를 잡아내는지.",
     payload: {
