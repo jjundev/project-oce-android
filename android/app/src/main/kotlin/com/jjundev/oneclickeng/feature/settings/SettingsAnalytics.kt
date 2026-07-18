@@ -27,6 +27,8 @@ interface SettingsAnalytics {
     fun accountDeleted()
 
     fun logout()
+
+    fun summarySaveDefaultToggled(enabled: Boolean)
 }
 
 @Singleton
@@ -70,5 +72,12 @@ class FirebaseSettingsAnalytics
 
         override fun logout() {
             analytics.logEvent("logout", Bundle())
+        }
+
+        override fun summarySaveDefaultToggled(enabled: Boolean) {
+            analytics.logEvent(
+                "summary_save_default_toggled",
+                Bundle().apply { putBoolean("enabled", enabled) },
+            )
         }
     }

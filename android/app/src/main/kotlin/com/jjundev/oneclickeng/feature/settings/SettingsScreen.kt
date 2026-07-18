@@ -250,6 +250,7 @@ fun SettingsScreen(
                 showPurgeSheet = true
             },
             onResetClick = { showResetDialog = true },
+            onSummarySaveDefaultChange = viewModel::onSummarySaveDefaultChange,
             onGoogleSave = { onGoogleSave() },
             isGoogleSaveLoading = googleSaveLoading,
             onLogoutClick = { showLogoutDialog = true },
@@ -356,6 +357,7 @@ internal fun SettingsContent(
     onOpenNotificationSettings: () -> Unit,
     onPurgeClick: () -> Unit,
     onResetClick: () -> Unit,
+    onSummarySaveDefaultChange: (Boolean) -> Unit,
     onGoogleSave: () -> Unit,
     onLogoutClick: () -> Unit,
     onDeleteClick: () -> Unit,
@@ -486,6 +488,18 @@ internal fun SettingsContent(
                         title = stringResource(R.string.settings_data_reset),
                         desc = stringResource(R.string.settings_data_reset_desc),
                         onClick = onResetClick,
+                    )
+                    SettingsCardDivider()
+                    SettingsNavRow(
+                        icon = OceIcon.Bookmark,
+                        title = stringResource(R.string.settings_data_save_default),
+                        desc = stringResource(R.string.settings_data_save_default_desc),
+                        trailing = {
+                            OneClickSwitch(
+                                checked = state.summarySaveByDefault,
+                                onCheckedChange = onSummarySaveDefaultChange,
+                            )
+                        },
                     )
                 }
             }

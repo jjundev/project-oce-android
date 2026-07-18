@@ -41,6 +41,7 @@
     <!-- 데이터 관리 -->
     <string name="settings_data_purge">저장 카드 정리</string>
     <string name="settings_data_reset">누적 기록 초기화</string>
+    <string name="settings_data_save_default">표현·단어 자동 저장</string>
 
     <!-- 계정 -->
     <string name="settings_account_google_save">Google로 진도 저장</string>
@@ -92,6 +93,7 @@
     <!-- 설정: 프로토 정합 신규 카피 -->
     <string name="settings_data_purge_desc">보관 기간이 지난 카드를 삭제해요.</string>
     <string name="settings_data_reset_desc">XP · 연속 학습일 · 학습시간을 0으로.</string>
+    <string name="settings_data_save_default_desc">켜면 요약 화면의 새 표현·단어가 자동으로 저장돼요.</string>
     <string name="settings_reminder_title">학습 리마인더</string>
     <string name="settings_reminder_time_label">리마인더 시간</string>
     <string name="settings_reminder_time_desc">단말 시각 기준이에요.</string>

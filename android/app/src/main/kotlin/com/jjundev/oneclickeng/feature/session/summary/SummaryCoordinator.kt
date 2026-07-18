@@ -5,6 +5,7 @@ import com.jjundev.oneclickeng.core.network.SummaryEvent
 import com.jjundev.oneclickeng.core.network.SummaryPayload
 import com.jjundev.oneclickeng.core.network.SummaryRequest
 import com.jjundev.oneclickeng.core.network.SummaryStream
+import com.jjundev.oneclickeng.core.settings.SummarySaveSettingsRepository
 import com.jjundev.oneclickeng.feature.gamification.GamificationTime
 import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
 import com.jjundev.oneclickeng.feature.session.saved.CardType
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -66,6 +68,7 @@ class SummaryCoordinator
         private val bookmarkSource: BookmarkSource,
         private val ledger: CompletionLedger,
         private val savedCardRepository: SavedCardRepository,
+        private val saveSettings: SummarySaveSettingsRepository,
         private val studytime: StudytimeRepository,
         private val scope: CoroutineScope,
     ) {
@@ -92,6 +95,10 @@ class SummaryCoordinator
         private var savedWordIndices = emptySet<Int>()
         private var savedExprIndices = emptySet<Int>()
         private var unsavedBookmarkIds = emptySet<String>()
+
+        // 저장 기본값(설정 화면). start() 가 [beginAttempt] 로 SSE 오픈을 이 값 확정 뒤로 미뤄, 카드 도착
+        // 시점과의 레이스를 없앤다.
+        private var saveByDefault = false
 
         // Per-section accumulators. Before the first `done`, arrived cards set Ready but the bundle
         // still shows BundleLoading (single skeleton) until [sectioned] flips.
@@ -138,6 +145,14 @@ class SummaryCoordinator
             attemptsWord = 0
             attemptsCoaching = 0
 
+            // stale-guard: neutralize any live prior stream synchronously. Before [beginAttempt]
+            // existed this bump/cancel happened inside launchAttempt, called synchronously from here —
+            // airtight the instant start() returned. launchAttempt is now deferred behind a settings
+            // read, so without this, a card from the PRIOR session could arrive and pass the token
+            // guard while the new sessionId is already live, persisting it under the wrong cardId.
+            sessionToken++
+            currentJob?.cancel()
+
             // 완주 적립 시도(요약 진입 시점, #20). fire-and-forget · 멱등.
             ledger.recordCompletion(sessionId = sessionId, difficulty = difficulty, modeId = modeId)
             // studytime 적립 + 적립 스트립 산출(M3-05). 비동기 — 완료 시 accrual 갱신.
@@ -146,7 +161,44 @@ class SummaryCoordinator
             loadBookmarks(sessionId)
 
             emit()
-            launchAttempt(sections = null)
+            beginAttempt(sessionId)
+        }
+
+        /**
+         * 저장 기본값 설정을 1회 읽은 뒤 SSE 를 연다. 표현/단어 카드가 [onEvent] 로 도착하는 시점에
+         * [saveByDefault] 가 이미 확정돼 있어야 자동 저장 여부를 놓치지 않는다 — 네트워크(SSE)보다 로컬
+         * DataStore 읽기가 사실상 항상 먼저 끝나지만, 순서를 코드로 보장해 레이스를 없앤다.
+         *
+         * **가드는 sessionId 가 아니라 `sessionToken` 스냅샷이다.** [loadBookmarks]/[recordAccrual] 은
+         * sessionId 동일성만 가드해도 충분하다 — 그쪽이 지키는 일은 멱등 상태 대입이라, 같은 sessionId 로
+         * 다시 [start] 된 경우 최신 데이터로 한 번 더 덮어써도 무해하다. 반면 여기서 가드하는 일은 SSE
+         * 스트림을 여는 부수효과라, 같은 sessionId 로 `start→reset→start` 가 인터리브되면(예: 요약 화면
+         * leave→re-enter) sessionId 비교만으로는 두 번째 대기 중인 읽기도 통과시켜 스트림을 두 번 열어버린다
+         * (취소되는 쪽도 백엔드에는 이미 유료 Gemini 생성 요청을 하나 태운 뒤다). `sessionToken` 은 [start]
+         * 가 호출될 때마다 bump 되므로, [beginAttempt] 진입 시점에 캡처해두면 각 호출은 자신을 낳은 그
+         * [start] 에만 유효하다 — sessionId 비교는 부가 방어로 남긴다.
+         *
+         * 설정 읽기는 SSE 오픈의 하드 프리컨디션이 아니다: DataStore 읽기가 IOException(-계열인
+         * CorruptionException 포함)으로 실패해도 기본값 "저장"(true)으로 폴백해 그대로 진행한다 —
+         * [start] 에서 [launchAttempt] 까지 아무것도 던지지 않던 이전 불변을 유지한다. 단, **멈추지 않는다는
+         * 것까지는 보장하지 않는다**: `saveSettings.current()` 가 예외 없이 영영 반환하지 않으면
+         * [launchAttempt] 도 워치독도 기동하지 않아 화면이 스켈레톤에 멈춘다 — DataStore 읽기는 실전에서
+         * 사실상 항상 끝나므로 현재는 이 경우를 별도로 방어하지 않는다.
+         */
+        private fun beginAttempt(sessionId: String) {
+            val token = sessionToken // captured synchronously, right after start()'s bump.
+            scope.launch {
+                val resolved =
+                    try {
+                        saveSettings.current().saveByDefault
+                    } catch (_: IOException) {
+                        true
+                    }
+                if (token == sessionToken && sessionId == this@SummaryCoordinator.sessionId) {
+                    saveByDefault = resolved
+                    launchAttempt(sections = null)
+                }
+            }
         }
 
         /**
@@ -175,6 +227,7 @@ class SummaryCoordinator
             savedWordIndices = emptySet()
             savedExprIndices = emptySet()
             unsavedBookmarkIds = emptySet()
+            saveByDefault = false
             _state.value = EMPTY
         }
 
@@ -228,6 +281,27 @@ class SummaryCoordinator
                 savedCardRepository.setDeleted(cardId, CardType.SENTENCE, deleted = true)
             }
             emit()
+        }
+
+        /**
+         * 저장 기본값 ON 일 때 표현 카드 도착 즉시 전 항목을 저장한다. [toggleSaveExpression] 과 같은
+         * cardId 규칙([SavedCardId.forSummary])을 써서 이후 수동 토글(해제)이 정확히 같은 문서를 가리킨다.
+         */
+        private fun autoSaveExpressions(items: List<ExpressionCard>) {
+            val id = sessionId ?: return
+            savedExprIndices = items.indices.toSet()
+            items.forEachIndexed { index, card ->
+                savedCardRepository.save(SavedCardId.forSummary(id, CardType.EXPRESSION, index), card.toSavedCard())
+            }
+        }
+
+        /** [autoSaveExpressions] 와 동형(WORD). */
+        private fun autoSaveWords(items: List<WordCard>) {
+            val id = sessionId ?: return
+            savedWordIndices = items.indices.toSet()
+            items.forEachIndexed { index, card ->
+                savedCardRepository.save(SavedCardId.forSummary(id, CardType.WORD, index), card.toSavedCard())
+            }
         }
 
         private fun loadBookmarks(sessionId: String) {
@@ -301,11 +375,15 @@ class SummaryCoordinator
         ) {
             when (event) {
                 is SummaryEvent.Card.Expression -> {
-                    expression = SummarySectionState.Ready(event.items.take(MAX_EXPRESSIONS).map { it.toDomain() })
+                    val items = event.items.take(MAX_EXPRESSIONS).map { it.toDomain() }
+                    expression = SummarySectionState.Ready(items)
+                    if (saveByDefault) autoSaveExpressions(items)
                     afterCard(token)
                 }
                 is SummaryEvent.Card.Word -> {
-                    word = SummarySectionState.Ready(event.items.take(MAX_WORDS).map { it.toDomain() })
+                    val items = event.items.take(MAX_WORDS).map { it.toDomain() }
+                    word = SummarySectionState.Ready(items)
+                    if (saveByDefault) autoSaveWords(items)
                     afterCard(token)
                 }
                 is SummaryEvent.Card.Coaching -> {

@@ -5,6 +5,8 @@ import com.jjundev.oneclickeng.core.auth.AuthRepository
 import com.jjundev.oneclickeng.core.auth.PendingMerge
 import com.jjundev.oneclickeng.core.auth.PendingMergeStore
 import com.jjundev.oneclickeng.core.auth.ProfileRepository
+import com.jjundev.oneclickeng.core.settings.FakeSummarySaveSettingsRepository
+import com.jjundev.oneclickeng.core.settings.SummarySaveSettingsRepository
 import com.jjundev.oneclickeng.core.settings.TtsQuality
 import com.jjundev.oneclickeng.core.settings.TtsSettings
 import com.jjundev.oneclickeng.core.settings.TtsSettingsRepository
@@ -78,9 +80,27 @@ class SettingsViewModelTest {
             assertEquals(1, studytime.resetCalls)
         }
 
+    @Test
+    fun `onSummarySaveDefaultChange persists the toggle, updates state and logs once`() =
+        runTest {
+            val saveSettings = FakeSummarySaveSettingsRepository()
+            val analytics = RecordingSettingsAnalytics()
+            val model = settingsViewModel(FakeStudytimeRepository(), analytics, summarySaveSettings = saveSettings)
+            advanceUntilIdle()
+            assertEquals(false, model.uiState.value.summarySaveByDefault)
+
+            model.onSummarySaveDefaultChange(true)
+            advanceUntilIdle()
+
+            assertEquals(true, model.uiState.value.summarySaveByDefault)
+            assertEquals(true, saveSettings.currentValue())
+            assertEquals(1, analytics.summarySaveDefaultToggledCount)
+        }
+
     private fun settingsViewModel(
         studytimeRepository: StudytimeRepository,
         analytics: SettingsAnalytics,
+        summarySaveSettings: SummarySaveSettingsRepository = FakeSummarySaveSettingsRepository(),
     ) = SettingsViewModel(
         authRepository = FakeAuth,
         profileRepository = FakeProfile,
@@ -93,6 +113,7 @@ class SettingsViewModelTest {
         },
         accountRepository = FakeAccount,
         pendingMergeStore = FakePendingMergeStore(),
+        summarySaveSettings = summarySaveSettings,
         analytics = analytics,
     )
 }
@@ -193,6 +214,8 @@ private class FakeReminderOrchestrator : ReminderOrchestrator {
 private class RecordingSettingsAnalytics : SettingsAnalytics {
     var metricsResetCount = 0
         private set
+    var summarySaveDefaultToggledCount = 0
+        private set
 
     override fun ttsQualityChanged(provider: String) = Unit
 
@@ -212,6 +235,10 @@ private class RecordingSettingsAnalytics : SettingsAnalytics {
     override fun accountDeleted() = Unit
 
     override fun logout() = Unit
+
+    override fun summarySaveDefaultToggled(enabled: Boolean) {
+        summarySaveDefaultToggledCount++
+    }
 }
 
 private class FakeStudytimeRepository(private val failReset: Boolean = false) : StudytimeRepository {

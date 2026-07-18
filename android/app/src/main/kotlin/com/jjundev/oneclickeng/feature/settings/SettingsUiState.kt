@@ -18,6 +18,8 @@ data class SettingsUiState(
     val reminderEnabled: Boolean = false,
     val reminderHour: Int = ReminderConfig.DEFAULT_HOUR,
     val reminderMinute: Int = ReminderConfig.DEFAULT_MINUTE,
+    /** 요약 화면의 새 표현/단어 카드를 도착 즉시 자동 저장할지(데이터 관리 섹션 스위치). 기본 true. */
+    val summarySaveByDefault: Boolean = true,
     val isGuest: Boolean = true,
     /** 게스트→Google 이관 미완(pendingGuestMerge 마커 존재) → "진도 다시 옮기기" 행 노출. */
     val showRetryMerge: Boolean = false,
