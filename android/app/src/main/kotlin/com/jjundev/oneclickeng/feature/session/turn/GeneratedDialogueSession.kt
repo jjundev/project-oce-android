@@ -23,6 +23,7 @@ import com.jjundev.oneclickeng.core.audio.RecordingResult
 import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
 import com.jjundev.oneclickeng.core.session.SessionLevel
 import com.jjundev.oneclickeng.feature.session.analytics.SessionFunnelAnalytics
+import com.jjundev.oneclickeng.feature.session.analytics.speakingResultLabel
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenState
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenerationCoordinator
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueStreamStatus
@@ -231,6 +232,9 @@ class GeneratedDialogueSessionViewModel
         /** "더 보기" 펼침 여부(호스트 소유 UI 상태). 코디네이터는 개시/캐시만 알고 펼침은 모른다(P3). */
         var deepExpanded by mutableStateOf(false)
             private set
+
+        // deep_feedback_opened dedup — one log per turn even if the user opens/collapses/re-opens (M4-01b).
+        private var deepLoggedThisTurn = false
 
         /** 서버 발급 sessionId(요약 라우팅용, M3-02). 대본 미도착이면 null → 요약 진입은 완주 후에만 일어나 non-null. */
         fun sessionId(): String? = generation.sessionId()
@@ -629,6 +633,12 @@ class GeneratedDialogueSessionViewModel
         // 우리 분석(micState=Analyzing)에만 반응 — Singleton 의 이전 세션 잔여 상태 오반응 차단.
         private fun onAnalysisState(state: SpeakingAnalysisState) {
             if (micState != MicState.Analyzing) return
+            speakingResultLabel(state)?.let { label ->
+                currentSessionId()?.let { sid ->
+                    val turnIndex = turnState.messages.count { it is DialogueMessage.Learner }
+                    sessionFunnel.speakingAnalyzeResult(sid, turnIndex, label)
+                }
+            }
             when (state) {
                 is SpeakingAnalysisState.Result -> {
                     turnState.appendLearnerAnswer(state.transcript)
@@ -675,6 +685,7 @@ class GeneratedDialogueSessionViewModel
             // deep 도 새 턴을 위해 Idle 로 되돌린다(캐시·ephemeral 북마크 파기). 펼침/stash 도 함께 비운다.
             deep.reset()
             deepExpanded = false
+            deepLoggedThisTurn = false
             deepParams = null
             persistResume()
         }
@@ -776,6 +787,10 @@ class GeneratedDialogueSessionViewModel
         fun expandDeep() {
             deepParams?.let { p ->
                 deep.start(p.sessionId, p.turnIndex, p.koreanPrompt, p.userText, p.referenceEnglish, p.level)
+                if (!deepLoggedThisTurn) {
+                    deepLoggedThisTurn = true
+                    sessionFunnel.deepFeedbackOpened(p.sessionId, p.turnIndex)
+                }
             }
             deepExpanded = true
         }
