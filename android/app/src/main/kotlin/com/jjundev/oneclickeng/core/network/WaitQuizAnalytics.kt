@@ -1,5 +1,6 @@
 package com.jjundev.oneclickeng.core.network
 
+import com.jjundev.oneclickeng.core.analytics.AnalyticsSink
 import javax.inject.Inject
 
 /**
@@ -28,4 +29,26 @@ class NoOpWaitQuizAnalytics
             choseCorrect: Boolean,
             cardIndex: Int,
         ) = Unit
+    }
+
+/** Firebase dispatch (M4-01). `wait_quiz_card_answered` — analytics-events.md §4. */
+class FirebaseWaitQuizAnalytics
+    @Inject
+    constructor(
+        private val sink: AnalyticsSink,
+    ) : WaitQuizAnalytics {
+        override fun cardAnswered(
+            sessionId: String?,
+            cardId: String,
+            choseCorrect: Boolean,
+            cardIndex: Int,
+        ) = sink.log(
+            "wait_quiz_card_answered",
+            buildMap {
+                sessionId?.let { put("session_id", it) }
+                put("card_id", cardId)
+                put("chose_correct", choseCorrect)
+                put("card_index", cardIndex.toLong())
+            },
+        )
     }
