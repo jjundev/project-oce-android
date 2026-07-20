@@ -4,6 +4,7 @@ import com.jjundev.oneclickeng.core.network.DeepFeedbackStream
 import com.jjundev.oneclickeng.core.network.FeedbackDeepEvent
 import com.jjundev.oneclickeng.core.network.FeedbackDeepRequest
 import com.jjundev.oneclickeng.core.network.FeedbackPayload
+import com.jjundev.oneclickeng.feature.session.analytics.SavedCardAnalytics
 import com.jjundev.oneclickeng.feature.session.saved.CardType
 import com.jjundev.oneclickeng.feature.session.saved.SavedCard
 import com.jjundev.oneclickeng.feature.session.saved.SavedCardId
@@ -47,6 +48,7 @@ class DeepFeedbackCoordinator
         private val stream: DeepFeedbackStream,
         private val savedCardRepository: SavedCardRepository,
         private val scope: CoroutineScope,
+        private val savedCardAnalytics: SavedCardAnalytics,
     ) {
         private val _state = MutableStateFlow<DeepFeedbackState>(DeepFeedbackState.Idle)
         val state: StateFlow<DeepFeedbackState> = _state.asStateFlow()
@@ -158,6 +160,11 @@ class DeepFeedbackCoordinator
                             english = paraphrase.sentence,
                             korean = paraphrase.sentenceTranslation,
                         ),
+                    )
+                    savedCardAnalytics.savedCardCreate(
+                        sessionId,
+                        SavedCardAnalytics.SURFACE_DEEP_FEEDBACK,
+                        CardType.SENTENCE,
                     )
                 } else {
                     savedCardRepository.setDeleted(cardId, CardType.SENTENCE, deleted = true)
