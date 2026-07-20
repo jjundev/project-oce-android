@@ -13,4 +13,8 @@ abstract class SessionFunnelModule {
     @Binds
     @Singleton
     abstract fun bindSessionFunnelAnalytics(impl: FirebaseSessionFunnelAnalytics): SessionFunnelAnalytics
+
+    @Binds
+    @Singleton
+    abstract fun bindSavedCardAnalytics(impl: FirebaseSavedCardAnalytics): SavedCardAnalytics
 }
