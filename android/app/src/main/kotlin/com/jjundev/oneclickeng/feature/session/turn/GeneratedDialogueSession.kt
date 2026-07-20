@@ -22,6 +22,7 @@ import com.jjundev.oneclickeng.core.audio.RecordingController
 import com.jjundev.oneclickeng.core.audio.RecordingResult
 import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
 import com.jjundev.oneclickeng.core.session.SessionLevel
+import com.jjundev.oneclickeng.feature.session.analytics.MicPermissionAnalytics
 import com.jjundev.oneclickeng.feature.session.analytics.SessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.analytics.speakingResultLabel
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenState
@@ -202,6 +203,7 @@ class GeneratedDialogueSessionViewModel
         private val snapshotStore: SessionSnapshotStore,
         private val tts: TtsPlaybackCoordinator,
         private val sessionFunnel: SessionFunnelAnalytics,
+        private val micPermissionAnalytics: MicPermissionAnalytics,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         val generationState = generation.state
@@ -694,6 +696,14 @@ class GeneratedDialogueSessionViewModel
             textMode = on
             if (!on) textValue = ""
         }
+
+        /** RECORD_AUDIO permission requested (priming sheet → OS dialog). M4-01d. */
+        fun onMicPermissionRequested() =
+            micPermissionAnalytics.requested(MicPermissionAnalytics.SOURCE_SESSION)
+
+        /** RECORD_AUDIO permission result (granted/denied). M4-01d. */
+        fun onMicPermissionResult(granted: Boolean) =
+            micPermissionAnalytics.result(MicPermissionAnalytics.SOURCE_SESSION, granted)
 
         fun onTextChange(value: String) {
             textValue = value
