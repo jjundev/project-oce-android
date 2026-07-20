@@ -9,6 +9,7 @@ import com.jjundev.oneclickeng.core.settings.SummarySaveSettingsRepository
 import com.jjundev.oneclickeng.feature.gamification.GamificationTime
 import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
 import com.jjundev.oneclickeng.feature.reminder.ReminderOrchestrator
+import com.jjundev.oneclickeng.feature.session.analytics.SessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.saved.CardType
 import com.jjundev.oneclickeng.feature.session.saved.SavedCard
 import com.jjundev.oneclickeng.feature.session.saved.SavedCardId
@@ -73,6 +74,7 @@ class SummaryCoordinator
         private val studytime: StudytimeRepository,
         private val reminderOrchestrator: ReminderOrchestrator,
         private val scope: CoroutineScope,
+        private val sessionFunnel: SessionFunnelAnalytics,
     ) {
         private val _state = MutableStateFlow(EMPTY)
         val state: StateFlow<SummaryState> = _state.asStateFlow()
@@ -110,6 +112,9 @@ class SummaryCoordinator
         private var sectioned = false
         private var quota = false
 
+        // summary_partial_failure dedup (M4-01b) — fires at most once per session (see maybeLogPartialFailure).
+        private var partialFailureLogged = false
+
         // Cumulative failure counts per section (persist across retries — #17 누적 임계).
         private var attemptsExpr = 0
         private var attemptsWord = 0
@@ -143,6 +148,7 @@ class SummaryCoordinator
             coaching = SummarySectionState.Loading
             sectioned = false
             quota = false
+            partialFailureLogged = false
             attemptsExpr = 0
             attemptsWord = 0
             attemptsCoaching = 0
@@ -422,6 +428,7 @@ class SummaryCoordinator
                     }
                 }
                 sectioned = true
+                maybeLogPartialFailure()
             } else {
                 quota = true
             }
@@ -449,6 +456,7 @@ class SummaryCoordinator
             resolveSection(SummarySection.Word, done.words)
             resolveSection(SummarySection.Coaching, done.coaching)
             sectioned = true
+            maybeLogPartialFailure()
             emit()
         }
 
@@ -480,7 +488,18 @@ class SummaryCoordinator
                 if (sectionState(section) is SummarySectionState.Loading) failSection(section)
             }
             sectioned = true
+            maybeLogPartialFailure()
             emit()
+        }
+
+        // summary_partial_failure — fire once per session when the summary settles with ≥1 failed section
+        // (partial OR total). Count-only per PII §7. Deduped so failed retries don't re-log (M4-01b).
+        private fun maybeLogPartialFailure() {
+            if (partialFailureLogged) return
+            val failed = SummarySection.entries.count { sectionState(it) is SummarySectionState.Failed }
+            if (failed == 0) return
+            partialFailureLogged = true
+            sessionId?.let { sessionFunnel.summaryPartialFailure(it, failed) }
         }
 
         private fun failSection(section: SummarySection) {

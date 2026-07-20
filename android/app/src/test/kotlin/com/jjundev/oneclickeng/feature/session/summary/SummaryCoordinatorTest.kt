@@ -18,6 +18,8 @@ import com.jjundev.oneclickeng.feature.reminder.ReminderOrchestrator
 import com.jjundev.oneclickeng.feature.reminder.ReminderPromptDecision
 import com.jjundev.oneclickeng.feature.reminder.ReminderRunResult
 import com.jjundev.oneclickeng.feature.reminder.data.ReminderConfig
+import com.jjundev.oneclickeng.feature.session.analytics.NoOpSessionFunnelAnalytics
+import com.jjundev.oneclickeng.feature.session.analytics.SessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.feedback.TurnFeedbackBuffer
 import com.jjundev.oneclickeng.feature.session.saved.CardType
 import com.jjundev.oneclickeng.feature.session.saved.FakeSavedCardRepository
@@ -229,6 +231,7 @@ class SummaryCoordinatorTest {
         saveSettings: SummarySaveSettingsRepository = FakeSummarySaveSettingsRepository(),
         studytime: FakeStudytimeRepository = FakeStudytimeRepository(),
         reminderOrchestrator: FakeReminderOrchestrator = FakeReminderOrchestrator(),
+        sessionFunnel: SessionFunnelAnalytics = NoOpSessionFunnelAnalytics(),
     ) = SummaryCoordinator(
         stream,
         store(),
@@ -239,6 +242,7 @@ class SummaryCoordinatorTest {
         studytime,
         reminderOrchestrator,
         scope,
+        sessionFunnel,
     )
 
     private val accrual = AccrualStrip(streakDays = 3, xp = 40)
