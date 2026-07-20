@@ -10,6 +10,7 @@ import com.jjundev.oneclickeng.feature.reminder.ReminderOrchestrator
 import com.jjundev.oneclickeng.feature.reminder.ReminderPromptDecision
 import com.jjundev.oneclickeng.feature.reminder.ReminderRunResult
 import com.jjundev.oneclickeng.feature.reminder.data.ReminderConfig
+import com.jjundev.oneclickeng.feature.session.analytics.NoOpSavedCardAnalytics
 import com.jjundev.oneclickeng.feature.session.analytics.NoOpSessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.analytics.RecordingSessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.feedback.TurnFeedbackBuffer
@@ -119,6 +120,7 @@ class SummaryViewModelSessionCompleteTest {
             SessionCompleteFakeReminderOrchestrator(),
             scope,
             NoOpSessionFunnelAnalytics(),
+            NoOpSavedCardAnalytics(),
         )
     }
 

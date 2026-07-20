@@ -1,12 +1,11 @@
 package com.jjundev.oneclickeng.feature.session.summary
 
-import com.jjundev.oneclickeng.core.network.CoachingDto
-import com.jjundev.oneclickeng.core.network.ExpressionItemDto
-import com.jjundev.oneclickeng.core.network.FutureSelfFeedbackDto
 import com.jjundev.oneclickeng.core.network.SectionOutcome
 import com.jjundev.oneclickeng.core.network.SummaryEvent
 import com.jjundev.oneclickeng.core.network.SummaryRequest
 import com.jjundev.oneclickeng.core.network.SummaryStream
+import com.jjundev.oneclickeng.core.network.WordExampleDto
+import com.jjundev.oneclickeng.core.network.WordItemDto
 import com.jjundev.oneclickeng.core.settings.FakeSummarySaveSettingsRepository
 import com.jjundev.oneclickeng.feature.gamification.AccrualSnapshot
 import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
@@ -16,8 +15,9 @@ import com.jjundev.oneclickeng.feature.reminder.ReminderRunResult
 import com.jjundev.oneclickeng.feature.reminder.data.ReminderConfig
 import com.jjundev.oneclickeng.feature.session.analytics.NoOpSavedCardAnalytics
 import com.jjundev.oneclickeng.feature.session.analytics.NoOpSessionFunnelAnalytics
-import com.jjundev.oneclickeng.feature.session.analytics.RecordingSessionFunnelAnalytics
-import com.jjundev.oneclickeng.feature.session.analytics.SessionFunnelAnalytics
+import com.jjundev.oneclickeng.feature.session.analytics.RecordingSavedCardAnalytics
+import com.jjundev.oneclickeng.feature.session.analytics.SavedCardAnalytics
+import com.jjundev.oneclickeng.feature.session.saved.CardType
 import com.jjundev.oneclickeng.feature.session.saved.FakeSavedCardRepository
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
@@ -32,12 +32,11 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-// Prefixed `PartialFailure*` — top-level `private` classes collide by name across files in the same
-// package in Kotlin, and `SummaryCoordinatorTest.kt` already declares `FakeSummaryStream` etc. (Task 5
-// hit this with `SessionComplete*`; same fix here).
+// Prefixed `SavedCardFake*` — top-level `private` classes collide by name across files in the same
+// package in Kotlin (Task 5/6 precedent: SessionComplete*/PartialFailure* in the sibling test files).
 
 /** Fake stream: each events() call yields a fresh channel-backed cold flow the test drives. */
-private class PartialFailureFakeSummaryStream : SummaryStream {
+private class SavedCardFakeSummaryStream : SummaryStream {
     private val channels = mutableListOf<Channel<SummaryEvent>>()
 
     override fun events(request: SummaryRequest): Flow<SummaryEvent> {
@@ -49,14 +48,14 @@ private class PartialFailureFakeSummaryStream : SummaryStream {
     fun push(event: SummaryEvent) = channels.last().trySend(event)
 }
 
-private class PartialFailureFakeBookmarkSource : BookmarkSource {
+private class SavedCardFakeBookmarkSource : BookmarkSource {
     override suspend fun latestSentences(
         sessionId: String,
         limit: Int,
     ): List<BookmarkCard> = emptyList()
 }
 
-private class PartialFailureFakeLedger : CompletionLedger {
+private class SavedCardFakeLedger : CompletionLedger {
     override fun recordCompletion(
         sessionId: String,
         difficulty: String,
@@ -64,7 +63,7 @@ private class PartialFailureFakeLedger : CompletionLedger {
     ) = Unit
 }
 
-private class PartialFailureFakeStudytimeRepository : StudytimeRepository {
+private class SavedCardFakeStudytimeRepository : StudytimeRepository {
     override suspend fun recordSession(
         sessionId: String,
         elapsedSeconds: Long,
@@ -80,7 +79,7 @@ private class PartialFailureFakeStudytimeRepository : StudytimeRepository {
     override suspend fun resetMetrics() = Unit
 }
 
-private class PartialFailureFakeReminderOrchestrator : ReminderOrchestrator {
+private class SavedCardFakeReminderOrchestrator : ReminderOrchestrator {
     override val config: Flow<ReminderConfig> = MutableStateFlow(ReminderConfig.DISABLED)
 
     override suspend fun evaluateOptInPrompt(): ReminderPromptDecision = ReminderPromptDecision.DoNotShow
@@ -117,62 +116,69 @@ private class PartialFailureFakeReminderOrchestrator : ReminderOrchestrator {
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class SummaryPartialFailureAnalyticsTest {
+class SummarySavedCardAnalyticsTest {
     /**
      * Mirrors `SummaryCoordinatorTest.coordinator(...)`'s construction (that helper is a private member
-     * of that test class, unreachable here — same constraint Task 5 hit) with minimal fakes, threading
-     * [sessionFunnel] into the constructor.
+     * of that test class, unreachable here — same constraint Task 5/6 hit) with minimal fakes, threading
+     * [savedCardAnalytics] into the (now +1-arg) constructor.
      */
-    private fun newSummaryCoordinatorForTest(
-        stream: PartialFailureFakeSummaryStream,
-        sessionFunnel: SessionFunnelAnalytics = NoOpSessionFunnelAnalytics(),
+    private fun newSummarySavedCardCoordinator(
+        stream: SavedCardFakeSummaryStream,
+        savedCardAnalytics: SavedCardAnalytics = NoOpSavedCardAnalytics(),
     ): SummaryCoordinator {
         val scope: CoroutineScope = CoroutineScope(UnconfinedTestDispatcher())
         return SummaryCoordinator(
             stream,
             SessionTurnBufferStore(),
-            PartialFailureFakeBookmarkSource(),
-            PartialFailureFakeLedger(),
+            SavedCardFakeBookmarkSource(),
+            SavedCardFakeLedger(),
             FakeSavedCardRepository(),
             FakeSummarySaveSettingsRepository(),
-            PartialFailureFakeStudytimeRepository(),
-            PartialFailureFakeReminderOrchestrator(),
+            SavedCardFakeStudytimeRepository(),
+            SavedCardFakeReminderOrchestrator(),
             scope,
-            sessionFunnel,
-            NoOpSavedCardAnalytics(),
+            NoOpSessionFunnelAnalytics(),
+            savedCardAnalytics,
         )
     }
 
-    private fun expressionItem() =
-        ExpressionItemDto("natural", "커피 주세요", "One coffee", "Could I grab a coffee?", "가벼워요.")
+    private fun wordItem() =
+        WordItemDto("grab", "잽싸게", "verb", "B1", WordExampleDto("Let me grab it.", "제가 가져올게요."))
 
-    private fun coachingDto() = CoachingDto(FutureSelfFeedbackDto("끝까지 했어요.", "과거형을 노려봐요."))
+    /** Drives [coordinator] to a Sectioned bundle with one Ready WORD card at index 0 (mirrors
+     * `SummaryCoordinatorTest`'s `toggleSaveWord persists WORD by sourceIndex...` setup). */
+    private fun driveReadyWordSection(
+        coordinator: SummaryCoordinator,
+        stream: SavedCardFakeSummaryStream,
+        sessionId: String,
+    ) {
+        coordinator.start(
+            sessionId = sessionId,
+            difficulty = "normal",
+            modeId = "default",
+            accrual = AccrualStrip(streakDays = 0, xp = 0),
+        )
+        stream.push(SummaryEvent.Card.Word(listOf(wordItem())))
+        stream.push(SummaryEvent.Done(SectionOutcome.Ok, SectionOutcome.Ok, SectionOutcome.Ok))
+    }
 
     @Test
-    fun `partial failure logs summary_partial_failure once with the failed-section count`() =
+    fun `saving a word card logs one saved_card_create summary WORD, unsave logs nothing`() =
         runTest {
-            val analytics = RecordingSessionFunnelAnalytics()
-            val stream = PartialFailureFakeSummaryStream()
-            val coordinator = newSummaryCoordinatorForTest(stream, sessionFunnel = analytics)
+            val saved = RecordingSavedCardAnalytics()
+            val stream = SavedCardFakeSummaryStream()
+            val coordinator = newSummarySavedCardCoordinator(stream, savedCardAnalytics = saved)
 
-            coordinator.start(
-                sessionId = "s1",
-                difficulty = "easy",
-                modeId = "m",
-                accrual = AccrualStrip(streakDays = 0, xp = 0),
+            driveReadyWordSection(coordinator, stream, sessionId = "s1")
+            runCurrent()
+
+            coordinator.toggleSaveWord(0) // added -> logs
+            coordinator.toggleSaveWord(0) // unsave -> no log
+            runCurrent()
+
+            assertEquals(
+                listOf(RecordingSavedCardAnalytics.Call("s1", SavedCardAnalytics.SURFACE_SUMMARY, CardType.WORD)),
+                saved.calls,
             )
-            runCurrent()
-
-            // Drive one section to fail while the others succeed (mirrors SummaryCoordinatorTest's
-            // "done resolves per-section" scenario): expression + coaching cards arrive, word fails.
-            stream.push(SummaryEvent.Card.Expression(listOf(expressionItem())))
-            stream.push(SummaryEvent.Card.Coaching(coachingDto()))
-            stream.push(SummaryEvent.Done(SectionOutcome.Ok, SectionOutcome.Failed, SectionOutcome.Ok))
-            runCurrent()
-
-            val failures = analytics.calls.filter { it.name == "summary_partial_failure" }
-            assertEquals(1, failures.size)
-            assertEquals("s1", failures.single().args["session_id"])
-            assertEquals(1, failures.single().args["sections_failed"])
         }
 }

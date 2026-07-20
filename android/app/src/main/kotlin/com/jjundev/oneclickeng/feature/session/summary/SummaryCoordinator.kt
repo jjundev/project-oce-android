@@ -9,6 +9,7 @@ import com.jjundev.oneclickeng.core.settings.SummarySaveSettingsRepository
 import com.jjundev.oneclickeng.feature.gamification.GamificationTime
 import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
 import com.jjundev.oneclickeng.feature.reminder.ReminderOrchestrator
+import com.jjundev.oneclickeng.feature.session.analytics.SavedCardAnalytics
 import com.jjundev.oneclickeng.feature.session.analytics.SessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.saved.CardType
 import com.jjundev.oneclickeng.feature.session.saved.SavedCard
@@ -75,6 +76,7 @@ class SummaryCoordinator
         private val reminderOrchestrator: ReminderOrchestrator,
         private val scope: CoroutineScope,
         private val sessionFunnel: SessionFunnelAnalytics,
+        private val savedCardAnalytics: SavedCardAnalytics,
     ) {
         private val _state = MutableStateFlow(EMPTY)
         val state: StateFlow<SummaryState> = _state.asStateFlow()
@@ -239,6 +241,12 @@ class SummaryCoordinator
             _state.value = EMPTY
         }
 
+        // saved_card_create — summary surface always; sessionId guaranteed non-null at the save call sites
+        // (M4-01c).
+        private fun logSaved(cardType: CardType) {
+            sessionId?.let { savedCardAnalytics.savedCardCreate(it, SavedCardAnalytics.SURFACE_SUMMARY, cardType) }
+        }
+
         /**
          * 단어 카드 저장 토글(M2-04, sourceIndex=[index]). Ready 섹션에서만 호출된다(호출부 게이팅). 낙관적으로
          * [savedWordIndices] 를 토글하고 결정적 cardId 로 영속화한다(add→save / remove→톰스톤). 세션·해당 인덱스
@@ -252,6 +260,7 @@ class SummaryCoordinator
             val cardId = SavedCardId.forSummary(id, CardType.WORD, index)
             if (added) {
                 savedCardRepository.save(cardId, card.toSavedCard())
+                logSaved(CardType.WORD)
             } else {
                 savedCardRepository.setDeleted(cardId, CardType.WORD, deleted = true)
             }
@@ -267,6 +276,7 @@ class SummaryCoordinator
             val cardId = SavedCardId.forSummary(id, CardType.EXPRESSION, index)
             if (added) {
                 savedCardRepository.save(cardId, card.toSavedCard())
+                logSaved(CardType.EXPRESSION)
             } else {
                 savedCardRepository.setDeleted(cardId, CardType.EXPRESSION, deleted = true)
             }
@@ -285,6 +295,7 @@ class SummaryCoordinator
                     cardId,
                     SavedCard.Sentence(english = current.english, korean = current.korean),
                 )
+                logSaved(CardType.SENTENCE)
             } else {
                 savedCardRepository.setDeleted(cardId, CardType.SENTENCE, deleted = true)
             }
@@ -300,6 +311,7 @@ class SummaryCoordinator
             savedExprIndices = items.indices.toSet()
             items.forEachIndexed { index, card ->
                 savedCardRepository.save(SavedCardId.forSummary(id, CardType.EXPRESSION, index), card.toSavedCard())
+                logSaved(CardType.EXPRESSION)
             }
             items.firstOrNull()?.let { first ->
                 scope.launch { reminderOrchestrator.recordSavedReviewText(first.after) }
@@ -312,6 +324,7 @@ class SummaryCoordinator
             savedWordIndices = items.indices.toSet()
             items.forEachIndexed { index, card ->
                 savedCardRepository.save(SavedCardId.forSummary(id, CardType.WORD, index), card.toSavedCard())
+                logSaved(CardType.WORD)
             }
             items.firstOrNull()?.let { first ->
                 scope.launch { reminderOrchestrator.recordSavedReviewText(first.en) }
