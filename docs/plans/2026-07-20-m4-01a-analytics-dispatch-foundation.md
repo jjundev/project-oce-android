@@ -147,7 +147,7 @@ class FirebaseAnalyticsSinkBundleTest {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `./scripts/verify-android.sh test --tests "*FirebaseAnalyticsSinkBundleTest"`
+Run: `./scripts/verify-android.sh :app:testDebugUnitTest --tests "*FirebaseAnalyticsSinkBundleTest"`
 Expected: FAIL — `toAnalyticsBundle` unresolved (compile error).
 
 - [ ] **Step 3: Write the production seam + impl** (`AnalyticsSink.kt`):
@@ -208,7 +208,7 @@ internal fun Map<String, Any>.toAnalyticsBundle(): Bundle =
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `./scripts/verify-android.sh test --tests "*FirebaseAnalyticsSinkBundleTest"`
+Run: `./scripts/verify-android.sh :app:testDebugUnitTest --tests "*FirebaseAnalyticsSinkBundleTest"`
 Expected: PASS (2 tests).
 
 - [ ] **Step 5: Write the DI module** (`AnalyticsModule.kt`):
@@ -262,7 +262,7 @@ class RecordingAnalyticsSink : AnalyticsSink {
 
 - [ ] **Step 7: Full compile + module test**
 
-Run: `./scripts/verify-android.sh test --tests "*FirebaseAnalyticsSinkBundleTest"`
+Run: `./scripts/verify-android.sh :app:testDebugUnitTest --tests "*FirebaseAnalyticsSinkBundleTest"`
 Expected: PASS, and the `test` source set compiles (proves `RecordingAnalyticsSink` compiles).
 
 - [ ] **Step 8: Commit**
@@ -335,7 +335,7 @@ git commit -m "feat(analytics): add AnalyticsSink dispatch seam, Firebase impl, 
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `./scripts/verify-android.sh test --tests "*AppViewModelTest"`
+Run: `./scripts/verify-android.sh :app:testDebugUnitTest --tests "*AppViewModelTest"`
 Expected: FAIL — `AppViewModel` has no `AnalyticsSink` param / `isAnonymous` unresolved on the fake.
 
 - [ ] **Step 3a: Add `isAnonymous` to `AuthRepository`** — interface member + impl:
@@ -405,7 +405,7 @@ Inside `bootstrap()`, set the user id + `auth_state` right after the pending-mer
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `./scripts/verify-android.sh test --tests "*AppViewModelTest"`
+Run: `./scripts/verify-android.sh :app:testDebugUnitTest --tests "*AppViewModelTest"`
 Expected: PASS, including the new identity test and all pre-existing `AppViewModelTest` cases.
 
 - [ ] **Step 5: Commit**
@@ -498,7 +498,7 @@ class OnboardingAnalyticsDispatchTest {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `./scripts/verify-android.sh test --tests "*OnboardingAnalyticsDispatchTest"`
+Run: `./scripts/verify-android.sh :app:testDebugUnitTest --tests "*OnboardingAnalyticsDispatchTest"`
 Expected: FAIL — `FirebaseOnboardingAnalytics` unresolved.
 
 - [ ] **Step 3: Add `FirebaseOnboardingAnalytics`** to `OnboardingAnalytics.kt` (below `NoOpOnboardingAnalytics`, keep the `@Suppress("TooManyFunctions")`):
@@ -557,7 +557,7 @@ import com.jjundev.oneclickeng.feature.onboarding.FirebaseOnboardingAnalytics
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `./scripts/verify-android.sh test --tests "*OnboardingAnalyticsDispatchTest"`
+Run: `./scripts/verify-android.sh :app:testDebugUnitTest --tests "*OnboardingAnalyticsDispatchTest"`
 Expected: PASS (5 tests).
 
 - [ ] **Step 6: Commit**
@@ -654,7 +654,7 @@ class HomeAnalyticsDispatchTest {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `./scripts/verify-android.sh test --tests "*HomeAnalyticsDispatchTest"`
+Run: `./scripts/verify-android.sh :app:testDebugUnitTest --tests "*HomeAnalyticsDispatchTest"`
 Expected: FAIL — `FirebaseHomeAnalytics` unresolved.
 
 - [ ] **Step 3: Add `FirebaseHomeAnalytics`** to `HomeAnalytics.kt` (below `NoOpHomeAnalytics`):
@@ -707,7 +707,7 @@ import com.jjundev.oneclickeng.feature.home.FirebaseHomeAnalytics
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `./scripts/verify-android.sh test --tests "*HomeAnalyticsDispatchTest"`
+Run: `./scripts/verify-android.sh :app:testDebugUnitTest --tests "*HomeAnalyticsDispatchTest"`
 Expected: PASS (5 tests).
 
 - [ ] **Step 6: Commit**
@@ -797,7 +797,7 @@ class LimitWaitQuizAnalyticsDispatchTest {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `./scripts/verify-android.sh test --tests "*LimitWaitQuizAnalyticsDispatchTest"`
+Run: `./scripts/verify-android.sh :app:testDebugUnitTest --tests "*LimitWaitQuizAnalyticsDispatchTest"`
 Expected: FAIL — `FirebaseLimitAnalytics` / `FirebaseWaitQuizAnalytics` unresolved.
 
 - [ ] **Step 3a: Add `FirebaseLimitAnalytics`** to `LimitAnalytics.kt` (below `NoOpLimitAnalytics`):
@@ -856,7 +856,7 @@ class FirebaseWaitQuizAnalytics
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `./scripts/verify-android.sh test --tests "*LimitWaitQuizAnalyticsDispatchTest"`
+Run: `./scripts/verify-android.sh :app:testDebugUnitTest --tests "*LimitWaitQuizAnalyticsDispatchTest"`
 Expected: PASS (3 tests).
 
 - [ ] **Step 6: Commit**
@@ -917,7 +917,7 @@ class OfflineAnalyticsDispatchTest {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `./scripts/verify-android.sh test --tests "*OfflineAnalyticsDispatchTest"`
+Run: `./scripts/verify-android.sh :app:testDebugUnitTest --tests "*OfflineAnalyticsDispatchTest"`
 Expected: FAIL — `FirebaseOfflineAnalytics` unresolved.
 
 - [ ] **Step 3: Add `FirebaseOfflineAnalytics`** to `OfflineAnalytics.kt` (below `NoOpOfflineAnalytics`):
@@ -949,7 +949,7 @@ Also update the module's doc comment line (`- [OfflineAnalytics] → [NoOpOfflin
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `./scripts/verify-android.sh test --tests "*OfflineAnalyticsDispatchTest"`
+Run: `./scripts/verify-android.sh :app:testDebugUnitTest --tests "*OfflineAnalyticsDispatchTest"`
 Expected: PASS (2 tests).
 
 - [ ] **Step 6: Full verification (build + all unit tests + detekt/ktlint via the check task)**
