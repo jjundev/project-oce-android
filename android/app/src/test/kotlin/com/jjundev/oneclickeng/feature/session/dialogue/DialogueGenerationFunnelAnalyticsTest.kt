@@ -48,6 +48,16 @@ private class FunnelFakeQuizBank : QuizBank {
 
 private class FunnelRecordingWaitQuizAnalytics : WaitQuizAnalytics {
     override fun cardAnswered(sessionId: String?, cardId: String, choseCorrect: Boolean, cardIndex: Int) = Unit
+
+    override fun waitQuizShown(sessionId: String?, surface: String, delayMsAtShow: Long) = Unit
+
+    override fun waitQuizEnded(
+        sessionId: String?,
+        surface: String,
+        reason: String,
+        cardsAnswered: Int,
+        dwellMs: Long,
+    ) = Unit
 }
 
 private class FunnelRecordingLimitAnalytics : LimitAnalytics {

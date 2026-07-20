@@ -90,6 +90,20 @@ private class RecordingAnalytics : WaitQuizAnalytics {
     ) {
         calls += Call(sessionId, cardId, choseCorrect, cardIndex)
     }
+
+    override fun waitQuizShown(
+        sessionId: String?,
+        surface: String,
+        delayMsAtShow: Long,
+    ) = Unit
+
+    override fun waitQuizEnded(
+        sessionId: String?,
+        surface: String,
+        reason: String,
+        cardsAnswered: Int,
+        dwellMs: Long,
+    ) = Unit
 }
 
 private class RecordingLimitAnalytics : LimitAnalytics {
