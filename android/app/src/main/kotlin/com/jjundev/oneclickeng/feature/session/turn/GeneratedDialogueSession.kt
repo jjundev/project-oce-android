@@ -644,7 +644,7 @@ class GeneratedDialogueSessionViewModel
                     }
                     pendingClip = null
                     micState = MicState.Complete
-                    triggerFeedback(state.transcript)
+                    triggerFeedback(state.transcript, INPUT_MODE_VOICE)
                     persistResume()
                 }
                 SpeakingAnalysisState.Empty -> {
@@ -697,11 +697,11 @@ class GeneratedDialogueSessionViewModel
             textMode = false
             textValue = ""
             retryHint = null
-            triggerFeedback(text)
+            triggerFeedback(text, INPUT_MODE_TEXT)
             persistResume()
         }
 
-        private fun triggerFeedback(userEnglish: String) {
+        private fun triggerFeedback(userEnglish: String, inputMode: String) {
             val sid = currentSessionId() ?: return
             val level = currentLevel() ?: return
             val task = turnState.currentTask?.koreanPrompt
@@ -709,10 +709,15 @@ class GeneratedDialogueSessionViewModel
             if (task != null && ref != null) {
                 // 세션 버퍼 시작(멱등, 첫 턴에만 실효) — 요약 점수·하이라이트·studytime 의 단일 소스.
                 turnBuffer.startSession(sid)
-                pendingTurn = PendingTurn(koreanPrompt = task, userText = userEnglish)
                 // deep cardId 파생용 0-based 학습자 턴 인덱스. triggerFeedback 은 appendLearnerAnswer 직후라
                 // 학습자 말풍선 수는 현재 턴을 이미 포함한다 → -1 로 0-based 로 만든다.
                 val turnIndex = turnState.messages.count { it is DialogueMessage.Learner } - 1
+                pendingTurn = PendingTurn(
+                    koreanPrompt = task,
+                    userText = userEnglish,
+                    inputMode = inputMode,
+                    turnIndex = turnIndex,
+                )
                 deepParams = DeepParams(sid, turnIndex, task, userEnglish, ref, level)
                 feedback.start(sid, task, userEnglish, ref, level)
             }
@@ -751,7 +756,11 @@ class GeneratedDialogueSessionViewModel
 
         /** 요약 버퍼에 한 턴을 기록하고 pending 을 비운다(정착·"다음" 공용 진입). */
         private fun recordTurn(pending: PendingTurn) {
-            turnBuffer.record(pending.koreanPrompt, pending.userText, feedback.bufferSnapshot())
+            val snapshot = feedback.bufferSnapshot()
+            turnBuffer.record(pending.koreanPrompt, pending.userText, snapshot)
+            currentSessionId()?.let { sid ->
+                sessionFunnel.turnCompleted(sid, pending.turnIndex, pending.inputMode, snapshot.slimScore)
+            }
             pendingTurn = null
         }
 
@@ -793,7 +802,12 @@ class GeneratedDialogueSessionViewModel
         }
 
         /** 요약 버퍼 기록 대기 중인 턴의 과제·답변 echo(피드백 스냅샷과 함께 record 로 밀어넣는다). */
-        private data class PendingTurn(val koreanPrompt: String, val userText: String)
+        private data class PendingTurn(
+            val koreanPrompt: String,
+            val userText: String,
+            val inputMode: String,
+            val turnIndex: Int,
+        )
 
         /** deep 개시 지연을 위해 stash 하는 현재 턴의 [DeepFeedbackCoordinator.start] 파라미터. */
         private data class DeepParams(
@@ -811,6 +825,8 @@ class GeneratedDialogueSessionViewModel
             const val HINT_RETRY = "다시 말해볼까요? 채팅으로 입력해도 돼요."
             const val HINT_ERROR = "문제가 생겼어요. 다시 시도해 주세요."
             const val DEFAULT_TOTAL_TURNS = 5
+            const val INPUT_MODE_VOICE = "voice"
+            const val INPUT_MODE_TEXT = "text"
         }
     }
 
