@@ -2,7 +2,9 @@ package com.jjundev.oneclickeng.feature.onboarding.google
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jjundev.oneclickeng.core.analytics.AnalyticsSink
 import com.jjundev.oneclickeng.core.auth.AccountResetBus
+import com.jjundev.oneclickeng.core.auth.AuthRepository
 import com.jjundev.oneclickeng.core.auth.GoogleAccountLinker
 import com.jjundev.oneclickeng.core.auth.LinkOutcome
 import com.jjundev.oneclickeng.feature.onboarding.OnboardingAnalytics
@@ -42,9 +44,18 @@ class GoogleLinkViewModel
         private val linker: GoogleAccountLinker,
         private val analytics: OnboardingAnalytics,
         private val accountResetBus: AccountResetBus,
+        private val analyticsSink: AnalyticsSink,
+        private val authRepository: AuthRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<LinkUiState>(LinkUiState.Idle)
         val uiState: StateFlow<LinkUiState> = _uiState.asStateFlow()
+
+        /** §3b cohort stitching — after a link/merge resolves, re-point the analytics identity to the
+         *  now-linked uid so D1/D7 cohorts stay continuous across the anon→linked boundary. */
+        private fun stitchLinkedIdentity() {
+            analyticsSink.setUserId(authRepository.currentUid)
+            analyticsSink.setUserProperty("auth_state", "linked")
+        }
 
         /** 자격증명 시스템 시트가 뜨는 동안 primary 버튼을 로딩으로 전환. */
         fun onCredentialFlowStarted() {
@@ -73,10 +84,12 @@ class GoogleLinkViewModel
                     when (linker.linkGuest(googleIdToken)) {
                         LinkOutcome.Promoted -> {
                             analytics.googleLinkSucceeded(sessionId)
+                            stitchLinkedIdentity()
                             LinkUiState.Success
                         }
                         LinkOutcome.Merged -> {
                             analytics.googleLinkConflictMerged(sessionId)
+                            stitchLinkedIdentity()
                             LinkUiState.Success
                         }
                         LinkOutcome.FailedAsGuest -> {
@@ -99,6 +112,7 @@ class GoogleLinkViewModel
                     when (linker.retryPendingMerge()) {
                         LinkOutcome.Merged -> {
                             analytics.googleLinkConflictMerged(sessionId)
+                            stitchLinkedIdentity()
                             LinkUiState.Success
                         }
                         else -> {
