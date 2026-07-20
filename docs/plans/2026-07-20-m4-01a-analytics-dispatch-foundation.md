@@ -952,10 +952,12 @@ Also update the module's doc comment line (`- [OfflineAnalytics] → [NoOpOfflin
 Run: `./scripts/verify-android.sh :app:testDebugUnitTest --tests "*OfflineAnalyticsDispatchTest"`
 Expected: PASS (2 tests).
 
-- [ ] **Step 6: Full verification (build + all unit tests + detekt/ktlint via the check task)**
+- [ ] **Step 6: Full verification (debug unit suite + Hilt graph + detekt on changed files)**
 
-Run: `./scripts/verify-android.sh check`
-Expected: BUILD SUCCESSFUL — all unit tests green, no detekt/ktlint regressions, Hilt graph compiles with every analytics binding resolved (proves no `NoOp*`/`Firebase*` duplicate-binding or missing-`AnalyticsSink` error).
+Run: `./scripts/verify-android.sh :app:testDebugUnitTest` then `./scripts/verify-android.sh :app:compileDebugKotlin`
+Expected: BUILD SUCCESSFUL — the **debug** unit suite green, Hilt graph compiles with every analytics binding resolved (proves no `NoOp*`/`Firebase*` duplicate-binding or missing-`AnalyticsSink` error).
+
+> **Known pre-existing failures — do NOT chase them.** The full `check`/`testReleaseUnitTest` has failures unrelated to this branch: ~30 detekt findings in `OceThemeColorContractTest.kt`, and ~9 release-variant Roborazzi screenshot tests (`ChatBubbleReplayButtonTest`, `TopicSelectVisibilityTest`, `DialogueTurnPlayingIndicatorTest`, etc.) that throw under the release variant. None touch analytics. Verify the **debug** unit suite + `compileDebugKotlin` only; if you want detekt evidence, run `./scripts/verify-android.sh :app:detekt` and confirm the analytics files you added are clean (ignore the pre-existing `OceThemeColorContractTest` findings).
 
 - [ ] **Step 7: Commit**
 
