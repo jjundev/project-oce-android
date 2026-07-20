@@ -10,6 +10,7 @@ import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
 import com.jjundev.oneclickeng.feature.session.tts.TtsPlaybackCoordinator
 import com.jjundev.oneclickeng.feature.session.turn.SpeakerDirectory
 import com.jjundev.oneclickeng.feature.session.turn.nextOpponentEnglish
+import com.jjundev.oneclickeng.ui.component.LimitSurface
 import com.jjundev.oneclickeng.ui.component.QuizItem
 import com.jjundev.oneclickeng.ui.component.selectLimitSurface
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -64,6 +65,11 @@ class DialogueGenerationViewModel
         // (analytics-events.md §6.6) — the WaitQuiz callback does not carry the card position.
         private var answeredCount = 0
 
+        // wait_quiz shown/ended timing (M4-01d). Real clock; exact dwell/delay DebugView-verified.
+        private var generationStartMillis = 0L
+        private var quizShownMillis: Long? = null
+        private var quizEnded = false
+
         // Whether this generation is the onboarding first-session gate (M3-02). Drives the limit
         // surface for BOTH the panel render (via the screen) and the `limit_reached` analytics event
         // (via [onLimitReached]) so the two never disagree.
@@ -114,6 +120,9 @@ class DialogueGenerationViewModel
                     val tier = if (firstSession) FIRST_SESSION_TIER else level
                     _quizItems.value = if (quizEnabled) quizBank.forTier(tier) else emptyList()
                     answeredCount = 0
+                    generationStartMillis = System.currentTimeMillis()
+                    quizShownMillis = null
+                    quizEnded = false
                     // 세션이 **실제로 시작**됐을 때만 직전 미완 세션 durable 스냅샷 폐기(§2.5 "새 세션 시작
                     // 시에만 폐기"). 오프라인 게이트로 막혔으면 아무 세션도 시작 안 됐으므로 이전 스냅샷을
                     // 보존한다(온라인 복귀 후 이어하기 가능). appScope 로 실행해 화면 이탈로 취소되지 않게 한다.
@@ -187,6 +196,34 @@ class DialogueGenerationViewModel
                 cardId = item.id,
                 choseCorrect = correct,
                 cardIndex = answeredCount++,
+            )
+        }
+
+        // Reuse the existing shared LimitSurface enum values (§6.5) instead of duplicating
+        // "onboarding_first_session"/"home" literals. (Requires the LimitSurface import above.)
+        private fun waitQuizSurface(): String =
+            if (isOnboarding) LimitSurface.OnboardingFirstSession.value else LimitSurface.Home.value
+
+        /** The wait-quiz surface first became visible (gate passed while generating). Once per generation. */
+        fun onQuizShown() {
+            if (quizShownMillis != null) return
+            val now = System.currentTimeMillis()
+            quizShownMillis = now
+            analytics.waitQuizShown(coordinator.sessionId(), waitQuizSurface(), now - generationStartMillis)
+        }
+
+        /** The wait-quiz ended: [reason] = `ready` (user proceeded) or `failed`. Once; no-op if never shown.
+         *  `skipped` is deferred (v1). */
+        fun onQuizEnded(reason: String) {
+            val shownAt = quizShownMillis ?: return
+            if (quizEnded) return
+            quizEnded = true
+            analytics.waitQuizEnded(
+                sessionId = coordinator.sessionId(),
+                surface = waitQuizSurface(),
+                reason = reason,
+                cardsAnswered = answeredCount,
+                dwellMs = System.currentTimeMillis() - shownAt,
             )
         }
 
