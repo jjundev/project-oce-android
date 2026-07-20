@@ -22,6 +22,7 @@ import com.jjundev.oneclickeng.core.audio.RecordingController
 import com.jjundev.oneclickeng.core.audio.RecordingResult
 import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
 import com.jjundev.oneclickeng.core.session.SessionLevel
+import com.jjundev.oneclickeng.feature.session.analytics.SessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenState
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenerationCoordinator
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueStreamStatus
@@ -199,6 +200,7 @@ class GeneratedDialogueSessionViewModel
         private val appScope: CoroutineScope,
         private val snapshotStore: SessionSnapshotStore,
         private val tts: TtsPlaybackCoordinator,
+        private val sessionFunnel: SessionFunnelAnalytics,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         val generationState = generation.state
@@ -366,6 +368,13 @@ class GeneratedDialogueSessionViewModel
             // 동안 "표시된 대사 + 침묵"이 아니라 "타이핑 중"으로 보인다. OpponentTurn 가드는 progress 안에 있어
             // replay/자기녹음 재생(LearnerTurn)의 PLAYING 은 무시된다.
             viewModelScope.launch { tts.audioReady.collect { revealOnAudioReady() } }
+            // 학습자 턴 진입 = turn_started(M4-01b). turn_index 는 이 시점의 학습자 말풍선 수(0-based, 아직
+            // 이번 턴 답변 미append) — turn_completed/deep 이 쓰는 것과 같은 정수(plan turn_index 주석 참조).
+            turnState.onEnterLearnerTurn = {
+                currentSessionId()?.let { sid ->
+                    sessionFunnel.turnStarted(sid, turnState.messages.count { it is DialogueMessage.Learner })
+                }
+            }
             savedStateHandle.setSavedStateProvider(PROVIDER_KEY) {
                 bundleOf(BUNDLE_JSON to json.encodeToString(currentSnapshot()))
             }
@@ -1012,6 +1021,9 @@ internal class GeneratedDialogueState {
     var opponentTyping by mutableStateOf(false)
         private set
 
+    /** Fired once each time the machine enters a learner turn (turn_started emit hook, M4-01b). */
+    var onEnterLearnerTurn: (() -> Unit)? = null
+
     private var consumedTurnCount = 0
     private var streamStatus = DialogueStreamStatus.Streaming
     private var pending = PendingOpponent()
@@ -1188,6 +1200,7 @@ internal class GeneratedDialogueState {
         turnPhase = TurnPhase.LearnerTurn
         sessionPhase = SessionPhase.InTurn
         recomputeTyping()
+        onEnterLearnerTurn?.invoke()
     }
 
     private fun settleTerminalStatus() {
