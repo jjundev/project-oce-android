@@ -17,4 +17,8 @@ abstract class SessionFunnelModule {
     @Binds
     @Singleton
     abstract fun bindSavedCardAnalytics(impl: FirebaseSavedCardAnalytics): SavedCardAnalytics
+
+    @Binds
+    @Singleton
+    abstract fun bindMicPermissionAnalytics(impl: FirebaseMicPermissionAnalytics): MicPermissionAnalytics
 }
