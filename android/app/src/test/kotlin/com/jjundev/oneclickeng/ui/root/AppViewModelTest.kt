@@ -103,11 +103,30 @@ class AppViewModelTest {
             }
         }
 
+    @Test
+    fun `bootstrap stitches identity — user id plus auth_state and level properties`() =
+        runTest {
+            val analytics = com.jjundev.oneclickeng.core.analytics.RecordingAnalyticsSink()
+            appViewModel(
+                studytime = RecordingStudytime(),
+                connectivity = MutableConnectivity(Connectivity.Online),
+                offlineAnalytics = RecordingOfflineAnalytics(),
+                analytics = analytics,
+            )
+            advanceUntilIdle()
+
+            assertEquals("uid", analytics.userId)
+            assertEquals("guest", analytics.userProperties["auth_state"])
+            assertEquals("easy", analytics.userProperties["level"])
+        }
+
     private fun appViewModel(
         studytime: StudytimeRepository,
         connectivity: ConnectivityObserver,
         offlineAnalytics: OfflineAnalytics,
         authRepository: AuthRepository = FakeAuth,
+        analytics: com.jjundev.oneclickeng.core.analytics.AnalyticsSink =
+            com.jjundev.oneclickeng.core.analytics.RecordingAnalyticsSink(),
     ) = AppViewModel(
         authRepository = authRepository,
         profileRepository = FakeProfile,
@@ -117,6 +136,7 @@ class AppViewModelTest {
         accountResetBus = AccountResetBus(),
         connectivity = connectivity,
         offlineAnalytics = offlineAnalytics,
+        analytics = analytics,
     )
 }
 
@@ -132,6 +152,7 @@ private object FakeAccount : AccountRepository {
 
 private object FakeAuth : AuthRepository {
     override val currentUid: String? = "uid"
+    override val isAnonymous: Boolean = true
 
     override suspend fun ensureSignedIn(): String = "uid"
 }
@@ -141,6 +162,7 @@ private class FailOnceAuth : AuthRepository {
     var calls = 0
 
     override val currentUid: String? = null
+    override val isAnonymous: Boolean = true
 
     override suspend fun ensureSignedIn(): String {
         calls++
