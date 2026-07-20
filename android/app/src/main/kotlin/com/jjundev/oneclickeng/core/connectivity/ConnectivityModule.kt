@@ -9,7 +9,7 @@ import javax.inject.Singleton
 /**
  * 연결성 레이어(M4-04) seam 바인딩.
  * - [ConnectivityObserver] → [AndroidConnectivityObserver] (ConnectivityManager 기반 도달성 소스).
- * - [OfflineAnalytics] → [NoOpOfflineAnalytics] (M4-01 실 디스패치 배선 전 기본 no-op).
+ * - [OfflineAnalytics] → [FirebaseOfflineAnalytics] (M4-01 실 디스패치).
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -20,5 +20,5 @@ abstract class ConnectivityModule {
 
     @Binds
     @Singleton
-    abstract fun bindOfflineAnalytics(impl: NoOpOfflineAnalytics): OfflineAnalytics
+    abstract fun bindOfflineAnalytics(impl: FirebaseOfflineAnalytics): OfflineAnalytics
 }
