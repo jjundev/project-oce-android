@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import com.jjundev.oneclickeng.core.connectivity.OfflineAnalytics
 import com.jjundev.oneclickeng.core.network.LimitAnalytics
 import com.jjundev.oneclickeng.core.network.WaitQuizAnalytics
+import com.jjundev.oneclickeng.feature.session.analytics.SessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
 import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
 import com.jjundev.oneclickeng.feature.session.tts.TtsPlaybackCoordinator
@@ -42,6 +43,7 @@ class DialogueGenerationViewModel
         private val snapshotStore: SessionSnapshotStore,
         private val appScope: CoroutineScope,
         private val offlineAnalytics: OfflineAnalytics,
+        private val sessionFunnel: SessionFunnelAnalytics,
         loadingQuizConfig: LoadingQuizConfig,
     ) : ViewModel() {
         val state: StateFlow<DialogueGenState> = coordinator.state
@@ -72,6 +74,10 @@ class DialogueGenerationViewModel
         private var lastStart: StartParams? = null
         private var preflightBlocked = false
 
+        // onConversationStarted() 는 auto-start 와 CTA 탭 두 경로 모두에서 불릴 수 있어(Route 가 콜백을
+        // 감싸는 위치가 두 진입점을 모두 통과) 한 번만 계측되게 이 가드로 막는다.
+        private var conversationStartedLogged = false
+
         init {
             // 이 코디네이터는 process @Singleton 이라 직전 세션의 sticky Ready 가 남는다. 새 생성 VM 이 뜰 때
             // 그 잔여 상태를 Idle 로 되돌려, 생성 화면이 stale Ready 를 읽고 대기 퀴즈를 건너뛰는 걸 막는다
@@ -93,7 +99,11 @@ class DialogueGenerationViewModel
             // pre-flight 게이트(M4-04, exception-states.md 결정 #4): 연결성 소유는 코디네이터 하나다. 오프라인
             // 이면 [StartOutcome.OfflineGated] 를 받아 퀴즈를 스킵하고 `offline_blocked_action` 만 계측한다
             // (핵심 루프=온라인 필수, 로그인된 캐시보유 사용자에만 도달).
-            when (coordinator.start(level, topic, length, firstSession)) {
+            val outcome = coordinator.start(level, topic, length, firstSession)
+            // 온보딩 첫 세션 생성 퍼널의 진입점(M4-01b §4). idempotencyKeyPresent = 실제로 전송이 시작됐는지
+            // (Started) — 오프라인 게이트로 막힌 시도는 present=false 로 구분된다.
+            if (isOnboarding) sessionFunnel.firstSessionGenerationStarted(outcome == StartOutcome.Started)
+            when (outcome) {
                 StartOutcome.OfflineGated -> {
                     preflightBlocked = true
                     _quizItems.value = emptyList()
@@ -178,6 +188,24 @@ class DialogueGenerationViewModel
                 choseCorrect = correct,
                 cardIndex = answeredCount++,
             )
+        }
+
+        /**
+         * Fired by the generating Route when the user commits to the conversation (auto-start once ready,
+         * or the CTA tap) — logs `first_session_started` (onboarding) or `learning_session_started`
+         * (revisit) exactly once per generation (M4-01b §4). No-ops if [start] never landed a session id.
+         */
+        fun onConversationStarted() {
+            if (conversationStartedLogged) return
+            val params = lastStart
+            val sid = coordinator.sessionId()
+            if (params == null || sid == null) return
+            conversationStartedLogged = true
+            if (isOnboarding) {
+                sessionFunnel.firstSessionStarted(sid, params.topic, params.length, params.level)
+            } else {
+                sessionFunnel.learningSessionStarted(sid, params.topic, params.length, params.level)
+            }
         }
 
         /** Retained start params, so a pre-flight-offline retry can re-attempt with the same inputs. */

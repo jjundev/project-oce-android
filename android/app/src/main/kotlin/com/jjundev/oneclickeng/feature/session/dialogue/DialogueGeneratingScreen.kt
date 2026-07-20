@@ -264,7 +264,10 @@ fun DialogueGeneratingRoute(
         state = state,
         quizItems = quizItems,
         firstLineReady = firstLineReady,
-        onStartConversation = onStartConversation,
+        onStartConversation = {
+            viewModel.onConversationStarted()
+            onStartConversation()
+        },
         onRetry = viewModel::retry,
         modifier = modifier,
         quizEnabled = viewModel.quizEnabled,

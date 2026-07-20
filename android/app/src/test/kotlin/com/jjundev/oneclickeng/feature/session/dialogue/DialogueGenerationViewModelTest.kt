@@ -20,6 +20,7 @@ import com.jjundev.oneclickeng.core.network.WaitQuizAnalytics
 import com.jjundev.oneclickeng.core.settings.TtsQuality
 import com.jjundev.oneclickeng.core.settings.TtsSettings
 import com.jjundev.oneclickeng.core.settings.TtsSettingsRepository
+import com.jjundev.oneclickeng.feature.session.analytics.NoOpSessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
 import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
 import com.jjundev.oneclickeng.feature.session.tts.DeviceTts
@@ -310,6 +311,7 @@ class DialogueGenerationViewModelTest {
                     SessionSnapshotStore(inMemoryPrefsDataStore()),
                     scope,
                     RecordingOfflineAnalytics(),
+                    NoOpSessionFunnelAnalytics(),
                     FakeConfig(true),
                 )
 
@@ -336,6 +338,7 @@ class DialogueGenerationViewModelTest {
                     SessionSnapshotStore(inMemoryPrefsDataStore()),
                     scope,
                     RecordingOfflineAnalytics(),
+                    NoOpSessionFunnelAnalytics(),
                     FakeConfig(true),
                 )
 
@@ -383,6 +386,7 @@ class DialogueGenerationViewModelTest {
                     SessionSnapshotStore(inMemoryPrefsDataStore()),
                     scope,
                     RecordingOfflineAnalytics(),
+                    NoOpSessionFunnelAnalytics(),
                     FakeConfig(true),
                 )
 
@@ -421,6 +425,7 @@ class DialogueGenerationViewModelTest {
             snapshotStore,
             scope,
             offlineAnalytics,
+            NoOpSessionFunnelAnalytics(),
             config,
         )
     }
