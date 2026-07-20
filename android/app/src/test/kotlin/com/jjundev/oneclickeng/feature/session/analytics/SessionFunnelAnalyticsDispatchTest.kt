@@ -106,7 +106,10 @@ class SessionFunnelAnalyticsDispatchTest {
     fun `summary_partial_failure carries sections_failed count`() {
         analytics.summaryPartialFailure(sessionId = "s1", sectionsFailed = 2)
         assertEquals(
-            RecordingAnalyticsSink.Event("summary_partial_failure", mapOf("session_id" to "s1", "sections_failed" to 2L)),
+            RecordingAnalyticsSink.Event(
+                "summary_partial_failure",
+                mapOf("session_id" to "s1", "sections_failed" to 2L),
+            ),
             sink.events.single(),
         )
     }

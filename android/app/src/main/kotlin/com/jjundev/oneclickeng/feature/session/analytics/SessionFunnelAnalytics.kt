@@ -77,7 +77,12 @@ class FirebaseSessionFunnelAnalytics
         override fun firstSessionStarted(sessionId: String, topicId: String, length: Int, difficulty: String) =
             sink.log(
                 "first_session_started",
-                mapOf("session_id" to sessionId, "topic_id" to topicId, "length" to length.toLong(), "difficulty" to difficulty),
+                mapOf(
+                    "session_id" to sessionId,
+                    "topic_id" to topicId,
+                    "length" to length.toLong(),
+                    "difficulty" to difficulty,
+                ),
             )
 
         override fun learningSessionStarted(sessionId: String, topicId: String, length: Int, level: String) =
@@ -116,5 +121,8 @@ class FirebaseSessionFunnelAnalytics
             )
 
         override fun summaryPartialFailure(sessionId: String, sectionsFailed: Int) =
-            sink.log("summary_partial_failure", mapOf("session_id" to sessionId, "sections_failed" to sectionsFailed.toLong()))
+            sink.log(
+                "summary_partial_failure",
+                mapOf("session_id" to sessionId, "sections_failed" to sectionsFailed.toLong()),
+            )
     }
