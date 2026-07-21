@@ -21,4 +21,8 @@ abstract class SessionFunnelModule {
     @Binds
     @Singleton
     abstract fun bindMicPermissionAnalytics(impl: FirebaseMicPermissionAnalytics): MicPermissionAnalytics
+
+    @Binds
+    @Singleton
+    abstract fun bindLatencyAnalytics(impl: FirebaseLatencyAnalytics): LatencyAnalytics
 }
