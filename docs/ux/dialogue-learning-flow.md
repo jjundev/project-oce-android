@@ -63,7 +63,7 @@
 
 대본 생성 terminal 실패 시 서버 환불/키 삭제 정책을 전제로 재시도 경로를 제공한다.
 
-대본 생성 표면에는 콘텐츠 스켈레톤(상대역 말풍선 placeholder)을 두지 않는다. 클라이언트는 완성 턴만 렌더하고(위 문단) 캔드/placeholder 라인을 대본에 끼워넣지 않으므로([01a-onboarding-first-session-followups.md:19](01a-onboarding-first-session-followups.md:19)), 생성 중에는 중립 카피("첫 대화를 준비하고 있어요", [01-onboarding-first-session.md:162](01-onboarding-first-session.md:162))만 표시한다. 스켈레톤 스코프 규칙은 [turn-feedback-ia.md](turn-feedback-ia.md) §3이 소유한다.
+대본 생성 표면에는 콘텐츠 스켈레톤(상대역 말풍선 placeholder)을 두지 않는다. 클라이언트는 완성 턴만 렌더하고(위 문단) 캔드/placeholder 라인을 대본에 끼워넣지 않으므로([01a-onboarding-first-session-followups.md:19](01a-onboarding-first-session-followups.md:19)), 생성 중에는 중립 카피를 표시한다. 온보딩은 `첫 대화를 준비하고 있어요`를 유지하고, 2차 이후 학습은 `loading_messages.json`의 returning 목록에서 한 문구를 선택한다. 두 경우 모두 상대역 말풍선 placeholder는 렌더하지 않는다. 스켈레톤 스코프 규칙은 [turn-feedback-ia.md](turn-feedback-ia.md) §3이 소유한다.
 
 > **예외 — 웨이트 인터스티셜:** 이 규칙의 취지는 **가짜 대화 콘텐츠(상대역 말풍선 placeholder)를 금지**하는 것이다. 대화와 명확히 구분되는 대기 인터스티셜(예: 무채점 로딩 퀴즈)은 예외이며, 안심 카피 아래에 추가로 노출할 수 있다. 정본은 [loading-quiz-interstitial.md](loading-quiz-interstitial.md), 스코프 구분은 [ADR-0005](../adr/0005-loading-quiz-vs-review-quiz.md).
 

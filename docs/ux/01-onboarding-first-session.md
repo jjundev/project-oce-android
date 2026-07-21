@@ -169,6 +169,8 @@ done.sections = {
 | Google secondary | 한 번 더 하기 |
 | Google skip | 나중에 할게요 |
 
+> `생성 중` 행은 온보딩 전용이다. 재방문 세션 대안 문구는 `android/app/src/main/assets/loading_messages.json`이 소유한다.
+
 ## 9. 계측
 
 이벤트 이름은 v1 온보딩 UX 문서에서 신규 확정한다. Firebase Analytics는 PRD NFR-7의 핵심 퍼널과 D1/D7 코호트 분석을 지원해야 한다.

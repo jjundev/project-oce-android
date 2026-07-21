@@ -4,6 +4,7 @@ import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -12,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -41,16 +44,16 @@ import com.jjundev.oneclickeng.feature.review.reviewGraph
 import com.jjundev.oneclickeng.feature.review.reviewStartRoute
 import com.jjundev.oneclickeng.ui.component.BlockingGateSurface
 import com.jjundev.oneclickeng.ui.component.OneClickBlockingGate
+import com.jjundev.oneclickeng.ui.component.OneClickAppLoadingIndicator
 import com.jjundev.oneclickeng.ui.component.OneClickOfflineBanner
-import com.jjundev.oneclickeng.ui.component.OneClickProgressRing
 import com.jjundev.oneclickeng.ui.component.OneClickUpdateGate
-import com.jjundev.oneclickeng.ui.component.ProgressRingMode
 import com.jjundev.oneclickeng.ui.foundation.OceBottomNav
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.navigation.OceNavHost
 import com.jjundev.oneclickeng.ui.navigation.OceTab
 import com.jjundev.oneclickeng.ui.navigation.oceScreenEnter
 import com.jjundev.oneclickeng.ui.navigation.oceScreenExit
+import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /** 3탭 셸(하단 내비 + [OceNavHost])을 담는 바깥 그래프 목적지 경로. */
 const val MAIN_TABS_ROUTE = "main_tabs"
@@ -187,14 +190,24 @@ fun AppRoot(
     }
 }
 
-/** 부트 게이트 대기 화면 — 중앙 인디케이터. boot 확정 시 NavHost 로 교체된다. */
+/** 부트 게이트 대기 화면 — 로그인 중 로딩 표면. boot 확정 시 NavHost 로 교체된다. */
 @Composable
 private fun BootSplash() {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
-        OneClickProgressRing(mode = ProgressRingMode.Indeterminate)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
+        ) {
+            OneClickAppLoadingIndicator(contentDescription = "로그인 하는 중")
+            Text(
+                text = "로그인 하는 중이에요...",
+                style = OceTheme.typography.helper,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

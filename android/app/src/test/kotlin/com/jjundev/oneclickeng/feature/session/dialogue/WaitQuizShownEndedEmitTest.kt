@@ -21,6 +21,7 @@ import com.jjundev.oneclickeng.core.settings.TtsSettings
 import com.jjundev.oneclickeng.core.settings.TtsSettingsRepository
 import com.jjundev.oneclickeng.feature.session.analytics.NoOpSessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
+import com.jjundev.oneclickeng.feature.session.dialogue.loading.LoadingMessageSource
 import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
 import com.jjundev.oneclickeng.feature.session.tts.DeviceTts
 import com.jjundev.oneclickeng.feature.session.tts.DeviceTtsResult
@@ -214,6 +215,9 @@ class WaitQuizShownEndedEmitTest {
             coordinator,
             tts,
             ShownEndedFakeQuizBank(),
+            object : LoadingMessageSource {
+                override fun forSession(isOnboarding: Boolean): String = "test-loading-copy"
+            },
             waitQuiz,
             ShownEndedFakeLimitAnalytics(),
             snapshotStore,

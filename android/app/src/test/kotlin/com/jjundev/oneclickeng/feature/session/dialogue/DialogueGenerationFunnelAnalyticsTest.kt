@@ -23,6 +23,7 @@ import com.jjundev.oneclickeng.feature.session.analytics.NoOpSessionFunnelAnalyt
 import com.jjundev.oneclickeng.feature.session.analytics.RecordingSessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.analytics.SessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
+import com.jjundev.oneclickeng.feature.session.dialogue.loading.LoadingMessageSource
 import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
 import com.jjundev.oneclickeng.feature.session.tts.DeviceTts
 import com.jjundev.oneclickeng.feature.session.tts.DeviceTtsResult
@@ -197,6 +198,9 @@ class DialogueGenerationFunnelAnalyticsTest {
             coordinator,
             tts,
             FunnelFakeQuizBank(),
+            object : LoadingMessageSource {
+                override fun forSession(isOnboarding: Boolean): String = "test-loading-copy"
+            },
             FunnelRecordingWaitQuizAnalytics(),
             FunnelRecordingLimitAnalytics(),
             snapshotStore,
