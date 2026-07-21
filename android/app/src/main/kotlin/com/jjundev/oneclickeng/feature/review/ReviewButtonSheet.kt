@@ -42,16 +42,18 @@ internal fun ReviewButtonSheet(
         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
     ) {
         Column(
-            modifier = modifier.fillMaxWidth()
-                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                .background(MaterialTheme.colorScheme.surface),
+            modifier =
+                modifier.fillMaxWidth()
+                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                    .background(MaterialTheme.colorScheme.surface),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             BottomSheetDefaults.DragHandle()
             Column(
-                modifier = Modifier.fillMaxWidth()
-                    .padding(horizontal = OceTheme.spacing.sheetPadding)
-                    .padding(top = OceTheme.spacing.sm, bottom = OceTheme.spacing.lg),
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .padding(horizontal = OceTheme.spacing.sheetPadding)
+                        .padding(top = OceTheme.spacing.sm, bottom = OceTheme.spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
                 content = content,
             )

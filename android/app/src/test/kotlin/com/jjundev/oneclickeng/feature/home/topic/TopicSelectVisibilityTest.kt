@@ -66,13 +66,16 @@ private val dailyTopics =
         topic("weekend-plans", "주말 계획 묻기", OceIcon.Event),
     )
 
-private fun topic(id: String, titleKo: String, icon: OceIcon) =
-    Topic(
-        id = id,
-        emoji = "",
-        titleKo = titleKo,
-        group = TopicGroup.Daily,
-        beginnerFriendly = false,
-        promptSeed = titleKo,
-        icon = icon,
-    )
+private fun topic(
+    id: String,
+    titleKo: String,
+    icon: OceIcon,
+) = Topic(
+    id = id,
+    emoji = "",
+    titleKo = titleKo,
+    group = TopicGroup.Daily,
+    beginnerFriendly = false,
+    promptSeed = titleKo,
+    icon = icon,
+)

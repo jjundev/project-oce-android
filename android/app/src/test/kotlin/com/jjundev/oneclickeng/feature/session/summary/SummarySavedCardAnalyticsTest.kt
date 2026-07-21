@@ -19,7 +19,6 @@ import com.jjundev.oneclickeng.feature.session.analytics.RecordingSavedCardAnaly
 import com.jjundev.oneclickeng.feature.session.analytics.SavedCardAnalytics
 import com.jjundev.oneclickeng.feature.session.saved.CardType
 import com.jjundev.oneclickeng.feature.session.saved.FakeSavedCardRepository
-import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
@@ -31,6 +30,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.time.LocalDate
 
 // Prefixed `SavedCardFake*` — top-level `private` classes collide by name across files in the same
 // package in Kotlin (Task 5/6 precedent: SessionComplete*/PartialFailure* in the sibling test files).
@@ -142,8 +142,7 @@ class SummarySavedCardAnalyticsTest {
         )
     }
 
-    private fun wordItem() =
-        WordItemDto("grab", "잽싸게", "verb", "B1", WordExampleDto("Let me grab it.", "제가 가져올게요."))
+    private fun wordItem() = WordItemDto("grab", "잽싸게", "verb", "B1", WordExampleDto("Let me grab it.", "제가 가져올게요."))
 
     /** Drives [coordinator] to a Sectioned bundle with one Ready WORD card at index 0 (mirrors
      * `SummaryCoordinatorTest`'s `toggleSaveWord persists WORD by sourceIndex...` setup). */

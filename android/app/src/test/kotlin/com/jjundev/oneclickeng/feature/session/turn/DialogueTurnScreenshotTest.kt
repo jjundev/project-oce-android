@@ -131,7 +131,10 @@ class DialogueTurnScreenshotTest {
     @Test
     fun session_recording_dark() = captureRecording(name = "session_recording_dark", dark = true)
 
-    private fun captureOpponent(name: String, dark: Boolean) {
+    private fun captureOpponent(
+        name: String,
+        dark: Boolean,
+    ) {
         capture(name, dark) {
             DialogueTurnContent(
                 messages = opponentMessages,
@@ -146,7 +149,10 @@ class DialogueTurnScreenshotTest {
         }
     }
 
-    private fun captureOpponentPlaying(name: String, dark: Boolean) {
+    private fun captureOpponentPlaying(
+        name: String,
+        dark: Boolean,
+    ) {
         capture(name, dark) {
             DialogueTurnContent(
                 messages = opponentMessages,
@@ -162,7 +168,11 @@ class DialogueTurnScreenshotTest {
         }
     }
 
-    private fun captureLearner(name: String, dark: Boolean, textMode: Boolean) {
+    private fun captureLearner(
+        name: String,
+        dark: Boolean,
+        textMode: Boolean,
+    ) {
         capture(name, dark) {
             DialogueTurnContent(
                 messages = opponentMessages,
@@ -195,7 +205,10 @@ class DialogueTurnScreenshotTest {
         }
     }
 
-    private fun captureRecording(name: String, dark: Boolean) {
+    private fun captureRecording(
+        name: String,
+        dark: Boolean,
+    ) {
         capture(name, dark) {
             DialogueTurnContent(
                 messages = opponentMessages,
@@ -228,7 +241,11 @@ class DialogueTurnScreenshotTest {
         }
     }
 
-    private fun capture(name: String, dark: Boolean, content: @Composable () -> Unit) {
+    private fun capture(
+        name: String,
+        dark: Boolean,
+        content: @Composable () -> Unit,
+    ) {
         composeRule.setContent {
             OceTheme(darkTheme = dark) {
                 Surface(color = MaterialTheme.colorScheme.background) {

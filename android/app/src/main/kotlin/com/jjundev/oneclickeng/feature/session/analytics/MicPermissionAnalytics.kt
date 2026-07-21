@@ -11,7 +11,10 @@ import javax.inject.Inject
 interface MicPermissionAnalytics {
     fun requested(source: String)
 
-    fun result(source: String, granted: Boolean)
+    fun result(
+        source: String,
+        granted: Boolean,
+    )
 
     companion object {
         const val SOURCE_SESSION = "session"
@@ -24,7 +27,10 @@ class NoOpMicPermissionAnalytics
     constructor() : MicPermissionAnalytics {
         override fun requested(source: String) = Unit
 
-        override fun result(source: String, granted: Boolean) = Unit
+        override fun result(
+            source: String,
+            granted: Boolean,
+        ) = Unit
     }
 
 /** Firebase dispatch via the shared [AnalyticsSink] (M4-01a). */
@@ -35,6 +41,8 @@ class FirebaseMicPermissionAnalytics
     ) : MicPermissionAnalytics {
         override fun requested(source: String) = sink.log("mic_permission_requested", mapOf("source" to source))
 
-        override fun result(source: String, granted: Boolean) =
-            sink.log("mic_permission_result", mapOf("source" to source, "granted" to granted))
+        override fun result(
+            source: String,
+            granted: Boolean,
+        ) = sink.log("mic_permission_result", mapOf("source" to source, "granted" to granted))
     }

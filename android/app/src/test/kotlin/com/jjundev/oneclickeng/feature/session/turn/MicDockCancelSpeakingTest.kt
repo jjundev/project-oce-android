@@ -29,7 +29,10 @@ class MicDockCancelSpeakingTest {
     private val task = ScaffoldTask("라떼 한 잔을 주문해보세요")
     private val waveform = MutableStateFlow(FloatArray(0))
 
-    private fun setDock(micState: MicState, onCancelSpeaking: () -> Unit) {
+    private fun setDock(
+        micState: MicState,
+        onCancelSpeaking: () -> Unit,
+    ) {
         composeRule.setContent {
             OceTheme(darkTheme = false) {
                 MicDock(

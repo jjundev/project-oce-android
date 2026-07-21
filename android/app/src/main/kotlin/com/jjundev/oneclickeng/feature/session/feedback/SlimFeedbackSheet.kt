@@ -50,14 +50,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.jjundev.oneclickeng.ui.foundation.OceIcon
-import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
-import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.component.InlineErrorMode
 import com.jjundev.oneclickeng.ui.component.OneClickDualExposureBlock
 import com.jjundev.oneclickeng.ui.component.OneClickInlineError
 import com.jjundev.oneclickeng.ui.component.OneClickRichText
 import com.jjundev.oneclickeng.ui.component.RichSegment
+import com.jjundev.oneclickeng.ui.foundation.OceIcon
+import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
+import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /** 턴 피드백 시트 높이 상한(화면 대비). 시트는 콘텐츠에 맞춰 커지되 이 비율을 넘지 않는다(넘으면 내부 스크롤). */
@@ -65,6 +65,9 @@ private const val SHEET_HEIGHT_FRACTION = 0.7f
 
 /** 정적 드래그 핸들 바 불투명도(M3 DragHandle 정합 — 장식용, 시트는 드래그 불가). */
 private const val HANDLE_ALPHA = 0.4f
+
+// onCollapseDeep 은 "접기" 버튼 제거(펼친 뒤 토글 gone) 이후 UI 소비처가 없다 — API/프리뷰 호환을 위해
+// seam 파라미터로 남겨 두되 미사용을 명시 억제한다.
 
 /**
  * 화면 04 — 턴 피드백 시트(M1-07 slim + M2-03 deep). 드래그 없는 고정 하단 오버레이에 ⓪ 리캡 헤더(즉시)+
@@ -197,8 +200,6 @@ fun SlimFeedbackSheet(
  * 시트 무관 콘텐츠(무상태 seam). [SlimFeedbackSheet] 는 모달 래핑만 하고 렌더는 여기 위임한다 — 프로토타입
  * 대조 스크린샷이 ModalBottomSheet(별도 윈도) 캡처 제약 없이 시트 내용을 고정 상태로 렌더할 수 있게 한다.
  */
-// onCollapseDeep 은 "접기" 버튼 제거(펼친 뒤 토글 gone) 이후 UI 소비처가 없다 — API/프리뷰 호환을 위해
-// seam 파라미터로 남겨 두되 미사용을 명시 억제한다.
 @Suppress("UnusedParameter")
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -503,11 +504,6 @@ private fun NaturalContent(value: NaturalExpression) {
 }
 
 /**
- * [더 보기/접기] 토글(M2-03). slim 3섹션이 모두 settled([enabled])이면 활성 — deep 를 개시/펼치거나 접는다.
- * 스킵된 슬림 섹션이 있으면(settled=true) 활성이 유지된다(nextEnabled 재사용, "다음"과 동일 게이트).
- */
-/**
- * [더 보기/접기] — 프로토타입 정합: surface-background(회색) 채움 + 헤어라인 + radius12, 브랜드 텍스트(700/14) +
  * expand_more 셰브런(펼침 시 180° 회전). M3 OutlinedButton(stadium·투명) 대신 커스텀으로 형태를 맞춘다.
  */
 @Composable

@@ -25,10 +25,14 @@ class DialogueHeaderProgressTest {
         compose.setContent {
             OceTheme {
                 DialogueHeader(
-                    state = DialogueHeaderState(
-                        topicEmoji = "☕", title = "카페", levelLabel = "중간 · 10턴",
-                        totalTurns = 10, completedTurns = 3,
-                    ),
+                    state =
+                        DialogueHeaderState(
+                            topicEmoji = "☕",
+                            title = "카페",
+                            levelLabel = "중간 · 10턴",
+                            totalTurns = 10,
+                            completedTurns = 3,
+                        ),
                 )
             }
         }

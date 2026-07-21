@@ -27,27 +27,28 @@ class TopicCatalogAssetParserTest {
 
     @Test
     fun `parser rejects malformed assets`() {
-        val cases = listOf(
-            "unknown root field" to validAsset().replaceFirst("{", "{\"unexpected\":true,"),
-            "wrong version" to validAsset().replaceFirst("\"version\": 1", "\"version\": 2"),
-            "missing row field" to validAsset().replaceFirst("\"emoji\": \"☕\",", ""),
-            "invalid id" to validAsset().replaceFirst("\"id\": \"cafe-order\"", "\"id\": \"bad id\""),
-            "blank title" to validAsset().replaceFirst("\"titleKo\": \"카페에서 주문하기\"", "\"titleKo\": \"\""),
-            "multiline prompt" to
-                validAsset().replaceFirst(
-                    "ordering a drink and a snack at a café counter",
-                    "line one\\nline two",
-                ),
-            "duplicate id" to validAsset().replaceFirst("\"id\": \"weather-smalltalk\"", "\"id\": \"cafe-order\""),
-            "unknown group" to validAsset().replaceFirst("\"group\": \"daily\"", "\"group\": \"unknown\""),
-            "unknown icon" to validAsset().replaceFirst("\"icon\": \"LocalCafe\"", "\"icon\": \"NoSuchIcon\""),
-            "wrong group quota" to validAsset().replaceFirst("\"group\": \"daily\"", "\"group\": \"travel\""),
-            "wrong onboarding ids" to
-                validAsset().replaceFirst(
-                    "\"beginnerFriendly\": true",
-                    "\"beginnerFriendly\": false",
-                ),
-        )
+        val cases =
+            listOf(
+                "unknown root field" to validAsset().replaceFirst("{", "{\"unexpected\":true,"),
+                "wrong version" to validAsset().replaceFirst("\"version\": 1", "\"version\": 2"),
+                "missing row field" to validAsset().replaceFirst("\"emoji\": \"☕\",", ""),
+                "invalid id" to validAsset().replaceFirst("\"id\": \"cafe-order\"", "\"id\": \"bad id\""),
+                "blank title" to validAsset().replaceFirst("\"titleKo\": \"카페에서 주문하기\"", "\"titleKo\": \"\""),
+                "multiline prompt" to
+                    validAsset().replaceFirst(
+                        "ordering a drink and a snack at a café counter",
+                        "line one\\nline two",
+                    ),
+                "duplicate id" to validAsset().replaceFirst("\"id\": \"weather-smalltalk\"", "\"id\": \"cafe-order\""),
+                "unknown group" to validAsset().replaceFirst("\"group\": \"daily\"", "\"group\": \"unknown\""),
+                "unknown icon" to validAsset().replaceFirst("\"icon\": \"LocalCafe\"", "\"icon\": \"NoSuchIcon\""),
+                "wrong group quota" to validAsset().replaceFirst("\"group\": \"daily\"", "\"group\": \"travel\""),
+                "wrong onboarding ids" to
+                    validAsset().replaceFirst(
+                        "\"beginnerFriendly\": true",
+                        "\"beginnerFriendly\": false",
+                    ),
+            )
 
         cases.forEach { (name, malformed) ->
             assertThrows(name, IllegalArgumentException::class.java) { parse(malformed) }
@@ -88,5 +89,5 @@ private fun validAsset(): String =
         ?.bufferedReader()
         ?.use { it.readText() }
         ?: error(
-        "topics.json is not available on the JVM test classpath"
-    )
+            "topics.json is not available on the JVM test classpath",
+        )

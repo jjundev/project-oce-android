@@ -28,20 +28,26 @@ fun waveBob(t: Float): Float {
 }
 
 /**
- * 물결 애니메이션 시계. [clockMs] 를 0 부터 (WaveDurationMs + maxIndex*WaveStaggerMs) 까지 진행시키면
+ * 물결 애니메이션 시계. [clockMs] 를 0 부터 (WAVE_DURATION_MS + maxIndex*WAVE_STAGGER_MS) 까지 진행시키면
  * 각 아이템이 인덱스만큼 지연돼 파도처럼 전파된다. -1 = 유휴(정지).
  */
 class RefreshWaveState {
     private val _clockMs = mutableFloatStateOf(-1f)
     var clockMs: Float
         get() = _clockMs.floatValue
-        set(value) { _clockMs.floatValue = value }
+        set(value) {
+            _clockMs.floatValue = value
+        }
 
-    fun translationYPx(index: Int, amplitudePx: Float): Float {
+    fun translationYPx(
+        index: Int,
+        amplitudePx: Float,
+    ): Float {
         val c = clockMs
         if (c < 0f) return 0f
-        val local = ((c - index * OverscrollDefaults.WaveStaggerMs) / OverscrollDefaults.WaveDurationMs)
-            .coerceIn(0f, 1f)
+        val local =
+            ((c - index * OverscrollDefaults.WAVE_STAGGER_MS) / OverscrollDefaults.WAVE_DURATION_MS)
+                .coerceIn(0f, 1f)
         return waveBob(local) * amplitudePx
     }
 }
@@ -54,10 +60,15 @@ val LocalRefreshWave = staticCompositionLocalOf { RefreshWaveState() }
  * [index] 는 물결 전파 순서(위→아래), [soft]=true 는 헤더용 작은 진폭.
  * graphicsLayer 람다에서 clock 을 읽어 draw 단계에서만 갱신(리컴포지션 없음).
  */
-fun Modifier.refreshWave(index: Int, soft: Boolean = false): Modifier = composed {
-    val wave = LocalRefreshWave.current
-    val amplitudePx = with(LocalDensity.current) {
-        (if (soft) OverscrollDefaults.WaveHeaderPeak else OverscrollDefaults.WaveCardPeak).toPx()
+fun Modifier.refreshWave(
+    index: Int,
+    soft: Boolean = false,
+): Modifier =
+    composed {
+        val wave = LocalRefreshWave.current
+        val amplitudePx =
+            with(LocalDensity.current) {
+                (if (soft) OverscrollDefaults.WaveHeaderPeak else OverscrollDefaults.WaveCardPeak).toPx()
+            }
+        graphicsLayer { translationY = wave.translationYPx(index, amplitudePx) }
     }
-    graphicsLayer { translationY = wave.translationYPx(index, amplitudePx) }
-}

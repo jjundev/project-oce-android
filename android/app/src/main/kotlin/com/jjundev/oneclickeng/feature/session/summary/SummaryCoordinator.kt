@@ -37,6 +37,10 @@ enum class SummarySection(val sectionKey: String) {
     Coaching("coaching"),
 }
 
+// 상태 머신 코디네이터라 작은 전이 헬퍼가 많다(SlimFeedbackCoordinator 선례와 동일 판단). 주입 seam 이
+// 많아(스트림·버퍼·북마크·원장·저장카드·studytime·scope) LongParameterList 를 억제한다 — 페이로드 분해가
+// 오히려 불투명(DeepFeedbackCoordinator 선례와 동일 판단).
+
 /**
  * 세션 요약(M2-02)을 오케스트레이션한다: 로컬 즉시 데이터([SessionTurnBufferStore]·[BookmarkSource]·주입
  * accrual)와 요약 SSE 번들([SummaryStream])을 합성해 [SummaryState] 로 노출하는 코루틴 상태 머신 —
@@ -62,9 +66,6 @@ enum class SummarySection(val sectionKey: String) {
  * 시도한다. XP/streak 서버 집계는 `onLedgerCreate` 트리거 소관이며, 적립 스트립([accrual])은 로컬 낙관
  * 값으로 갱신되어 서버가 사후 정합한다.
  */
-// 상태 머신 코디네이터라 작은 전이 헬퍼가 많다(SlimFeedbackCoordinator 선례와 동일 판단). 주입 seam 이
-// 많아(스트림·버퍼·북마크·원장·저장카드·studytime·scope) LongParameterList 를 억제한다 — 페이로드 분해가
-// 오히려 불투명(DeepFeedbackCoordinator 선례와 동일 판단).
 @Suppress("TooManyFunctions", "LongParameterList")
 @Singleton
 class SummaryCoordinator
@@ -537,7 +538,10 @@ class SummaryCoordinator
         }
 
         // summary_latency_ms — only the FIRST attempt's token logs (decision #2); retries are silent.
-        private fun maybeLogFirstAttemptLatency(token: Long, forcedFailure: Boolean) {
+        private fun maybeLogFirstAttemptLatency(
+            token: Long,
+            forcedFailure: Boolean,
+        ) {
             if (token != firstAttemptToken || firstAttemptLatencyLogged) return
             firstAttemptLatencyLogged = true
             val outcome =

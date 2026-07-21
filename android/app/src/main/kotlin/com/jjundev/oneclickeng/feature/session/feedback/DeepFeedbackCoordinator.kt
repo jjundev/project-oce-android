@@ -23,6 +23,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
+// 상태 머신 코디네이터라 작은 전이 헬퍼가 많다(SlimFeedbackCoordinator 선례와 동일 판단).
+
 /**
  * 온디맨드 깊은 분석("더 보기", M2-03)을 오케스트레이션한다: `feedbackDeep` SSE([DeepFeedbackStream])를
  * 소비해 세 블록(conceptualBridge → toneStyle → paraphrasing)을 [DeepFeedbackState] 로 점진 노출하는 코루틴
@@ -43,7 +45,6 @@ import javax.inject.Singleton
  * 가 [SavedCardRepository] 로 SENTENCE 카드를 영속화한다(cardId=`{sessionId}__SENTENCE__{turnIndex}__{level}`).
  * 반환하는 [ParaphraseBookmark] 는 계측/호스트용 seam 으로 유지한다.
  */
-// 상태 머신 코디네이터라 작은 전이 헬퍼가 많다(SlimFeedbackCoordinator 선례와 동일 판단).
 @Suppress("TooManyFunctions")
 @Singleton
 class DeepFeedbackCoordinator
@@ -289,8 +290,7 @@ class DeepFeedbackCoordinator
                     _state.value is DeepFeedbackState.Canceled
 
         /** Precondition: [allArrived]. Non-null asserted blocks into the terminal Ready snapshot. */
-        private fun readyState(): DeepFeedbackState.Ready =
-            DeepFeedbackState.Ready(cb!!, tone!!, para!!)
+        private fun readyState(): DeepFeedbackState.Ready = DeepFeedbackState.Ready(cb!!, tone!!, para!!)
 
         /**
          * Fire `deep_latency_ms` once per attempt. Guarded by [deepLatencyLogged] because both

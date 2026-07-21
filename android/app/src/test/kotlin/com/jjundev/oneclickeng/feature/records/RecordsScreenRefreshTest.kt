@@ -20,8 +20,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
-import org.junit.Assert.assertEquals
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -80,31 +80,40 @@ class RecordsScreenRefreshTest {
         RecordsViewModel(
             querySource = query,
             savedCardRepository = FakeSavedCardRepository(),
-            lifetimeStatsSource = object : LifetimeStatsSource {
-                override suspend fun lifetime(): LifetimeStats? = null
-            },
-            analytics = object : HistoryAnalytics {
-                override fun tabView(cardType: CardType) = Unit
-                override fun tabSwitch(cardType: CardType) = Unit
-                override fun deleteCard(cardType: CardType, undone: Boolean) = Unit
-            },
+            lifetimeStatsSource =
+                object : LifetimeStatsSource {
+                    override suspend fun lifetime(): LifetimeStats? = null
+                },
+            analytics =
+                object : HistoryAnalytics {
+                    override fun tabView(cardType: CardType) = Unit
+
+                    override fun tabSwitch(cardType: CardType) = Unit
+
+                    override fun deleteCard(
+                        cardType: CardType,
+                        undone: Boolean,
+                    ) = Unit
+                },
             countUpGate = HistoryCountUpGate(),
             reviewSource = FakeReviewSource(),
-            reviewClock = object : ReviewClock {
-                override fun nowMs(): Long = 0L
-            },
+            reviewClock =
+                object : ReviewClock {
+                    override fun nowMs(): Long = 0L
+                },
         )
 
     private fun expression(id: String) =
         SavedCardEntry(
             cardId = id,
-            card = SavedCard.Expression(
-                type = "natural",
-                koreanPrompt = "",
-                before = "",
-                after = "after-$id",
-                explanation = "",
-            ),
+            card =
+                SavedCard.Expression(
+                    type = "natural",
+                    koreanPrompt = "",
+                    before = "",
+                    after = "after-$id",
+                    explanation = "",
+                ),
         )
 
     private inner class RecordingQuerySource : SavedCardQuerySource {

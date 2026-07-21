@@ -15,8 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -24,6 +22,8 @@ import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import kotlin.math.roundToInt
 
@@ -86,7 +86,10 @@ private fun computeSteps(mode: SliderMode): Int =
         is SliderMode.Stepped -> steppedSliderSpec(mode.range, mode.step).steps
     }
 
-private fun computeState(mode: SliderMode, value: Float): String =
+private fun computeState(
+    mode: SliderMode,
+    value: Float,
+): String =
     when (mode) {
         is SliderMode.Continuous -> "${"%.1f".format(value)}x"
         is SliderMode.Discrete -> mode.labels.getOrNull(value.roundToInt())?.let { "${it.en} / ${it.ko}" } ?: ""
@@ -161,7 +164,11 @@ fun OneClickSlider(
 }
 
 @Composable
-private fun renderValueLabel(mode: SliderMode, value: Float, showValueLabel: Boolean) {
+private fun renderValueLabel(
+    mode: SliderMode,
+    value: Float,
+    showValueLabel: Boolean,
+) {
     when (mode) {
         is SliderMode.Continuous ->
             if (showValueLabel) {

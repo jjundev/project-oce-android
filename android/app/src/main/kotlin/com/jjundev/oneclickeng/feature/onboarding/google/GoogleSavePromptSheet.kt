@@ -19,11 +19,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.credentials.exceptions.GetCredentialCancellationException
@@ -31,10 +31,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jjundev.oneclickeng.core.auth.GoogleCredentialProvider
 import com.jjundev.oneclickeng.feature.onboarding.OnboardingViewModel
-import com.jjundev.oneclickeng.ui.component.primitive.OceSheetDefaults
-import com.jjundev.oneclickeng.ui.component.primitive.OneClickBottomSheet
 import com.jjundev.oneclickeng.ui.component.SheetGhostHeight
 import com.jjundev.oneclickeng.ui.component.SheetPrimaryHeight
+import com.jjundev.oneclickeng.ui.component.primitive.OceSheetDefaults
+import com.jjundev.oneclickeng.ui.component.primitive.OneClickBottomSheet
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import kotlinx.coroutines.launch
 

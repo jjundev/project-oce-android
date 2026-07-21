@@ -51,7 +51,9 @@ class ReviewViewModel
         private val _uiState = MutableStateFlow(ReviewUiState())
         val uiState: StateFlow<ReviewUiState> = _uiState.asStateFlow()
 
-        init { load() }
+        init {
+            load()
+        }
 
         fun restart() = load()
 
@@ -91,7 +93,10 @@ class ReviewViewModel
 
         /** [ReviewItem.aheadOfSchedule] 카드는 채점해도 SRS 를 갱신하지 않는다 — 미리 복습이 정식 간격반복
          * 주기를 흐트러뜨리지 않도록. */
-        private fun record(item: ReviewItem, correct: Boolean) {
+        private fun record(
+            item: ReviewItem,
+            correct: Boolean,
+        ) {
             if (item.aheadOfSchedule) return
             val next = LeitnerLogic.onGrade(item.review, correct, clock.nowMs())
             savedCardRepository.updateSrs(
@@ -131,6 +136,7 @@ class ReviewViewModel
             }
         }
 
-        private fun phaseFor(item: ReviewItem): ReviewPhase =
-            if (item.card is SavedCard.Expression) ReviewPhase.Ask else ReviewPhase.Front
+        private fun phaseFor(item: ReviewItem): ReviewPhase {
+            return if (item.card is SavedCard.Expression) ReviewPhase.Ask else ReviewPhase.Front
+        }
     }

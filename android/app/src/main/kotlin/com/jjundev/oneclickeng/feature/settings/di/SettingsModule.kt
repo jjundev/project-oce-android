@@ -1,7 +1,7 @@
 package com.jjundev.oneclickeng.feature.settings.di
 
-import com.jjundev.oneclickeng.feature.settings.SettingsAnalytics
 import com.jjundev.oneclickeng.feature.settings.FirebaseSettingsAnalytics
+import com.jjundev.oneclickeng.feature.settings.SettingsAnalytics
 import com.jjundev.oneclickeng.feature.settings.data.CardPurgeRepository
 import com.jjundev.oneclickeng.feature.settings.data.FirestoreCardPurgeRepository
 import dagger.Binds

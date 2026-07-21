@@ -3,10 +3,10 @@ package com.jjundev.oneclickeng.feature.home.topic
 import com.jjundev.oneclickeng.feature.onboarding.topic.ONBOARDING_TOPICS
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import kotlinx.serialization.json.Json
-import org.junit.Before
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 /** M3-08 주제 카탈로그 + 결정적 추천 회전(A3) 검증 — 순수 함수라 클럭/DI 없이 단언한다. */
@@ -99,5 +99,5 @@ private fun bundledAsset(): String =
         ?.bufferedReader()
         ?.use { it.readText() }
         ?: error(
-        "topics.json is not available on the JVM test classpath"
-    )
+            "topics.json is not available on the JVM test classpath",
+        )

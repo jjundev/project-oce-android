@@ -141,7 +141,8 @@ class OverscrollRefreshBoxTest {
         runBlocking {
             capturedState.nestedScrollConnection.onPostScroll(
                 consumed = Offset.Zero,
-                available = Offset(0f, 40f), // below threshold — stays a pure drag, no release
+                // below threshold — stays a pure drag, no release
+                available = Offset(0f, 40f),
                 source = NestedScrollSource.UserInput,
             )
         }

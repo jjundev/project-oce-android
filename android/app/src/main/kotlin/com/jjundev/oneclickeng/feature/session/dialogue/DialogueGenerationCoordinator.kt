@@ -23,6 +23,8 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
+// SSE 상태 머신이라 작은 전이 헬퍼가 많다(SlimFeedbackCoordinator 선례와 동일 판단).
+
 /**
  * Orchestrates dialogue-script generation (M1-01): consumes the typed SSE stream ([DialogueStream])
  * and surfaces completed objects as [DialogueGenState] — a coroutine state machine mirroring
@@ -42,7 +44,6 @@ import javax.inject.Singleton
  * turn arrives ([DialogueGenState.Ready]) the state is sticky and a stalled/late stream no longer
  * fails it.
  */
-// SSE 상태 머신이라 작은 전이 헬퍼가 많다(SlimFeedbackCoordinator 선례와 동일 판단).
 @Suppress("TooManyFunctions")
 @Singleton
 class DialogueGenerationCoordinator

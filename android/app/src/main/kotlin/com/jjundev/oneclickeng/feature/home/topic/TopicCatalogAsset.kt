@@ -36,16 +36,20 @@ object TopicCatalogAssetParser {
     private const val EXPECTED_GROUP_COUNT = 75
     private val expectedBeginnerIds =
         setOf("cafe-order", "weather-smalltalk", "hobby-intro", "restaurant", "hotel-checkin", "taxi")
-    private val groupByWire = mapOf(
-        "daily" to TopicGroup.Daily,
-        "travel" to TopicGroup.Travel,
-        "work" to TopicGroup.Work,
-        "life" to TopicGroup.Life,
-    )
+    private val groupByWire =
+        mapOf(
+            "daily" to TopicGroup.Daily,
+            "travel" to TopicGroup.Travel,
+            "work" to TopicGroup.Work,
+            "life" to TopicGroup.Life,
+        )
     private val iconByName = OceIcon.entries.associateBy { it.name }
     private val idPattern = Regex("[a-z0-9]+(?:-[a-z0-9]+)*")
 
-    fun parse(networkJson: Json, text: String): TopicCatalogSnapshot {
+    fun parse(
+        networkJson: Json,
+        text: String,
+    ): TopicCatalogSnapshot {
         // The network instance tolerates future wire fields; this local app asset must not.
         val strictJson = Json(from = networkJson) { ignoreUnknownKeys = false }
         val asset = strictJson.decodeFromString<TopicCatalogAssetDto>(text)

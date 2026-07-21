@@ -1,8 +1,8 @@
 package com.jjundev.oneclickeng.feature.session.turn
 
+import com.jjundev.oneclickeng.core.network.DialogueTurn
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenState
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueStreamStatus
-import com.jjundev.oneclickeng.core.network.DialogueTurn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

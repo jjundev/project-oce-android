@@ -19,7 +19,6 @@ import com.jjundev.oneclickeng.feature.session.analytics.NoOpSessionFunnelAnalyt
 import com.jjundev.oneclickeng.feature.session.analytics.RecordingSessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.analytics.SessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.saved.FakeSavedCardRepository
-import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
@@ -31,6 +30,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.time.LocalDate
 
 // Prefixed `PartialFailure*` — top-level `private` classes collide by name across files in the same
 // package in Kotlin, and `SummaryCoordinatorTest.kt` already declares `FakeSummaryStream` etc. (Task 5
@@ -143,8 +143,9 @@ class SummaryPartialFailureAnalyticsTest {
         )
     }
 
-    private fun expressionItem() =
-        ExpressionItemDto("natural", "커피 주세요", "One coffee", "Could I grab a coffee?", "가벼워요.")
+    private fun expressionItem(): ExpressionItemDto {
+        return ExpressionItemDto("natural", "커피 주세요", "One coffee", "Could I grab a coffee?", "가벼워요.")
+    }
 
     private fun coachingDto() = CoachingDto(FutureSelfFeedbackDto("끝까지 했어요.", "과거형을 노려봐요."))
 

@@ -25,11 +25,11 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-private fun writingScore(score: Int = 85) =
-    FeedbackEvent.Section.WritingScore(WritingScoreDto(score, "잘했어요!"))
+private fun writingScore(score: Int = 85) = FeedbackEvent.Section.WritingScore(WritingScoreDto(score, "잘했어요!"))
 
-private fun grammar(segments: List<FeedbackSegmentDto>) =
-    FeedbackEvent.Section.Grammar(GrammarDto(CorrectedSentenceDto(segments), "좋아요."))
+private fun grammar(segments: List<FeedbackSegmentDto>): FeedbackEvent.Section.Grammar {
+    return FeedbackEvent.Section.Grammar(GrammarDto(CorrectedSentenceDto(segments), "좋아요."))
+}
 
 private fun natural(segments: List<FeedbackSegmentDto>) =
     FeedbackEvent.Section.NaturalExpression(NaturalExpressionDto(segments, ReasonDto("k", "d")))
@@ -69,8 +69,7 @@ private class FakeFeedbackStream : FeedbackStream {
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SlimFeedbackCoordinatorTest {
-    private fun TestScope.coordScope(): CoroutineScope =
-        CoroutineScope(UnconfinedTestDispatcher(testScheduler))
+    private fun TestScope.coordScope(): CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
 
     private fun SlimFeedbackCoordinator.begin() =
         start(

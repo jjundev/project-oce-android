@@ -7,8 +7,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
-import com.jjundev.oneclickeng.ui.theme.OceTheme
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
+import com.jjundev.oneclickeng.ui.theme.OceTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,7 +26,10 @@ class TopicQuestionScreenshotTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun capture(name: String, dark: Boolean) {
+    private fun capture(
+        name: String,
+        dark: Boolean,
+    ) {
         composeRule.setContent {
             OceTheme(darkTheme = dark) {
                 Surface(color = MaterialTheme.colorScheme.background) {

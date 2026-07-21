@@ -3,22 +3,21 @@ package com.jjundev.oneclickeng.feature.session.turn
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenState
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueStreamStatus
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import org.junit.Rule
 import org.junit.Test
+import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
 
-private fun ready(
-    turns: List<NetworkDialogueTurn>,
-) = DialogueGenState.Ready(
-    sessionId = "generated-smoke",
-    remaining = 1,
-    meta = null,
-    turns = turns,
-    streamStatus = DialogueStreamStatus.Streaming,
-)
+private fun ready(turns: List<NetworkDialogueTurn>) =
+    DialogueGenState.Ready(
+        sessionId = "generated-smoke",
+        remaining = 1,
+        meta = null,
+        turns = turns,
+        streamStatus = DialogueStreamStatus.Streaming,
+    )
 
 private fun model(en: String) = NetworkDialogueTurn(ko = "상대역", en = en, role = "model")
 

@@ -8,7 +8,6 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.os.bundleOf
@@ -20,7 +19,6 @@ import androidx.lifecycle.viewModelScope
 import com.jjundev.oneclickeng.core.audio.AudioCaptureException
 import com.jjundev.oneclickeng.core.audio.RecordingController
 import com.jjundev.oneclickeng.core.audio.RecordingResult
-import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
 import com.jjundev.oneclickeng.core.session.SessionLevel
 import com.jjundev.oneclickeng.feature.session.analytics.MicPermissionAnalytics
 import com.jjundev.oneclickeng.feature.session.analytics.SessionFunnelAnalytics
@@ -52,6 +50,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
+import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
 
 /**
  * Generated dialogue route (M1-01 대본 → M1-08 마이크 루프). 라이브 SSE 누적을 M1-03 턴 렌더러에 얹고,
@@ -164,20 +163,11 @@ fun GeneratedDialogueSessionRoute(
     }
 }
 
-/**
- * M1-08 세션 턴 루프 + 마이크 4상태의 상태 소유자. 기존 얇은 forwarder 를 확장해 [GeneratedDialogueState] 를
- * 직접 소유하고, 정착 [MicState] 루프(녹음→분석→완료)를 Singleton 코디네이터에 배선하며, 매 저장 시점
- * ([SavedStateHandle.setSavedStateProvider])에 [SessionTurnSnapshot] 을 lazy 직렬화한다(매-변이 쓰기 아님).
- *
- * MicState 는 정착 축만 필드로 들고([micState]), 과도 사유([transientReason])는 보존 대상이 아니다(§6.1).
- * 프로세스킬 복원 시 정착 Recording/Analyzing 은 [MicState.Ready] 로 강등된다 — fresh Singleton 이라 stale
- * 콜백이 없고(orphan 없음), 사용자에겐 재시도 힌트로 고지한다(무증명 아님, 결정 #12b).
- */
-/** The English of the opponent (model) line at the given 0-based opponent ordinal, or
- *  null if that line is not yet available. Opponent lines occupy even indices (0,2,4,…)
- *  of the raw turn buffer per the wire contract (DialogueTurn.role ∈ {"model","user"});
- *  ordinal 0 = the first opponent line. Used to prefetch/​warm a line's TTS ahead of its
- *  turn. Defensive against malformed data (non-model / blank → null). */
+/* The English of the opponent (model) line at the given 0-based opponent ordinal, or
+ * null if that line is not yet available. Opponent lines occupy even indices (0,2,4,…)
+ * of the raw turn buffer per the wire contract (DialogueTurn.role ∈ {"model","user"});
+ * ordinal 0 = the first opponent line. Used to prefetch/​warm a line's TTS ahead of its
+ * turn. Defensive against malformed data (non-model / blank → null). */
 internal fun nextOpponentEnglish(
     turns: List<NetworkDialogueTurn>,
     opponentOrdinal: Int,
@@ -331,8 +321,8 @@ class GeneratedDialogueSessionViewModel
                     val liveState = generation.state.value
                     if (
                         durable != null &&
-                            shouldRestoreDurableSnapshot(durable, liveState) &&
-                            turnState.messages.isEmpty()
+                        shouldRestoreDurableSnapshot(durable, liveState) &&
+                        turnState.messages.isEmpty()
                     ) {
                         seedFrom(durable)
                     }
@@ -698,12 +688,12 @@ class GeneratedDialogueSessionViewModel
         }
 
         /** RECORD_AUDIO permission requested (priming sheet → OS dialog). M4-01d. */
-        fun onMicPermissionRequested() =
-            micPermissionAnalytics.requested(MicPermissionAnalytics.SOURCE_SESSION)
+        fun onMicPermissionRequested() = micPermissionAnalytics.requested(MicPermissionAnalytics.SOURCE_SESSION)
 
         /** RECORD_AUDIO permission result (granted/denied). M4-01d. */
-        fun onMicPermissionResult(granted: Boolean) =
+        fun onMicPermissionResult(granted: Boolean) {
             micPermissionAnalytics.result(MicPermissionAnalytics.SOURCE_SESSION, granted)
+        }
 
         fun onTextChange(value: String) {
             textValue = value
@@ -722,7 +712,10 @@ class GeneratedDialogueSessionViewModel
             persistResume()
         }
 
-        private fun triggerFeedback(userEnglish: String, inputMode: String) {
+        private fun triggerFeedback(
+            userEnglish: String,
+            inputMode: String,
+        ) {
             val sid = currentSessionId() ?: return
             val level = currentLevel() ?: return
             val task = turnState.currentTask?.koreanPrompt
@@ -733,12 +726,13 @@ class GeneratedDialogueSessionViewModel
                 // deep cardId 파생용 0-based 학습자 턴 인덱스. triggerFeedback 은 appendLearnerAnswer 직후라
                 // 학습자 말풍선 수는 현재 턴을 이미 포함한다 → -1 로 0-based 로 만든다.
                 val turnIndex = turnState.messages.count { it is DialogueMessage.Learner } - 1
-                pendingTurn = PendingTurn(
-                    koreanPrompt = task,
-                    userText = userEnglish,
-                    inputMode = inputMode,
-                    turnIndex = turnIndex,
-                )
+                pendingTurn =
+                    PendingTurn(
+                        koreanPrompt = task,
+                        userText = userEnglish,
+                        inputMode = inputMode,
+                        turnIndex = turnIndex,
+                    )
                 deepParams = DeepParams(sid, turnIndex, task, userEnglish, ref, level)
                 feedback.start(sid, task, userEnglish, ref, level)
             }
@@ -1338,8 +1332,8 @@ internal class GeneratedDialogueState {
         val pendingOpponent = pending.opponentEnglish
         awaitingReveal =
             turnPhase == TurnPhase.OpponentTurn &&
-                pendingOpponent != null &&
-                (messages.lastOrNull() as? DialogueMessage.Opponent)?.english != pendingOpponent
+            pendingOpponent != null &&
+            (messages.lastOrNull() as? DialogueMessage.Opponent)?.english != pendingOpponent
         recomputeTyping()
     }
 

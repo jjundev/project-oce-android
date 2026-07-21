@@ -88,16 +88,18 @@ internal fun ReviewFlowContent(
             if (state.phase != ReviewPhase.Done) {
                 val progress = if (state.total == 0) 0f else state.index.toFloat() / state.total
                 Box(
-                    modifier = Modifier.fillMaxWidth()
-                        .padding(horizontal = OceTheme.spacing.xl, vertical = OceTheme.spacing.md)
-                        .height(4.dp)
-                        .clip(OceTheme.shapes.pill)
-                        .background(MaterialTheme.colorScheme.outlineVariant),
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .padding(horizontal = OceTheme.spacing.xl, vertical = OceTheme.spacing.md)
+                            .height(4.dp)
+                            .clip(OceTheme.shapes.pill)
+                            .background(MaterialTheme.colorScheme.outlineVariant),
                 ) {
                     Box(
-                        modifier = Modifier.fillMaxWidth(progress).fillMaxHeight()
-                            .clip(OceTheme.shapes.pill)
-                            .background(MaterialTheme.colorScheme.primary),
+                        modifier =
+                            Modifier.fillMaxWidth(progress).fillMaxHeight()
+                                .clip(OceTheme.shapes.pill)
+                                .background(MaterialTheme.colorScheme.primary),
                     )
                 }
                 Row(
@@ -106,9 +108,10 @@ internal fun ReviewFlowContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Box(
-                        modifier = Modifier.size(34.dp).clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surface)
-                            .clickable(onClick = onClose),
+                        modifier =
+                            Modifier.size(34.dp).clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surface)
+                                .clickable(onClick = onClose),
                         contentAlignment = Alignment.Center,
                     ) {
                         OneClickIcon(
@@ -127,9 +130,10 @@ internal fun ReviewFlowContent(
                                 text = "미리 복습",
                                 style = OceTheme.typography.accrualLabel.copy(fontWeight = FontWeight.SemiBold),
                                 color = OceTheme.colors.textTertiary,
-                                modifier = Modifier.clip(OceTheme.shapes.pill)
-                                    .background(MaterialTheme.colorScheme.surface)
-                                    .padding(horizontal = OceTheme.spacing.sm, vertical = OceTheme.spacing.xs),
+                                modifier =
+                                    Modifier.clip(OceTheme.shapes.pill)
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .padding(horizontal = OceTheme.spacing.sm, vertical = OceTheme.spacing.xs),
                             )
                         }
                         Text(

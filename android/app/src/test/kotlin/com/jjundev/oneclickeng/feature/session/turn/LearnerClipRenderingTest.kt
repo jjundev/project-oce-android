@@ -6,11 +6,16 @@ import org.junit.Test
 class LearnerClipRenderingTest {
     private val messages =
         listOf(
-            DialogueMessage.Opponent("hi"), // index 0
-            DialogueMessage.Learner("one"), // index 1 -> learner ordinal 0
-            DialogueMessage.Opponent("ok"), // index 2
-            DialogueMessage.Learner("two"), // index 3 -> learner ordinal 1
-            DialogueMessage.Learner("three"), // index 4 -> learner ordinal 2
+            // index 0
+            DialogueMessage.Opponent("hi"),
+            // index 1 -> learner ordinal 0
+            DialogueMessage.Learner("one"),
+            // index 2
+            DialogueMessage.Opponent("ok"),
+            // index 3 -> learner ordinal 1
+            DialogueMessage.Learner("two"),
+            // index 4 -> learner ordinal 2
+            DialogueMessage.Learner("three"),
         )
 
     @Test

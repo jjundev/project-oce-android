@@ -50,20 +50,23 @@ class FirestoreReviewSource
             target: Int,
         ): List<ReviewItem> {
             val uid = authRepository.uidForSavedCardRead() ?: return emptyList()
-            val due = runCatching { dueItems(uid, nowMs, target) }
-                .onFailure { Log.w(TAG, "review due query failed [${it::class.simpleName}]: ${it.message}") }
-                .getOrDefault(emptyList())
+            val due =
+                runCatching { dueItems(uid, nowMs, target) }
+                    .onFailure { Log.w(TAG, "review due query failed [${it::class.simpleName}]: ${it.message}") }
+                    .getOrDefault(emptyList())
             if (due.size >= target) return ReviewPool.merge(due, emptyList(), target)
-            val fresh = runCatching { newItems(uid, target) }
-                .onFailure { Log.w(TAG, "review supplement query failed [${it::class.simpleName}]: ${it.message}") }
-                .getOrDefault(emptyList())
+            val fresh =
+                runCatching { newItems(uid, target) }
+                    .onFailure { Log.w(TAG, "review supplement query failed [${it::class.simpleName}]: ${it.message}") }
+                    .getOrDefault(emptyList())
             val combined = ReviewPool.merge(due, fresh, target)
             if (combined.isNotEmpty()) return combined
-            val ahead = runCatching { aheadItems(uid, target) }
-                .onFailure {
-                    Log.w(TAG, "review ahead-of-schedule query failed [${it::class.simpleName}]: ${it.message}")
-                }
-                .getOrDefault(emptyList())
+            val ahead =
+                runCatching { aheadItems(uid, target) }
+                    .onFailure {
+                        Log.w(TAG, "review ahead-of-schedule query failed [${it::class.simpleName}]: ${it.message}")
+                    }
+                    .getOrDefault(emptyList())
             return ahead.map { it.copy(aheadOfSchedule = true) }
         }
 
@@ -132,8 +135,7 @@ class FirestoreReviewSource
             return out.take(need)
         }
 
-        private fun collection(uid: String): Query =
-            firestore.collection(USERS).document(uid).collection(SAVED_CARDS)
+        private fun collection(uid: String): Query = firestore.collection(USERS).document(uid).collection(SAVED_CARDS)
 
         @Suppress("ReturnCount")
         private fun DocumentSnapshot.toReviewItem(): ReviewItem? {

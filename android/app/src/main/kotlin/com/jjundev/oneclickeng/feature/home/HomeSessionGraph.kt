@@ -3,15 +3,6 @@
 package com.jjundev.oneclickeng.feature.home
 
 import android.net.Uri
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -25,7 +16,6 @@ import com.jjundev.oneclickeng.feature.session.turn.GeneratedDialogueSessionRout
 import com.jjundev.oneclickeng.ui.navigation.sessionExitFor
 import com.jjundev.oneclickeng.ui.navigation.summaryEnterFor
 import com.jjundev.oneclickeng.ui.root.MAIN_TABS_ROUTE
-import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /**
  * 홈 주도 세션 루프 그래프(M3-08 → 프로토 완전 정합). outer NavHost 에 [MAIN_TABS_ROUTE] 형제로 등록돼
@@ -40,7 +30,10 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
  * **이어하기 재진입(#12):** [homeSessionResumeRoute] 로 [HOME_SESSION_ROUTE] 에 직접 진입한다(생성 라우트
  * 우회 — 생성 라우트는 `start()` 로 turns 를 wipe). 세션 VM 은 durable 스냅샷/라이브 코디네이터에서 복원한다.
  */
-fun NavGraphBuilder.homeSessionGraph(navController: NavHostController, reduceMotion: Boolean) {
+fun NavGraphBuilder.homeSessionGraph(
+    navController: NavHostController,
+    reduceMotion: Boolean,
+) {
     navigation(startDestination = HOME_GENERATING_ROUTE, route = HOME_SESSION_GRAPH_ROUTE) {
         generatingDestination(navController)
         sessionDestination(navController, reduceMotion)
@@ -80,11 +73,26 @@ private fun NavGraphBuilder.generatingDestination(navController: NavHostControll
         route = HOME_GENERATING_ROUTE,
         arguments =
             listOf(
-                navArgument(H_ARG_LEVEL) { type = NavType.StringType; defaultValue = DEFAULT_LEVEL },
-                navArgument(H_ARG_TOPIC) { type = NavType.StringType; defaultValue = "" },
-                navArgument(H_ARG_LENGTH) { type = NavType.IntType; defaultValue = DEFAULT_LENGTH },
-                navArgument(H_ARG_TOPIC_LABEL) { type = NavType.StringType; defaultValue = "" },
-                navArgument(H_ARG_TOPIC_EMOJI) { type = NavType.StringType; defaultValue = "" },
+                navArgument(H_ARG_LEVEL) {
+                    type = NavType.StringType
+                    defaultValue = DEFAULT_LEVEL
+                },
+                navArgument(H_ARG_TOPIC) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+                navArgument(H_ARG_LENGTH) {
+                    type = NavType.IntType
+                    defaultValue = DEFAULT_LENGTH
+                },
+                navArgument(H_ARG_TOPIC_LABEL) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+                navArgument(H_ARG_TOPIC_EMOJI) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
             ),
     ) { entry ->
         val args = entry.arguments
@@ -113,15 +121,30 @@ private fun NavGraphBuilder.generatingDestination(navController: NavHostControll
     }
 }
 
-private fun NavGraphBuilder.sessionDestination(navController: NavHostController, reduceMotion: Boolean) {
+private fun NavGraphBuilder.sessionDestination(
+    navController: NavHostController,
+    reduceMotion: Boolean,
+) {
     composable(
         route = HOME_SESSION_ROUTE,
         arguments =
             listOf(
-                navArgument(H_ARG_LEVEL) { type = NavType.StringType; defaultValue = "" },
-                navArgument(H_ARG_LENGTH) { type = NavType.IntType; defaultValue = DEFAULT_LENGTH },
-                navArgument(H_ARG_TOPIC_LABEL) { type = NavType.StringType; defaultValue = "" },
-                navArgument(H_ARG_TOPIC_EMOJI) { type = NavType.StringType; defaultValue = "" },
+                navArgument(H_ARG_LEVEL) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+                navArgument(H_ARG_LENGTH) {
+                    type = NavType.IntType
+                    defaultValue = DEFAULT_LENGTH
+                },
+                navArgument(H_ARG_TOPIC_LABEL) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+                navArgument(H_ARG_TOPIC_EMOJI) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
             ),
         // 대화 → 요약 핸드오프에서만 왼쪽으로 슬라이드 퇴장(요약 나가기 pop 은 popExitTransition=기본 유지).
         exitTransition = { sessionExitFor(targetState.destination.route, HOME_SUMMARY_ROUTE, reduceMotion) },
@@ -149,13 +172,22 @@ private fun NavGraphBuilder.sessionDestination(navController: NavHostController,
     }
 }
 
-private fun NavGraphBuilder.summaryDestination(navController: NavHostController, reduceMotion: Boolean) {
+private fun NavGraphBuilder.summaryDestination(
+    navController: NavHostController,
+    reduceMotion: Boolean,
+) {
     composable(
         route = HOME_SUMMARY_ROUTE,
         arguments =
             listOf(
-                navArgument(H_ARG_SESSION_ID) { type = NavType.StringType; defaultValue = "" },
-                navArgument(H_ARG_LEVEL) { type = NavType.StringType; defaultValue = DISPLAY_DIFFICULTY_DEFAULT },
+                navArgument(H_ARG_SESSION_ID) {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+                navArgument(H_ARG_LEVEL) {
+                    type = NavType.StringType
+                    defaultValue = DISPLAY_DIFFICULTY_DEFAULT
+                },
             ),
         // 대화(HOME_SESSION_ROUTE)에서 진입할 때만 오른쪽에서 슬라이드 진입.
         enterTransition = { summaryEnterFor(initialState.destination.route, HOME_SESSION_ROUTE, reduceMotion) },

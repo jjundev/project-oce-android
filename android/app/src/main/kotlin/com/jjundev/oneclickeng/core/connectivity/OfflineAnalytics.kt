@@ -33,9 +33,7 @@ class FirebaseOfflineAnalytics
     constructor(
         private val sink: AnalyticsSink,
     ) : OfflineAnalytics {
-        override fun connectivityChanged(online: Boolean) =
-            sink.log("connectivity_changed", mapOf("online" to online))
+        override fun connectivityChanged(online: Boolean) = sink.log("connectivity_changed", mapOf("online" to online))
 
-        override fun offlineBlocked(surface: String) =
-            sink.log("offline_blocked_action", mapOf("surface" to surface))
+        override fun offlineBlocked(surface: String) = sink.log("offline_blocked_action", mapOf("surface" to surface))
     }

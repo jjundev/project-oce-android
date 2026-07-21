@@ -65,8 +65,11 @@ class SummaryInteractionTest {
                         onToggleSaveExpression = {},
                         onToggleSaveBookmark = { cardId ->
                             unsavedBookmarkIds =
-                                if (cardId in unsavedBookmarkIds) unsavedBookmarkIds - cardId
-                                else unsavedBookmarkIds + cardId
+                                if (cardId in unsavedBookmarkIds) {
+                                    unsavedBookmarkIds - cardId
+                                } else {
+                                    unsavedBookmarkIds + cardId
+                                }
                         },
                     )
                 }
@@ -103,48 +106,47 @@ class SummaryInteractionTest {
         expressionCount: Int,
         wordCount: Int,
         unsavedBookmarkIds: Set<String>,
-    ) =
-        SummaryState(
-            totalScore = null,
-            highlight = null,
-            bookmarks =
-                listOf(
-                    BookmarkCard(
-                        cardId = "s1__SENTENCE__0__2",
-                        english = "I got lost.",
-                        korean = "길을 잃었어요.",
+    ) = SummaryState(
+        totalScore = null,
+        highlight = null,
+        bookmarks =
+            listOf(
+                BookmarkCard(
+                    cardId = "s1__SENTENCE__0__2",
+                    english = "I got lost.",
+                    korean = "길을 잃었어요.",
+                ),
+            ),
+        accrual = AccrualStrip(streakDays = 0, xp = 0),
+        bundle =
+            SectionBundle.Sectioned(
+                expression =
+                    SummarySectionState.Ready(
+                        List(expressionCount) { index ->
+                            ExpressionCard(
+                                type = ExpressionType.Natural,
+                                koreanPrompt = "표현 ${index + 1}",
+                                before = "",
+                                after = "표현 ${index + 1}",
+                                explanation = "",
+                            )
+                        },
                     ),
-                ),
-            accrual = AccrualStrip(streakDays = 0, xp = 0),
-            bundle =
-                SectionBundle.Sectioned(
-                    expression =
-                        SummarySectionState.Ready(
-                            List(expressionCount) { index ->
-                                ExpressionCard(
-                                    type = ExpressionType.Natural,
-                                    koreanPrompt = "표현 ${index + 1}",
-                                    before = "",
-                                    after = "표현 ${index + 1}",
-                                    explanation = "",
-                                )
-                            },
-                        ),
-                    word =
-                        SummarySectionState.Ready(
-                            List(wordCount) { index ->
-                                WordCard(
-                                    en = "단어 ${index + 1}",
-                                    ko = "뜻 ${index + 1}",
-                                    partOfSpeech = "noun",
-                                    level = "A1",
-                                    exampleEn = "Example ${index + 1}",
-                                    exampleKo = "예문 ${index + 1}",
-                                )
-                            },
-                        ),
-                    coaching = SummarySectionState.Ready(Coaching(positive = "", toImprove = "")),
-                ),
-            unsavedBookmarkIds = unsavedBookmarkIds,
-        )
+                word =
+                    SummarySectionState.Ready(
+                        List(wordCount) { index ->
+                            WordCard(
+                                en = "단어 ${index + 1}",
+                                ko = "뜻 ${index + 1}",
+                                partOfSpeech = "noun",
+                                level = "A1",
+                                exampleEn = "Example ${index + 1}",
+                                exampleKo = "예문 ${index + 1}",
+                            )
+                        },
+                    ),
+                coaching = SummarySectionState.Ready(Coaching(positive = "", toImprove = "")),
+            ),
+        unsavedBookmarkIds = unsavedBookmarkIds,
+    )
 }

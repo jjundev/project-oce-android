@@ -171,8 +171,9 @@ class AppViewModel
  * user has not onboarded → [BootState.NeedsOnboarding]; a saved level → [BootState.MainReady]. Kept
  * side-effect-free so the gate rule is unit-testable without Firebase.
  */
-internal fun bootStateForLevel(level: String?): BootState =
-    if (level.isNullOrBlank()) BootState.NeedsOnboarding else BootState.MainReady
+internal fun bootStateForLevel(level: String?): BootState {
+    return if (level.isNullOrBlank()) BootState.NeedsOnboarding else BootState.MainReady
+}
 
 /** guest|linked auth_state for the analytics user property (analytics-events.md §3). */
 internal fun authStateFor(isAnonymous: Boolean): String = if (isAnonymous) "guest" else "linked"

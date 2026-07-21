@@ -31,8 +31,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jjundev.oneclickeng.R
-import com.jjundev.oneclickeng.ui.component.SheetPrimaryHeight
 import com.jjundev.oneclickeng.ui.component.OneClickSegmentedControl
+import com.jjundev.oneclickeng.ui.component.SheetPrimaryHeight
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickBottomSheet
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
@@ -49,7 +49,10 @@ private fun split24(hour: Int): Pair<Period, Int> {
 }
 
 /** (period, 1-12 hour) → 24h. */
-private fun to24(period: Period, h12: Int): Int =
+private fun to24(
+    period: Period,
+    h12: Int,
+): Int =
     when {
         period == Period.AM && h12 == 12 -> 0
         period == Period.AM -> h12
@@ -140,10 +143,11 @@ internal fun ReminderTimeSheetContent(
             onClick = { onConfirm(to24(period, h12), minute) },
             modifier = Modifier.fillMaxWidth().height(SheetPrimaryHeight),
             shape = OceTheme.shapes.radius12,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
         ) {
             Text(
                 text = stringResource(R.string.settings_reminder_time_confirm),
@@ -163,22 +167,24 @@ private fun WheelColumn(
 ) {
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = items.indexOf(selected).coerceAtLeast(0))
     LazyColumn(
-        modifier = modifier
-            .clip(OceTheme.shapes.radius16)
-            .background(MaterialTheme.colorScheme.background)
-            .padding(4.dp),
+        modifier =
+            modifier
+                .clip(OceTheme.shapes.radius16)
+                .background(MaterialTheme.colorScheme.background)
+                .padding(4.dp),
         state = listState,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         items(items) { value ->
             val isSel = value == selected
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-                    .clip(OceTheme.shapes.radius12)
-                    .background(if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
-                    .clickable { onSelect(value) },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .clip(OceTheme.shapes.radius12)
+                        .background(if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
+                        .clickable { onSelect(value) },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(

@@ -68,9 +68,15 @@ class RecordsViewModelTest {
         reviewSource: com.jjundev.oneclickeng.feature.review.FakeReviewSource =
             com.jjundev.oneclickeng.feature.review.FakeReviewSource(),
     ) = RecordsViewModel(
-        query, repo, FakeLifetimeStatsSource(lifetime), analytics, HistoryCountUpGate(),
+        query,
+        repo,
+        FakeLifetimeStatsSource(lifetime),
+        analytics,
+        HistoryCountUpGate(),
         reviewSource,
-        object : com.jjundev.oneclickeng.feature.review.data.ReviewClock { override fun nowMs() = 0L },
+        object : com.jjundev.oneclickeng.feature.review.data.ReviewClock {
+            override fun nowMs() = 0L
+        },
     )
 
     @Test
@@ -229,7 +235,9 @@ class RecordsViewModelTest {
                     RecordingHistoryAnalytics(),
                     HistoryCountUpGate(),
                     com.jjundev.oneclickeng.feature.review.FakeReviewSource(),
-                    object : com.jjundev.oneclickeng.feature.review.data.ReviewClock { override fun nowMs() = 0L },
+                    object : com.jjundev.oneclickeng.feature.review.data.ReviewClock {
+                        override fun nowMs() = 0L
+                    },
                 )
             advanceUntilIdle()
             assertEquals(100, viewModel.uiState.value.lifetime?.xp)

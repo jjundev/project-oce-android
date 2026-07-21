@@ -207,8 +207,9 @@ class DialogueGenerationViewModel
 
         // Reuse the existing shared LimitSurface enum values (§6.5) instead of duplicating
         // "onboarding_first_session"/"home" literals. (Requires the LimitSurface import above.)
-        private fun waitQuizSurface(): String =
-            if (isOnboarding) LimitSurface.OnboardingFirstSession.value else LimitSurface.Home.value
+        private fun waitQuizSurface(): String {
+            return if (isOnboarding) LimitSurface.OnboardingFirstSession.value else LimitSurface.Home.value
+        }
 
         /** The wait-quiz surface first became visible (gate passed while generating). Once per generation. */
         fun onQuizShown() {

@@ -5,6 +5,8 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sqrt
 
+// 대비 수식(WCAG)·HSV 변환 헬퍼가 많은 순수 색 유틸 — android.graphics.Color 대체(JVM 테스트 가능).
+
 /**
  * 벤다이어그램 런타임 대비 가드(I4) — 레거시 `VennColorContrastGuardTest`/`VennDiagramView` 알고리즘의
  * **순수 Kotlin 포팅**. 렌더와 분리되어(테스트 가능, 03-signature-interactions.md §I4) `android.graphics.Color`
@@ -15,7 +17,6 @@ import kotlin.math.sqrt
  * 교집합-측면 거리 ≥40 을 만족하도록 후보 루프로 산출한다. 모든 값은 불투명 ARGB [Int]; 렌더 시 측면 alpha 128·
  * 교집합 체감 alpha 180 을 얹는다.
  */
-// 대비 수식(WCAG)·HSV 변환 헬퍼가 많은 순수 색 유틸 — android.graphics.Color 대체(JVM 테스트 가능).
 @Suppress("TooManyFunctions")
 object VennColorGuard {
     // 측면/교집합 렌더 alpha (레거시 VennDiagramView:28-29). 가드는 이 alpha 로 배경 블렌드 후 대비를 검증한다.
@@ -186,8 +187,9 @@ object VennColorGuard {
         return 0.2126 * r + 0.7152 * g + 0.0722 * b
     }
 
-    private fun linearize(channel: Double): Double =
-        if (channel <= 0.04045) channel / 12.92 else ((channel + 0.055) / 1.055).pow(2.4)
+    private fun linearize(channel: Double): Double {
+        return if (channel <= 0.04045) channel / 12.92 else ((channel + 0.055) / 1.055).pow(2.4)
+    }
 
     private fun adjustHue(
         color: Int,

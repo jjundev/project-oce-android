@@ -32,15 +32,16 @@ class ReviewFlowScreenshotTest {
             OceTheme(darkTheme = false) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     ReviewFlowContent(
-                        state = ReviewUiState(
-                            loading = false,
-                            items = items,
-                            index = 6,
-                            phase = ReviewPhase.Done,
-                            done = 5,
-                            again = 1,
-                            finished = true,
-                        ),
+                        state =
+                            ReviewUiState(
+                                loading = false,
+                                items = items,
+                                index = 6,
+                                phase = ReviewPhase.Done,
+                                done = 5,
+                                again = 1,
+                                finished = true,
+                            ),
                         onReveal = {},
                         onGrade = {},
                         onPick = {},
@@ -61,15 +62,16 @@ class ReviewFlowScreenshotTest {
             OceTheme(darkTheme = false) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     ReviewFlowContent(
-                        state = ReviewUiState(
-                            loading = false,
-                            items = emptyList(),
-                            index = 0,
-                            phase = ReviewPhase.Done,
-                            done = 0,
-                            again = 0,
-                            finished = true,
-                        ),
+                        state =
+                            ReviewUiState(
+                                loading = false,
+                                items = emptyList(),
+                                index = 0,
+                                phase = ReviewPhase.Done,
+                                done = 0,
+                                again = 0,
+                                finished = true,
+                            ),
                         onReveal = {},
                         onGrade = {},
                         onPick = {},

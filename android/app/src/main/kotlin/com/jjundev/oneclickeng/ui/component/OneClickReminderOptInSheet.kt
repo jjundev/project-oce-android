@@ -159,4 +159,3 @@ private const val OPTIN_ICON_BG_ALPHA = 0.12f
 /** 시트 버튼 높이(프로토 Button primary 52px / ghost 48px 통일). */
 internal val SheetPrimaryHeight = 52.dp
 internal val SheetGhostHeight = 48.dp
-

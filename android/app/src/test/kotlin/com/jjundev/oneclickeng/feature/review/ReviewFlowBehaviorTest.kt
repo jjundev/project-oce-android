@@ -37,12 +37,13 @@ class ReviewFlowBehaviorTest {
             OceTheme(darkTheme = false) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     ReviewFlowContent(
-                        state = ReviewUiState(
-                            loading = false,
-                            items = listOf(word),
-                            index = 0,
-                            phase = ReviewPhase.Back,
-                        ),
+                        state =
+                            ReviewUiState(
+                                loading = false,
+                                items = listOf(word),
+                                index = 0,
+                                phase = ReviewPhase.Back,
+                            ),
                         onReveal = {},
                         onGrade = { grades += it },
                         onPick = {},
@@ -77,12 +78,13 @@ class ReviewFlowBehaviorTest {
             OceTheme(darkTheme = false) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     ReviewFlowContent(
-                        state = ReviewUiState(
-                            loading = false,
-                            items = listOf(expression),
-                            index = 0,
-                            phase = ReviewPhase.Ask,
-                        ),
+                        state =
+                            ReviewUiState(
+                                loading = false,
+                                items = listOf(expression),
+                                index = 0,
+                                phase = ReviewPhase.Ask,
+                            ),
                         onReveal = {},
                         onGrade = {},
                         onPick = {},
@@ -107,13 +109,14 @@ class ReviewFlowBehaviorTest {
             OceTheme(darkTheme = false) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     ReviewFlowContent(
-                        state = ReviewUiState(
-                            loading = false,
-                            items = emptyList(),
-                            index = 0,
-                            phase = ReviewPhase.Done,
-                            finished = true,
-                        ),
+                        state =
+                            ReviewUiState(
+                                loading = false,
+                                items = emptyList(),
+                                index = 0,
+                                phase = ReviewPhase.Done,
+                                finished = true,
+                            ),
                         onReveal = {},
                         onGrade = {},
                         onPick = {},
@@ -145,13 +148,14 @@ class ReviewFlowBehaviorTest {
             OceTheme(darkTheme = false) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     ReviewFlowContent(
-                        state = ReviewUiState(
-                            loading = false,
-                            items = listOf(word),
-                            index = 0,
-                            phase = ReviewPhase.Back,
-                            aheadOfSchedule = true,
-                        ),
+                        state =
+                            ReviewUiState(
+                                loading = false,
+                                items = listOf(word),
+                                index = 0,
+                                phase = ReviewPhase.Back,
+                                aheadOfSchedule = true,
+                            ),
                         onReveal = {},
                         onGrade = { grades += it },
                         onPick = {},

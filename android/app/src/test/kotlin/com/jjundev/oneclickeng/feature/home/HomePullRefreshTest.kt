@@ -26,11 +26,12 @@ class HomePullRefreshTest {
 
     @Test fun pullDown_refreshesSituationsOnly() {
         var refreshSituationsCalls = 0
-        val state = HomeUiState(
-            // icon defaults to OceIcon.Hub — do NOT pass an emoji string (3rd arg is OceIcon, not String).
-            situations = List(4) { HomeSituation(id = "id$it", labelKo = "상황 $it", promptSeed = "seed$it") },
-            // header/stats/hero fields left default
-        )
+        val state =
+            HomeUiState(
+                // icon defaults to OceIcon.Hub — do NOT pass an emoji string (3rd arg is OceIcon, not String).
+                situations = List(4) { HomeSituation(id = "id$it", labelKo = "상황 $it", promptSeed = "seed$it") },
+                // header/stats/hero fields left default
+            )
         rule.setContent {
             OceTheme {
                 HomeContent(

@@ -8,7 +8,11 @@ class RecordingSavedCardAnalytics : SavedCardAnalytics {
 
     val calls = mutableListOf<Call>()
 
-    override fun savedCardCreate(sessionId: String, surface: String, cardType: CardType) {
+    override fun savedCardCreate(
+        sessionId: String,
+        surface: String,
+        cardType: CardType,
+    ) {
         calls += Call(sessionId, surface, cardType)
     }
 }

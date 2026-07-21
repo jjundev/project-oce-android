@@ -190,8 +190,9 @@ class StudytimeStore
 
         // Session ids are UUIDs (no newline), so a newline-joined, insertion-ordered list is a safe
         // bounded-LRU encoding — membership dedups, `takeLast` evicts the oldest.
-        private fun decodeIds(encoded: String?): List<String> =
-            encoded?.split("\n")?.filter { it.isNotEmpty() }.orEmpty()
+        private fun decodeIds(encoded: String?): List<String> {
+            return encoded?.split("\n")?.filter { it.isNotEmpty() }.orEmpty()
+        }
 
         private fun encodeIds(ids: List<String>): String = ids.joinToString("\n")
 

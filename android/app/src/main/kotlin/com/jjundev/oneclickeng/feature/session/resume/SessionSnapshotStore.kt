@@ -55,8 +55,8 @@ class SessionSnapshotStore
                 val done = snap.messages.count { it.isLearner }
                 if (
                     title.isNullOrBlank() ||
-                        snap.messages.isEmpty() ||
-                        snap.sessionPhase == SessionPhase.Completed.name
+                    snap.messages.isEmpty() ||
+                    snap.sessionPhase == SessionPhase.Completed.name
                 ) {
                     return@map null
                 }

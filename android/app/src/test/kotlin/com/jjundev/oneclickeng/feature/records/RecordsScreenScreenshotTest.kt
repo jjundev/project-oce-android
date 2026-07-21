@@ -38,7 +38,10 @@ class RecordsScreenScreenshotTest {
         capture(name = "records_dark_expression", dark = true)
     }
 
-    private fun capture(name: String, dark: Boolean) {
+    private fun capture(
+        name: String,
+        dark: Boolean,
+    ) {
         val state =
             RecordsUiState(
                 selected = CardType.EXPRESSION,

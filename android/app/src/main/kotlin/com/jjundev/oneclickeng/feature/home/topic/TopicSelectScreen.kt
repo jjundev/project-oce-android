@@ -1,6 +1,5 @@
 package com.jjundev.oneclickeng.feature.home.topic
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -78,7 +77,7 @@ fun TopicSelectSheet(
             topics = topics,
             onTopicChosen = onTopicChosen,
             onDismiss = onDismiss,
-        modifier = Modifier.fillMaxHeight(TOPIC_SHEET_HEIGHT_FRACTION),
+            modifier = Modifier.fillMaxHeight(TOPIC_SHEET_HEIGHT_FRACTION),
             selectedTopicId = selectedTopicId,
         )
     }
