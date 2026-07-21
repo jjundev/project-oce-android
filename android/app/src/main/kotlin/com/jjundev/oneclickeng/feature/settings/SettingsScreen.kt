@@ -40,7 +40,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -108,6 +107,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
     linkViewModel: GoogleLinkViewModel = hiltViewModel(),
+    scrollResetKey: Any = Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val linkState by linkViewModel.uiState.collectAsStateWithLifecycle()
@@ -131,12 +131,10 @@ fun SettingsScreen(
         mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
     }
     val settingsListState = rememberLazyListState()
-    var settingsReentryKey by remember { mutableIntStateOf(0) }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 notificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
-                settingsReentryKey += 1
             }
             if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) {
                 snackbarHostState.currentSnackbarData?.dismiss()
@@ -266,7 +264,7 @@ fun SettingsScreen(
             onTerms = { openUrl(context, SettingsUrls.TERMS) },
             reduceMotion = rememberReduceMotion(),
             listState = settingsListState,
-            scrollResetKey = settingsReentryKey,
+            scrollResetKey = scrollResetKey,
         )
 
         // ----- 오버레이(다이얼로그·시트·스낵바) -----

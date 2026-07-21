@@ -1,10 +1,17 @@
 package com.jjundev.oneclickeng.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.jjundev.oneclickeng.feature.home.HomeScreen
 import com.jjundev.oneclickeng.feature.records.RecordsScreen
 import com.jjundev.oneclickeng.feature.settings.SettingsScreen
@@ -25,6 +32,15 @@ fun OceNavHost(
     onEnterReview: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
+    var previousRoute by remember { mutableStateOf<String?>(null) }
+    var settingsVisitCounter by remember { mutableIntStateOf(0) }
+    LaunchedEffect(currentRoute) {
+        settingsVisitCounter = nextSettingsVisitCounter(previousRoute, currentRoute, settingsVisitCounter)
+        previousRoute = currentRoute
+    }
+
     NavHost(
         navController = navController,
         startDestination = OceTab.Start.route,
@@ -48,6 +64,19 @@ fun OceNavHost(
             )
         }
         composable(OceTab.Records.route) { RecordsScreen(onEnterReview = onEnterReview) }
-        composable(OceTab.Settings.route) { SettingsScreen() }
+        composable(OceTab.Settings.route) {
+            SettingsScreen(scrollResetKey = settingsVisitCounter)
+        }
     }
 }
+
+internal fun nextSettingsVisitCounter(
+    previousRoute: String?,
+    currentRoute: String?,
+    currentCounter: Int,
+): Int =
+    if (currentRoute == OceTab.Settings.route && previousRoute != currentRoute) {
+        currentCounter + 1
+    } else {
+        currentCounter
+    }
