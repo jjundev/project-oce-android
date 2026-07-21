@@ -35,9 +35,11 @@ fun OceNavHost(
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
     var previousRoute by remember { mutableStateOf<String?>(null) }
+    var homeVisitCounter by remember { mutableIntStateOf(0) }
     var settingsVisitCounter by remember { mutableIntStateOf(0) }
     LaunchedEffect(currentRoute) {
-        settingsVisitCounter = nextSettingsVisitCounter(previousRoute, currentRoute, settingsVisitCounter)
+        homeVisitCounter = nextTabVisitCounter(previousRoute, currentRoute, OceTab.Home.route, homeVisitCounter)
+        settingsVisitCounter = nextTabVisitCounter(previousRoute, currentRoute, OceTab.Settings.route, settingsVisitCounter)
         previousRoute = currentRoute
     }
 
@@ -61,6 +63,7 @@ fun OceNavHost(
                         popUpTo(navController.graph.startDestinationId) { inclusive = false }
                     }
                 },
+                scrollResetKey = homeVisitCounter,
             )
         }
         composable(OceTab.Records.route) { RecordsScreen(onEnterReview = onEnterReview) }
@@ -70,12 +73,13 @@ fun OceNavHost(
     }
 }
 
-internal fun nextSettingsVisitCounter(
+internal fun nextTabVisitCounter(
     previousRoute: String?,
     currentRoute: String?,
+    targetRoute: String,
     currentCounter: Int,
 ): Int =
-    if (currentRoute == OceTab.Settings.route && previousRoute != currentRoute) {
+    if (currentRoute == targetRoute && previousRoute != currentRoute) {
         currentCounter + 1
     } else {
         currentCounter
