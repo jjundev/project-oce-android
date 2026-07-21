@@ -166,7 +166,8 @@ Compose 구현을 `prototype/Prototype Flow` 설정 화면에 맞추며 아래�
 
 - 앱 버전: `BuildConfig`.
 - **정책 URL 3종**(PIPA + Play 요구): 개인정보처리방침 · 이용약관 · **계정삭제 웹페이지**(Play의 웹 삭제 경로, §8.3 인앱과 별개).
-- **호스팅:** Firebase Hosting 정적 페이지(`/privacy`, `/terms`, `/delete-account`) — 이미 Firebase 사용([PRD.md:232](../../PRD.md))이라 추가 인프라 0.
+- **호스팅 운영 상태:** Firebase 프로젝트 alias `oce-v1`의 Hosting에서 `web/` 정적 파일을 제공한다. 실제 배포 도메인은 `https://oce-v1.web.app`이며, 경로는 `/`, `/privacy`, `/terms`, `/delete-account`이다. `/delete-account`는 Google Play Console data-safety 폼과 스토어 리스팅에 등록하는 웹 삭제 경로다. `https://oneclickeng.web.app`은 현재 이 Hosting site에 연결되지 않아 smoke test에서 404를 반환했다.
+- **정책 상태:** 현재 공개 법률 콘텐츠는 **베타 초안/공개 승격 전 검토 필요** 상태다. 법무 확정 전에는 공개 프로덕션 승격을 제한하고, 확정 후 정책 파일 변경 → Hosting 배포 → 네 경로와 공개 URL smoke test 순서로 재배포한다.
 - 설정 > 정보에서 `/privacy`·`/terms` 링크(외부 브라우저). `/delete-account`는 Play 콘솔 data-safety 폼 + 스토어 리스팅에 등록.
 - **컴플라이언스 타이밍:** 인앱 탈퇴는 v1 빌드 포함. 웹 페이지·data-safety 폼은 **공개(프로덕션) 승격 전** 필수이며, 클로즈드 베타(약 4주, [PRD.md:78](../../PRD.md)) 중에는 경량 — 그 기간에 콘텐츠를 확정한다.
 

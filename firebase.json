@@ -17,6 +17,11 @@
       "*.local"
     ]
   },
+  "hosting": {
+    "public": "web",
+    "cleanUrls": true,
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+  },
   "emulators": {
     "firestore": { "port": 8080 },
     "functions": { "port": 5001 },

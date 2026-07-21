@@ -9,14 +9,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -281,5 +285,57 @@ class SettingsScreenScreenshotTest {
         composeRule.onNodeWithText("Google로 진도 저장").performClick()
         composeRule.waitForIdle()
         assertEquals(1, clicked)
+    }
+
+    @Test
+    fun infoSection_showsPolicyRowsWithExternalLinks_andInvokesEachCallback() {
+        var privacyCalls = 0
+        var termsCalls = 0
+
+        composeRule.setContent {
+            OceTheme(darkTheme = false) {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    SettingsContent(
+                        state = SettingsUiState(loading = false, nickname = "준영", isGuest = true),
+                        versionLabel = "1.0.0 (1)",
+                        notificationsBlocked = false,
+                        onNicknameChange = {},
+                        onQualityChange = {},
+                        onSpeedChange = {},
+                        onMuteChange = {},
+                        onReminderToggle = {},
+                        onReminderTimeClick = {},
+                        onOpenNotificationSettings = {},
+                        onPurgeClick = {},
+                        onResetClick = {},
+                        onSummarySaveDefaultChange = {},
+                        onGoogleSave = {},
+                        onLogoutClick = {},
+                        onDeleteClick = {},
+                        onRetryMerge = {},
+                        onPrivacy = { privacyCalls += 1 },
+                        onTerms = { termsCalls += 1 },
+                        reduceMotion = true,
+                    )
+                }
+            }
+        }
+
+        repeat(8) {
+            composeRule.onRoot().performTouchInput { swipeUp() }
+            composeRule.waitForIdle()
+        }
+        val privacy = composeRule.onNodeWithText("개인정보처리방침")
+        val terms = composeRule.onNodeWithText("이용약관")
+        privacy.assertIsDisplayed().assertHasClickAction()
+        terms.assertIsDisplayed().assertHasClickAction()
+        composeRule.onAllNodesWithText("계정 삭제").assertCountEquals(0)
+        composeRule.onRoot().captureRoboImage("build/outputs/roborazzi/settings_info_policy_links.png")
+
+        privacy.performClick()
+        terms.performClick()
+        composeRule.waitForIdle()
+        assertEquals(1, privacyCalls)
+        assertEquals(1, termsCalls)
     }
 }
