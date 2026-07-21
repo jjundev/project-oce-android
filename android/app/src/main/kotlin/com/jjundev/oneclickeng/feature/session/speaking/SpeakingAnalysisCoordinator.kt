@@ -5,6 +5,10 @@ import com.jjundev.oneclickeng.core.audio.WavEncoder
 import com.jjundev.oneclickeng.core.network.LlmApi
 import com.jjundev.oneclickeng.core.network.SpeakingPayload
 import com.jjundev.oneclickeng.core.network.SpeakingRequest
+import com.jjundev.oneclickeng.core.time.ElapsedClock
+import com.jjundev.oneclickeng.core.time.NoOpElapsedClock
+import com.jjundev.oneclickeng.feature.session.analytics.LatencyAnalytics
+import com.jjundev.oneclickeng.feature.session.analytics.NoOpLatencyAnalytics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,6 +44,8 @@ class SpeakingAnalysisCoordinator
     constructor(
         private val api: LlmApi,
         private val scope: CoroutineScope,
+        private val clock: ElapsedClock = NoOpElapsedClock,
+        private val latencyAnalytics: LatencyAnalytics = NoOpLatencyAnalytics(),
     ) {
         private val _state = MutableStateFlow<SpeakingAnalysisState>(SpeakingAnalysisState.Idle)
         val state: StateFlow<SpeakingAnalysisState> = _state.asStateFlow()
@@ -56,6 +62,7 @@ class SpeakingAnalysisCoordinator
         @Volatile
         private var sessionToken = 0L
         private var currentJob: Job? = null
+        private var analyzeStartMs = 0L
 
         /**
          * Analyze a captured utterance for [sessionId]. Cancels any in-flight analysis first.
@@ -68,6 +75,7 @@ class SpeakingAnalysisCoordinator
             sessionId: String,
         ) {
             val token = ++sessionToken
+            analyzeStartMs = clock.nowMillis()
             currentJob?.cancel()
             lastTranscript = null
             _state.value = SpeakingAnalysisState.Analyzing
@@ -99,6 +107,13 @@ class SpeakingAnalysisCoordinator
                         }
                     if (token != sessionToken) return@launch
 
+                    val outcome =
+                        if (response == null) LatencyAnalytics.OUTCOME_FAILED else LatencyAnalytics.OUTCOME_SUCCESSFUL
+                    latencyAnalytics.latency(
+                        LatencyAnalytics.OPERATION_SPEAKING_ANALYZE,
+                        outcome,
+                        clock.nowMillis() - analyzeStartMs,
+                    )
                     _state.value =
                         when {
                             response == null -> SpeakingAnalysisState.Failed
@@ -116,11 +131,19 @@ class SpeakingAnalysisCoordinator
 
         /** Cancel any in-flight analysis and reset to idle (e.g. re-record). */
         fun reset() {
+            val wasAnalyzing = _state.value is SpeakingAnalysisState.Analyzing
             sessionToken++
             currentJob?.cancel()
             currentJob = null
             lastTranscript = null
             _state.value = SpeakingAnalysisState.Idle
+            if (wasAnalyzing) {
+                latencyAnalytics.latency(
+                    LatencyAnalytics.OPERATION_SPEAKING_ANALYZE,
+                    LatencyAnalytics.OUTCOME_CANCELED,
+                    clock.nowMillis() - analyzeStartMs,
+                )
+            }
         }
 
         companion object {
