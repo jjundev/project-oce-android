@@ -1,11 +1,14 @@
 package com.jjundev.oneclickeng.feature.settings
 
 import android.app.Application
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -28,6 +31,7 @@ import com.jjundev.oneclickeng.ui.theme.OceTheme
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -81,6 +85,108 @@ class SettingsScreenScreenshotTest {
         assertEquals(1, snackbarCalls)
 
         releaseSnackbar.complete(Unit)
+    }
+
+    @Test
+    fun `settings list returns to top when reentry key changes`() {
+        var scrollResetKey by mutableIntStateOf(0)
+        lateinit var listState: LazyListState
+
+        composeRule.setContent {
+            listState = rememberLazyListState()
+            OceTheme {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    SettingsContent(
+                        state = SettingsUiState(loading = false, nickname = "준영", isGuest = true),
+                        versionLabel = "1.0.0 (1)",
+                        notificationsBlocked = false,
+                        onNicknameChange = {},
+                        onQualityChange = {},
+                        onSpeedChange = {},
+                        onMuteChange = {},
+                        onReminderToggle = {},
+                        onReminderTimeClick = {},
+                        onOpenNotificationSettings = {},
+                        onPurgeClick = {},
+                        onResetClick = {},
+                        onSummarySaveDefaultChange = {},
+                        onGoogleSave = {},
+                        onLogoutClick = {},
+                        onDeleteClick = {},
+                        onRetryMerge = {},
+                        onPrivacy = {},
+                        onTerms = {},
+                        listState = listState,
+                        scrollResetKey = scrollResetKey,
+                        reduceMotion = true,
+                    )
+                }
+            }
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(SETTINGS_SCROLL_CONTENT_TAG).performTouchInput {
+            swipeUp(startY = 900f, endY = 100f, durationMillis = 300)
+        }
+        composeRule.waitForIdle()
+        composeRule.runOnIdle {
+            assertTrue(
+                listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0,
+            )
+            scrollResetKey += 1
+        }
+        composeRule.waitForIdle()
+
+        composeRule.runOnIdle {
+            assertEquals(0, listState.firstVisibleItemIndex)
+            assertEquals(0, listState.firstVisibleItemScrollOffset)
+        }
+    }
+
+    @Test
+    fun `settings list stays at top when account section moves after account state loads`() {
+        var state by mutableStateOf(SettingsUiState(loading = false, nickname = "준영", isGuest = true))
+        lateinit var listState: LazyListState
+
+        composeRule.setContent {
+            listState = rememberLazyListState()
+            OceTheme {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    SettingsContent(
+                        state = state,
+                        versionLabel = "1.0.0 (1)",
+                        notificationsBlocked = false,
+                        onNicknameChange = {},
+                        onQualityChange = {},
+                        onSpeedChange = {},
+                        onMuteChange = {},
+                        onReminderToggle = {},
+                        onReminderTimeClick = {},
+                        onOpenNotificationSettings = {},
+                        onPurgeClick = {},
+                        onResetClick = {},
+                        onSummarySaveDefaultChange = {},
+                        onGoogleSave = {},
+                        onLogoutClick = {},
+                        onDeleteClick = {},
+                        onRetryMerge = {},
+                        onPrivacy = {},
+                        onTerms = {},
+                        listState = listState,
+                        reduceMotion = true,
+                    )
+                }
+            }
+        }
+        composeRule.waitForIdle()
+
+        state = state.copy(isGuest = false)
+        composeRule.waitForIdle()
+
+        composeRule.runOnIdle {
+            assertEquals(0, listState.firstVisibleItemIndex)
+            assertEquals(0, listState.firstVisibleItemScrollOffset)
+        }
     }
 
     private fun renderSettings(

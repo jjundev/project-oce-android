@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
@@ -58,6 +59,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -127,6 +129,9 @@ private const val WAVE_PEAK_ALPHA = 0.5f
 /** 물결 글로우 반경 = 카드 폭의 이 비율. */
 private const val WAVE_RADIUS_FRACTION = 0.6f
 
+/** 학습 목록 스크롤 surface testTag. */
+internal const val HOME_SCROLL_CONTENT_TAG = "home_scroll_content"
+
 /**
  * 히어로 리빌 재생 여부. 최초 컴포지션이 아니고([primed]) 새 대화 모드([resumeTopic]==null)일 때만 재생한다.
  * 새 대화 모드 내 주제 변경과 "이어하기 → 새 대화" 전환("+ 새 대화 시작", resumeTopic non-null→null)이 모두
@@ -155,6 +160,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
     reminderViewModel: HomeReminderViewModel = hiltViewModel(),
+    scrollResetKey: Any = Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val reminderState by reminderViewModel.uiState.collectAsStateWithLifecycle()
@@ -225,6 +231,7 @@ fun HomeScreen(
         reminderMinute = reminderState.minute,
         onDismissReminderBanner = reminderViewModel::dismissEnabledBanner,
         onChangeReminderTime = { timeSheetVisible = true },
+        scrollResetKey = scrollResetKey,
     )
     if (timeSheetVisible) {
         ReminderTimeSheet(
@@ -304,10 +311,14 @@ internal fun HomeContent(
     reminderMinute: Int = 0,
     onDismissReminderBanner: () -> Unit = {},
     onChangeReminderTime: () -> Unit = {},
+    listState: LazyListState = rememberLazyListState(),
+    scrollResetKey: Any = Unit,
 ) {
     val entrance = rememberScreenEntrance(reduceMotion)
-    val listState = rememberLazyListState()
     val scrollScope = rememberCoroutineScope()
+    LaunchedEffect(scrollResetKey) {
+        listState.scrollToItem(0)
+    }
     // 추천 상황 탭 = 히어로에 선택만 반영(프로토 pickTopic). 추천 리스트는 히어로보다 아래라, 반영이 화면
     // 밖에서 일어나 "아무 일도 안 난 것"처럼 보인다 → 반영 직후 상단(히어로)으로 스크롤해 결과를 보이고
     // ▶ CTA 로 학습을 이어가게 한다. reduce-motion 이면 애니 없이 즉시 점프.
@@ -327,7 +338,8 @@ internal fun HomeContent(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .padding(horizontal = OceTheme.spacing.xl),
+                    .padding(horizontal = OceTheme.spacing.xl)
+                    .testTag(HOME_SCROLL_CONTENT_TAG),
             contentPadding =
                 PaddingValues(bottom = OceBottomNavDefaults.overlayContentBottomPadding),
         ) {
