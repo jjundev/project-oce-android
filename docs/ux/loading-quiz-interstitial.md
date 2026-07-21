@@ -27,13 +27,17 @@
 
 ```text
 [96dp OneClickProgressRing (indeterminate)]   ← rev2 확정 유지, 강등 안 함
-[안심 카피 1줄 "첫 대화를 준비하고 있어요"]      ← 슬롯 유지(퀴즈 활성 중에도 숨기지 않음)
+[안심 카피 1줄]                                  ← JSON asset에서 세션 맥락별로 선택
 [OneClickWaitQuiz 카드]                        ← 지연 게이트 1000ms 이후에만
 [하단: 준비 완료 시 '대화 시작하기' primary + 넛지 배너]
 ```
 
 - 96dp 링은 [04-screen-01-onboarding.md](../ui/04-screen-01-onboarding.md) O3 rev2 결정이므로 **유지**한다. 퀴즈는 링과 안심 카피 아래에 **추가**된다.
 - 회전 로딩 카피 TODO(O3)는 링 카피 슬롯에 독립 존치한다. 본 인터스티셜이 흡수/대체하지 않는다.
+- 온보딩 플로우(`isOnboarding=true`)는 `첫 대화를 준비하고 있어요`를 사용한다.
+- 2차 이후 학습(`isOnboarding=false`)은 `android/app/src/main/assets/loading_messages.json`의
+  `returning` 목록에서 생성 시작 시 멘트 하나를 랜덤 선택해 해당 대기 화면 동안 유지한다.
+- 온보딩·재방문 멘트 모두 JSON이 문구의 정본이며, Kotlin UI 코드에는 실제 멘트를 복제하지 않는다.
 
 ## 5. 상태 흐름
 
