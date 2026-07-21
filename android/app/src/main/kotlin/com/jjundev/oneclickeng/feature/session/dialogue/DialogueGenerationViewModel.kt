@@ -5,6 +5,7 @@ import com.jjundev.oneclickeng.core.connectivity.OfflineAnalytics
 import com.jjundev.oneclickeng.core.network.LimitAnalytics
 import com.jjundev.oneclickeng.core.network.WaitQuizAnalytics
 import com.jjundev.oneclickeng.feature.session.analytics.SessionFunnelAnalytics
+import com.jjundev.oneclickeng.feature.session.dialogue.loading.LoadingMessageSource
 import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
 import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
 import com.jjundev.oneclickeng.feature.session.tts.TtsPlaybackCoordinator
@@ -39,6 +40,7 @@ class DialogueGenerationViewModel
         private val coordinator: DialogueGenerationCoordinator,
         private val tts: TtsPlaybackCoordinator,
         private val quizBank: QuizBank,
+        private val loadingMessageSource: LoadingMessageSource,
         private val analytics: WaitQuizAnalytics,
         private val limitAnalytics: LimitAnalytics,
         private val snapshotStore: SessionSnapshotStore,
@@ -54,6 +56,9 @@ class DialogueGenerationViewModel
 
         private val _quizItems = MutableStateFlow<List<QuizItem>>(emptyList())
         val quizItems: StateFlow<List<QuizItem>> = _quizItems.asStateFlow()
+
+        private val _loadingMessage = MutableStateFlow("")
+        val loadingMessage: StateFlow<String> = _loadingMessage.asStateFlow()
 
         // 첫 상대 대사 음성이 재생 가능(캐시됨)해졌는지. 로딩 화면이 이 값이 true 가 될 때까지 "준비 중"을
         // 유지해 첫 대사가 채팅 진입 즉시 재생되게 한다(생성 완료만으론 부족 — TTS 합성 시간이 지배적).
@@ -101,6 +106,7 @@ class DialogueGenerationViewModel
             isOnboarding: Boolean = false,
         ) {
             this.isOnboarding = isOnboarding
+            _loadingMessage.value = loadingMessageSource.forSession(isOnboarding)
             lastStart = StartParams(level, topic, length, firstSession)
             // pre-flight 게이트(M4-04, exception-states.md 결정 #4): 연결성 소유는 코디네이터 하나다. 오프라인
             // 이면 [StartOutcome.OfflineGated] 를 받아 퀴즈를 스킵하고 `offline_blocked_action` 만 계측한다

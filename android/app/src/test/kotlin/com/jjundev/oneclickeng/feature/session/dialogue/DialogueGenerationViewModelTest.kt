@@ -22,6 +22,7 @@ import com.jjundev.oneclickeng.core.settings.TtsSettings
 import com.jjundev.oneclickeng.core.settings.TtsSettingsRepository
 import com.jjundev.oneclickeng.feature.session.analytics.NoOpSessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
+import com.jjundev.oneclickeng.feature.session.dialogue.loading.LoadingMessageSource
 import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
 import com.jjundev.oneclickeng.feature.session.tts.DeviceTts
 import com.jjundev.oneclickeng.feature.session.tts.DeviceTtsResult
@@ -75,6 +76,15 @@ private class FakeStream : DialogueStream {
 
 private class FakeQuizBank(private val byTier: Map<String, List<QuizItem>>) : QuizBank {
     override fun forTier(tier: String): List<QuizItem> = byTier[tier].orEmpty()
+}
+
+private class FakeLoadingMessageSource : LoadingMessageSource {
+    val requests = mutableListOf<Boolean>()
+
+    override fun forSession(isOnboarding: Boolean): String {
+        requests += isOnboarding
+        return if (isOnboarding) "onboarding-copy" else "returning-copy"
+    }
 }
 
 private class RecordingAnalytics : WaitQuizAnalytics {
@@ -193,6 +203,46 @@ class DialogueGenerationViewModelTest {
             vm.start(level = "hard", topic = "t", length = 10, firstSession = false)
 
             assertEquals(listOf("h1"), vm.quizItems.value.map { it.id })
+        }
+
+    @Test
+    fun `onboarding start exposes the onboarding loading message`() =
+        runTest {
+            val source = FakeLoadingMessageSource()
+            val vm = viewModel(RecordingAnalytics(), FakeConfig(true), loadingMessages = source)
+
+            vm.start(level = "easy", topic = "t", length = 5, firstSession = true, isOnboarding = true)
+
+            assertEquals("onboarding-copy", vm.loadingMessage.value)
+            assertEquals(listOf(true), source.requests)
+        }
+
+    @Test
+    fun `returning start exposes the returning loading message`() =
+        runTest {
+            val source = FakeLoadingMessageSource()
+            val vm = viewModel(RecordingAnalytics(), FakeConfig(true), loadingMessages = source)
+
+            vm.start(level = "hard", topic = "t", length = 10, firstSession = false, isOnboarding = false)
+
+            assertEquals("returning-copy", vm.loadingMessage.value)
+            assertEquals(listOf(false), source.requests)
+        }
+
+    @Test
+    fun `retry keeps the selected message while a fresh start selects again`() =
+        runTest {
+            val source = FakeLoadingMessageSource()
+            val vm = viewModel(RecordingAnalytics(), FakeConfig(true), loadingMessages = source)
+
+            vm.start(level = "easy", topic = "t", length = 5, firstSession = false, isOnboarding = false)
+            val selected = vm.loadingMessage.value
+            vm.retry()
+            assertEquals(listOf(false), source.requests)
+            assertEquals(selected, vm.loadingMessage.value)
+
+            vm.start(level = "easy", topic = "t2", length = 5, firstSession = false, isOnboarding = false)
+            assertEquals(listOf(false, false), source.requests)
         }
 
     @Test
@@ -320,6 +370,7 @@ class DialogueGenerationViewModelTest {
                     coordinator,
                     tts,
                     bank,
+                    FakeLoadingMessageSource(),
                     RecordingAnalytics(),
                     RecordingLimitAnalytics(),
                     SessionSnapshotStore(inMemoryPrefsDataStore()),
@@ -347,6 +398,7 @@ class DialogueGenerationViewModelTest {
                     coordinator,
                     tts,
                     bank,
+                    FakeLoadingMessageSource(),
                     RecordingAnalytics(),
                     RecordingLimitAnalytics(),
                     SessionSnapshotStore(inMemoryPrefsDataStore()),
@@ -395,6 +447,7 @@ class DialogueGenerationViewModelTest {
                     coordinator,
                     tts,
                     bank,
+                    FakeLoadingMessageSource(),
                     RecordingAnalytics(),
                     RecordingLimitAnalytics(),
                     SessionSnapshotStore(inMemoryPrefsDataStore()),
@@ -425,6 +478,7 @@ class DialogueGenerationViewModelTest {
         limitAnalytics: RecordingLimitAnalytics = RecordingLimitAnalytics(),
         connectivity: ConnectivityObserver = FakeConnectivity(offline = false),
         offlineAnalytics: OfflineAnalytics = RecordingOfflineAnalytics(),
+        loadingMessages: LoadingMessageSource = FakeLoadingMessageSource(),
     ): DialogueGenerationViewModel {
         val scope: CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
         val coordinator = DialogueGenerationCoordinator(stream, scope, connectivity)
@@ -434,6 +488,7 @@ class DialogueGenerationViewModelTest {
             coordinator,
             tts,
             bank,
+            loadingMessages,
             analytics,
             limitAnalytics,
             snapshotStore,

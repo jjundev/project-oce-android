@@ -99,6 +99,7 @@ private fun NavGraphBuilder.generatingDestination(navController: NavHostControll
             topic = topic,
             length = length,
             firstSession = false,
+            isOnboarding = false,
             onStartConversation = {
                 // 생성 화면을 백스택에서 제거(<1s 준비 자동전이 시 대화턴 뒤로가기 데드엔드 방지, 하니스·온보딩 선례).
                 navController.navigate(
