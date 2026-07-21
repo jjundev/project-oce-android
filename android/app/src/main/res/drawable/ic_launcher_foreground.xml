@@ -9,6 +9,12 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- Keep the logo comfortably inside the adaptive-icon safe zone. -->
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.7"
+        android:scaleY="0.7">
     <path
         android:fillColor="@color/logo_brand_primary"
         android:pathData="M45,20C29.5,20 18,31.5 18,46c0,9.8 5.1,18.3 13,23.1l-3.1,10c-0.4,1.4 1.1,2.4 2.3,1.7l11.1,-6.5c1.2,0.2 2.5,0.3 3.7,0.3c16.6,0 30,-12.6 30,-28.6S61.6,20 45,20Z" />
@@ -21,4 +27,5 @@
     <path
         android:fillColor="@color/logo_feedback_correct"
         android:pathData="M65.7,40.8c0.3,-1.3 1.6,-2.1 2.9,-1.8c1.3,0.3 2.1,1.6 1.8,2.9l-1.2,5.2a2.45,2.45 0,0 1,-4.8,-1.1l1.3,-5.2ZM75.3,44.5a2.45,2.45 0,0 1,3.5,3.4l-3.8,3.9a2.45,2.45 0,0 1,-3.5,-3.4l3.8,-3.9ZM79.1,54.2l5.2,-1.2a2.45,2.45 0,1 1,1.1,4.8l-5.2,1.2a2.45,2.45 0,0 1,-1.1,-4.8Z" />
+    </group>
 </vector>
