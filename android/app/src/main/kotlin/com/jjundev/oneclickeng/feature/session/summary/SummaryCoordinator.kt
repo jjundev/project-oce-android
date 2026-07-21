@@ -6,9 +6,13 @@ import com.jjundev.oneclickeng.core.network.SummaryPayload
 import com.jjundev.oneclickeng.core.network.SummaryRequest
 import com.jjundev.oneclickeng.core.network.SummaryStream
 import com.jjundev.oneclickeng.core.settings.SummarySaveSettingsRepository
+import com.jjundev.oneclickeng.core.time.ElapsedClock
+import com.jjundev.oneclickeng.core.time.NoOpElapsedClock
 import com.jjundev.oneclickeng.feature.gamification.GamificationTime
 import com.jjundev.oneclickeng.feature.gamification.StudytimeRepository
 import com.jjundev.oneclickeng.feature.reminder.ReminderOrchestrator
+import com.jjundev.oneclickeng.feature.session.analytics.LatencyAnalytics
+import com.jjundev.oneclickeng.feature.session.analytics.NoOpLatencyAnalytics
 import com.jjundev.oneclickeng.feature.session.analytics.SavedCardAnalytics
 import com.jjundev.oneclickeng.feature.session.analytics.SessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.saved.CardType
@@ -77,6 +81,8 @@ class SummaryCoordinator
         private val scope: CoroutineScope,
         private val sessionFunnel: SessionFunnelAnalytics,
         private val savedCardAnalytics: SavedCardAnalytics,
+        private val clock: ElapsedClock = NoOpElapsedClock,
+        private val latencyAnalytics: LatencyAnalytics = NoOpLatencyAnalytics(),
     ) {
         private val _state = MutableStateFlow(EMPTY)
         val state: StateFlow<SummaryState> = _state.asStateFlow()
@@ -117,6 +123,11 @@ class SummaryCoordinator
         // summary_partial_failure dedup (M4-01b) — fires at most once per session (see maybeLogPartialFailure).
         private var partialFailureLogged = false
 
+        // summary_latency_ms — first attempt only (M4-01f, decision #2). null token = no first attempt yet.
+        private var firstAttemptToken: Long? = null
+        private var firstAttemptStartMs = 0L
+        private var firstAttemptLatencyLogged = false
+
         // Cumulative failure counts per section (persist across retries — #17 누적 임계).
         private var attemptsExpr = 0
         private var attemptsWord = 0
@@ -151,6 +162,8 @@ class SummaryCoordinator
             sectioned = false
             quota = false
             partialFailureLogged = false
+            firstAttemptToken = null
+            firstAttemptLatencyLogged = false
             attemptsExpr = 0
             attemptsWord = 0
             attemptsCoaching = 0
@@ -378,6 +391,10 @@ class SummaryCoordinator
         private fun launchAttempt(sections: List<String>?) {
             val id = sessionId ?: return
             val token = ++sessionToken
+            if (sections == null) {
+                firstAttemptToken = token
+                firstAttemptStartMs = clock.nowMillis()
+            }
             currentJob?.cancel()
             val request =
                 SummaryRequest(
@@ -446,6 +463,7 @@ class SummaryCoordinator
                 quota = true
             }
             emit()
+            maybeLogFirstAttemptLatency(token, forcedFailure = !anyArrived)
         }
 
         /** A card arrived: re-arm the watchdog while the bundle is still unsettled or a retry is loading. */
@@ -471,6 +489,8 @@ class SummaryCoordinator
             sectioned = true
             maybeLogPartialFailure()
             emit()
+            val allFailed = SummarySection.entries.all { sectionState(it) is SummarySectionState.Failed }
+            maybeLogFirstAttemptLatency(token, forcedFailure = allFailed)
         }
 
         private fun resolveSection(
@@ -503,6 +523,7 @@ class SummaryCoordinator
             sectioned = true
             maybeLogPartialFailure()
             emit()
+            maybeLogFirstAttemptLatency(token, forcedFailure = true)
         }
 
         // summary_partial_failure — fire once per session when the summary settles with ≥1 failed section
@@ -513,6 +534,19 @@ class SummaryCoordinator
             if (failed == 0) return
             partialFailureLogged = true
             sessionId?.let { sessionFunnel.summaryPartialFailure(it, failed) }
+        }
+
+        // summary_latency_ms — only the FIRST attempt's token logs (decision #2); retries are silent.
+        private fun maybeLogFirstAttemptLatency(token: Long, forcedFailure: Boolean) {
+            if (token != firstAttemptToken || firstAttemptLatencyLogged) return
+            firstAttemptLatencyLogged = true
+            val outcome =
+                if (forcedFailure) LatencyAnalytics.OUTCOME_FAILED else LatencyAnalytics.OUTCOME_SUCCESSFUL
+            latencyAnalytics.latency(
+                LatencyAnalytics.OPERATION_SUMMARY,
+                outcome,
+                clock.nowMillis() - firstAttemptStartMs,
+            )
         }
 
         private fun failSection(section: SummarySection) {
