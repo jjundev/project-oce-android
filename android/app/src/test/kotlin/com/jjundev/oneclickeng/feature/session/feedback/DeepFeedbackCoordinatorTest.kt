@@ -11,6 +11,7 @@ import com.jjundev.oneclickeng.core.network.ToneStyleDto
 import com.jjundev.oneclickeng.core.network.VennCircleDto
 import com.jjundev.oneclickeng.core.network.VennDto
 import com.jjundev.oneclickeng.core.network.VennIntersectionDto
+import com.jjundev.oneclickeng.feature.session.analytics.NoOpSavedCardAnalytics
 import com.jjundev.oneclickeng.feature.session.saved.CardType
 import com.jjundev.oneclickeng.feature.session.saved.FakeSavedCardRepository
 import com.jjundev.oneclickeng.feature.session.saved.SavedCard
@@ -113,7 +114,8 @@ class DeepFeedbackCoordinatorTest {
     fun `blocks render progressively in order, promote to Ready when all arrive`() =
         runTest {
             val stream = FakeDeepStream()
-            val coordinator = DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope())
+            val coordinator =
+                DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope(), NoOpSavedCardAnalytics())
 
             coordinator.begin()
             runCurrent()
@@ -143,7 +145,7 @@ class DeepFeedbackCoordinatorTest {
         runTest {
             val stream = FakeDeepStream()
             val repo = FakeSavedCardRepository()
-            val coordinator = DeepFeedbackCoordinator(stream, repo, coordScope())
+            val coordinator = DeepFeedbackCoordinator(stream, repo, coordScope(), NoOpSavedCardAnalytics())
 
             coordinator.begin() // sessionId=s1, turnIndex=4
             stream.push(conceptualBridge())
@@ -174,7 +176,8 @@ class DeepFeedbackCoordinatorTest {
     fun `start is a no-op once past Idle (same-turn 1x cache, P3)`() =
         runTest {
             val stream = FakeDeepStream()
-            val coordinator = DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope())
+            val coordinator =
+                DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope(), NoOpSavedCardAnalytics())
 
             coordinator.begin()
             runCurrent()
@@ -195,7 +198,8 @@ class DeepFeedbackCoordinatorTest {
     fun `stream end before all blocks arrive fails the region but keeps arrived blocks (sticky)`() =
         runTest {
             val stream = FakeDeepStream()
-            val coordinator = DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope())
+            val coordinator =
+                DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope(), NoOpSavedCardAnalytics())
 
             coordinator.begin()
             runCurrent()
@@ -214,7 +218,8 @@ class DeepFeedbackCoordinatorTest {
     fun `retry from Error re-runs the whole call and clears ephemeral bookmarks`() =
         runTest {
             val stream = FakeDeepStream()
-            val coordinator = DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope())
+            val coordinator =
+                DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope(), NoOpSavedCardAnalytics())
 
             coordinator.begin()
             runCurrent()
@@ -239,7 +244,8 @@ class DeepFeedbackCoordinatorTest {
     fun `retry is a no-op unless in Error`() =
         runTest {
             val stream = FakeDeepStream()
-            val coordinator = DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope())
+            val coordinator =
+                DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope(), NoOpSavedCardAnalytics())
 
             coordinator.begin()
             runCurrent()
@@ -252,7 +258,8 @@ class DeepFeedbackCoordinatorTest {
     fun `a late event from a superseded stream is dropped (stale guard)`() =
         runTest {
             val stream = FakeDeepStream()
-            val coordinator = DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope())
+            val coordinator =
+                DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope(), NoOpSavedCardAnalytics())
 
             coordinator.begin()
             runCurrent()
@@ -276,7 +283,8 @@ class DeepFeedbackCoordinatorTest {
     fun `the idle watchdog fails the region while keeping arrived blocks`() =
         runTest {
             val stream = FakeDeepStream()
-            val coordinator = DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope())
+            val coordinator =
+                DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope(), NoOpSavedCardAnalytics())
 
             coordinator.begin()
             runCurrent()
@@ -294,7 +302,8 @@ class DeepFeedbackCoordinatorTest {
     fun `cap rejection routes to a request-level QuotaBlocked`() =
         runTest {
             val stream = FakeDeepStream()
-            val coordinator = DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope())
+            val coordinator =
+                DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope(), NoOpSavedCardAnalytics())
 
             coordinator.begin()
             runCurrent()
@@ -308,7 +317,8 @@ class DeepFeedbackCoordinatorTest {
     fun `reset returns to Idle so a fresh turn re-opens deep`() =
         runTest {
             val stream = FakeDeepStream()
-            val coordinator = DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope())
+            val coordinator =
+                DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope(), NoOpSavedCardAnalytics())
 
             coordinator.begin()
             runCurrent()
@@ -324,7 +334,8 @@ class DeepFeedbackCoordinatorTest {
     fun `toggleBookmark flips the ephemeral level set`() =
         runTest {
             val stream = FakeDeepStream()
-            val coordinator = DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope())
+            val coordinator =
+                DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), coordScope(), NoOpSavedCardAnalytics())
 
             coordinator.begin()
             runCurrent()

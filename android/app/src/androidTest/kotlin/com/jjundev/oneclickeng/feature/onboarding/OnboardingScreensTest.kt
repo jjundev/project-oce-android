@@ -27,6 +27,7 @@ class OnboardingScreensTest {
             authRepository =
                 object : AuthRepository {
                     override val currentUid: String = "uid-1"
+                    override val isAnonymous: Boolean = true
 
                     override suspend fun ensureSignedIn(): String = "uid-1"
                 },

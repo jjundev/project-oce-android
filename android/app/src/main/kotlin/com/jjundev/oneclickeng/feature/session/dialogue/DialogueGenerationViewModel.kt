@@ -4,11 +4,13 @@ import androidx.lifecycle.ViewModel
 import com.jjundev.oneclickeng.core.connectivity.OfflineAnalytics
 import com.jjundev.oneclickeng.core.network.LimitAnalytics
 import com.jjundev.oneclickeng.core.network.WaitQuizAnalytics
+import com.jjundev.oneclickeng.feature.session.analytics.SessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
 import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
 import com.jjundev.oneclickeng.feature.session.tts.TtsPlaybackCoordinator
 import com.jjundev.oneclickeng.feature.session.turn.SpeakerDirectory
 import com.jjundev.oneclickeng.feature.session.turn.nextOpponentEnglish
+import com.jjundev.oneclickeng.ui.component.LimitSurface
 import com.jjundev.oneclickeng.ui.component.QuizItem
 import com.jjundev.oneclickeng.ui.component.selectLimitSurface
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -42,6 +44,7 @@ class DialogueGenerationViewModel
         private val snapshotStore: SessionSnapshotStore,
         private val appScope: CoroutineScope,
         private val offlineAnalytics: OfflineAnalytics,
+        private val sessionFunnel: SessionFunnelAnalytics,
         loadingQuizConfig: LoadingQuizConfig,
     ) : ViewModel() {
         val state: StateFlow<DialogueGenState> = coordinator.state
@@ -62,6 +65,11 @@ class DialogueGenerationViewModel
         // (analytics-events.md §6.6) — the WaitQuiz callback does not carry the card position.
         private var answeredCount = 0
 
+        // wait_quiz shown/ended timing (M4-01d). Real clock; exact dwell/delay DebugView-verified.
+        private var generationStartMillis = 0L
+        private var quizShownMillis: Long? = null
+        private var quizEnded = false
+
         // Whether this generation is the onboarding first-session gate (M3-02). Drives the limit
         // surface for BOTH the panel render (via the screen) and the `limit_reached` analytics event
         // (via [onLimitReached]) so the two never disagree.
@@ -71,6 +79,10 @@ class DialogueGenerationViewModel
         // 스트림 재개가 아니라 새 start(연결성 재확인)로 가야 한다 — 아무것도 전송하지 않았으므로 usage 중복 없음.
         private var lastStart: StartParams? = null
         private var preflightBlocked = false
+
+        // onConversationStarted() 는 auto-start 와 CTA 탭 두 경로 모두에서 불릴 수 있어(Route 가 콜백을
+        // 감싸는 위치가 두 진입점을 모두 통과) 한 번만 계측되게 이 가드로 막는다.
+        private var conversationStartedLogged = false
 
         init {
             // 이 코디네이터는 process @Singleton 이라 직전 세션의 sticky Ready 가 남는다. 새 생성 VM 이 뜰 때
@@ -93,7 +105,11 @@ class DialogueGenerationViewModel
             // pre-flight 게이트(M4-04, exception-states.md 결정 #4): 연결성 소유는 코디네이터 하나다. 오프라인
             // 이면 [StartOutcome.OfflineGated] 를 받아 퀴즈를 스킵하고 `offline_blocked_action` 만 계측한다
             // (핵심 루프=온라인 필수, 로그인된 캐시보유 사용자에만 도달).
-            when (coordinator.start(level, topic, length, firstSession)) {
+            val outcome = coordinator.start(level, topic, length, firstSession)
+            // 온보딩 첫 세션 생성 퍼널의 진입점(M4-01b §4). idempotencyKeyPresent = 실제로 전송이 시작됐는지
+            // (Started) — 오프라인 게이트로 막힌 시도는 present=false 로 구분된다.
+            if (isOnboarding) sessionFunnel.firstSessionGenerationStarted(outcome == StartOutcome.Started)
+            when (outcome) {
                 StartOutcome.OfflineGated -> {
                     preflightBlocked = true
                     _quizItems.value = emptyList()
@@ -104,6 +120,9 @@ class DialogueGenerationViewModel
                     val tier = if (firstSession) FIRST_SESSION_TIER else level
                     _quizItems.value = if (quizEnabled) quizBank.forTier(tier) else emptyList()
                     answeredCount = 0
+                    generationStartMillis = System.currentTimeMillis()
+                    quizShownMillis = null
+                    quizEnded = false
                     // 세션이 **실제로 시작**됐을 때만 직전 미완 세션 durable 스냅샷 폐기(§2.5 "새 세션 시작
                     // 시에만 폐기"). 오프라인 게이트로 막혔으면 아무 세션도 시작 안 됐으므로 이전 스냅샷을
                     // 보존한다(온라인 복귀 후 이어하기 가능). appScope 로 실행해 화면 이탈로 취소되지 않게 한다.
@@ -178,6 +197,52 @@ class DialogueGenerationViewModel
                 choseCorrect = correct,
                 cardIndex = answeredCount++,
             )
+        }
+
+        // Reuse the existing shared LimitSurface enum values (§6.5) instead of duplicating
+        // "onboarding_first_session"/"home" literals. (Requires the LimitSurface import above.)
+        private fun waitQuizSurface(): String =
+            if (isOnboarding) LimitSurface.OnboardingFirstSession.value else LimitSurface.Home.value
+
+        /** The wait-quiz surface first became visible (gate passed while generating). Once per generation. */
+        fun onQuizShown() {
+            if (quizShownMillis != null) return
+            val now = System.currentTimeMillis()
+            quizShownMillis = now
+            analytics.waitQuizShown(coordinator.sessionId(), waitQuizSurface(), now - generationStartMillis)
+        }
+
+        /** The wait-quiz ended: [reason] = `ready` (user proceeded) or `failed`. Once; no-op if never shown.
+         *  `skipped` is deferred (v1). */
+        fun onQuizEnded(reason: String) {
+            val shownAt = quizShownMillis ?: return
+            if (quizEnded) return
+            quizEnded = true
+            analytics.waitQuizEnded(
+                sessionId = coordinator.sessionId(),
+                surface = waitQuizSurface(),
+                reason = reason,
+                cardsAnswered = answeredCount,
+                dwellMs = System.currentTimeMillis() - shownAt,
+            )
+        }
+
+        /**
+         * Fired by the generating Route when the user commits to the conversation (auto-start once ready,
+         * or the CTA tap) — logs `first_session_started` (onboarding) or `learning_session_started`
+         * (revisit) exactly once per generation (M4-01b §4). No-ops if [start] never landed a session id.
+         */
+        fun onConversationStarted() {
+            if (conversationStartedLogged) return
+            val params = lastStart
+            val sid = coordinator.sessionId()
+            if (params == null || sid == null) return
+            conversationStartedLogged = true
+            if (isOnboarding) {
+                sessionFunnel.firstSessionStarted(sid, params.topic, params.length, params.level)
+            } else {
+                sessionFunnel.learningSessionStarted(sid, params.topic, params.length, params.level)
+            }
         }
 
         /** Retained start params, so a pre-flight-offline retry can re-attempt with the same inputs. */

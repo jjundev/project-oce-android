@@ -8,7 +8,8 @@ import javax.inject.Singleton
 
 /**
  * Binds the dialogue-generation seams: the SSE [DialogueStream] (M1-01), the WaitQuiz telemetry seam
- * (M1-01), and the daily-limit [LimitAnalytics] seam (M3-04) — both telemetry seams no-op until M4-01.
+ * (M1-01), and the daily-limit [LimitAnalytics] seam (M3-04) — both telemetry seams dispatch to
+ * Firebase as of M4-01 (see [FirebaseWaitQuizAnalytics] / [FirebaseLimitAnalytics]).
  * The `/llm` OkHttpClient, Json, and Retrofit these depend on are provided by [NetworkModule].
  */
 @Module
@@ -20,9 +21,9 @@ abstract class DialogueModule {
 
     @Binds
     @Singleton
-    abstract fun bindWaitQuizAnalytics(impl: NoOpWaitQuizAnalytics): WaitQuizAnalytics
+    abstract fun bindWaitQuizAnalytics(impl: FirebaseWaitQuizAnalytics): WaitQuizAnalytics
 
     @Binds
     @Singleton
-    abstract fun bindLimitAnalytics(impl: NoOpLimitAnalytics): LimitAnalytics
+    abstract fun bindLimitAnalytics(impl: FirebaseLimitAnalytics): LimitAnalytics
 }

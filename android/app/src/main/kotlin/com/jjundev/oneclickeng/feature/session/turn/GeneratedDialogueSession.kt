@@ -22,6 +22,9 @@ import com.jjundev.oneclickeng.core.audio.RecordingController
 import com.jjundev.oneclickeng.core.audio.RecordingResult
 import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
 import com.jjundev.oneclickeng.core.session.SessionLevel
+import com.jjundev.oneclickeng.feature.session.analytics.MicPermissionAnalytics
+import com.jjundev.oneclickeng.feature.session.analytics.SessionFunnelAnalytics
+import com.jjundev.oneclickeng.feature.session.analytics.speakingResultLabel
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenState
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenerationCoordinator
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueStreamStatus
@@ -199,6 +202,8 @@ class GeneratedDialogueSessionViewModel
         private val appScope: CoroutineScope,
         private val snapshotStore: SessionSnapshotStore,
         private val tts: TtsPlaybackCoordinator,
+        private val sessionFunnel: SessionFunnelAnalytics,
+        private val micPermissionAnalytics: MicPermissionAnalytics,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         val generationState = generation.state
@@ -229,6 +234,9 @@ class GeneratedDialogueSessionViewModel
         /** "더 보기" 펼침 여부(호스트 소유 UI 상태). 코디네이터는 개시/캐시만 알고 펼침은 모른다(P3). */
         var deepExpanded by mutableStateOf(false)
             private set
+
+        // deep_feedback_opened dedup — one log per turn even if the user opens/collapses/re-opens (M4-01b).
+        private var deepLoggedThisTurn = false
 
         /** 서버 발급 sessionId(요약 라우팅용, M3-02). 대본 미도착이면 null → 요약 진입은 완주 후에만 일어나 non-null. */
         fun sessionId(): String? = generation.sessionId()
@@ -366,6 +374,13 @@ class GeneratedDialogueSessionViewModel
             // 동안 "표시된 대사 + 침묵"이 아니라 "타이핑 중"으로 보인다. OpponentTurn 가드는 progress 안에 있어
             // replay/자기녹음 재생(LearnerTurn)의 PLAYING 은 무시된다.
             viewModelScope.launch { tts.audioReady.collect { revealOnAudioReady() } }
+            // 학습자 턴 진입 = turn_started(M4-01b). turn_index 는 이 시점의 학습자 말풍선 수(0-based, 아직
+            // 이번 턴 답변 미append) — turn_completed/deep 이 쓰는 것과 같은 정수(plan turn_index 주석 참조).
+            turnState.onEnterLearnerTurn = {
+                currentSessionId()?.let { sid ->
+                    sessionFunnel.turnStarted(sid, turnState.messages.count { it is DialogueMessage.Learner })
+                }
+            }
             savedStateHandle.setSavedStateProvider(PROVIDER_KEY) {
                 bundleOf(BUNDLE_JSON to json.encodeToString(currentSnapshot()))
             }
@@ -620,6 +635,12 @@ class GeneratedDialogueSessionViewModel
         // 우리 분석(micState=Analyzing)에만 반응 — Singleton 의 이전 세션 잔여 상태 오반응 차단.
         private fun onAnalysisState(state: SpeakingAnalysisState) {
             if (micState != MicState.Analyzing) return
+            speakingResultLabel(state)?.let { label ->
+                currentSessionId()?.let { sid ->
+                    val turnIndex = turnState.messages.count { it is DialogueMessage.Learner }
+                    sessionFunnel.speakingAnalyzeResult(sid, turnIndex, label)
+                }
+            }
             when (state) {
                 is SpeakingAnalysisState.Result -> {
                     turnState.appendLearnerAnswer(state.transcript)
@@ -635,7 +656,7 @@ class GeneratedDialogueSessionViewModel
                     }
                     pendingClip = null
                     micState = MicState.Complete
-                    triggerFeedback(state.transcript)
+                    triggerFeedback(state.transcript, INPUT_MODE_VOICE)
                     persistResume()
                 }
                 SpeakingAnalysisState.Empty -> {
@@ -666,6 +687,7 @@ class GeneratedDialogueSessionViewModel
             // deep 도 새 턴을 위해 Idle 로 되돌린다(캐시·ephemeral 북마크 파기). 펼침/stash 도 함께 비운다.
             deep.reset()
             deepExpanded = false
+            deepLoggedThisTurn = false
             deepParams = null
             persistResume()
         }
@@ -674,6 +696,14 @@ class GeneratedDialogueSessionViewModel
             textMode = on
             if (!on) textValue = ""
         }
+
+        /** RECORD_AUDIO permission requested (priming sheet → OS dialog). M4-01d. */
+        fun onMicPermissionRequested() =
+            micPermissionAnalytics.requested(MicPermissionAnalytics.SOURCE_SESSION)
+
+        /** RECORD_AUDIO permission result (granted/denied). M4-01d. */
+        fun onMicPermissionResult(granted: Boolean) =
+            micPermissionAnalytics.result(MicPermissionAnalytics.SOURCE_SESSION, granted)
 
         fun onTextChange(value: String) {
             textValue = value
@@ -688,11 +718,11 @@ class GeneratedDialogueSessionViewModel
             textMode = false
             textValue = ""
             retryHint = null
-            triggerFeedback(text)
+            triggerFeedback(text, INPUT_MODE_TEXT)
             persistResume()
         }
 
-        private fun triggerFeedback(userEnglish: String) {
+        private fun triggerFeedback(userEnglish: String, inputMode: String) {
             val sid = currentSessionId() ?: return
             val level = currentLevel() ?: return
             val task = turnState.currentTask?.koreanPrompt
@@ -700,10 +730,15 @@ class GeneratedDialogueSessionViewModel
             if (task != null && ref != null) {
                 // 세션 버퍼 시작(멱등, 첫 턴에만 실효) — 요약 점수·하이라이트·studytime 의 단일 소스.
                 turnBuffer.startSession(sid)
-                pendingTurn = PendingTurn(koreanPrompt = task, userText = userEnglish)
                 // deep cardId 파생용 0-based 학습자 턴 인덱스. triggerFeedback 은 appendLearnerAnswer 직후라
                 // 학습자 말풍선 수는 현재 턴을 이미 포함한다 → -1 로 0-based 로 만든다.
                 val turnIndex = turnState.messages.count { it is DialogueMessage.Learner } - 1
+                pendingTurn = PendingTurn(
+                    koreanPrompt = task,
+                    userText = userEnglish,
+                    inputMode = inputMode,
+                    turnIndex = turnIndex,
+                )
                 deepParams = DeepParams(sid, turnIndex, task, userEnglish, ref, level)
                 feedback.start(sid, task, userEnglish, ref, level)
             }
@@ -742,7 +777,11 @@ class GeneratedDialogueSessionViewModel
 
         /** 요약 버퍼에 한 턴을 기록하고 pending 을 비운다(정착·"다음" 공용 진입). */
         private fun recordTurn(pending: PendingTurn) {
-            turnBuffer.record(pending.koreanPrompt, pending.userText, feedback.bufferSnapshot())
+            val snapshot = feedback.bufferSnapshot()
+            turnBuffer.record(pending.koreanPrompt, pending.userText, snapshot)
+            currentSessionId()?.let { sid ->
+                sessionFunnel.turnCompleted(sid, pending.turnIndex, pending.inputMode, snapshot.slimScore)
+            }
             pendingTurn = null
         }
 
@@ -758,6 +797,10 @@ class GeneratedDialogueSessionViewModel
         fun expandDeep() {
             deepParams?.let { p ->
                 deep.start(p.sessionId, p.turnIndex, p.koreanPrompt, p.userText, p.referenceEnglish, p.level)
+                if (!deepLoggedThisTurn) {
+                    deepLoggedThisTurn = true
+                    sessionFunnel.deepFeedbackOpened(p.sessionId, p.turnIndex)
+                }
             }
             deepExpanded = true
         }
@@ -784,7 +827,12 @@ class GeneratedDialogueSessionViewModel
         }
 
         /** 요약 버퍼 기록 대기 중인 턴의 과제·답변 echo(피드백 스냅샷과 함께 record 로 밀어넣는다). */
-        private data class PendingTurn(val koreanPrompt: String, val userText: String)
+        private data class PendingTurn(
+            val koreanPrompt: String,
+            val userText: String,
+            val inputMode: String,
+            val turnIndex: Int,
+        )
 
         /** deep 개시 지연을 위해 stash 하는 현재 턴의 [DeepFeedbackCoordinator.start] 파라미터. */
         private data class DeepParams(
@@ -802,6 +850,8 @@ class GeneratedDialogueSessionViewModel
             const val HINT_RETRY = "다시 말해볼까요? 채팅으로 입력해도 돼요."
             const val HINT_ERROR = "문제가 생겼어요. 다시 시도해 주세요."
             const val DEFAULT_TOTAL_TURNS = 5
+            const val INPUT_MODE_VOICE = "voice"
+            const val INPUT_MODE_TEXT = "text"
         }
     }
 
@@ -1012,6 +1062,9 @@ internal class GeneratedDialogueState {
     var opponentTyping by mutableStateOf(false)
         private set
 
+    /** Fired once each time the machine enters a learner turn (turn_started emit hook, M4-01b). */
+    var onEnterLearnerTurn: (() -> Unit)? = null
+
     private var consumedTurnCount = 0
     private var streamStatus = DialogueStreamStatus.Streaming
     private var pending = PendingOpponent()
@@ -1188,6 +1241,7 @@ internal class GeneratedDialogueState {
         turnPhase = TurnPhase.LearnerTurn
         sessionPhase = SessionPhase.InTurn
         recomputeTyping()
+        onEnterLearnerTurn?.invoke()
     }
 
     private fun settleTerminalStatus() {

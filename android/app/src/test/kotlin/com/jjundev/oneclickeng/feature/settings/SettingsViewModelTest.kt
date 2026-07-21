@@ -120,6 +120,7 @@ class SettingsViewModelTest {
 
 private object FakeAuth : AuthRepository {
     override val currentUid: String? = "uid"
+    override val isAnonymous: Boolean = true
 
     override suspend fun ensureSignedIn(): String = "uid"
 }

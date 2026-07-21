@@ -1,7 +1,9 @@
 package com.jjundev.oneclickeng.feature.onboarding.google
 
 import android.app.Application
+import com.jjundev.oneclickeng.core.analytics.RecordingAnalyticsSink
 import com.jjundev.oneclickeng.core.auth.AccountResetBus
+import com.jjundev.oneclickeng.core.auth.AuthRepository
 import com.jjundev.oneclickeng.core.auth.GoogleAccountLinker
 import com.jjundev.oneclickeng.core.auth.LinkOutcome
 import com.jjundev.oneclickeng.feature.onboarding.OnboardingAnalytics
@@ -43,7 +45,9 @@ class GoogleLinkViewModelTest {
         linker: GoogleAccountLinker,
         analytics: OnboardingAnalytics = RecordingAnalytics(),
         resetBus: AccountResetBus = AccountResetBus(),
-    ) = GoogleLinkViewModel(linker, analytics, resetBus)
+        analyticsSink: RecordingAnalyticsSink = RecordingAnalyticsSink(),
+        authRepository: AuthRepository = FakeLinkAuthRepository(),
+    ) = GoogleLinkViewModel(linker, analytics, resetBus, analyticsSink, authRepository)
 
     @Test
     fun `FR-3a promotion maps to Success and logs succeeded`() =
@@ -69,6 +73,60 @@ class GoogleLinkViewModelTest {
 
             assertEquals(LinkUiState.Success, model.uiState.value)
             assertEquals(listOf("merged:s1"), analytics.events)
+        }
+
+    @Test
+    fun `FR-3a promotion stitches the linked identity into analytics`() =
+        runTest(dispatcher) {
+            val sink = RecordingAnalyticsSink()
+            val model =
+                vm(
+                    linker = FakeLinker(LinkOutcome.Promoted),
+                    analyticsSink = sink,
+                    authRepository = FakeLinkAuthRepository(uid = "linked-uid"),
+                )
+
+            model.linkGoogle("token", "s1")
+            advanceUntilIdle()
+
+            assertEquals("linked-uid", sink.userId)
+            assertEquals("linked", sink.userProperties["auth_state"])
+        }
+
+    @Test
+    fun `FR-3b merge stitches the linked identity into analytics`() =
+        runTest(dispatcher) {
+            val sink = RecordingAnalyticsSink()
+            val model =
+                vm(
+                    linker = FakeLinker(LinkOutcome.Merged),
+                    analyticsSink = sink,
+                    authRepository = FakeLinkAuthRepository(uid = "linked-uid"),
+                )
+
+            model.linkGoogle("token", "s1")
+            advanceUntilIdle()
+
+            assertEquals("linked-uid", sink.userId)
+            assertEquals("linked", sink.userProperties["auth_state"])
+        }
+
+    @Test
+    fun `retryMerge success stitches the linked identity into analytics`() =
+        runTest(dispatcher) {
+            val sink = RecordingAnalyticsSink()
+            val model =
+                vm(
+                    linker = FakeLinker(retry = LinkOutcome.Merged),
+                    analyticsSink = sink,
+                    authRepository = FakeLinkAuthRepository(uid = "linked-uid"),
+                )
+
+            model.retryMerge("s1")
+            advanceUntilIdle()
+
+            assertEquals("linked-uid", sink.userId)
+            assertEquals("linked", sink.userProperties["auth_state"])
         }
 
     @Test
@@ -237,6 +295,17 @@ class GoogleLinkViewModelTest {
         override suspend fun linkGuest(googleIdToken: String): LinkOutcome = link
 
         override suspend fun retryPendingMerge(): LinkOutcome = retry
+    }
+
+    /** Minimal [AuthRepository] fake — only [currentUid] matters to the stitching seam under test. */
+    private class FakeLinkAuthRepository(
+        private val uid: String? = "guest-uid",
+    ) : AuthRepository {
+        override val currentUid: String? get() = uid
+
+        override val isAnonymous: Boolean = false
+
+        override suspend fun ensureSignedIn(): String = uid ?: error("no uid")
     }
 
     private class RecordingAnalytics : OnboardingAnalytics {

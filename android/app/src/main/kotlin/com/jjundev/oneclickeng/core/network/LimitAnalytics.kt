@@ -1,5 +1,6 @@
 package com.jjundev.oneclickeng.core.network
 
+import com.jjundev.oneclickeng.core.analytics.AnalyticsSink
 import javax.inject.Inject
 
 /**
@@ -27,4 +28,16 @@ class NoOpLimitAnalytics
             remaining: Int,
             surface: String,
         ) = Unit
+    }
+
+/** Firebase dispatch (M4-01). `limit_reached {remaining, surface}` — analytics-events.md §4/§6.5. */
+class FirebaseLimitAnalytics
+    @Inject
+    constructor(
+        private val sink: AnalyticsSink,
+    ) : LimitAnalytics {
+        override fun limitReached(
+            remaining: Int,
+            surface: String,
+        ) = sink.log("limit_reached", mapOf("remaining" to remaining.toLong(), "surface" to surface))
     }

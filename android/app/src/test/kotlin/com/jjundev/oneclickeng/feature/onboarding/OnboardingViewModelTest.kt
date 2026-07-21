@@ -97,8 +97,10 @@ class OnboardingViewModelTest {
     private class FakeAuthRepository(
         private val uid: String?,
         private val ensuredUid: String = "ensured",
+        isAnonymous: Boolean = true,
     ) : AuthRepository {
         override val currentUid: String? = uid
+        override val isAnonymous: Boolean = isAnonymous
 
         override suspend fun ensureSignedIn(): String = ensuredUid
     }

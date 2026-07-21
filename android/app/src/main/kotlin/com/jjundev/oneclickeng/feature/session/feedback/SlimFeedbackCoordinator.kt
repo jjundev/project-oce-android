@@ -4,6 +4,10 @@ import com.jjundev.oneclickeng.core.network.FeedbackEvent
 import com.jjundev.oneclickeng.core.network.FeedbackPayload
 import com.jjundev.oneclickeng.core.network.FeedbackRequest
 import com.jjundev.oneclickeng.core.network.FeedbackStream
+import com.jjundev.oneclickeng.core.time.ElapsedClock
+import com.jjundev.oneclickeng.core.time.NoOpElapsedClock
+import com.jjundev.oneclickeng.feature.session.analytics.LatencyAnalytics
+import com.jjundev.oneclickeng.feature.session.analytics.NoOpLatencyAnalytics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -41,6 +45,8 @@ class SlimFeedbackCoordinator
     constructor(
         private val stream: FeedbackStream,
         private val scope: CoroutineScope,
+        private val clock: ElapsedClock = NoOpElapsedClock,
+        private val latencyAnalytics: LatencyAnalytics = NoOpLatencyAnalytics(),
     ) {
         private val _state = MutableStateFlow<SlimFeedbackState>(SlimFeedbackState.Idle)
         val state: StateFlow<SlimFeedbackState> = _state.asStateFlow()
@@ -63,6 +69,11 @@ class SlimFeedbackCoordinator
         private var attemptsWs = 0
         private var attemptsGr = 0
         private var attemptsNat = 0
+
+        // Per-attempt latency bookkeeping (M4-01f) — reset on every launchAttempt() (start/retry).
+        private var attemptStartMs = 0L
+        private var slimLatencyLogged = false
+        private var attemptHadForcedFailure = false
 
         /**
          * Begin slim feedback for a completed turn. Cancels any in-flight request first, resets all
@@ -150,6 +161,9 @@ class SlimFeedbackCoordinator
         private fun launchAttempt() {
             val request = lastRequest ?: return
             val token = ++sessionToken
+            attemptStartMs = clock.nowMillis()
+            slimLatencyLogged = false
+            attemptHadForcedFailure = false
             currentJob?.cancel()
             armWatchdog(token)
             currentJob =
@@ -210,6 +224,7 @@ class SlimFeedbackCoordinator
             } else {
                 watchdogJob?.cancel()
             }
+            maybeLogSlimLatency()
         }
 
         /** Convert every still-Loading section into Failed (attempts++), leaving arrived sections sticky. */
@@ -219,16 +234,29 @@ class SlimFeedbackCoordinator
             if (writingScore is SectionState.Loading) {
                 attemptsWs++
                 writingScore = SectionState.Failed(attemptsWs)
+                attemptHadForcedFailure = true
             }
             if (grammar is SectionState.Loading) {
                 attemptsGr++
                 grammar = SectionState.Failed(attemptsGr)
+                attemptHadForcedFailure = true
             }
             if (natural is SectionState.Loading) {
                 attemptsNat++
                 natural = SectionState.Failed(attemptsNat)
+                attemptHadForcedFailure = true
             }
             emit()
+            maybeLogSlimLatency()
+        }
+
+        /** Fire `slim_latency_ms` once per attempt, when the last section settles (Ready/Failed/Skipped). */
+        private fun maybeLogSlimLatency() {
+            if (slimLatencyLogged || anyLoading) return
+            slimLatencyLogged = true
+            val outcome =
+                if (attemptHadForcedFailure) LatencyAnalytics.OUTCOME_FAILED else LatencyAnalytics.OUTCOME_SUCCESSFUL
+            latencyAnalytics.latency(LatencyAnalytics.OPERATION_SLIM, outcome, clock.nowMillis() - attemptStartMs)
         }
 
         private fun armWatchdog(token: Long) {

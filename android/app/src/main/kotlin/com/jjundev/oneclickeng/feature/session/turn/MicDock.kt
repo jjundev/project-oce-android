@@ -79,6 +79,7 @@ internal fun MicSessionDock(
 
     val launcher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            viewModel.onMicPermissionResult(granted)
             if (granted) {
                 permanentlyDenied = false
                 viewModel.onMicTap() // Ready → 녹음 시작
@@ -130,6 +131,7 @@ internal fun MicSessionDock(
             title = "마이크를 허용할까요?",
             onRequest = {
                 showPriming = false
+                viewModel.onMicPermissionRequested()
                 launcher.launch(Manifest.permission.RECORD_AUDIO)
             },
             onLater = { showPriming = false },

@@ -58,6 +58,7 @@ class AppViewModel
         accountResetBus: AccountResetBus,
         private val connectivity: ConnectivityObserver,
         private val offlineAnalytics: OfflineAnalytics,
+        private val analytics: com.jjundev.oneclickeng.core.analytics.AnalyticsSink,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<BootState>(BootState.Loading)
         val uiState: StateFlow<BootState> = _uiState.asStateFlow()
@@ -110,9 +111,14 @@ class AppViewModel
                     // 실패/무관은 no-op 로 삼켜 부트를 막지 않는다(마커는 다음 실행에서 재시도).
                     runCatching { googleAccountLinker.retryPendingMerge() }
                 }
+                // Identity as early as the first custom event (§3a): after any resumed merge so the
+                // effective identity is stitched, before profile reads that could emit.
+                analytics.setUserId(authRepository.currentUid ?: uid)
+                analytics.setUserProperty("auth_state", authStateFor(authRepository.isAnonymous))
                 profileRepository.ensureProfile(uid)
                 profileRepository.readLevel(uid)
             }.onSuccess { level ->
+                analytics.setUserProperty("level", level)
                 _uiState.value = bootStateForLevel(level)
             }.onFailure {
                 // Anonymous Auth can be disabled in the Firebase console or a first launch can be
@@ -167,6 +173,9 @@ class AppViewModel
  */
 internal fun bootStateForLevel(level: String?): BootState =
     if (level.isNullOrBlank()) BootState.NeedsOnboarding else BootState.MainReady
+
+/** guest|linked auth_state for the analytics user property (analytics-events.md §3). */
+internal fun authStateFor(isAnonymous: Boolean): String = if (isAnonymous) "guest" else "linked"
 
 /**
  * App-entry routing state resolved once per process after guest bootstrap (M3-02).

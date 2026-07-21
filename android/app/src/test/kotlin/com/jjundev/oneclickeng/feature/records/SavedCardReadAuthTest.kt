@@ -18,6 +18,7 @@ class SavedCardReadAuthTest {
     ) : AuthRepository {
         var ensureCalls = 0
         override val currentUid: String? = uid
+        override val isAnonymous: Boolean = true
 
         override suspend fun ensureSignedIn(): String {
             ensureCalls++

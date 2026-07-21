@@ -212,6 +212,7 @@ fun HomeScreen(
         onMoreSituations = { topicSheetVisible = true },
         onSetLevel = viewModel::setLevel,
         onSetLength = viewModel::setLength,
+        onSessionSettingCommitted = viewModel::onSessionSettingCommitted,
         gridMode = gridMode,
         onToggleLayout = {
             flashSituationsSkeleton(SITUATIONS_GRID_SKELETON_MS)
@@ -293,6 +294,7 @@ internal fun HomeContent(
     onMoreSituations: () -> Unit = {},
     onSetLevel: (String) -> Unit = {},
     onSetLength: (Int) -> Unit = {},
+    onSessionSettingCommitted: () -> Unit = {},
     gridMode: Boolean = false,
     onToggleLayout: () -> Unit = {},
     situationsSkeleton: Boolean = false,
@@ -413,6 +415,7 @@ internal fun HomeContent(
                         length = state.length,
                         onSetLevel = onSetLevel,
                         onSetLength = onSetLength,
+                        onSessionSettingCommitted = onSessionSettingCommitted,
                         modifier = Modifier.staggerReveal(4, entrance).padding(top = OceTheme.spacing.md),
                     )
                 }
@@ -786,6 +789,7 @@ internal fun SettingsInline(
     length: Int,
     onSetLevel: (String) -> Unit,
     onSetLength: (Int) -> Unit,
+    onSessionSettingCommitted: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -854,6 +858,7 @@ internal fun SettingsInline(
                         OneClickSlider(
                             value = current.ordinal.toFloat(),
                             onValueChange = { onSetLevel(SessionLevel.entries[it.roundToInt()].token) },
+                            onValueChangeFinished = onSessionSettingCommitted,
                             mode =
                                 SliderMode.Stepped(
                                     range = 0..SessionLevel.entries.lastIndex,
@@ -891,6 +896,7 @@ internal fun SettingsInline(
                         OneClickSlider(
                             value = length.toFloat(),
                             onValueChange = { onSetLength(it.roundToInt()) },
+                            onValueChangeFinished = onSessionSettingCommitted,
                             mode =
                                 SliderMode.Stepped(
                                     range = HomeViewModel.MIN_LENGTH..HomeViewModel.MAX_LENGTH,

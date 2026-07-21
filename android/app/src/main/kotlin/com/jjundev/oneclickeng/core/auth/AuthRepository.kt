@@ -21,6 +21,13 @@ interface AuthRepository {
     val currentUid: String?
 
     /**
+     * True when the current session is the anonymous guest (no linked provider). Derived, never
+     * stored — mirrors the `firebase.sign_in_provider` claim note. Drives the `auth_state`
+     * analytics user property (guest|linked, analytics-events.md §3). Null user ⇒ treated as guest.
+     */
+    val isAnonymous: Boolean
+
+    /**
      * Returns the guest UID, signing in anonymously if there is no current user.
      * Idempotent and concurrency-safe: overlapping callers (bootstrap + the per-request
      * `AuthInterceptor`) share one sign-in via single-flight rather than racing two.
@@ -50,6 +57,9 @@ class FirebaseAuthRepository
 
         override val currentUid: String?
             get() = auth.currentUser?.uid
+
+        override val isAnonymous: Boolean
+            get() = auth.currentUser?.isAnonymous ?: true
 
         override suspend fun ensureSignedIn(): String {
             auth.currentUser?.uid?.let { return it }

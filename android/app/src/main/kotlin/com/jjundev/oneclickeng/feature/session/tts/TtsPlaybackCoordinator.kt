@@ -7,6 +7,10 @@ import com.jjundev.oneclickeng.core.network.TtsPayload
 import com.jjundev.oneclickeng.core.network.TtsRequest
 import com.jjundev.oneclickeng.core.settings.TtsQuality
 import com.jjundev.oneclickeng.core.settings.TtsSettingsRepository
+import com.jjundev.oneclickeng.core.time.ElapsedClock
+import com.jjundev.oneclickeng.core.time.NoOpElapsedClock
+import com.jjundev.oneclickeng.feature.session.analytics.LatencyAnalytics
+import com.jjundev.oneclickeng.feature.session.analytics.NoOpLatencyAnalytics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
@@ -48,8 +52,10 @@ internal data class TtsCacheKey(
  * player free of encoding. Framework audio/engine work is behind [PcmPlayer]/[DeviceTts] so this
  * class is a pure, unit-testable coroutine state machine.
  */
-// 상태 머신 코디네이터라 작은 전이 헬퍼가 많다(DeepFeedbackCoordinator 선례와 동일 판단).
-@Suppress("TooManyFunctions")
+// 상태 머신 코디네이터라 작은 전이 헬퍼가 많다(DeepFeedbackCoordinator 선례와 동일 판단). clock/
+// latencyAnalytics 트레일링 페어가 기존 5개 seam 에 더해져 LongParameterList 임계값을 넘는다 —
+// SummaryCoordinator 선례와 동일하게 억제한다(페이로드 분해가 오히려 불투명).
+@Suppress("TooManyFunctions", "LongParameterList")
 @Singleton
 class TtsPlaybackCoordinator
     @Inject
@@ -59,6 +65,8 @@ class TtsPlaybackCoordinator
         private val deviceTts: DeviceTts,
         private val settingsRepo: TtsSettingsRepository,
         private val scope: CoroutineScope,
+        private val clock: ElapsedClock = NoOpElapsedClock,
+        private val latencyAnalytics: LatencyAnalytics = NoOpLatencyAnalytics(),
     ) {
         private val _state = MutableStateFlow(PlaybackState.IDLE)
         val state: StateFlow<PlaybackState> = _state.asStateFlow()
@@ -329,6 +337,23 @@ class TtsPlaybackCoordinator
             }
         }
 
+        /** Times the one real network round-trip in [synthesize] for `tts_latency_ms`. Called
+         *  ONLY from [obtainAudio]'s `scope.async` block — the single place a given cache key's
+         *  synthesis actually runs (join semantics mean concurrent callers share this one call,
+         *  so no double-fire guard is needed here, unlike the M4-01f coordinators). Deliberately
+         *  NOT used by [warmUpModel]'s direct [synthesize] call (M4-01g decision #2 — preheat is
+         *  excluded from this metric). */
+        private suspend fun synthesizeMeasured(
+            text: String,
+            gender: String?,
+        ): CachedAudio? {
+            val start = clock.nowMillis()
+            val result = synthesize(text, gender)
+            val outcome = if (result != null) LatencyAnalytics.OUTCOME_SUCCESSFUL else LatencyAnalytics.OUTCOME_FAILED
+            latencyAnalytics.latency(LatencyAnalytics.OPERATION_TTS, outcome, clock.nowMillis() - start)
+            return result
+        }
+
         /** The single synthesis authority: cache hit → return it; else join an in-flight
          *  synthesis for the same key (so a live play and a prefetch never double-call);
          *  else start one. The synthesis job caches its own result and evicts its own
@@ -346,7 +371,7 @@ class TtsPlaybackCoordinator
             cache[key]?.let { return it }
             val deferred =
                 inFlight[key] ?: scope.async {
-                    synthesize(text, gender)?.also { cache[key] = it }
+                    synthesizeMeasured(text, gender)?.also { cache[key] = it }
                 }.also { d ->
                     inFlight[key] = d
                     d.invokeOnCompletion { inFlight.remove(key, d) } // identity remove; tied to the job, not awaiters

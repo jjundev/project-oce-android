@@ -8,6 +8,10 @@ import com.jjundev.oneclickeng.core.network.DialoguePayload
 import com.jjundev.oneclickeng.core.network.DialogueRequest
 import com.jjundev.oneclickeng.core.network.DialogueStream
 import com.jjundev.oneclickeng.core.network.DialogueTurn
+import com.jjundev.oneclickeng.core.time.ElapsedClock
+import com.jjundev.oneclickeng.core.time.NoOpElapsedClock
+import com.jjundev.oneclickeng.feature.session.analytics.LatencyAnalytics
+import com.jjundev.oneclickeng.feature.session.analytics.NoOpLatencyAnalytics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -49,6 +53,8 @@ class DialogueGenerationCoordinator
         // in-flight 실패의 오프라인 분류원(M4-04). 기본값은 항상-Online stub — 연결성 무관 단위 테스트/프리뷰가
         // 기존 [DialogueGenState.Failed] 기대를 유지하도록. 프로덕션은 Hilt 가 실 옵저버를 주입한다.
         private val connectivity: ConnectivityObserver = OnlineConnectivityObserver,
+        private val clock: ElapsedClock = NoOpElapsedClock,
+        private val latencyAnalytics: LatencyAnalytics = NoOpLatencyAnalytics(),
     ) {
         private val _state = MutableStateFlow<DialogueGenState>(DialogueGenState.Idle)
         val state: StateFlow<DialogueGenState> = _state.asStateFlow()
@@ -67,6 +73,8 @@ class DialogueGenerationCoordinator
         private var meta: DialogueMeta? = null
         private var streamStatus = DialogueStreamStatus.Streaming
         private val turns = mutableListOf<DialogueTurn>()
+        private var attemptStartMs = 0L
+        private var scriptGenLatencyLogged = false
 
         /** The server-minted sessionId of the current dialogue (or null), for the turn loop (M1-06). */
         fun sessionId(): String? = sessionId
@@ -157,6 +165,8 @@ class DialogueGenerationCoordinator
             watchdogJob?.cancel()
             lastRequest = request
             clearAccumulators()
+            attemptStartMs = clock.nowMillis()
+            scriptGenLatencyLogged = false
             _state.value = DialogueGenState.Generating
             armWatchdog(token)
             currentJob =
@@ -194,6 +204,7 @@ class DialogueGenerationCoordinator
                     watchdogJob?.cancel()
                     streamStatus = DialogueStreamStatus.Streaming
                     _state.value = readySnapshot()
+                    logScriptGenLatency(LatencyAnalytics.OUTCOME_SUCCESSFUL)
                 }
                 is DialogueEvent.QuotaExceeded ->
                     // 일일 한도 거부: 아직 대본이 없을 때만 QuotaBlocked 로 분기(Failed 와 달리 재시도 아님).
@@ -251,10 +262,17 @@ class DialogueGenerationCoordinator
         private fun fail(token: Long) {
             if (token != sessionToken) return
             watchdogJob?.cancel()
+            logScriptGenLatency(LatencyAnalytics.OUTCOME_FAILED)
             // in-flight 분류(M4-04): 실패 시점 오프라인이면 차단 게이트[C], 아니면 일반 실패[A]. 인플라이트
             // 요청을 사전 차단하진 않고(거짓 음성 방지) 실패를 신호로 매핑한다(exception-states.md:59·§6).
             _state.value =
                 if (connectivity.isOffline()) DialogueGenState.OfflineBlocked else DialogueGenState.Failed
+        }
+
+        private fun logScriptGenLatency(outcome: String) {
+            if (scriptGenLatencyLogged) return
+            scriptGenLatencyLogged = true
+            latencyAnalytics.latency(LatencyAnalytics.OPERATION_SCRIPT_GEN, outcome, clock.nowMillis() - attemptStartMs)
         }
 
         companion object {

@@ -1,5 +1,6 @@
 package com.jjundev.oneclickeng.feature.home
 
+import com.jjundev.oneclickeng.core.analytics.AnalyticsSink
 import javax.inject.Inject
 
 /**
@@ -60,4 +61,37 @@ class NoOpHomeAnalytics
         ) = Unit
 
         override fun offlineBlocked() = Unit
+    }
+
+/** Firebase dispatch for the home entry funnel (M4-01). Ids per plan Event-ID Decision Table. */
+class FirebaseHomeAnalytics
+    @Inject
+    constructor(
+        private val sink: AnalyticsSink,
+    ) : HomeAnalytics {
+        override fun homeView() = sink.log("home_view")
+
+        override fun homeCtaTap() = sink.log("home_cta_tap")
+
+        override fun resumeContinue() = sink.log("resume_continue")
+
+        override fun resumeStartNew() = sink.log("resume_start_new")
+
+        override fun topicSelected(
+            topicId: String?,
+            custom: Boolean,
+        ) = sink.log(
+            "topic_selected",
+            buildMap {
+                topicId?.let { put("topic_id", it) } // null ⇒ omit key (never log "null")
+                put("custom", custom)
+            },
+        )
+
+        override fun sessionSettingChanged(
+            level: String,
+            length: Int,
+        ) = sink.log("session_setting_changed", mapOf("level" to level, "length" to length.toLong()))
+
+        override fun offlineBlocked() = sink.log("offline_blocked_action", mapOf("surface" to "home"))
     }

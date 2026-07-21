@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jjundev.oneclickeng.feature.session.analytics.SessionFunnelAnalytics
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
@@ -20,6 +21,8 @@ class SummaryViewModel
     @Inject
     constructor(
         private val coordinator: SummaryCoordinator,
+        private val sessionFunnel: SessionFunnelAnalytics,
+        private val turnBuffer: SessionTurnBufferStore,
     ) : ViewModel() {
         val state: StateFlow<SummaryState> = coordinator.state
 
@@ -35,6 +38,7 @@ class SummaryViewModel
         ) {
             if (started) return
             started = true
+            sessionFunnel.sessionComplete(sessionId, turnBuffer.bufferedTurns().size, isFirstSession)
             coordinator.start(
                 sessionId = sessionId,
                 difficulty = difficulty,

@@ -160,19 +160,32 @@ class HomeViewModel
             length.value = clampLength(turns)
         }
 
+        /** 슬라이더 드래그 커밋(onValueChangeFinished) — 틱마다가 아닌 정착당 1회 session_setting_changed. */
+        fun onSessionSettingCommitted() {
+            analytics.sessionSettingChanged(
+                level = levelOverride.value ?: defaultLevel.value ?: FALLBACK_LEVEL,
+                length = length.value,
+            )
+        }
+
         /** 시트/추천 행에서 카탈로그 상황 선택(프로토 pickTopic·startTopic 공용 선택 갱신). */
         fun selectSituation(topic: Topic) {
             selected.value = topic.toSelected()
+            analytics.topicSelected(topicId = topic.id, custom = false)
         }
 
         /** 카탈로그 id 로 상황 선택 — 시트/추천 행 콜백용(미지 id 는 무시). */
         fun selectSituationById(id: String) {
-            TopicCatalog.ALL.firstOrNull { it.id == id }?.let { selected.value = it.toSelected() }
+            TopicCatalog.ALL.firstOrNull { it.id == id }?.let {
+                selected.value = it.toSelected()
+                analytics.topicSelected(topicId = it.id, custom = false)
+            }
         }
 
         /** 직접 입력 상황 선택(프로토 pickCustom) — 입력 원문이 라벨이자 promptSeed. */
         fun selectCustomSituation(text: String) {
             selected.value = SelectedSituation(topicId = null, labelKo = text, promptSeed = text)
+            analytics.topicSelected(topicId = null, custom = true)
         }
 
         /** 추천 새로고침(프로토 refreshRecs) — 결정적 창 전진. */

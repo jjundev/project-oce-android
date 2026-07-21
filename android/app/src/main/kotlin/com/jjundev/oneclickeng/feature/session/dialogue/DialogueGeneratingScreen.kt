@@ -61,6 +61,11 @@ private const val QUIZ_DELAY_GATE_MS = 1_000L
 /** 생성 실패 카피(loading-quiz-interstitial.md §6). */
 private const val FAILURE_COPY = "불러오지 못했어요. 다시 시도해볼까요?"
 
+/** `wait_quiz_ended` reason strings (analytics-events.md §6.6). Screen-local: the VM's companion object
+ *  is private, so these can't live there. `skipped` is deferred (v1). */
+private const val DIALOGUE_QUIZ_REASON_FAILED = "failed"
+private const val DIALOGUE_QUIZ_REASON_READY = "ready"
+
 /**
  * 대본 생성 대기 화면(M1-01). 1000ms 지연 게이트를 소유하고, 그 뒤 [OneClickWaitQuiz](C20)를 띄운다.
  * "첫 완성 상대역 턴 수신 = 준비 완료"([DialogueGenState.Ready]) 시 자동전이 없이 `대화 시작하기` CTA를
@@ -89,6 +94,8 @@ fun DialogueGeneratingScreen(
     onLimitReached: (remaining: Int) -> Unit = {},
     onViewRecords: () -> Unit = {},
     onExit: () -> Unit = {},
+    onQuizShown: () -> Unit = {},
+    onQuizEnded: (reason: String) -> Unit = {},
 ) {
     var gatePassed by remember { mutableStateOf(false) }
     val reduceMotion = rememberReduceMotion()
@@ -101,6 +108,13 @@ fun DialogueGeneratingScreen(
     // 첫 대사가 즉시 재생된다(생성만 끝나고 넘어가면 TTS 합성 시간만큼 대화창 스켈레톤이 대기). 워밍할 게
     // 없으면(DEVICE·음소거) firstLineReady 는 즉시 true 라 예전과 동일하게 곧바로 진입한다.
     val conversationReady = state is DialogueGenState.Ready && firstLineReady
+
+    // wait_quiz shown/ended 계측(M4-01d): 퀴즈 표면이 실제로 노출됐을 때만(게이트 통과 + Generating/Ready) 1회
+    // shown, 생성 실패 시 1회 ended(failed) — VM 이 quizShownMillis/quizEnded 가드로 재호출을 흡수한다.
+    val quizVisible = quizEnabled && gatePassed &&
+        (state is DialogueGenState.Generating || state is DialogueGenState.Ready)
+    LaunchedEffect(quizVisible) { if (quizVisible) onQuizShown() }
+    LaunchedEffect(state) { if (state is DialogueGenState.Failed) onQuizEnded(DIALOGUE_QUIZ_REASON_FAILED) }
 
     // 게이트(1s) 이전에 준비되면 퀴즈 생략 직행. 게이트 이후엔 CTA로 유저 탭을 기다린다(자동전이 없음).
     val readyBeforeGate = conversationReady && !gatePassed
@@ -264,7 +278,11 @@ fun DialogueGeneratingRoute(
         state = state,
         quizItems = quizItems,
         firstLineReady = firstLineReady,
-        onStartConversation = onStartConversation,
+        onStartConversation = {
+            viewModel.onConversationStarted()
+            viewModel.onQuizEnded(DIALOGUE_QUIZ_REASON_READY)
+            onStartConversation()
+        },
         onRetry = viewModel::retry,
         modifier = modifier,
         quizEnabled = viewModel.quizEnabled,
@@ -274,6 +292,8 @@ fun DialogueGeneratingRoute(
         onLimitReached = viewModel::onLimitReached,
         onViewRecords = onViewRecords,
         onExit = onExit,
+        onQuizShown = viewModel::onQuizShown,
+        onQuizEnded = viewModel::onQuizEnded,
     )
 }
 

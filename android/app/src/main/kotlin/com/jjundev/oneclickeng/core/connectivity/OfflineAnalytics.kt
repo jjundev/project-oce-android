@@ -1,5 +1,6 @@
 package com.jjundev.oneclickeng.core.connectivity
 
+import com.jjundev.oneclickeng.core.analytics.AnalyticsSink
 import javax.inject.Inject
 
 /**
@@ -24,4 +25,17 @@ class NoOpOfflineAnalytics
         override fun connectivityChanged(online: Boolean) = Unit
 
         override fun offlineBlocked(surface: String) = Unit
+    }
+
+/** Firebase dispatch (M4-01). `connectivity_changed` + `offline_blocked_action` — exception-states.md §9. */
+class FirebaseOfflineAnalytics
+    @Inject
+    constructor(
+        private val sink: AnalyticsSink,
+    ) : OfflineAnalytics {
+        override fun connectivityChanged(online: Boolean) =
+            sink.log("connectivity_changed", mapOf("online" to online))
+
+        override fun offlineBlocked(surface: String) =
+            sink.log("offline_blocked_action", mapOf("surface" to surface))
     }
