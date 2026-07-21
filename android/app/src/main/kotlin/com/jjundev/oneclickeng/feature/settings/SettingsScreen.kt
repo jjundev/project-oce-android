@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +40,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -127,10 +130,13 @@ fun SettingsScreen(
     var notificationsEnabled by remember {
         mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
     }
+    val settingsListState = rememberLazyListState()
+    var settingsReentryKey by remember { mutableIntStateOf(0) }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 notificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
+                settingsReentryKey += 1
             }
             if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) {
                 snackbarHostState.currentSnackbarData?.dismiss()
@@ -259,6 +265,8 @@ fun SettingsScreen(
             onPrivacy = { openUrl(context, SettingsUrls.PRIVACY) },
             onTerms = { openUrl(context, SettingsUrls.TERMS) },
             reduceMotion = rememberReduceMotion(),
+            listState = settingsListState,
+            scrollResetKey = settingsReentryKey,
         )
 
         // ----- 오버레이(다이얼로그·시트·스낵바) -----
@@ -367,12 +375,22 @@ internal fun SettingsContent(
     modifier: Modifier = Modifier,
     reduceMotion: Boolean = false,
     isGoogleSaveLoading: Boolean = false,
+    listState: LazyListState = rememberLazyListState(),
+    scrollResetKey: Any = Unit,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         val entrance = rememberScreenEntrance(reduceMotion)
         PinnedTabHeader(titleRes = R.string.tab_settings)
+        LaunchedEffect(scrollResetKey) {
+            listState.scrollToItem(0)
+        }
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp)
+                    .testTag(SETTINGS_SCROLL_CONTENT_TAG),
+            state = listState,
             contentPadding =
                 PaddingValues(
                     top = 8.dp,
@@ -976,6 +994,9 @@ private val GoogleSaveLoadingIndicatorSize = 20.dp
 
 /** 설정 화면 Google 저장 로딩 스피너 testTag(컴포즈/스크린샷 테스트 seam). */
 internal const val GOOGLE_SAVE_LOADING_TAG = "google_save_loading"
+
+/** 설정 목록 스크롤 surface testTag. */
+internal const val SETTINGS_SCROLL_CONTENT_TAG = "settings_scroll_content"
 
 /**
  * 설정 화면 Google 저장 카드 로딩 유지 여부(순수). 탭 시점엔 `true`로 직접 세팅하고, 이후 `linkState`가
