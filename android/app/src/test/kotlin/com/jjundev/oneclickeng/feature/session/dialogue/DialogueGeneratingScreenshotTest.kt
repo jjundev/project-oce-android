@@ -3,7 +3,9 @@ package com.jjundev.oneclickeng.feature.session.dialogue
 import android.app.Application
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -27,6 +29,26 @@ class DialogueGeneratingScreenshotTest {
     val composeRule = createComposeRule()
 
     @Test
+    fun onboarding_loading_copy_is_displayed_before_quiz() {
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            OceTheme {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    DialogueGeneratingScreen(
+                        state = DialogueGenState.Generating,
+                        quizItems = previewWaitQuizItems(),
+                        loadingMessage = "첫 대화를 준비하고 있어요",
+                        onStartConversation = {},
+                        onRetry = {},
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithText("첫 대화를 준비하고 있어요").assertIsDisplayed()
+    }
+
+    @Test
     fun limit_light() = captureLimit(name = "limit_light", dark = false)
 
     @Test
@@ -39,6 +61,7 @@ class DialogueGeneratingScreenshotTest {
                     DialogueGeneratingScreen(
                         state = DialogueGenState.QuotaBlocked(remaining = 0),
                         quizItems = previewWaitQuizItems(),
+                        loadingMessage = "테스트 로딩 메시지",
                         onStartConversation = {},
                         onRetry = {},
                     )
@@ -96,6 +119,7 @@ class DialogueGeneratingScreenshotTest {
                     DialogueGeneratingScreen(
                         state = state,
                         quizItems = previewWaitQuizItems(),
+                        loadingMessage = "테스트 로딩 메시지",
                         onStartConversation = {},
                         onRetry = {},
                     )

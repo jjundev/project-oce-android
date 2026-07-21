@@ -96,6 +96,7 @@ fun DialogueGeneratingScreen(
     onExit: () -> Unit = {},
     onQuizShown: () -> Unit = {},
     onQuizEnded: (reason: String) -> Unit = {},
+    loadingMessage: String = "",
 ) {
     var gatePassed by remember { mutableStateOf(false) }
     val reduceMotion = rememberReduceMotion()
@@ -165,6 +166,7 @@ fun DialogueGeneratingScreen(
                 gatePassed = gatePassed,
                 quizEnabled = quizEnabled,
                 firstLineReady = firstLineReady,
+                loadingMessage = loadingMessage,
                 onRetry = onRetry,
                 onQuizAnswered = onQuizAnswered,
             )
@@ -203,6 +205,7 @@ private fun ColumnScope.GeneratingContent(
     gatePassed: Boolean,
     quizEnabled: Boolean,
     firstLineReady: Boolean,
+    loadingMessage: String,
     onRetry: () -> Unit,
     onQuizAnswered: (item: QuizItem, selectedIndex: Int, correct: Boolean) -> Unit,
 ) {
@@ -223,20 +226,20 @@ private fun ColumnScope.GeneratingContent(
                 if (quizEnabled) {
                     OneClickWaitQuiz(items = quizItems, onAnswered = onQuizAnswered, loading = !firstLineReady)
                 } else {
-                    SlimLoading()
+                    SlimLoading(loadingMessage)
                 }
             } else {
-                SlimLoading() // <1s: 자동 전이는 conversationReady(생성+워밍) 충족 시에만 발생
+                SlimLoading(loadingMessage) // <1s: 자동 전이는 conversationReady(생성+워밍) 충족 시에만 발생
             }
 
         DialogueGenState.Generating ->
             if (gatePassed && quizEnabled) {
                 OneClickWaitQuiz(items = quizItems, onAnswered = onQuizAnswered)
             } else {
-                SlimLoading()
+                SlimLoading(loadingMessage)
             }
 
-        DialogueGenState.Idle -> SlimLoading()
+        DialogueGenState.Idle -> SlimLoading(loadingMessage)
 
         // 위에서 early-return 으로 전체화면 한도/오프라인 게이트를 렌더했다(도달 불가 — 망라성 유지용).
         is DialogueGenState.QuotaBlocked -> Unit
@@ -267,6 +270,7 @@ fun DialogueGeneratingRoute(
     }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val quizItems by viewModel.quizItems.collectAsStateWithLifecycle()
+    val loadingMessage by viewModel.loadingMessage.collectAsStateWithLifecycle()
     val firstLineReady by viewModel.firstLineReady.collectAsStateWithLifecycle()
 
     // 로딩 퀴즈가 떠 있는 동안 첫 상대 대사를 미리 합성하고, 워밍이 끝나면 firstLineReady 를 올린다(Ready =
@@ -277,6 +281,7 @@ fun DialogueGeneratingRoute(
     DialogueGeneratingScreen(
         state = state,
         quizItems = quizItems,
+        loadingMessage = loadingMessage,
         firstLineReady = firstLineReady,
         onStartConversation = {
             viewModel.onConversationStarted()
@@ -299,14 +304,16 @@ fun DialogueGeneratingRoute(
 
 /** 96dp 링 + 안심 카피(지연 게이트 이전·Idle의 중립 로딩 표면). */
 @Composable
-private fun SlimLoading() {
+private fun SlimLoading(message: String) {
     OneClickProgressRing(mode = ProgressRingMode.Indeterminate)
-    Text(
-        text = "첫 대화를 준비하고 있어요",
-        style = OceTheme.typography.helper,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = OceTheme.spacing.md),
-    )
+    if (message.isNotBlank()) {
+        Text(
+            text = message,
+            style = OceTheme.typography.helper,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = OceTheme.spacing.md),
+        )
+    }
 }
 
 /**
@@ -409,6 +416,7 @@ private fun DialogueGeneratingReadyPreview() {
                     turns = emptyList(),
                 ),
             quizItems = previewWaitQuizItems(),
+            loadingMessage = "미리보기 로딩 메시지",
             onStartConversation = {},
             onRetry = {},
         )
@@ -423,6 +431,7 @@ private fun DialogueGeneratingFailedPreview() {
         DialogueGeneratingScreen(
             state = DialogueGenState.Failed,
             quizItems = previewWaitQuizItems(),
+            loadingMessage = "미리보기 로딩 메시지",
             onStartConversation = {},
             onRetry = {},
         )
@@ -437,6 +446,7 @@ private fun DialogueGeneratingQuotaBlockedPreview() {
         DialogueGeneratingScreen(
             state = DialogueGenState.QuotaBlocked(remaining = 0),
             quizItems = previewWaitQuizItems(),
+            loadingMessage = "미리보기 로딩 메시지",
             onStartConversation = {},
             onRetry = {},
         )
