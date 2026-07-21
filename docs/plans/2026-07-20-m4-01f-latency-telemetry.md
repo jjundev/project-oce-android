@@ -630,14 +630,19 @@ class SpeakingAnalysisLatencyTest {
             val latency = RecordingLatencyAnalytics()
             val coordinator =
                 SpeakingAnalysisCoordinator(
-                    LatencyFakeLlmApi(),
+                    LatencyFakeLlmApi(delayMs = 10_000),
                     coordScope(),
                     clock = clock,
                     latencyAnalytics = latency,
                 )
 
-            clock.advance(900L)
+            // Real in-flight gap (mirrors DialogueGenerationScriptGenLatencyTest): analyze() must be
+            // called BEFORE the clock advances, so the elapsed reading spans the actual round trip
+            // rather than being pre-baked before analyzeStartMs is even captured. A non-suspending
+            // fake (delayMs=0) runs analyze() synchronously to completion under UnconfinedTestDispatcher,
+            // so advancing the clock beforehand would make elapsed always 0 regardless of instrumentation.
             coordinator.analyze(captured(), "s1")
+            clock.advance(900L)
             advanceUntilIdle()
 
             assertEquals(
@@ -653,14 +658,14 @@ class SpeakingAnalysisLatencyTest {
             val latency = RecordingLatencyAnalytics()
             val coordinator =
                 SpeakingAnalysisCoordinator(
-                    LatencyFakeLlmApi(response = null),
+                    LatencyFakeLlmApi(response = null, delayMs = 10_000),
                     coordScope(),
                     clock = clock,
                     latencyAnalytics = latency,
                 )
 
-            clock.advance(300L)
             coordinator.analyze(captured(), "s1")
+            clock.advance(300L)
             advanceUntilIdle()
 
             assertEquals(
