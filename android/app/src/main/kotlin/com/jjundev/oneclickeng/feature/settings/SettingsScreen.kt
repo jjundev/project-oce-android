@@ -130,7 +130,10 @@ fun SettingsScreen(
     var notificationsEnabled by remember {
         mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
     }
-    val settingsListState = rememberLazyListState()
+    // 설정은 탭 재진입마다 새 화면처럼 시작해야 한다. `rememberLazyListState()`는 NavHost의
+    // saveState/restoreState와 함께 이전 offset을 복원해 첫 프레임에 중간 위치가 보일 수 있으므로,
+    // Saver 없는 상태를 기억해 항상 0에서 최초 레이아웃을 시작한다.
+    val settingsListState = remember { LazyListState() }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
