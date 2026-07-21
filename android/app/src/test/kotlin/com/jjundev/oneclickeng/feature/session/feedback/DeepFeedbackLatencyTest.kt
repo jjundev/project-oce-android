@@ -101,6 +101,11 @@ class DeepFeedbackLatencyTest {
             stream.push(toneStyle())
             stream.push(paraphrasing())
             runCurrent()
+            // afterSection() already logged (Ready + deepLatencyLogged=true) above. Closing the stream now
+            // lets the collect loop complete naturally and drives settleOnClose() for the same attempt —
+            // the guard must no-op here, or this would double-log.
+            stream.end()
+            advanceUntilIdle()
 
             assertEquals(
                 listOf(RecordingLatencyAnalytics.Call("deep", LatencyAnalytics.OUTCOME_SUCCESSFUL, 600L)),
@@ -162,5 +167,26 @@ class DeepFeedbackLatencyTest {
                 listOf(RecordingLatencyAnalytics.Call("deep", LatencyAnalytics.OUTCOME_CANCELED, 90L)),
                 latency.calls,
             )
+        }
+
+    @Test
+    fun `cancel from Idle logs nothing`() =
+        runTest {
+            val stream = LatencyFakeDeepStream()
+            val clock = FakeElapsedClock()
+            val latency = RecordingLatencyAnalytics()
+            val coordinator =
+                DeepFeedbackCoordinator(
+                    stream,
+                    FakeSavedCardRepository(),
+                    coordScope(),
+                    NoOpSavedCardAnalytics(),
+                    clock = clock,
+                    latencyAnalytics = latency,
+                )
+
+            coordinator.cancel()
+
+            assertEquals(emptyList<RecordingLatencyAnalytics.Call>(), latency.calls)
         }
 }
