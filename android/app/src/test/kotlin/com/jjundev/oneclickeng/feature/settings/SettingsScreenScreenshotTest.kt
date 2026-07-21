@@ -141,6 +141,52 @@ class SettingsScreenScreenshotTest {
         }
     }
 
+    @Test
+    fun `settings list stays at top when account section moves after account state loads`() {
+        var state by mutableStateOf(SettingsUiState(loading = false, nickname = "준영", isGuest = true))
+        lateinit var listState: LazyListState
+
+        composeRule.setContent {
+            listState = rememberLazyListState()
+            OceTheme {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    SettingsContent(
+                        state = state,
+                        versionLabel = "1.0.0 (1)",
+                        notificationsBlocked = false,
+                        onNicknameChange = {},
+                        onQualityChange = {},
+                        onSpeedChange = {},
+                        onMuteChange = {},
+                        onReminderToggle = {},
+                        onReminderTimeClick = {},
+                        onOpenNotificationSettings = {},
+                        onPurgeClick = {},
+                        onResetClick = {},
+                        onSummarySaveDefaultChange = {},
+                        onGoogleSave = {},
+                        onLogoutClick = {},
+                        onDeleteClick = {},
+                        onRetryMerge = {},
+                        onPrivacy = {},
+                        onTerms = {},
+                        listState = listState,
+                        reduceMotion = true,
+                    )
+                }
+            }
+        }
+        composeRule.waitForIdle()
+
+        state = state.copy(isGuest = false)
+        composeRule.waitForIdle()
+
+        composeRule.runOnIdle {
+            assertEquals(0, listState.firstVisibleItemIndex)
+            assertEquals(0, listState.firstVisibleItemScrollOffset)
+        }
+    }
+
     private fun renderSettings(
         state: SettingsUiState,
         dark: Boolean,
