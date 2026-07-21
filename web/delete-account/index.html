@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>계정 삭제 안내 | 딸깍영어</title><link rel="stylesheet" href="../styles.css"></head>
+<body><header class="site-header"><p class="service-name">딸깍영어 (OneClickEng)</p><h1>계정 삭제 안내</h1><p class="updated">최종 수정일: <time datetime="2026-07-21">2026-07-21</time></p><nav aria-label="정책 문서"><ul><li><a href="../privacy/">개인정보 처리방침</a></li><li><a href="../terms/">이용약관</a></li><li><a href="../delete-account/" aria-current="page">계정 삭제 안내</a></li></ul></nav></header><main>
+    <p class="beta-notice"><strong>클로즈드 베타용 초안</strong><br>웹 요청을 실제로 접수할 운영 이메일 또는 폼이 아직 제공되지 않았습니다. 공개 출시 전에 운영 담당자가 공식 채널과 처리 기한을 확정해야 합니다.</p>
+    <h2>앱에서 삭제하기</h2><p>로그인 사용자는 앱의 설정에서 계정 삭제를 완료할 수 있습니다. 앱은 삭제 확인 후 백엔드의 계정 삭제 기능을 호출합니다.</p>
+    <h2>앱에 접근할 수 없을 때</h2><p>웹으로 삭제를 요청할 수 있는 경로를 제공해야 하지만, 현재 운영 이메일·폼 주소가 확인되지 않아 이 베타 문서에는 접수 링크를 넣지 않았습니다. 공개 출시 전에 공식 이메일 또는 보안 요청 폼을 확정하여 이곳에 게시해야 합니다.</p>
+    <h2>본인 확인</h2><p>운영 담당자는 요청 계정과의 일치 여부를 확인하는 데 필요한 최소 정보만 받아야 합니다(예: 계정 식별에 필요한 Firebase UID 또는 로그인 계정 식별자). 비밀번호, Firebase ID 토큰, 인증 코드와 같은 비밀값을 HTML 폼이나 메시지로 보내지 마세요.</p>
+    <h2>삭제 범위</h2><p>백엔드 구현은 <code>users/{uid}</code>와 그 하위 데이터를 재귀 삭제합니다. 여기에는 사용자 프로필, 저장 카드, 학습 진도·진도 마커, 게임화 집계, 학습시간·사용량 및 학습 원장이 포함됩니다. 처리 후 Firebase Authentication 사용자도 삭제합니다.</p>
+    <h2>처리 절차와 예상 시점</h2><ol><li>앱 설정 또는 공개 출시 후 확정될 웹 채널로 요청합니다.</li><li>운영 담당자가 필요한 최소 본인 확인을 진행합니다.</li><li>백엔드가 사용자 하위 데이터를 삭제한 뒤 인증 계정을 삭제합니다.</li><li>부분 실패가 발생하면 재시도될 수 있습니다. 현재 저장소에는 외부 요청의 처리 기한이 정해져 있지 않습니다.</li></ol>
+    <h2>만료 정책 데이터</h2><p><code>sessions/{sessionId}</code>와 <code>idempotency/{key}</code>는 <code>users/{uid}</code> 밖의 서버 전용 루트 문서입니다. 계정 삭제 함수는 이를 즉시 삭제하지 않고 <code>expiresAt</code> TTL 자동 만료에 맡깁니다. TTL 보관기간은 확인되지 않았으므로 공개 출시 전에 보관 사유와 기간을 명시해야 합니다.</p>
+    <h2 id="contact">문의</h2><p>공식 문의 채널은 아직 제공되지 않았습니다. 공개 출시 전에 운영 담당자가 삭제 요청 접수 채널과 담당 주체를 확정해야 합니다.</p>
+  </main><footer class="site-footer">딸깍영어 (OneClickEng) · 베타 초안</footer></body></html>
