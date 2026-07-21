@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 대화 생성 로딩용 앱 마크: 토스 계열의 단정한 라운드 스퀘어 + 대화 버블. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="44dp"
+    android:height="44dp"
+    android:viewportWidth="44"
+    android:viewportHeight="44">
+    <path
+        android:fillColor="@color/logo_brand_primary"
+        android:pathData="M14,2L30,2C38.8,2 42,5.2 42,14L42,30C42,38.8 38.8,42 30,42L14,42C5.2,42 2,38.8 2,30L2,14C2,5.2 5.2,2 14,2Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M19.5,10C14.25,10 10,13.55 10,18C10,20.75 11.65,23.2 14.2,24.65L13.35,28.05C13.15,28.8 13.95,29.35 14.6,28.95L18.15,26.85C18.6,26.95 19.05,27 19.5,27C24.75,27 29,23.45 29,19C29,14.55 24.75,10 19.5,10Z" />
+    <path
+        android:fillAlpha="0.76"
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M30.1,16C27.05,16 24.5,18.15 24.5,20.85C24.5,23.55 27.05,25.7 30.1,25.7C30.4,25.7 30.75,25.65 31.05,25.6L33.35,26.95C33.85,27.25 34.45,26.85 34.3,26.25L33.75,24.15C35.35,23.15 36.35,21.65 36.35,19.95C36.35,17.75 33.55,16 30.1,16Z" />
+    <path
+        android:fillColor="@color/logo_brand_primary_pressed"
+        android:pathData="M16.35,17.1C15.8,17.1 15.35,17.55 15.35,18.1C15.35,18.65 15.8,19.1 16.35,19.1L22.05,19.1C22.6,19.1 23.05,18.65 23.05,18.1C23.05,17.55 22.6,17.1 22.05,17.1L16.35,17.1ZM16.35,21.1C15.8,21.1 15.35,21.55 15.35,22.1C15.35,22.65 15.8,23.1 16.35,23.1L20.35,23.1C20.9,23.1 21.35,22.65 21.35,22.1C21.35,21.55 20.9,21.1 20.35,21.1L16.35,21.1Z" />
+</vector>

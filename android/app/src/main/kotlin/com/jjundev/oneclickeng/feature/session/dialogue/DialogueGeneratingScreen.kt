@@ -42,9 +42,8 @@ import com.jjundev.oneclickeng.ui.component.InlineErrorMode
 import com.jjundev.oneclickeng.ui.component.OneClickBlockingGate
 import com.jjundev.oneclickeng.ui.component.OneClickInlineError
 import com.jjundev.oneclickeng.ui.component.OneClickLimitReachedPanel
-import com.jjundev.oneclickeng.ui.component.OneClickProgressRing
+import com.jjundev.oneclickeng.ui.component.OneClickAppLoadingIndicator
 import com.jjundev.oneclickeng.ui.component.OneClickWaitQuiz
-import com.jjundev.oneclickeng.ui.component.ProgressRingMode
 import com.jjundev.oneclickeng.ui.component.QuizItem
 import com.jjundev.oneclickeng.ui.component.previewWaitQuizItems
 import com.jjundev.oneclickeng.ui.component.selectLimitSurface
@@ -305,7 +304,7 @@ fun DialogueGeneratingRoute(
 /** 96dp 링 + 안심 카피(지연 게이트 이전·Idle의 중립 로딩 표면). */
 @Composable
 private fun SlimLoading(message: String) {
-    OneClickProgressRing(mode = ProgressRingMode.Indeterminate)
+    OneClickAppLoadingIndicator(contentDescription = "대화 준비 중")
     if (message.isNotBlank()) {
         Text(
             text = message,
