@@ -10,7 +10,11 @@ import javax.inject.Inject
  * enum/duration only.
  */
 interface LatencyAnalytics {
-    fun latency(operation: String, outcome: String, latencyMs: Long)
+    fun latency(
+        operation: String,
+        outcome: String,
+        latencyMs: Long,
+    )
 
     companion object {
         const val OPERATION_SCRIPT_GEN = "script_gen"
@@ -30,7 +34,11 @@ interface LatencyAnalytics {
 class NoOpLatencyAnalytics
     @Inject
     constructor() : LatencyAnalytics {
-        override fun latency(operation: String, outcome: String, latencyMs: Long) = Unit
+        override fun latency(
+            operation: String,
+            outcome: String,
+            latencyMs: Long,
+        ) = Unit
     }
 
 /** Firebase dispatch via the shared [AnalyticsSink] (M4-01a). Event id = `"${operation}_latency_ms"`. */
@@ -39,6 +47,9 @@ class FirebaseLatencyAnalytics
     constructor(
         private val sink: AnalyticsSink,
     ) : LatencyAnalytics {
-        override fun latency(operation: String, outcome: String, latencyMs: Long) =
-            sink.log("${operation}_latency_ms", mapOf("outcome" to outcome, "latency_ms" to latencyMs))
+        override fun latency(
+            operation: String,
+            outcome: String,
+            latencyMs: Long,
+        ) = sink.log("${operation}_latency_ms", mapOf("outcome" to outcome, "latency_ms" to latencyMs))
     }

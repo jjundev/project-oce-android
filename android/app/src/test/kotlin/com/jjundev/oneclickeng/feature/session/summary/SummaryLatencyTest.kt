@@ -48,37 +48,69 @@ private class LatencyFakeSummaryStream : SummaryStream {
 }
 
 private class LatencyFakeBookmarkSource : BookmarkSource {
-    override suspend fun latestSentences(sessionId: String, limit: Int): List<BookmarkCard> = emptyList()
+    override suspend fun latestSentences(
+        sessionId: String,
+        limit: Int,
+    ): List<BookmarkCard> = emptyList()
 }
 
 private class LatencyFakeLedger : CompletionLedger {
-    override fun recordCompletion(sessionId: String, difficulty: String, modeId: String) = Unit
+    override fun recordCompletion(
+        sessionId: String,
+        difficulty: String,
+        modeId: String,
+    ) = Unit
 }
 
 private class LatencyFakeStudytimeRepository : StudytimeRepository {
-    override suspend fun recordSession(sessionId: String, elapsedSeconds: Long, dayKey: String) =
-        AccrualSnapshot(todaySeconds = 0, streak = 0, todaySecondsBefore = 0, streakStatic = false)
+    override suspend fun recordSession(
+        sessionId: String,
+        elapsedSeconds: Long,
+        dayKey: String,
+    ) = AccrualSnapshot(todaySeconds = 0, streak = 0, todaySecondsBefore = 0, streakStatic = false)
 
     override suspend fun seedFromServerIfEmpty() = Unit
+
     override suspend fun drain() = Unit
+
     override suspend fun reconcileAfterMerge() = Unit
+
     override suspend fun resetMetrics() = Unit
 }
 
 private class LatencyFakeReminderOrchestrator : ReminderOrchestrator {
     override val config: Flow<ReminderConfig> = MutableStateFlow(ReminderConfig.DISABLED)
+
     override suspend fun evaluateOptInPrompt(): ReminderPromptDecision = ReminderPromptDecision.DoNotShow
+
     override suspend fun acceptOptIn() = Unit
+
     override suspend fun dismissOptIn() = Unit
+
     override suspend fun enableReminder() = Unit
+
     override suspend fun disableReminder() = Unit
-    override suspend fun setReminderTime(hour: Int, minute: Int) = Unit
+
+    override suspend fun setReminderTime(
+        hour: Int,
+        minute: Int,
+    ) = Unit
+
     override suspend fun markPermissionAsked() = Unit
+
     override suspend fun repairSchedule() = Unit
+
     override suspend fun handleTimezoneChanged() = Unit
+
     override suspend fun runDueReminder(): ReminderRunResult = ReminderRunResult.DisabledNoOp
-    override suspend fun recordSessionCompleted(streak: Int, lastStudyDate: LocalDate) = Unit
+
+    override suspend fun recordSessionCompleted(
+        streak: Int,
+        lastStudyDate: LocalDate,
+    ) = Unit
+
     override suspend fun recordSavedReviewText(text: String) = Unit
+
     override suspend fun clearProgressCache() = Unit
 }
 
@@ -102,20 +134,20 @@ class SummaryLatencyTest {
         clock: FakeElapsedClock,
         latency: RecordingLatencyAnalytics,
     ) = SummaryCoordinator(
-            stream,
-            store(),
-            LatencyFakeBookmarkSource(),
-            LatencyFakeLedger(),
-            FakeSavedCardRepository(),
-            FakeSummarySaveSettingsRepository(),
-            LatencyFakeStudytimeRepository(),
-            LatencyFakeReminderOrchestrator(),
-            scope,
-            NoOpSessionFunnelAnalytics(),
-            NoOpSavedCardAnalytics(),
-            clock,
-            latency,
-        )
+        stream,
+        store(),
+        LatencyFakeBookmarkSource(),
+        LatencyFakeLedger(),
+        FakeSavedCardRepository(),
+        FakeSummarySaveSettingsRepository(),
+        LatencyFakeStudytimeRepository(),
+        LatencyFakeReminderOrchestrator(),
+        scope,
+        NoOpSessionFunnelAnalytics(),
+        NoOpSavedCardAnalytics(),
+        clock,
+        latency,
+    )
 
     private fun done() = SummaryEvent.Done(SectionOutcome.Ok, SectionOutcome.Ok, SectionOutcome.Ok)
 

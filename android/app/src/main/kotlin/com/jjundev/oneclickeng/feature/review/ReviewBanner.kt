@@ -44,12 +44,13 @@ fun ReviewBanner(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier.fillMaxWidth()
-            .heightIn(min = ReviewHeroMinHeight)
-            .clip(OceTheme.shapes.radius24)
-            .background(OceTheme.colors.reviewGradient())
-            .clickable(onClick = onClick)
-            .padding(OceTheme.spacing.xl),
+        modifier =
+            modifier.fillMaxWidth()
+                .heightIn(min = ReviewHeroMinHeight)
+                .clip(OceTheme.shapes.radius24)
+                .background(OceTheme.colors.reviewGradient())
+                .clickable(onClick = onClick)
+                .padding(OceTheme.spacing.xl),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
     ) {
@@ -63,11 +64,12 @@ fun ReviewBanner(
                 color = Color.White,
             )
             Text(
-                text = if (dueCount > 0) {
-                    "${if (dueCount >= REVIEW_BANNER_DUE_CAP) "20+" else dueCount}장이 기다리고 있어요"
-                } else {
-                    "저장한 표현을 복습해볼까요?"
-                },
+                text =
+                    if (dueCount > 0) {
+                        "${if (dueCount >= REVIEW_BANNER_DUE_CAP) "20+" else dueCount}장이 기다리고 있어요"
+                    } else {
+                        "저장한 표현을 복습해볼까요?"
+                    },
                 style = OceTheme.typography.body.copy(fontWeight = FontWeight.Bold, fontSize = 19.sp),
                 color = Color.White,
             )
@@ -80,9 +82,10 @@ fun ReviewBanner(
 @Composable
 private fun ReviewHeroBadge() {
     Box(
-        modifier = Modifier.size(56.dp)
-            .clip(OceTheme.shapes.radius18)
-            .background(Color.White.copy(alpha = REVIEW_BADGE_ALPHA)),
+        modifier =
+            Modifier.size(56.dp)
+                .clip(OceTheme.shapes.radius18)
+                .background(Color.White.copy(alpha = REVIEW_BADGE_ALPHA)),
         contentAlignment = Alignment.Center,
     ) {
         OneClickIcon(

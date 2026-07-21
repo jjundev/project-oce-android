@@ -23,7 +23,6 @@ enum class SessionLevel(
 
     companion object {
         /** 저장 토큰 → SessionLevel. 미지/누락 토큰은 NORMAL 로 폴백(구버전 값 안전). */
-        fun fromToken(token: String?): SessionLevel =
-            entries.firstOrNull { it.token == token } ?: NORMAL
+        fun fromToken(token: String?): SessionLevel = entries.firstOrNull { it.token == token } ?: NORMAL
     }
 }

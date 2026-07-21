@@ -27,8 +27,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.jjundev.oneclickeng.feature.session.saved.SavedCard
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
-import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
+import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 
 /**
@@ -54,7 +54,13 @@ fun SavedCardRow(
                     .fillMaxWidth()
                     .combinedClickable(onClick = onToggleExpand, onLongClick = onLongPress)
                     .semantics {
-                        customActions = listOf(CustomAccessibilityAction("삭제") { onLongPress(); true })
+                        customActions =
+                            listOf(
+                                CustomAccessibilityAction("삭제") {
+                                    onLongPress()
+                                    true
+                                },
+                            )
                     }
                     .padding(OceTheme.spacing.lg),
             verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
@@ -153,7 +159,10 @@ private fun AfterLine(text: String) {
 }
 
 @Composable
-private fun PrimaryText(text: String, bold: Boolean = false) {
+private fun PrimaryText(
+    text: String,
+    bold: Boolean = false,
+) {
     Text(
         text = text,
         style = if (bold) OceTheme.typography.body.copy(fontWeight = FontWeight.Bold) else OceTheme.typography.body,
@@ -163,7 +172,10 @@ private fun PrimaryText(text: String, bold: Boolean = false) {
 
 /** 단어 접힘 = 굵은 영단어(강조) + 보조색 한글 뜻, baseline 정렬(가운뎃점 없음, 프로토타입 정합). */
 @Composable
-private fun WordTermLine(english: String, korean: String) {
+private fun WordTermLine(
+    english: String,
+    korean: String,
+) {
     Row(horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm)) {
         Text(
             text = english,

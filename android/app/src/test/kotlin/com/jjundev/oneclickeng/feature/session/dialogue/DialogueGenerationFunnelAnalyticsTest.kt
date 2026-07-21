@@ -22,8 +22,8 @@ import com.jjundev.oneclickeng.core.settings.TtsSettingsRepository
 import com.jjundev.oneclickeng.feature.session.analytics.NoOpSessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.analytics.RecordingSessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.analytics.SessionFunnelAnalytics
-import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
 import com.jjundev.oneclickeng.feature.session.dialogue.loading.LoadingMessageSource
+import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
 import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
 import com.jjundev.oneclickeng.feature.session.tts.DeviceTts
 import com.jjundev.oneclickeng.feature.session.tts.DeviceTtsResult
@@ -48,9 +48,18 @@ private class FunnelFakeQuizBank : QuizBank {
 }
 
 private class FunnelRecordingWaitQuizAnalytics : WaitQuizAnalytics {
-    override fun cardAnswered(sessionId: String?, cardId: String, choseCorrect: Boolean, cardIndex: Int) = Unit
+    override fun cardAnswered(
+        sessionId: String?,
+        cardId: String,
+        choseCorrect: Boolean,
+        cardIndex: Int,
+    ) = Unit
 
-    override fun waitQuizShown(sessionId: String?, surface: String, delayMsAtShow: Long) = Unit
+    override fun waitQuizShown(
+        sessionId: String?,
+        surface: String,
+        delayMsAtShow: Long,
+    ) = Unit
 
     override fun waitQuizEnded(
         sessionId: String?,
@@ -62,7 +71,10 @@ private class FunnelRecordingWaitQuizAnalytics : WaitQuizAnalytics {
 }
 
 private class FunnelRecordingLimitAnalytics : LimitAnalytics {
-    override fun limitReached(remaining: Int, surface: String) = Unit
+    override fun limitReached(
+        remaining: Int,
+        surface: String,
+    ) = Unit
 }
 
 private class FunnelFakeConfig(override val loadingQuizEnabled: Boolean = true) : LoadingQuizConfig
@@ -75,13 +87,22 @@ private class FunnelNoopLlmApi : LlmApi {
 }
 
 private class FunnelNoopPcmPlayer : PcmPlayer {
-    override suspend fun play(pcm: ByteArray, sampleRateHz: Int, speed: Float) = Unit
+    override suspend fun play(
+        pcm: ByteArray,
+        sampleRateHz: Int,
+        speed: Float,
+    ) = Unit
+
     override fun stop() = Unit
 }
 
 private class FunnelNoopDeviceTts : DeviceTts {
-    override suspend fun speak(text: String, gender: String?, speechRate: Float, onStart: () -> Unit): DeviceTtsResult =
-        DeviceTtsResult.COMPLETED
+    override suspend fun speak(
+        text: String,
+        gender: String?,
+        speechRate: Float,
+        onStart: () -> Unit,
+    ): DeviceTtsResult = DeviceTtsResult.COMPLETED
 
     override fun stop() = Unit
 }
@@ -89,14 +110,19 @@ private class FunnelNoopDeviceTts : DeviceTts {
 private class FunnelServerTtsSettings : TtsSettingsRepository {
     private val value = TtsSettings(quality = TtsQuality.SERVER)
     override val settings: Flow<TtsSettings> = flowOf(value)
+
     override suspend fun current(): TtsSettings = value
+
     override suspend fun setQuality(quality: TtsQuality) = Unit
+
     override suspend fun setSpeechRate(rate: Float) = Unit
+
     override suspend fun setMuted(muted: Boolean) = Unit
 }
 
 private class FunnelRecordingOfflineAnalytics : OfflineAnalytics {
     override fun connectivityChanged(online: Boolean) = Unit
+
     override fun offlineBlocked(surface: String) = Unit
 }
 

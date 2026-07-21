@@ -1,6 +1,5 @@
 package com.jjundev.oneclickeng.feature.session.turn
 
-import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenState
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueStreamStatus
 import org.junit.Assert.assertEquals
@@ -8,6 +7,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
 
 private fun ready(
     turns: List<NetworkDialogueTurn>,

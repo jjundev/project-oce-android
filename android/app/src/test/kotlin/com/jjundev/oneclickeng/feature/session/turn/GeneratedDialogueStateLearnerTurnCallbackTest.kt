@@ -1,14 +1,21 @@
 package com.jjundev.oneclickeng.feature.session.turn
 
-import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenState
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueStreamStatus
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
 
 class GeneratedDialogueStateLearnerTurnCallbackTest {
-    private fun model(en: String, ko: String = "") = NetworkDialogueTurn(ko = ko, en = en, role = "model")
-    private fun user(en: String, ko: String = "학습자") = NetworkDialogueTurn(ko = ko, en = en, role = "user")
+    private fun model(
+        en: String,
+        ko: String = "",
+    ) = NetworkDialogueTurn(ko = ko, en = en, role = "model")
+
+    private fun user(
+        en: String,
+        ko: String = "학습자",
+    ) = NetworkDialogueTurn(ko = ko, en = en, role = "user")
 
     @Test
     fun `entering the learner turn invokes onEnterLearnerTurn exactly once`() {

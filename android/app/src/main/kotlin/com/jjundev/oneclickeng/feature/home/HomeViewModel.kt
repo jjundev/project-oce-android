@@ -24,6 +24,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+// LongParameterList: DI 허브 상태 소스 5종 + profile.level 해소(#6 이관, 세션 설정 화면 폐기) 조립.
+// TooManyFunctions: 허브가 소유한 액션 표면(CTA·resume·레벨/길이·상황 선택·새로고침)이 각각 얇은 위임.
+
 /**
  * 홈 탭 상태 소유자(M3-08 → 프로토 홈 허브 정합). 학습 시작 허브의 상태를 조립한다:
  * - 게임화 스트립: [StudytimeStore.snapshot] (suspend) → 오늘 학습시간 라벨 + streak.
@@ -39,8 +42,6 @@ import javax.inject.Inject
  * [limitHolder] 를 주입하는 것만으로 그 Singleton 이 인스턴스화돼 코디네이터 상태 관측을 시작한다 — 홈은
  * 부트 시작 목적지라 어떤 생성 시도보다 먼저 살아있다.
  */
-// LongParameterList: DI 허브 상태 소스 5종 + profile.level 해소(#6 이관, 세션 설정 화면 폐기) 조립.
-// TooManyFunctions: 허브가 소유한 액션 표면(CTA·resume·레벨/길이·상황 선택·새로고침)이 각각 얇은 위임.
 @Suppress("LongParameterList", "TooManyFunctions")
 @HiltViewModel
 class HomeViewModel
@@ -72,7 +73,7 @@ class HomeViewModel
 
         private val sessionSetup =
             combine(defaultLevel, levelOverride, length, refreshCount, selected) {
-                default, override, len, refresh, sel ->
+                    default, override, len, refresh, sel ->
                 SessionSetup(
                     level = override ?: default,
                     length = len,

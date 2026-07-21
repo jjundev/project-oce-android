@@ -10,16 +10,39 @@ plugins {
     alias(libs.plugins.google.services)
 }
 
+// 기본 키는 로컬 파일을 사용하되, CI/배포 환경에서는 외부 프로퍼티로 덮어쓸 수 있다.
+val releaseStoreFile =
+    providers.gradleProperty("releaseStoreFile").orElse("my-release-key.jks").orNull
+val releaseStorePassword = providers.gradleProperty("releaseStorePassword").orNull
+val releaseKeyAlias = providers.gradleProperty("releaseKeyAlias").orNull
+val releaseKeyPassword = providers.gradleProperty("releaseKeyPassword").orNull
+val releaseSigningConfigured =
+    releaseStoreFile != null &&
+        releaseStorePassword != null &&
+        releaseKeyAlias != null &&
+        releaseKeyPassword != null
+
 android {
     namespace = "com.jjundev.oneclickeng"
     compileSdk = 36
+
+    signingConfigs {
+        if (releaseSigningConfigured) {
+            create("release") {
+                storeFile = file(checkNotNull(releaseStoreFile))
+                storePassword = checkNotNull(releaseStorePassword)
+                keyAlias = checkNotNull(releaseKeyAlias)
+                keyPassword = checkNotNull(releaseKeyPassword)
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.jjundev.oneclickeng"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 19
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -27,6 +50,9 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            if (releaseSigningConfigured) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

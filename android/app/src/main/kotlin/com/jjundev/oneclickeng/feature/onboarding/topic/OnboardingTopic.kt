@@ -24,12 +24,13 @@ data class OnboardingTopic(
 
 /** beginnerFriendly 6개, asset 순. 첫 원소 = `카페에서 주문하기`(비강조). [TopicCatalog] 파생. */
 val ONBOARDING_TOPICS: List<OnboardingTopic>
-    get() = TopicCatalog.beginnerFriendly.map {
-        OnboardingTopic(
-            id = it.id,
-            titleKo = it.titleKo,
-            promptSeed = it.promptSeed,
-            icon = it.icon,
-            emoji = it.emoji,
-        )
-    }
+    get() =
+        TopicCatalog.beginnerFriendly.map {
+            OnboardingTopic(
+                id = it.id,
+                titleKo = it.titleKo,
+                promptSeed = it.promptSeed,
+                icon = it.icon,
+                emoji = it.emoji,
+            )
+        }

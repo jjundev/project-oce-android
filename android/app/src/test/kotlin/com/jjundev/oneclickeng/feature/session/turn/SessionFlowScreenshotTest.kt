@@ -78,7 +78,11 @@ class SessionFlowScreenshotTest {
     private val waveform =
         MutableStateFlow(FloatArray(48) { i -> 0.35f + 0.55f * abs(sin(i * 0.7f)) })
 
-    private fun captureDock(name: String, micState: MicState, retryHint: String? = null) {
+    private fun captureDock(
+        name: String,
+        micState: MicState,
+        retryHint: String? = null,
+    ) {
         composeRule.setContent {
             OceTheme(darkTheme = false) {
                 Surface(color = MaterialTheme.colorScheme.background) {
@@ -123,8 +127,7 @@ class SessionFlowScreenshotTest {
     fun flow_analyzing_light() = captureDock("flow_analyzing_light", MicState.Analyzing)
 
     @Test
-    fun flow_wrong_light() =
-        captureDock("flow_wrong_light", MicState.Ready, retryHint = "다시 말해볼까요? 채팅으로 입력해도 돼요.")
+    fun flow_wrong_light() = captureDock("flow_wrong_light", MicState.Ready, retryHint = "다시 말해볼까요? 채팅으로 입력해도 돼요.")
 
     @Test
     fun flow_text_input_light() {
@@ -177,7 +180,10 @@ class SessionFlowScreenshotTest {
     @Test
     fun flow_feedback_dark() = captureFeedback(name = "flow_feedback_dark", dark = true)
 
-    private fun captureFeedback(name: String, dark: Boolean) {
+    private fun captureFeedback(
+        name: String,
+        dark: Boolean,
+    ) {
         composeRule.setContent {
             OceTheme(darkTheme = dark) {
                 Surface(color = MaterialTheme.colorScheme.background) {

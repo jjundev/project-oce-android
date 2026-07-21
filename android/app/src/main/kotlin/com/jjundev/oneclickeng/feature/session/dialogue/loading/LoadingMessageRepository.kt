@@ -19,8 +19,10 @@ data class LoadingMessageCatalog(
 )
 
 object LoadingMessageParser {
-    fun parse(json: Json, text: String): LoadingMessageCatalog =
-        json.decodeFromString(LoadingMessageCatalog.serializer(), text)
+    fun parse(
+        json: Json,
+        text: String,
+    ): LoadingMessageCatalog = json.decodeFromString(LoadingMessageCatalog.serializer(), text)
 }
 
 object LoadingMessageSelector {
@@ -48,8 +50,7 @@ class LoadingMessageRepository
             LoadingMessageParser.parse(json, text)
         }
 
-        override fun forSession(isOnboarding: Boolean): String =
-            LoadingMessageSelector.select(catalog, isOnboarding)
+        override fun forSession(isOnboarding: Boolean): String = LoadingMessageSelector.select(catalog, isOnboarding)
 
         private companion object {
             const val ASSET = "loading_messages.json"

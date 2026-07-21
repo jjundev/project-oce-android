@@ -5,8 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -61,7 +59,7 @@ class MainTabsOverlayTest {
 
         assertTrue(
             "Floating navigation must overlap full-height tab content; " +
-                "contentBottom=${contentBottom}, navLabelTop=${navLabelTop}",
+                "contentBottom=$contentBottom, navLabelTop=$navLabelTop",
             navLabelTop < contentBottom,
         )
     }

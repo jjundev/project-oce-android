@@ -59,10 +59,14 @@ private fun conceptualBridge() =
     )
 
 private fun toneStyle() =
-    FeedbackDeepEvent.Section.ToneStyle(ToneStyleDto(2, (0..4).map { ToneLevelDto(it, "s$it", "번역$it") }))
+    FeedbackDeepEvent.Section.ToneStyle(
+        ToneStyleDto(2, (0..4).map { ToneLevelDto(it, "s$it", "번역$it") }),
+    )
 
 private fun paraphrasing() =
-    FeedbackDeepEvent.Section.Paraphrasing(ParaphrasingDto(listOf(ParaphraseItemDto(1, "Beginner", "p1", "번역1"))))
+    FeedbackDeepEvent.Section.Paraphrasing(
+        ParaphrasingDto(listOf(ParaphraseItemDto(1, "Beginner", "p1", "번역1"))),
+    )
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DeepFeedbackLatencyTest {

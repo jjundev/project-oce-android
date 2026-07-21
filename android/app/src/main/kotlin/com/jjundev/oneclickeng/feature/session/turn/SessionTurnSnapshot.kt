@@ -100,5 +100,6 @@ internal fun DialogueTurn.toData(): TurnData = TurnData(ko = ko, en = en, role =
 internal fun TurnData.toDomain(): DialogueTurn = DialogueTurn(ko = ko, en = en, role = role)
 
 /** 정착 [MicState] ↔ 문자열(과도 사유는 이 축에 담기지 않는다). */
-internal fun micStateFromName(name: String): MicState =
-    runCatching { MicState.valueOf(name) }.getOrDefault(MicState.Ready)
+internal fun micStateFromName(name: String): MicState {
+    return runCatching { MicState.valueOf(name) }.getOrDefault(MicState.Ready)
+}

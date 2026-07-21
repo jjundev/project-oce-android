@@ -39,7 +39,8 @@ fun OceNavHost(
     var settingsVisitCounter by remember { mutableIntStateOf(0) }
     LaunchedEffect(currentRoute) {
         homeVisitCounter = nextTabVisitCounter(previousRoute, currentRoute, OceTab.Home.route, homeVisitCounter)
-        settingsVisitCounter = nextTabVisitCounter(previousRoute, currentRoute, OceTab.Settings.route, settingsVisitCounter)
+        settingsVisitCounter =
+            nextTabVisitCounter(previousRoute, currentRoute, OceTab.Settings.route, settingsVisitCounter)
         previousRoute = currentRoute
     }
 

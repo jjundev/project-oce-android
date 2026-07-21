@@ -71,8 +71,7 @@ internal fun onboardingSummaryRoute(
     sessionId: String,
     level: String,
     first: Boolean,
-): String =
-    "onboarding/summary?$ARG_SESSION_ID=$sessionId&$ARG_LEVEL=$level&$ARG_FIRST=$first"
+): String = "onboarding/summary?$ARG_SESSION_ID=$sessionId&$ARG_LEVEL=$level&$ARG_FIRST=$first"
 
 /** 생성에 넘길 난이도·길이(결정 5·18). 첫 세션은 무엇을 골랐든 `easy`·5턴 강제, 2차는 저장 레벨·10턴. */
 internal data class OnboardingGenParams(

@@ -129,6 +129,7 @@ enum class OceIcon(
     WavingHand(R.drawable.ic_waving_hand),
     Event(R.drawable.ic_event),
     Hotel(R.drawable.ic_hotel),
+
     // 상황(Topic) 카탈로그 아이콘(M0 정합) — 이모지 → Material 심볼 벡터 전환. TopicCatalog.icon 매핑 참조.
     LocalCafe(R.drawable.ic_local_cafe),
     Interests(R.drawable.ic_interests),

@@ -28,12 +28,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -87,9 +87,9 @@ import com.jjundev.oneclickeng.ui.component.OneClickShimmerPiece
 import com.jjundev.oneclickeng.ui.component.OneClickSlider
 import com.jjundev.oneclickeng.ui.component.SliderMode
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
+import com.jjundev.oneclickeng.ui.foundation.OceBottomNavDefaults
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
-import com.jjundev.oneclickeng.ui.foundation.OceBottomNavDefaults
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.foundation.ScreenEntranceState
 import com.jjundev.oneclickeng.ui.foundation.refresh.OverscrollRefreshBox
@@ -98,12 +98,12 @@ import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.foundation.rememberScreenEntrance
 import com.jjundev.oneclickeng.ui.foundation.staggerReveal
 import com.jjundev.oneclickeng.ui.theme.OceTheme
-import kotlin.math.PI
-import kotlin.math.roundToInt
-import kotlin.math.sin
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.PI
+import kotlin.math.roundToInt
+import kotlin.math.sin
 
 /** 히어로 CTA 최소 탭 타겟(오프라인 비활성 시에도 48dp 유지, H1/H7). */
 private val HeroMinHeight = 96.dp
@@ -176,6 +176,7 @@ fun HomeScreen(
     val skeletonScope = rememberCoroutineScope()
     var situationsSkeleton by remember { mutableStateOf(false) }
     var skeletonJob by remember { mutableStateOf<Job?>(null) }
+
     fun flashSituationsSkeleton(durationMs: Long) {
         skeletonJob?.cancel()
         situationsSkeleton = true
@@ -273,11 +274,12 @@ internal fun HomeResumeEffect(onResume: () -> Unit) {
     val currentOnResume by rememberUpdatedState(onResume)
 
     DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                currentOnResume()
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    currentOnResume()
+                }
             }
-        }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
@@ -329,8 +331,10 @@ internal fun HomeContent(
         }
     }
     OverscrollRefreshBox(
-        isRefreshing = false, // 추천 상황 회전은 동기/로컬 → 최소 표시 시간이 지배
-        onRefresh = onRefreshSituations, // 오직 추천 상황만 새로고침(오늘 N분/streak/hero 불변)
+        // 추천 상황 회전은 동기/로컬 → 최소 표시 시간이 지배
+        isRefreshing = false,
+        // 오직 추천 상황만 새로고침(오늘 N분/streak/hero 불변)
+        onRefresh = onRefreshSituations,
         modifier = modifier,
     ) {
         LazyColumn(

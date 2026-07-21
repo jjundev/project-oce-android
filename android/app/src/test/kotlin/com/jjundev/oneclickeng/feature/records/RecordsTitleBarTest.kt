@@ -6,8 +6,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import com.jjundev.oneclickeng.ui.foundation.PinnedTabHeader
 import com.jjundev.oneclickeng.R
+import com.jjundev.oneclickeng.ui.foundation.PinnedTabHeader
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import org.junit.Rule
 import org.junit.Test

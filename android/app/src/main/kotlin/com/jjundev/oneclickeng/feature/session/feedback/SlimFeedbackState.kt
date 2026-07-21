@@ -165,5 +165,6 @@ private fun com.jjundev.oneclickeng.core.network.FeedbackSegmentDto.toRichSegmen
 /**
  * grammar 세그먼트 → 요약용 평문(§17): `incorrect` 제외, normal·correction·highlight 원순서 연결.
  */
-fun List<RichSegment>.flattenCorrectedText(): String =
-    filterNot { it is RichSegment.Incorrect }.joinToString(separator = "") { it.text }
+fun List<RichSegment>.flattenCorrectedText(): String {
+    return filterNot { it is RichSegment.Incorrect }.joinToString(separator = "") { it.text }
+}

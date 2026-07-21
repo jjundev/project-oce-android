@@ -53,7 +53,12 @@ private class LatencyFakeLlmApi(
 }
 
 private class LatencyFakePcmPlayer : PcmPlayer {
-    override suspend fun play(pcm: ByteArray, sampleRateHz: Int, speed: Float) = Unit
+    override suspend fun play(
+        pcm: ByteArray,
+        sampleRateHz: Int,
+        speed: Float,
+    ) = Unit
+
     override fun stop() = Unit
 }
 
@@ -72,9 +77,13 @@ private class LatencyFakeTtsSettings(
     private val value: TtsSettings = TtsSettings(quality = TtsQuality.SERVER),
 ) : TtsSettingsRepository {
     override val settings: Flow<TtsSettings> = flowOf(value)
+
     override suspend fun current(): TtsSettings = value
+
     override suspend fun setQuality(quality: TtsQuality) = Unit
+
     override suspend fun setSpeechRate(rate: Float) = Unit
+
     override suspend fun setMuted(muted: Boolean) = Unit
 }
 

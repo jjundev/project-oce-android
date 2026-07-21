@@ -14,11 +14,17 @@ import javax.inject.Singleton
  * PII boundary (analytics-events.md §7): callers pass only enum/bool/count/duration/id — never free text.
  */
 interface AnalyticsSink {
-    fun log(event: String, params: Map<String, Any> = emptyMap())
+    fun log(
+        event: String,
+        params: Map<String, Any> = emptyMap(),
+    )
 
     fun setUserId(userId: String?)
 
-    fun setUserProperty(name: String, value: String?)
+    fun setUserProperty(
+        name: String,
+        value: String?,
+    )
 }
 
 @Singleton
@@ -27,12 +33,17 @@ class FirebaseAnalyticsSink
     constructor(
         private val analytics: FirebaseAnalytics,
     ) : AnalyticsSink {
-        override fun log(event: String, params: Map<String, Any>) =
-            analytics.logEvent(event, params.toAnalyticsBundle())
+        override fun log(
+            event: String,
+            params: Map<String, Any>,
+        ) = analytics.logEvent(event, params.toAnalyticsBundle())
 
         override fun setUserId(userId: String?) = analytics.setUserId(userId)
 
-        override fun setUserProperty(name: String, value: String?) = analytics.setUserProperty(name, value)
+        override fun setUserProperty(
+            name: String,
+            value: String?,
+        ) = analytics.setUserProperty(name, value)
     }
 
 /** GA4 params accept String/Long/Double (+Boolean via Bundle). Int/Float are widened. */

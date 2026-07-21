@@ -1,15 +1,15 @@
 package com.jjundev.oneclickeng.feature.session.dialogue
 
-import com.jjundev.oneclickeng.core.connectivity.ConnectivityObserver
-import com.jjundev.oneclickeng.core.connectivity.OfflineAnalytics
-import com.jjundev.oneclickeng.core.network.DialogueEvent
-import com.jjundev.oneclickeng.core.network.DialogueRequest
-import com.jjundev.oneclickeng.core.network.DialogueTurn
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import com.jjundev.oneclickeng.core.audio.PcmPlayer
+import com.jjundev.oneclickeng.core.connectivity.ConnectivityObserver
+import com.jjundev.oneclickeng.core.connectivity.OfflineAnalytics
+import com.jjundev.oneclickeng.core.network.DialogueEvent
+import com.jjundev.oneclickeng.core.network.DialogueRequest
 import com.jjundev.oneclickeng.core.network.DialogueStream
+import com.jjundev.oneclickeng.core.network.DialogueTurn
 import com.jjundev.oneclickeng.core.network.LimitAnalytics
 import com.jjundev.oneclickeng.core.network.LlmApi
 import com.jjundev.oneclickeng.core.network.SpeakingRequest
@@ -21,8 +21,8 @@ import com.jjundev.oneclickeng.core.settings.TtsQuality
 import com.jjundev.oneclickeng.core.settings.TtsSettings
 import com.jjundev.oneclickeng.core.settings.TtsSettingsRepository
 import com.jjundev.oneclickeng.feature.session.analytics.NoOpSessionFunnelAnalytics
-import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
 import com.jjundev.oneclickeng.feature.session.dialogue.loading.LoadingMessageSource
+import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
 import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
 import com.jjundev.oneclickeng.feature.session.tts.DeviceTts
 import com.jjundev.oneclickeng.feature.session.tts.DeviceTtsResult
@@ -147,13 +147,22 @@ private class CountingTtsApi : LlmApi {
 }
 
 private class NoopPcmPlayer : PcmPlayer {
-    override suspend fun play(pcm: ByteArray, sampleRateHz: Int, speed: Float) = Unit
+    override suspend fun play(
+        pcm: ByteArray,
+        sampleRateHz: Int,
+        speed: Float,
+    ) = Unit
+
     override fun stop() = Unit
 }
 
 private class NoopDeviceTts : DeviceTts {
-    override suspend fun speak(text: String, gender: String?, speechRate: Float, onStart: () -> Unit): DeviceTtsResult =
-        DeviceTtsResult.COMPLETED
+    override suspend fun speak(
+        text: String,
+        gender: String?,
+        speechRate: Float,
+        onStart: () -> Unit,
+    ): DeviceTtsResult = DeviceTtsResult.COMPLETED
 
     override fun stop() = Unit
 }
@@ -161,9 +170,13 @@ private class NoopDeviceTts : DeviceTts {
 private class ServerTtsSettings(private val quality: TtsQuality = TtsQuality.SERVER) : TtsSettingsRepository {
     private val value = TtsSettings(quality = quality)
     override val settings: Flow<TtsSettings> = flowOf(value)
+
     override suspend fun current(): TtsSettings = value // default quality = SERVER
+
     override suspend fun setQuality(quality: TtsQuality) = Unit
+
     override suspend fun setSpeechRate(rate: Float) = Unit
+
     override suspend fun setMuted(muted: Boolean) = Unit
 }
 

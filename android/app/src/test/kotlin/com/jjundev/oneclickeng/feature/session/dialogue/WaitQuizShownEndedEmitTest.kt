@@ -20,8 +20,8 @@ import com.jjundev.oneclickeng.core.settings.TtsQuality
 import com.jjundev.oneclickeng.core.settings.TtsSettings
 import com.jjundev.oneclickeng.core.settings.TtsSettingsRepository
 import com.jjundev.oneclickeng.feature.session.analytics.NoOpSessionFunnelAnalytics
-import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
 import com.jjundev.oneclickeng.feature.session.dialogue.loading.LoadingMessageSource
+import com.jjundev.oneclickeng.feature.session.dialogue.quiz.QuizBank
 import com.jjundev.oneclickeng.feature.session.resume.SessionSnapshotStore
 import com.jjundev.oneclickeng.feature.session.tts.DeviceTts
 import com.jjundev.oneclickeng.feature.session.tts.DeviceTtsResult
@@ -95,7 +95,10 @@ private class ShownEndedFakeQuizBank : QuizBank {
 }
 
 private class ShownEndedFakeLimitAnalytics : LimitAnalytics {
-    override fun limitReached(remaining: Int, surface: String) = Unit
+    override fun limitReached(
+        remaining: Int,
+        surface: String,
+    ) = Unit
 }
 
 private class ShownEndedFakeConfig(override val loadingQuizEnabled: Boolean = true) : LoadingQuizConfig
@@ -108,7 +111,12 @@ private class ShownEndedNoopLlmApi : LlmApi {
 }
 
 private class ShownEndedNoopPcmPlayer : PcmPlayer {
-    override suspend fun play(pcm: ByteArray, sampleRateHz: Int, speed: Float) = Unit
+    override suspend fun play(
+        pcm: ByteArray,
+        sampleRateHz: Int,
+        speed: Float,
+    ) = Unit
+
     override fun stop() = Unit
 }
 
@@ -126,14 +134,19 @@ private class ShownEndedNoopDeviceTts : DeviceTts {
 private class ShownEndedServerTtsSettings : TtsSettingsRepository {
     private val value = TtsSettings(quality = TtsQuality.SERVER)
     override val settings: Flow<TtsSettings> = flowOf(value)
+
     override suspend fun current(): TtsSettings = value
+
     override suspend fun setQuality(quality: TtsQuality) = Unit
+
     override suspend fun setSpeechRate(rate: Float) = Unit
+
     override suspend fun setMuted(muted: Boolean) = Unit
 }
 
 private class ShownEndedRecordingOfflineAnalytics : OfflineAnalytics {
     override fun connectivityChanged(online: Boolean) = Unit
+
     override fun offlineBlocked(surface: String) = Unit
 }
 

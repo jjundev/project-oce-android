@@ -57,7 +57,11 @@ class OneClickWaitQuizScreenshotTest {
         composeRule.onNodeWithText("다음").assertIsDisplayed()
     }
 
-    private fun captureReveal(optionText: String, name: String, dark: Boolean) {
+    private fun captureReveal(
+        optionText: String,
+        name: String,
+        dark: Boolean,
+    ) {
         composeRule.setContent {
             OceTheme(darkTheme = dark) {
                 Surface(color = MaterialTheme.colorScheme.background) {

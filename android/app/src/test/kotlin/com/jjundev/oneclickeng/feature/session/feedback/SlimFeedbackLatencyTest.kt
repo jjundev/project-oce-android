@@ -1,10 +1,10 @@
 package com.jjundev.oneclickeng.feature.session.feedback
 
+import com.jjundev.oneclickeng.core.network.CorrectedSentenceDto
 import com.jjundev.oneclickeng.core.network.FeedbackEvent
 import com.jjundev.oneclickeng.core.network.FeedbackRequest
 import com.jjundev.oneclickeng.core.network.FeedbackStream
 import com.jjundev.oneclickeng.core.network.GrammarDto
-import com.jjundev.oneclickeng.core.network.CorrectedSentenceDto
 import com.jjundev.oneclickeng.core.network.NaturalExpressionDto
 import com.jjundev.oneclickeng.core.network.ReasonDto
 import com.jjundev.oneclickeng.core.network.WritingScoreDto

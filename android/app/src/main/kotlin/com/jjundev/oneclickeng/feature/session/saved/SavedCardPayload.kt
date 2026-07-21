@@ -19,8 +19,9 @@ internal object SavedCardPayload {
     const val FIELD_SRS_LAPSES = "srsLapses"
 
     /** 타입별 content + cardType(공통 판별자). createdAt/deletedAt 은 미포함. */
-    private fun base(card: SavedCard): Map<String, Any?> =
-        card.contentMap() + mapOf(FIELD_CARD_TYPE to card.cardType.wire)
+    private fun base(card: SavedCard): Map<String, Any?> {
+        return card.contentMap() + mapOf(FIELD_CARD_TYPE to card.cardType.wire)
+    }
 
     /** create: 전체 페이로드 + [createdAt](서버시각) + `deletedAt=null`. */
     fun create(

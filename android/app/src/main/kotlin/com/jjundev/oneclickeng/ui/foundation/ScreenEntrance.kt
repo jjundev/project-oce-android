@@ -25,8 +25,7 @@ const val STAGGER_STEP_MS = 60
 const val STAGGER_MAX_INDEX = 11
 
 /** 스태거 지연(ms): 20 + 60*clamp(index,0,11). 순수 함수(테스트 대상). */
-fun staggerDelayMs(index: Int): Int =
-    STAGGER_BASE_DELAY_MS + STAGGER_STEP_MS * index.coerceIn(0, STAGGER_MAX_INDEX)
+fun staggerDelayMs(index: Int): Int = STAGGER_BASE_DELAY_MS + STAGGER_STEP_MS * index.coerceIn(0, STAGGER_MAX_INDEX)
 
 /**
  * 화면 진입 스태거 게이트. [active] 가 true 인 동안(진입 창) 첫 컴포즈된 섹션만 애니메이션한다.

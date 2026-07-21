@@ -25,14 +25,14 @@ annotation class SummarySavePrefs
 private val Context.summarySaveDataStore: DataStore<Preferences> by
     preferencesDataStore(name = "summary_save_settings")
 
+private typealias SummarySettingsImpl = DataStoreSummarySaveSettingsRepository
+
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class SummarySaveSettingsBindModule {
     @Binds
     @Singleton
-    abstract fun bindSummarySaveSettingsRepository(
-        impl: DataStoreSummarySaveSettingsRepository,
-    ): SummarySaveSettingsRepository
+    abstract fun bindSummarySaveSettingsRepository(impl: SummarySettingsImpl): SummarySaveSettingsRepository
 }
 
 @Module

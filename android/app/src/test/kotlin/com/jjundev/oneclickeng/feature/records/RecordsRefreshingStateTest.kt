@@ -24,12 +24,18 @@ class RecordsRefreshingStateTest {
     private val dispatcher = StandardTestDispatcher()
 
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
+
     @After fun tearDown() = Dispatchers.resetMain()
 
     // 2번째(refresh) page() 호출을 gate 로 막아 refreshing==true 를 관측한다.
     private class BlockingQuerySource(private val gate: CompletableDeferred<Unit>) : SavedCardQuerySource {
         private var firstDone = false
-        override suspend fun page(cardType: CardType, after: DocumentSnapshot?, limit: Int): SavedCardPage {
+
+        override suspend fun page(
+            cardType: CardType,
+            after: DocumentSnapshot?,
+            limit: Int,
+        ): SavedCardPage {
             if (firstDone) gate.await()
             firstDone = true
             return SavedCardPage(entries = emptyList(), cursor = null, endReached = true)
@@ -43,7 +49,12 @@ class RecordsRefreshingStateTest {
         private val gate: CompletableDeferred<Unit>,
     ) : SavedCardQuerySource {
         private val callCounts = mutableMapOf<CardType, Int>()
-        override suspend fun page(cardType: CardType, after: DocumentSnapshot?, limit: Int): SavedCardPage {
+
+        override suspend fun page(
+            cardType: CardType,
+            after: DocumentSnapshot?,
+            limit: Int,
+        ): SavedCardPage {
             val count = (callCounts[cardType] ?: 0) + 1
             callCounts[cardType] = count
             if (cardType == blockCardType && count > 1) gate.await()
@@ -51,66 +62,81 @@ class RecordsRefreshingStateTest {
         }
     }
 
-    private fun vm(query: SavedCardQuerySource) = RecordsViewModel(
-        querySource = query,
-        savedCardRepository = FakeSavedCardRepository(),
-        lifetimeStatsSource = object : LifetimeStatsSource { override suspend fun lifetime(): LifetimeStats? = null },
-        analytics = object : HistoryAnalytics {
-            override fun tabView(cardType: CardType) = Unit
-            override fun tabSwitch(cardType: CardType) = Unit
-            override fun deleteCard(cardType: CardType, undone: Boolean) = Unit
-        },
-        countUpGate = HistoryCountUpGate(),
-        reviewSource = FakeReviewSource(),
-        reviewClock = object : ReviewClock { override fun nowMs() = 0L },
-    )
+    private fun vm(query: SavedCardQuerySource) =
+        RecordsViewModel(
+            querySource = query,
+            savedCardRepository = FakeSavedCardRepository(),
+            lifetimeStatsSource =
+                object : LifetimeStatsSource {
+                    override suspend fun lifetime(): LifetimeStats? = null
+                },
+            analytics =
+                object : HistoryAnalytics {
+                    override fun tabView(cardType: CardType) = Unit
 
-    @Test fun refresh_setsRefreshingTrueThenFalseOnCompletion() = runTest(dispatcher) {
-        val gate = CompletableDeferred<Unit>()
-        val viewModel = vm(BlockingQuerySource(gate))
-        advanceUntilIdle()
-        assertFalse("not refreshing after initial load", viewModel.uiState.value.refreshing)
+                    override fun tabSwitch(cardType: CardType) = Unit
 
-        viewModel.refresh()
-        advanceUntilIdle()
-        assertTrue("refreshing while reload in flight", viewModel.uiState.value.refreshing)
+                    override fun deleteCard(
+                        cardType: CardType,
+                        undone: Boolean,
+                    ) = Unit
+                },
+            countUpGate = HistoryCountUpGate(),
+            reviewSource = FakeReviewSource(),
+            reviewClock =
+                object : ReviewClock {
+                    override fun nowMs() = 0L
+                },
+        )
 
-        gate.complete(Unit)
-        advanceUntilIdle()
-        assertFalse("refreshing cleared on completion", viewModel.uiState.value.refreshing)
-    }
+    @Test fun refresh_setsRefreshingTrueThenFalseOnCompletion() =
+        runTest(dispatcher) {
+            val gate = CompletableDeferred<Unit>()
+            val viewModel = vm(BlockingQuerySource(gate))
+            advanceUntilIdle()
+            assertFalse("not refreshing after initial load", viewModel.uiState.value.refreshing)
+
+            viewModel.refresh()
+            advanceUntilIdle()
+            assertTrue("refreshing while reload in flight", viewModel.uiState.value.refreshing)
+
+            gate.complete(Unit)
+            advanceUntilIdle()
+            assertFalse("refreshing cleared on completion", viewModel.uiState.value.refreshing)
+        }
 
     // 회귀: 표현 탭에서 당겨서-새로고침이 진행 중일 때(느린 Firestore 재조회) 단어 탭으로 전환하면,
     // 표현 탭의 완료 가드(cardType == selected)가 영원히 false 로 남아 refreshing 이 절대 안 풀리던 버그.
     // selectTab 이 refreshing=false 를 직접 던지지 않으면 이 테스트는 실패한다(구버전 재현 확인됨).
-    @Test fun tabSwitch_duringRefresh_clearsRefreshingImmediately() = runTest(dispatcher) {
-        val gate = CompletableDeferred<Unit>()
-        val viewModel = vm(BlockOnRefreshQuerySource(CardType.EXPRESSION, gate))
-        advanceUntilIdle() // init 이 기본 선택 탭(EXPRESSION)을 최초 로드.
+    @Test fun tabSwitch_duringRefresh_clearsRefreshingImmediately() =
+        runTest(dispatcher) {
+            val gate = CompletableDeferred<Unit>()
+            val viewModel = vm(BlockOnRefreshQuerySource(CardType.EXPRESSION, gate))
+            advanceUntilIdle() // init 이 기본 선택 탭(EXPRESSION)을 최초 로드.
 
-        // 나머지 탭도 한 번씩 방문시켜 3개 탭 모두 loaded=true 로 만든다.
-        viewModel.selectTab(CardType.WORD)
-        advanceUntilIdle()
-        viewModel.selectTab(CardType.SENTENCE)
-        advanceUntilIdle()
-        viewModel.selectTab(CardType.EXPRESSION) // 이미 loaded=true → publish() 만, page() 호출 없음.
-        advanceUntilIdle()
+            // 나머지 탭도 한 번씩 방문시켜 3개 탭 모두 loaded=true 로 만든다.
+            viewModel.selectTab(CardType.WORD)
+            advanceUntilIdle()
+            viewModel.selectTab(CardType.SENTENCE)
+            advanceUntilIdle()
+            viewModel.selectTab(CardType.EXPRESSION) // 이미 loaded=true → publish() 만, page() 호출 없음.
+            advanceUntilIdle()
 
-        viewModel.refresh()
-        advanceUntilIdle()
-        assertTrue("refreshing while reload in flight", viewModel.uiState.value.refreshing)
+            viewModel.refresh()
+            advanceUntilIdle()
+            assertTrue("refreshing while reload in flight", viewModel.uiState.value.refreshing)
 
-        // 표현 탭의 refresh() 재조회가 gate 에 막혀 있는 채로 단어 탭으로 전환한다.
-        viewModel.selectTab(CardType.WORD)
-        advanceUntilIdle()
-        assertFalse(
-            "tab switch must abandon the stuck refresh gesture",
-            viewModel.uiState.value.refreshing,
-        )
+            // 표현 탭의 refresh() 재조회가 gate 에 막혀 있는 채로 단어 탭으로 전환한다.
+            viewModel.selectTab(CardType.WORD)
+            advanceUntilIdle()
+            assertFalse(
+                "tab switch must abandon the stuck refresh gesture",
+                viewModel.uiState.value.refreshing,
+            )
 
-        // 막혀 있던 표현 탭 로드가 뒤늦게 끝나도(가드가 no-op) 크래시 없이 정상 완료된다.
-        gate.complete(Unit)
-        advanceUntilIdle()
-        assertFalse("still not refreshing after stale load completes", viewModel.uiState.value.refreshing)
-    }
+            // 막혀 있던 표현 탭 로드가 뒤늦게 끝나도(가드가 no-op) 크래시 없이 정상 완료된다.
+            gate.complete(Unit)
+            advanceUntilIdle()
+            assertFalse("still not refreshing after stale load completes", viewModel.uiState.value.refreshing)
+        }
 }

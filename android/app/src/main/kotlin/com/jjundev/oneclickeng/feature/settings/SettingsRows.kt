@@ -91,11 +91,12 @@ internal fun SettingsNavRow(
             if (desc != null) {
                 Text(
                     text = desc,
-                    style = OceTheme.typography.helper.copy(
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 12.5f.sp,
-                        lineHeightStyle = TrimmedLineHeight,
-                    ),
+                    style =
+                        OceTheme.typography.helper.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 12.5f.sp,
+                            lineHeightStyle = TrimmedLineHeight,
+                        ),
                     color = OceTheme.colors.textTertiary,
                     modifier = Modifier.padding(top = RowLabelGap),
                 )
@@ -139,10 +140,11 @@ internal fun SettingsAccountBadge(
     val fg = if (isGuest) MaterialTheme.colorScheme.onSurfaceVariant else OceTheme.colors.feedbackNaturalAccent
     val bg = if (isGuest) MaterialTheme.colorScheme.background else OceTheme.colors.feedbackNaturalBg
     Box(
-        modifier = modifier
-            .clip(OceTheme.shapes.pill)
-            .background(bg)
-            .padding(horizontal = OceTheme.spacing.sm, vertical = 3.dp),
+        modifier =
+            modifier
+                .clip(OceTheme.shapes.pill)
+                .background(bg)
+                .padding(horizontal = OceTheme.spacing.sm, vertical = 3.dp),
     ) {
         Text(
             text = stringResource(labelRes),
@@ -159,10 +161,11 @@ internal fun NotificationBlockedBanner(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(OceTheme.colors.feedbackCorrectBg)
-            .padding(horizontal = 18.dp, vertical = 14.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .background(OceTheme.colors.feedbackCorrectBg)
+                .padding(horizontal = 18.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -179,12 +182,13 @@ internal fun NotificationBlockedBanner(
             )
         }
         Box(
-            modifier = Modifier
-                .clip(OceTheme.shapes.radius12)
-                .border(1.dp, OceTheme.colors.borderStrong, OceTheme.shapes.radius12)
-                .background(MaterialTheme.colorScheme.surface)
-                .clickable(onClick = onOpenSettings)
-                .padding(horizontal = OceTheme.spacing.lg, vertical = 10.dp),
+            modifier =
+                Modifier
+                    .clip(OceTheme.shapes.radius12)
+                    .border(1.dp, OceTheme.colors.borderStrong, OceTheme.shapes.radius12)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .clickable(onClick = onOpenSettings)
+                    .padding(horizontal = OceTheme.spacing.lg, vertical = 10.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,

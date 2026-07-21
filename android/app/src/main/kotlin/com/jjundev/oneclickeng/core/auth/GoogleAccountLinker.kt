@@ -34,7 +34,7 @@ enum class PendingMergeAction {
     ClearInert,
 
     /** 지금은 이관 불가(잘못된 계정/미완성) → 그대로 둔다. */
-    Skip
+    Skip,
 }
 
 /**

@@ -40,7 +40,8 @@ private class FakeLlmApi(
     var response: TtsResponse = okResponse(),
     var error: Throwable? = null,
     var delayMs: Long = 0,
-    var failFirst: Int = 0, // first N calls throw — models a cold call the server aborts (it still preheats)
+    // first N calls throw — models a cold call the server aborts (it still preheats)
+    var failFirst: Int = 0,
 ) : LlmApi {
     var callCount = 0
 

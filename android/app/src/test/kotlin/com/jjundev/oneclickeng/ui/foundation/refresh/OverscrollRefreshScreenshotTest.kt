@@ -80,24 +80,27 @@ class OverscrollRefreshScreenshotTest {
 
     @Composable
     private fun SampleList() {
-        val items = remember {
-            listOf(
-                "카페에서 주문하기",
-                "처음 만나 자기소개하기",
-                "친구와 약속 잡기",
-                "호텔 체크인하기",
-            )
-        }
+        val items =
+            remember {
+                listOf(
+                    "카페에서 주문하기",
+                    "처음 만나 자기소개하기",
+                    "친구와 약속 잡기",
+                    "호텔 체크인하기",
+                )
+            }
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background),
         ) {
             items(items) { title ->
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                 ) {
                     Text(text = title)
                 }

@@ -38,11 +38,11 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.jjundev.oneclickeng.ui.component.InlineErrorMode
 import com.jjundev.oneclickeng.ui.component.OneClickInlineError
-import com.jjundev.oneclickeng.ui.foundation.OceIcon
-import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.component.venn.VennDiagramCanvas
 import com.jjundev.oneclickeng.ui.component.venn.VennLayoutMode
 import com.jjundev.oneclickeng.ui.component.venn.rememberVennLayoutMode
+import com.jjundev.oneclickeng.ui.foundation.OceIcon
+import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
 import java.util.Locale
 
@@ -113,7 +113,8 @@ fun DeepFeedbackRegion(
                     mode = InlineErrorMode.Recoverable,
                     message = "깊은 분석을 불러오지 못했어요. 다시 시도해볼까요?",
                     onRetry = onRetry,
-                    onSkip = {}, // deep 은 섹션별 스킵이 없다(영역 재시도만, §9.2)
+                    // deep 은 섹션별 스킵이 없다(영역 재시도만, §9.2)
+                    onSkip = {},
                 )
             }
         is DeepFeedbackState.QuotaBlocked ->
