@@ -18,6 +18,7 @@ interface LatencyAnalytics {
         const val OPERATION_SLIM = "slim"
         const val OPERATION_DEEP = "deep"
         const val OPERATION_SUMMARY = "summary"
+        const val OPERATION_TTS = "tts"
 
         const val OUTCOME_SUCCESSFUL = "successful"
         const val OUTCOME_FAILED = "failed"

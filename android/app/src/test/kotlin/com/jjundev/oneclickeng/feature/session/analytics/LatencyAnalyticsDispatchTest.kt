@@ -59,4 +59,13 @@ class LatencyAnalyticsDispatchTest {
             sink.events.single(),
         )
     }
+
+    @Test
+    fun `logs tts_latency_ms`() {
+        analytics.latency(LatencyAnalytics.OPERATION_TTS, LatencyAnalytics.OUTCOME_FAILED, 900L)
+        assertEquals(
+            RecordingAnalyticsSink.Event("tts_latency_ms", mapOf("outcome" to "failed", "latency_ms" to 900L)),
+            sink.events.single(),
+        )
+    }
 }
