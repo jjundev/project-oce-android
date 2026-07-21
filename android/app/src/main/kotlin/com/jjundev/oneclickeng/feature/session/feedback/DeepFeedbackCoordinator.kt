@@ -4,6 +4,10 @@ import com.jjundev.oneclickeng.core.network.DeepFeedbackStream
 import com.jjundev.oneclickeng.core.network.FeedbackDeepEvent
 import com.jjundev.oneclickeng.core.network.FeedbackDeepRequest
 import com.jjundev.oneclickeng.core.network.FeedbackPayload
+import com.jjundev.oneclickeng.core.time.ElapsedClock
+import com.jjundev.oneclickeng.core.time.NoOpElapsedClock
+import com.jjundev.oneclickeng.feature.session.analytics.LatencyAnalytics
+import com.jjundev.oneclickeng.feature.session.analytics.NoOpLatencyAnalytics
 import com.jjundev.oneclickeng.feature.session.analytics.SavedCardAnalytics
 import com.jjundev.oneclickeng.feature.session.saved.CardType
 import com.jjundev.oneclickeng.feature.session.saved.SavedCard
@@ -49,6 +53,8 @@ class DeepFeedbackCoordinator
         private val savedCardRepository: SavedCardRepository,
         private val scope: CoroutineScope,
         private val savedCardAnalytics: SavedCardAnalytics,
+        private val clock: ElapsedClock = NoOpElapsedClock,
+        private val latencyAnalytics: LatencyAnalytics = NoOpLatencyAnalytics(),
     ) {
         private val _state = MutableStateFlow<DeepFeedbackState>(DeepFeedbackState.Idle)
         val state: StateFlow<DeepFeedbackState> = _state.asStateFlow()
@@ -70,6 +76,10 @@ class DeepFeedbackCoordinator
         private var cb: ConceptualBridge? = null
         private var tone: ToneStyle? = null
         private var para: Paraphrasing? = null
+
+        // Per-attempt latency bookkeeping (M4-01f) — reset on every beginAttempt() (start/retry).
+        private var attemptStartMs = 0L
+        private var deepLatencyLogged = false
 
         /**
          * "더 보기" 첫 확장에서 deep 를 개시한다. 상태가 [DeepFeedbackState.Idle] 이 아니면 no-op — 접기/펴기
@@ -115,6 +125,7 @@ class DeepFeedbackCoordinator
          * 로 남겨 "넘어감"을 표현한다. 새 시트/턴 진입은 [reset] 이 Idle 로 되돌린다.
          */
         fun cancel() {
+            val wasInFlight = _state.value is DeepFeedbackState.Loading
             sessionToken++
             currentJob?.cancel()
             watchdogJob?.cancel()
@@ -122,6 +133,7 @@ class DeepFeedbackCoordinator
             clearAccumulators()
             _bookmarkedLevels.value = emptySet()
             _state.value = DeepFeedbackState.Canceled
+            if (wasInFlight) logDeepLatency(LatencyAnalytics.OUTCOME_CANCELED)
         }
 
         /** 진행 중 요청을 취소하고 Idle 로 리셋한다(새 턴/시트 dismiss). 캐시·북마크 파기. */
@@ -184,6 +196,8 @@ class DeepFeedbackCoordinator
             clearAccumulators()
             _state.value = DeepFeedbackState.Loading()
             val token = ++sessionToken
+            attemptStartMs = clock.nowMillis()
+            deepLatencyLogged = false
             currentJob?.cancel()
             armWatchdog(token)
             currentJob =
@@ -230,6 +244,7 @@ class DeepFeedbackCoordinator
             if (allArrived) {
                 watchdogJob?.cancel()
                 _state.value = readyState()
+                logDeepLatency(LatencyAnalytics.OUTCOME_SUCCESSFUL)
             } else {
                 _state.value = DeepFeedbackState.Loading(cb, tone, para)
                 armWatchdog(token)
@@ -244,7 +259,13 @@ class DeepFeedbackCoordinator
             if (token != sessionToken) return
             watchdogJob?.cancel()
             if (isTerminalNeutral) return
-            _state.value = if (allArrived) readyState() else DeepFeedbackState.Error(cb, tone, para)
+            if (allArrived) {
+                _state.value = readyState()
+                logDeepLatency(LatencyAnalytics.OUTCOME_SUCCESSFUL)
+            } else {
+                _state.value = DeepFeedbackState.Error(cb, tone, para)
+                logDeepLatency(LatencyAnalytics.OUTCOME_FAILED)
+            }
         }
 
         private fun armWatchdog(token: Long) {
@@ -270,6 +291,19 @@ class DeepFeedbackCoordinator
         /** Precondition: [allArrived]. Non-null asserted blocks into the terminal Ready snapshot. */
         private fun readyState(): DeepFeedbackState.Ready =
             DeepFeedbackState.Ready(cb!!, tone!!, para!!)
+
+        /**
+         * Fire `deep_latency_ms` once per attempt. Guarded by [deepLatencyLogged] because both
+         * [afterSection] (last block arrives) and [settleOnClose] (stream close/watchdog) can reach a
+         * terminal transition for the same attempt — without the guard, the routine sequence of
+         * afterSection setting Ready followed by the stream's collect loop finishing (which calls
+         * settleOnClose) would double-fire.
+         */
+        private fun logDeepLatency(outcome: String) {
+            if (deepLatencyLogged) return
+            deepLatencyLogged = true
+            latencyAnalytics.latency(LatencyAnalytics.OPERATION_DEEP, outcome, clock.nowMillis() - attemptStartMs)
+        }
 
         private fun clearAccumulators() {
             cb = null
