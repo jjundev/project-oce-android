@@ -6,7 +6,11 @@ class RecordingLatencyAnalytics : LatencyAnalytics {
 
     val calls = mutableListOf<Call>()
 
-    override fun latency(operation: String, outcome: String, latencyMs: Long) {
+    override fun latency(
+        operation: String,
+        outcome: String,
+        latencyMs: Long,
+    ) {
         calls += Call(operation, outcome, latencyMs)
     }
 }

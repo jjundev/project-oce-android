@@ -10,7 +10,10 @@ class RecordingMicPermissionAnalytics : MicPermissionAnalytics {
         calls += Call("mic_permission_requested", source, null)
     }
 
-    override fun result(source: String, granted: Boolean) {
+    override fun result(
+        source: String,
+        granted: Boolean,
+    ) {
         calls += Call("mic_permission_result", source, granted)
     }
 }

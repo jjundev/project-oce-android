@@ -26,7 +26,6 @@ import com.jjundev.oneclickeng.feature.session.feedback.TurnFeedbackBuffer
 import com.jjundev.oneclickeng.feature.session.saved.CardType
 import com.jjundev.oneclickeng.feature.session.saved.FakeSavedCardRepository
 import com.jjundev.oneclickeng.feature.session.saved.SavedCard
-import java.time.LocalDate
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -44,19 +43,17 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.LocalDate
 
-private fun expressionItem() =
-    ExpressionItemDto("natural", "커피 주세요", "One coffee", "Could I grab a coffee?", "가벼워요.")
+private fun expressionItem() = ExpressionItemDto("natural", "커피 주세요", "One coffee", "Could I grab a coffee?", "가벼워요.")
 
-private fun wordItem() =
-    WordItemDto("grab", "잽싸게", "verb", "B1", WordExampleDto("Let me grab it.", "제가 가져올게요."))
+private fun wordItem() = WordItemDto("grab", "잽싸게", "verb", "B1", WordExampleDto("Let me grab it.", "제가 가져올게요."))
 
 private fun expressionCard() = SummaryEvent.Card.Expression(listOf(expressionItem()))
 
 private fun wordCard() = SummaryEvent.Card.Word(listOf(wordItem()))
 
-private fun coachingCard() =
-    SummaryEvent.Card.Coaching(CoachingDto(FutureSelfFeedbackDto("끝까지 했어요.", "과거형을 노려봐요.")))
+private fun coachingCard() = SummaryEvent.Card.Coaching(CoachingDto(FutureSelfFeedbackDto("끝까지 했어요.", "과거형을 노려봐요.")))
 
 private fun done(
     expressions: SectionOutcome = SectionOutcome.Ok,
@@ -251,8 +248,9 @@ class SummaryCoordinatorTest {
 
     private val accrual = AccrualStrip(streakDays = 3, xp = 40)
 
-    private fun SummaryCoordinator.begin() =
+    private fun SummaryCoordinator.begin() {
         start(sessionId = "s1", difficulty = "normal", modeId = "default", accrual = accrual)
+    }
 
     private fun sectioned(coordinator: SummaryCoordinator): SectionBundle.Sectioned {
         val bundle = coordinator.state.value.bundle

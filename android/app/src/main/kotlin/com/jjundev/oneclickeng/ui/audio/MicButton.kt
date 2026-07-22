@@ -25,10 +25,10 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
@@ -47,12 +47,15 @@ private const val ARC_SWEEP_DEG = 90f
 private const val ARC_START_DEG = -90f // 12시
 private const val PRESS_SCALE = 0.96f
 private const val DISABLED_ALPHA = 0.38f
+
 // Analyzing(로딩 스피너)·Complete(완료 체크)는 탭 불가지만 의미 있는 활성 상태라 흐리지 않는다 — 프로토타입처럼
 // 코어/아크를 solid 로 보인다. DISABLED_ALPHA 는 진짜 비활성(탭 불가 + 무의미) 전용.
-private fun MicState.rendersOpaque(enabled: Boolean): Boolean =
-    enabled || this == MicState.Analyzing || this == MicState.Complete
+private fun MicState.rendersOpaque(enabled: Boolean): Boolean {
+    return enabled || this == MicState.Analyzing || this == MicState.Complete
+}
 
 private const val ARC_ROTATION_MS = 900 // 0.9s linear
+
 // 아래 링/리플 상수는 **전체 반경**(radius = D/2 = 48dp) 대비 분수다(코어 반경 대비 아님).
 // 프로토 측정(96dp 기준)을 전체 반경 분수로 환산: 지름 fraction은 ÷2, stroke dp는 ÷48.
 private const val READY_RING_RADIUS_FRACTION = 0.6875f // Ready hollow 링 지름 0.6875×D(반경 33dp) = 전체 반경×0.6875

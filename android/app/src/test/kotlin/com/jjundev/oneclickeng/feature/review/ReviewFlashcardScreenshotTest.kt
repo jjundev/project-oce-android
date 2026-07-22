@@ -27,7 +27,11 @@ class ReviewFlashcardScreenshotTest {
 
     private val word = SavedCard.Word("grasp", "완전히 이해하다", "I finally grasped it.", "드디어 이해했다.")
 
-    private fun render(name: String, dark: Boolean, revealed: Boolean) {
+    private fun render(
+        name: String,
+        dark: Boolean,
+        revealed: Boolean,
+    ) {
         composeRule.setContent {
             OceTheme(darkTheme = dark) {
                 Surface(color = MaterialTheme.colorScheme.background) {
@@ -39,6 +43,8 @@ class ReviewFlashcardScreenshotTest {
     }
 
     @Test fun front_light() = render("review_flashcard_front_light", dark = false, revealed = false)
+
     @Test fun back_light() = render("review_flashcard_back_light", dark = false, revealed = true)
+
     @Test fun back_dark() = render("review_flashcard_back_dark", dark = true, revealed = true)
 }

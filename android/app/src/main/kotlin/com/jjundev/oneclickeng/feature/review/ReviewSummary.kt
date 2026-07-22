@@ -86,10 +86,11 @@ fun ReviewSummary(
                     onClick = onRestart,
                     modifier = Modifier.fillMaxWidth().height(ReviewButtonHeight),
                     shape = OceTheme.shapes.radius12,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
                 ) { Text(text = "한 번 더 복습", style = OceTheme.typography.sectionLabel) }
                 OutlinedButton(
                     onClick = onClose,
@@ -109,7 +110,11 @@ fun ReviewSummary(
 }
 
 @Composable
-private fun Tally(value: Int, label: String, color: Color) {
+private fun Tally(
+    value: Int,
+    label: String,
+    color: Color,
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = "$value",

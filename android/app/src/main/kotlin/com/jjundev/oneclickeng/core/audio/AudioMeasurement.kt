@@ -2,7 +2,7 @@ package com.jjundev.oneclickeng.core.audio
 
 import kotlin.math.abs
 
-/**
+/*
  * 발화 속도 보정 계수를 실측하기 위한 오디오 계측(디버그 프로브 전용 — `TtsCalibrationReceiver`).
  *
  * 속도를 "듣지 않고" 재는 방법: **같은 문장**을 중립 속도로 합성해 길이(초)를 비교한다. 같은 텍스트라면
@@ -10,7 +10,7 @@ import kotlin.math.abs
  * 앞뒤 무음 패딩까지 세므로 반드시 트림한 뒤 비교해야 한다.
  */
 
-/** 발화로 칠 최소 진폭 — 16-bit full-scale 의 약 1%. 이 아래는 룸톤/패딩으로 본다. */
+// 발화로 칠 최소 진폭 — 16-bit full-scale 의 약 1%. 이 아래는 룸톤/패딩으로 본다.
 private const val SILENCE_THRESHOLD = 328
 
 /** 트림 판정 윈도우(ms). 샘플 하나의 스파이크로 무음이 깨지지 않게 묶어서 본다. */

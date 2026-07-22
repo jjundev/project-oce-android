@@ -86,30 +86,40 @@ class FirebaseOnboardingAnalytics
     constructor(
         private val sink: AnalyticsSink,
     ) : OnboardingAnalytics {
-        override fun onboardingStarted(isReturning: Boolean) =
+        override fun onboardingStarted(isReturning: Boolean) {
             sink.log("onboarding_started", mapOf("is_returning" to isReturning))
+        }
 
-        override fun levelSelected(level: String) = sink.log("level_selected", mapOf("level" to level))
+        override fun levelSelected(level: String) {
+            sink.log("level_selected", mapOf("level" to level))
+        }
 
         override fun topicSelected(
             topicId: String,
             beginnerFriendly: Boolean,
-        ) = sink.log("topic_selected", mapOf("topic_id" to topicId, "beginner_friendly" to beginnerFriendly))
+        ) {
+            sink.log("topic_selected", mapOf("topic_id" to topicId, "beginner_friendly" to beginnerFriendly))
+        }
 
-        override fun googleSavePromptShown(sessionId: String) =
+        override fun googleSavePromptShown(sessionId: String) {
             sink.log("google_save_prompt_shown", mapOf("session_id" to sessionId))
+        }
 
-        override fun googleLinkSkipped(sessionId: String) =
+        override fun googleLinkSkipped(sessionId: String) {
             sink.log("google_link_skipped", mapOf("session_id" to sessionId))
+        }
 
-        override fun googleLinkSucceeded(sessionId: String) =
+        override fun googleLinkSucceeded(sessionId: String) {
             sink.log("google_link_succeeded", mapOf("session_id" to sessionId))
+        }
 
-        override fun googleLinkConflictMerged(sessionId: String) =
+        override fun googleLinkConflictMerged(sessionId: String) {
             sink.log("google_link_conflict_merged", mapOf("session_id" to sessionId))
+        }
 
-        override fun googleLinkFailed(sessionId: String) =
+        override fun googleLinkFailed(sessionId: String) {
             sink.log("google_link_failed", mapOf("session_id" to sessionId))
+        }
 
         override fun reauthLinkSucceeded() = sink.log("reauth_link_succeeded")
 

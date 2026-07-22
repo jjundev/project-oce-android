@@ -29,10 +29,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.jjundev.oneclickeng.R
+import com.jjundev.oneclickeng.feature.settings.data.PurgeScope
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickBottomSheet
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickInput
 import com.jjundev.oneclickeng.ui.theme.OceTheme
-import com.jjundev.oneclickeng.feature.settings.data.PurgeScope
 
 /**
  * 프로토 정합 확인 다이얼로그 셸 — radius16 카드 · ExtraBold 18sp 제목 · 14sp 본문 · 하단 풀폭 2버튼
@@ -49,12 +49,13 @@ internal fun SettingsConfirmDialog(
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Column(
-            modifier = Modifier
-                .widthIn(max = 320.dp)
-                .fillMaxWidth()
-                .clip(OceTheme.shapes.radius16)
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(24.dp),
+            modifier =
+                Modifier
+                    .widthIn(max = 320.dp)
+                    .fillMaxWidth()
+                    .clip(OceTheme.shapes.radius16)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
         ) {
             Text(
@@ -93,12 +94,13 @@ internal fun DialogButtonRow(
         horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
     ) {
         Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(48.dp)
-                .clip(OceTheme.shapes.radius12)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, OceTheme.shapes.radius12)
-                .clickable(onClick = onDismiss),
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .height(48.dp)
+                    .clip(OceTheme.shapes.radius12)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, OceTheme.shapes.radius12)
+                    .clickable(onClick = onDismiss),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -109,12 +111,13 @@ internal fun DialogButtonRow(
         }
         val actionAlpha = if (confirmEnabled) 1f else DISABLED_ALPHA
         Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(48.dp)
-                .clip(OceTheme.shapes.radius12)
-                .background(confirmColor.copy(alpha = actionAlpha))
-                .clickable(enabled = confirmEnabled, onClick = onConfirm),
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .height(48.dp)
+                    .clip(OceTheme.shapes.radius12)
+                    .background(confirmColor.copy(alpha = actionAlpha))
+                    .clickable(enabled = confirmEnabled, onClick = onConfirm),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -185,12 +188,13 @@ private fun PurgeOption(
     onSelect: (PurgeScope) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(OceTheme.shapes.radius16)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, OceTheme.shapes.radius16)
-            .clickable { onSelect(scope) }
-            .padding(horizontal = OceTheme.spacing.lg, vertical = 14.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(OceTheme.shapes.radius16)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, OceTheme.shapes.radius16)
+                .clickable { onSelect(scope) }
+                .padding(horizontal = OceTheme.spacing.lg, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
     ) {
@@ -212,10 +216,11 @@ private fun PurgeOption(
         val n = counts?.get(scope)
         if (n != null) {
             Box(
-                modifier = Modifier
-                    .clip(OceTheme.shapes.pill)
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(horizontal = OceTheme.spacing.md, vertical = 5.dp),
+                modifier =
+                    Modifier
+                        .clip(OceTheme.shapes.pill)
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(horizontal = OceTheme.spacing.md, vertical = 5.dp),
             ) {
                 Text(
                     text = stringResource(R.string.settings_purge_count_badge, n),
@@ -237,12 +242,13 @@ internal fun NicknameEditDialog(
     var text by remember { mutableStateOf(initial) }
     Dialog(onDismissRequest = onDismiss) {
         Column(
-            modifier = Modifier
-                .widthIn(max = 320.dp)
-                .fillMaxWidth()
-                .clip(OceTheme.shapes.radius16)
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(24.dp),
+            modifier =
+                Modifier
+                    .widthIn(max = 320.dp)
+                    .fillMaxWidth()
+                    .clip(OceTheme.shapes.radius16)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
         ) {
             Text(
@@ -287,24 +293,27 @@ internal fun DeleteAccountDialog(
     val matched = typed.trim().equals(confirmWord.trim(), ignoreCase = true)
     Dialog(onDismissRequest = onDismiss) {
         Column(
-            modifier = Modifier
-                .widthIn(max = 320.dp)
-                .fillMaxWidth()
-                .clip(OceTheme.shapes.radius16)
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(24.dp),
+            modifier =
+                Modifier
+                    .widthIn(max = 320.dp)
+                    .fillMaxWidth()
+                    .clip(OceTheme.shapes.radius16)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
         ) {
-            val badgeRes = if (step == DeleteStep.Warn) {
-                R.string.settings_delete_step1_badge
-            } else {
-                R.string.settings_delete_step2_badge
-            }
+            val badgeRes =
+                if (step == DeleteStep.Warn) {
+                    R.string.settings_delete_step1_badge
+                } else {
+                    R.string.settings_delete_step2_badge
+                }
             Box(
-                modifier = Modifier
-                    .clip(OceTheme.shapes.pill)
-                    .background(OceTheme.colors.feedbackCorrectBg)
-                    .padding(horizontal = OceTheme.spacing.md, vertical = 5.dp),
+                modifier =
+                    Modifier
+                        .clip(OceTheme.shapes.pill)
+                        .background(OceTheme.colors.feedbackCorrectBg)
+                        .padding(horizontal = OceTheme.spacing.md, vertical = 5.dp),
             ) {
                 Text(
                     text = stringResource(badgeRes),
@@ -316,10 +325,11 @@ internal fun DeleteAccountDialog(
                 DeleteStep.Warn -> {
                     Text(
                         text = stringResource(R.string.settings_delete_step1_title),
-                        style = OceTheme.typography.dialogHeader.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 18.sp,
-                        ),
+                        style =
+                            OceTheme.typography.dialogHeader.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 18.sp,
+                            ),
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
@@ -338,10 +348,11 @@ internal fun DeleteAccountDialog(
                 DeleteStep.Confirm -> {
                     Text(
                         text = stringResource(R.string.settings_delete_step2_title),
-                        style = OceTheme.typography.dialogHeader.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 18.sp,
-                        ),
+                        style =
+                            OceTheme.typography.dialogHeader.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 18.sp,
+                            ),
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(

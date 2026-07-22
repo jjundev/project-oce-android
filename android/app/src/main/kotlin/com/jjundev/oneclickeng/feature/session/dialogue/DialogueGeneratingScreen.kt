@@ -39,10 +39,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jjundev.oneclickeng.ui.component.BlockingGateSurface
 import com.jjundev.oneclickeng.ui.component.InlineErrorMode
+import com.jjundev.oneclickeng.ui.component.OneClickAppLoadingIndicator
 import com.jjundev.oneclickeng.ui.component.OneClickBlockingGate
 import com.jjundev.oneclickeng.ui.component.OneClickInlineError
 import com.jjundev.oneclickeng.ui.component.OneClickLimitReachedPanel
-import com.jjundev.oneclickeng.ui.component.OneClickAppLoadingIndicator
 import com.jjundev.oneclickeng.ui.component.OneClickWaitQuiz
 import com.jjundev.oneclickeng.ui.component.QuizItem
 import com.jjundev.oneclickeng.ui.component.previewWaitQuizItems
@@ -111,8 +111,9 @@ fun DialogueGeneratingScreen(
 
     // wait_quiz shown/ended 계측(M4-01d): 퀴즈 표면이 실제로 노출됐을 때만(게이트 통과 + Generating/Ready) 1회
     // shown, 생성 실패 시 1회 ended(failed) — VM 이 quizShownMillis/quizEnded 가드로 재호출을 흡수한다.
-    val quizVisible = quizEnabled && gatePassed &&
-        (state is DialogueGenState.Generating || state is DialogueGenState.Ready)
+    val quizVisible =
+        quizEnabled && gatePassed &&
+            (state is DialogueGenState.Generating || state is DialogueGenState.Ready)
     LaunchedEffect(quizVisible) { if (quizVisible) onQuizShown() }
     LaunchedEffect(state) { if (state is DialogueGenState.Failed) onQuizEnded(DIALOGUE_QUIZ_REASON_FAILED) }
 

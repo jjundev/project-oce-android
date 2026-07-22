@@ -720,8 +720,11 @@ private fun BookmarkSection(
                                     icon = if (saved) OceIcon.Bookmark else OceIcon.BookmarkBorder,
                                     contentDescription = if (saved) "저장 해제" else "저장",
                                     tint =
-                                        if (saved) OceTheme.colors.gameSaveGold
-                                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        if (saved) {
+                                            OceTheme.colors.gameSaveGold
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
                                 )
                             }
                         }

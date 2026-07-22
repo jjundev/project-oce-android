@@ -100,17 +100,26 @@ fun VennDiagramCanvas(
                             drawCircle(color = leftStroke, radius = r, center = leftCenter, style = stroke)
                             drawCircle(color = rightStroke, radius = r, center = rightCenter, style = stroke)
                             drawItemColumn(
-                                textMeasurer, venn.left.items,
-                                Offset(leftCenter.x - r * 0.40f, cy - r * 0.20f), itemStyle, bullet = true,
+                                textMeasurer,
+                                venn.left.items,
+                                Offset(leftCenter.x - r * 0.40f, cy - r * 0.20f),
+                                itemStyle,
+                                bullet = true,
                             )
                             drawItemColumn(
-                                textMeasurer, venn.right.items,
-                                Offset(rightCenter.x + r * 0.40f, cy - r * 0.20f), itemStyle, bullet = true,
+                                textMeasurer,
+                                venn.right.items,
+                                Offset(rightCenter.x + r * 0.40f, cy - r * 0.20f),
+                                itemStyle,
+                                bullet = true,
                             )
                             val mid = (leftCenter.x + rightCenter.x) / 2f
                             drawItemColumn(
-                                textMeasurer, venn.intersectionItems,
-                                Offset(mid, cy + r * 0.10f), intersectionItemStyle, bullet = false,
+                                textMeasurer,
+                                venn.intersectionItems,
+                                Offset(mid, cy + r * 0.10f),
+                                intersectionItemStyle,
+                                bullet = false,
                             )
                         }
                     }
@@ -140,8 +149,10 @@ private fun DrawScope.drawVennHeadwords(
 }
 
 /** [desiredLeft]를 캔버스 폭 안으로 clamp 한다(긴 단어가 좌/우로 삐져나가 잘리는 것 방어). */
-private fun DrawScope.clampedLeft(desiredLeft: Float, textWidth: Float): Float =
-    desiredLeft.coerceIn(0f, (size.width - textWidth).coerceAtLeast(0f))
+private fun DrawScope.clampedLeft(
+    desiredLeft: Float,
+    textWidth: Float,
+): Float = desiredLeft.coerceIn(0f, (size.width - textWidth).coerceAtLeast(0f))
 
 /** [center]를 텍스트의 시각 중앙으로 두고 그린다(측정 폭·높이 절반 보정, x 는 캔버스 폭 clamp). */
 private fun DrawScope.drawCenteredText(
@@ -204,6 +215,7 @@ fun rememberVennLayoutMode(
                     gapPx = 2.dp.toPx(),
                     marginPx = 8.dp.toPx(),
                 )
+
             fun boxes(
                 items: List<String>,
                 bullet: Boolean,
@@ -229,7 +241,11 @@ fun rememberVennLayoutMode(
  */
 internal fun VennData.toVennContentDescription(): String {
     fun withItems(circle: VennCircle) =
-        if (circle.items.isEmpty()) circle.word else "${circle.word}(${circle.items.joinToString(", ")})"
+        if (circle.items.isEmpty()) {
+            circle.word
+        } else {
+            "${circle.word}(${circle.items.joinToString(", ")})"
+        }
     val shared = intersectionItems.joinToString(", ")
     return "${withItems(left)}와 ${withItems(right)}의 공통 의미: $shared"
 }

@@ -36,6 +36,10 @@ internal data class TtsCacheKey(
     val gender: String?,
 )
 
+// 상태 머신 코디네이터라 작은 전이 헬퍼가 많다(DeepFeedbackCoordinator 선례와 동일 판단). clock/
+// latencyAnalytics 트레일링 페어가 기존 5개 seam 에 더해져 LongParameterList 임계값을 넘는다 —
+// SummaryCoordinator 선례와 동일하게 억제한다(페이로드 분해가 오히려 불투명).
+
 /**
  * Orchestrates opponent-turn TTS: server (Gemini) synthesis, device fallback ([DEVICE_WATCHDOG_MS],
  * 7s), in-memory replay, mute, and stale-session guarding (Kotlin/coroutine port of the archived
@@ -52,9 +56,6 @@ internal data class TtsCacheKey(
  * player free of encoding. Framework audio/engine work is behind [PcmPlayer]/[DeviceTts] so this
  * class is a pure, unit-testable coroutine state machine.
  */
-// 상태 머신 코디네이터라 작은 전이 헬퍼가 많다(DeepFeedbackCoordinator 선례와 동일 판단). clock/
-// latencyAnalytics 트레일링 페어가 기존 5개 seam 에 더해져 LongParameterList 임계값을 넘는다 —
-// SummaryCoordinator 선례와 동일하게 억제한다(페이로드 분해가 오히려 불투명).
 @Suppress("TooManyFunctions", "LongParameterList")
 @Singleton
 class TtsPlaybackCoordinator

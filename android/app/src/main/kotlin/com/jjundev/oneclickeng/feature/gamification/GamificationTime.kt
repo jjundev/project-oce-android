@@ -19,22 +19,25 @@ object GamificationTime {
     val KST: ZoneId = ZoneId.of("Asia/Seoul")
 
     /** Client copy of the server XP map (firestore-schema.md:198). Server is authoritative; this is display-only. */
-    val XP_BY_DIFFICULTY: Map<String, Int> = mapOf(
-        "starter" to 5,
-        "easy" to 10,
-        "normal" to 20,
-        "hard" to 35,
-        "expert" to 55,
-    )
+    val XP_BY_DIFFICULTY: Map<String, Int> =
+        mapOf(
+            "starter" to 5,
+            "easy" to 10,
+            "normal" to 20,
+            "hard" to 35,
+            "expert" to 55,
+        )
 
     /** Per-session study-time cap in seconds — user-confirmed product cap (30 min), guards absurd elapsed values. */
     const val STUDYTIME_SESSION_CAP_SECONDS: Long = 1800
 
     /** epoch millis → `yyyy-MM-dd` KST calendar day-key (matches the server's lastStudyDate format). */
-    fun kstDayKey(nowMs: Long): String = LocalDate.ofInstant(Instant.ofEpochMilli(nowMs), KST).toString()
+    fun kstDayKey(nowMs: Long): String = kstLocalDate(nowMs).toString()
 
     /** epoch millis → KST epochDay(Long) — 홈 추천 상황의 결정적 일일 회전 키(TopicCatalog.recommended). */
-    fun kstEpochDay(nowMs: Long): Long = LocalDate.ofInstant(Instant.ofEpochMilli(nowMs), KST).toEpochDay()
+    fun kstEpochDay(nowMs: Long): Long = kstLocalDate(nowMs).toEpochDay()
+
+    private fun kstLocalDate(nowMs: Long): LocalDate = Instant.ofEpochMilli(nowMs).atZone(KST).toLocalDate()
 
     /**
      * Wall-clock study seconds for a completed session, clamped to [0, cap]. A null start (session

@@ -73,31 +73,40 @@ class RecordsScreenPullRefreshTest {
         RecordsViewModel(
             querySource = query,
             savedCardRepository = FakeSavedCardRepository(),
-            lifetimeStatsSource = object : LifetimeStatsSource {
-                override suspend fun lifetime(): LifetimeStats? = null
-            },
-            analytics = object : HistoryAnalytics {
-                override fun tabView(cardType: CardType) = Unit
-                override fun tabSwitch(cardType: CardType) = Unit
-                override fun deleteCard(cardType: CardType, undone: Boolean) = Unit
-            },
+            lifetimeStatsSource =
+                object : LifetimeStatsSource {
+                    override suspend fun lifetime(): LifetimeStats? = null
+                },
+            analytics =
+                object : HistoryAnalytics {
+                    override fun tabView(cardType: CardType) = Unit
+
+                    override fun tabSwitch(cardType: CardType) = Unit
+
+                    override fun deleteCard(
+                        cardType: CardType,
+                        undone: Boolean,
+                    ) = Unit
+                },
             countUpGate = HistoryCountUpGate(),
             reviewSource = FakeReviewSource(),
-            reviewClock = object : ReviewClock {
-                override fun nowMs(): Long = 0L
-            },
+            reviewClock =
+                object : ReviewClock {
+                    override fun nowMs(): Long = 0L
+                },
         )
 
     private fun expression(id: String) =
         SavedCardEntry(
             cardId = id,
-            card = SavedCard.Expression(
-                type = "natural",
-                koreanPrompt = "",
-                before = "",
-                after = "after-$id",
-                explanation = "",
-            ),
+            card =
+                SavedCard.Expression(
+                    type = "natural",
+                    koreanPrompt = "",
+                    before = "",
+                    after = "after-$id",
+                    explanation = "",
+                ),
         )
 
     /** [SavedCardQuerySource.page] 호출 횟수를 세는 페이크 — 매 호출마다 같은 [cardCount] 장의 페이지를 반환한다. */

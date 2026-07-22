@@ -2,7 +2,6 @@ package com.jjundev.oneclickeng.ui.root
 
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,8 +42,8 @@ import com.jjundev.oneclickeng.feature.onboarding.onboardingGraph
 import com.jjundev.oneclickeng.feature.review.reviewGraph
 import com.jjundev.oneclickeng.feature.review.reviewStartRoute
 import com.jjundev.oneclickeng.ui.component.BlockingGateSurface
-import com.jjundev.oneclickeng.ui.component.OneClickBlockingGate
 import com.jjundev.oneclickeng.ui.component.OneClickAppLoadingIndicator
+import com.jjundev.oneclickeng.ui.component.OneClickBlockingGate
 import com.jjundev.oneclickeng.ui.component.OneClickOfflineBanner
 import com.jjundev.oneclickeng.ui.component.OneClickUpdateGate
 import com.jjundev.oneclickeng.ui.foundation.OceBottomNav

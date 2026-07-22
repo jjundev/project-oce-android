@@ -44,9 +44,23 @@ jobs:
                   "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
                   "android_client_info": { "package_name": "com.jjundev.oneclickeng" }
                 },
-                "oauth_client": [],
+                "oauth_client": [
+                  {
+                    "client_id": "000000000000-ci-dummy-web.apps.googleusercontent.com",
+                    "client_type": 3
+                  }
+                ],
                 "api_key": [ { "current_key": "AIzaSyCI00000000000000000000000000000000" } ],
-                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+                "services": {
+                  "appinvite_service": {
+                    "other_platform_oauth_client": [
+                      {
+                        "client_id": "000000000000-ci-dummy-web.apps.googleusercontent.com",
+                        "client_type": 3
+                      }
+                    ]
+                  }
+                }
               }
             ],
             "configuration_version": "1"

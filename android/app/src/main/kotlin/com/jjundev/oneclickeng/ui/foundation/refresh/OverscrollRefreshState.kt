@@ -15,9 +15,9 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Velocity
-import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.coroutineContext
 
 /**
  * 실제 컴포지션(rememberCoroutineScope)의 코루틴 컨텍스트에는 Recomposer 가 제공하는
@@ -26,17 +26,22 @@ import kotlinx.coroutines.withContext
  * 앰비언트 클럭이 없을 때만 합성 클럭으로 폴백해 애니메이션이 결정적으로 완료되게 한다 —
  * 프로덕션 경로(항상 앰비언트 클럭 보유)의 타이밍에는 영향이 없다.
  */
-private val syntheticFrameClock: MonotonicFrameClock = object : MonotonicFrameClock {
-    private var frameTimeNanos = 0L
-    override suspend fun <R> withFrameNanos(onFrame: (Long) -> R): R {
-        frameTimeNanos += 16_000_000L // 가상 16ms 틱
-        return onFrame(frameTimeNanos)
+private val syntheticFrameClock: MonotonicFrameClock =
+    object : MonotonicFrameClock {
+        private var frameTimeNanos = 0L
+
+        override suspend fun <R> withFrameNanos(onFrame: (Long) -> R): R {
+            frameTimeNanos += 16_000_000L // 가상 16ms 틱
+            return onFrame(frameTimeNanos)
+        }
     }
-}
 
 private suspend fun <R> withAnimationFrameClock(block: suspend () -> R): R =
-    if (coroutineContext[MonotonicFrameClock] != null) block()
-    else withContext(syntheticFrameClock) { block() }
+    if (coroutineContext[MonotonicFrameClock] != null) {
+        block()
+    } else {
+        withContext(syntheticFrameClock) { block() }
+    }
 
 /**
  * 오버스크롤 당김의 제스처/오프셋 상태 소유자.
@@ -110,10 +115,11 @@ class OverscrollRefreshState(
             withAnimationFrameClock {
                 offset.snapTo(dragOffsetPx)
                 dragOffsetPx = 0f
-                val snapBackSpring = spring<Float>(
-                    dampingRatio = OverscrollDefaults.SpringDampingRatio,
-                    stiffness = OverscrollDefaults.SpringStiffness,
-                )
+                val snapBackSpring =
+                    spring<Float>(
+                        dampingRatio = OverscrollDefaults.SPRING_DAMPING_RATIO,
+                        stiffness = OverscrollDefaults.SPRING_STIFFNESS,
+                    )
                 offset.animateTo(0f, snapBackSpring)
             }
         } finally {
@@ -153,45 +159,55 @@ class OverscrollRefreshState(
     }
 
     /** 손가락 직접 드래그만 틈을 여닫을 수 있다 — fling 감속(SideEffect)은 무시(클래스 문서 참고). */
-    private fun acceptsDrag(source: NestedScrollSource): Boolean =
-        !settling && source == NestedScrollSource.UserInput
+    private fun acceptsDrag(source: NestedScrollSource): Boolean = !settling && source == NestedScrollSource.UserInput
 
-    val nestedScrollConnection = object : NestedScrollConnection {
-        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-            // 당겨져 있을 때 위로 드래그하면 먼저 틈을 닫는다(손가락 드래그에만 반응 — 클래스 문서 참고).
-            val closingAnOpenGap = available.y < 0f && dragOffsetPx > 0f
-            if (!acceptsDrag(source) || !closingAnOpenGap) return Offset.Zero
-            accumulatedDrag = (accumulatedDrag + available.y).coerceAtLeast(0f)
-            val target = rubberBand(accumulatedDrag, maxPullPx)
-            val delta = target - dragOffsetPx
-            dragOffsetPx = target
-            return Offset(0f, delta)
-        }
+    val nestedScrollConnection =
+        object : NestedScrollConnection {
+            override fun onPreScroll(
+                available: Offset,
+                source: NestedScrollSource,
+            ): Offset {
+                // 당겨져 있을 때 위로 드래그하면 먼저 틈을 닫는다(손가락 드래그에만 반응 — 클래스 문서 참고).
+                val closingAnOpenGap = available.y < 0f && dragOffsetPx > 0f
+                if (!acceptsDrag(source) || !closingAnOpenGap) return Offset.Zero
+                accumulatedDrag = (accumulatedDrag + available.y).coerceAtLeast(0f)
+                val target = rubberBand(accumulatedDrag, maxPullPx)
+                val delta = target - dragOffsetPx
+                dragOffsetPx = target
+                return Offset(0f, delta)
+            }
 
-        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-            // 리스트가 더 못 내려갈 때(available.y>0) 남은 아래 방향 드래그로 틈을 연다.
-            // fling 이 경계에 부딪히며 감속할 때도 잔여 스크롤이 여기로 오지만(source=SideEffect),
-            // 거기에 반응하면 인디케이터가 얼어붙고 원치 않은 새로고침이 발동한다 — 클래스 문서 참고.
-            if (!acceptsDrag(source) || available.y <= 0f) return Offset.Zero
-            accumulatedDrag = (accumulatedDrag + available.y).coerceAtLeast(0f)
-            dragOffsetPx = rubberBand(accumulatedDrag, maxPullPx)
-            return Offset(0f, available.y)
-        }
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource,
+            ): Offset {
+                // 리스트가 더 못 내려갈 때(available.y>0) 남은 아래 방향 드래그로 틈을 연다.
+                // fling 이 경계에 부딪히며 감속할 때도 잔여 스크롤이 여기로 오지만(source=SideEffect),
+                // 거기에 반응하면 인디케이터가 얼어붙고 원치 않은 새로고침이 발동한다 — 클래스 문서 참고.
+                if (!acceptsDrag(source) || available.y <= 0f) return Offset.Zero
+                accumulatedDrag = (accumulatedDrag + available.y).coerceAtLeast(0f)
+                dragOffsetPx = rubberBand(accumulatedDrag, maxPullPx)
+                return Offset(0f, available.y)
+            }
 
-        override suspend fun onPreFling(available: Velocity): Velocity {
-            if (settling || dragOffsetPx <= 0f) return Velocity.Zero
-            resolvePull()
-            return available // 남은 fling 소비(리스트로 흘리지 않음)
-        }
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                if (settling || dragOffsetPx <= 0f) return Velocity.Zero
+                resolvePull()
+                return available // 남은 fling 소비(리스트로 흘리지 않음)
+            }
 
-        override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-            // fling 이 진행 중일 때(onPreFling 호출 시점) 아직 열려 있지 않았던 틈이, 그 fling 이
-            // 경계에 부딪혀 감속하는 동안 onPostScroll(SideEffect)로 뒤늦게 열렸을 수 있다 — 이게 이
-            // 함수가 최종적으로 그 틈을 마무리(릴리스/스냅백)할 유일한 기회다.
-            resolvePull()
-            return Velocity.Zero
+            override suspend fun onPostFling(
+                consumed: Velocity,
+                available: Velocity,
+            ): Velocity {
+                // fling 이 진행 중일 때(onPreFling 호출 시점) 아직 열려 있지 않았던 틈이, 그 fling 이
+                // 경계에 부딪혀 감속하는 동안 onPostScroll(SideEffect)로 뒤늦게 열렸을 수 있다 — 이게 이
+                // 함수가 최종적으로 그 틈을 마무리(릴리스/스냅백)할 유일한 기회다.
+                resolvePull()
+                return Velocity.Zero
+            }
         }
-    }
 }
 
 @Composable

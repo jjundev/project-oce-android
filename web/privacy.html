@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>개인정보 처리방침 | 딸깍영어</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <p class="service-name">딸깍영어 (OneClickEng)</p>
+    <h1>개인정보 처리방침</h1>
+    <p class="updated">최종 수정일: <time datetime="2026-07-21">2026-07-21</time></p>
+    <nav aria-label="정책 문서"><ul><li><a href="privacy" aria-current="page">개인정보 처리방침</a></li><li><a href="terms">이용약관</a></li><li><a href="delete-account">계정 삭제 안내</a></li></ul></nav>
+  </header>
+  <main>
+    <p class="beta-notice"><strong>클로즈드 베타용 초안</strong><br>공개 출시 전에 운영 담당자와 법무가 법적 주체, 보관기간, 수탁자 계약 및 각 SDK 설정을 확인해야 합니다.</p>
+    <h2>1. 목적 및 적용 범위</h2><p>이 문서는 딸깍영어의 앱과 연결된 Firebase 백엔드에서 확인된 데이터 처리 구조를 설명하기 위한 베타 초안입니다. 이 변경에서 Firebase Hosting은 이 공개 정적 개인정보 처리방침·이용약관·계정 삭제 안내 문서를 제공하는 웹 호스팅으로만 사용하며, 앱의 Firestore 또는 Cloud Functions 데이터 저장소가 아닙니다.</p>
+    <h2>2. 수집·처리 항목과 시점</h2>
+    <ul><li>인증: 익명 Firebase Authentication 상태와 Google 로그인으로 연결된 계정이 구현되어 있습니다.</li><li>사용자 데이터: <code>users/{uid}</code> 아래 프로필(닉네임·레벨·생성/수정 시각), 학습 진도·학습시간 통계, 저장 카드와 학습 세션 원장이 설계되어 있습니다.</li><li>AI 요청: 대화·피드백·요약 요청과 말하기 분석을 위한 사용자의 음성 데이터, TTS 합성을 위한 텍스트가 백엔드 요청 경로에 포함됩니다. 음성 녹음의 서버 영구 저장 여부는 저장소에서 확인되지 않습니다.</li><li>Firebase Analytics: 앱에 Firebase Analytics SDK와 이벤트/사용자 속성 기록 코드가 있습니다. 저장소만으로 SDK의 자동 수집 항목과 보관기간 전체를 확정할 수 없습니다.</li></ul>
+    <h2>3. 이용 목적</h2><p>확인된 목적은 계정 인증, 프로필·학습 기록·저장 카드 제공, 학습 대화 및 피드백·말하기 분석·요약·음성 합성 기능 제공, 서비스 사용 현황 계측입니다.</p>
+    <h2>4. 보관 및 삭제</h2><p>계정 삭제 요청이 처리되면 백엔드는 <code>users/{uid}</code> 문서와 그 하위 데이터(저장 카드, point ledger, progress marks, gamification, usage)를 재귀 삭제한 뒤 Firebase Authentication 계정을 삭제하도록 구현되어 있습니다.</p><p>루트의 서버 전용 <code>sessions/{sessionId}</code>와 <code>idempotency/{key}</code>는 계정 하위가 아니며 <code>expiresAt</code> TTL 자동 만료 정책에 맡깁니다. TTL 기간은 저장소에서 확인되지 않았습니다. AI 요청·Analytics 데이터의 보관 및 삭제 기간도 공개 출시 전에 확정해야 합니다.</p>
+    <h2>5. Firebase·Google 등 서비스</h2><p>앱·백엔드에는 Firebase Authentication, Firestore, Cloud Functions 및 Firebase Analytics가 사용되고, 이 웹 변경에는 정책 문서를 위한 Firebase Hosting이 사용됩니다. Authentication은 익명 또는 Google 로그인 계정 인증에, Firestore는 사용자 데이터 저장에, Cloud Functions는 백엔드 기능 실행에, Analytics는 앱 사용 현황 계측에 사용됩니다. AI 요청은 백엔드에서 Google Gemini API 경로로 전달됩니다. 각 서비스의 수탁 범위, 처리 지역, 계약상 정보는 공개 출시 전에 운영 담당자가 확인해 보완해야 합니다.</p>
+    <h2>6. 이용자 권리 및 계정 삭제</h2><p>이용자는 자신의 계정과 관련된 처리 내역을 확인하고 삭제를 요청할 수 있어야 합니다. 로그인 사용자는 <a href="delete-account">계정 삭제 안내</a>에 따라 앱 설정에서 삭제를 완료할 수 있습니다. 앱에 접근할 수 없는 경우 <a href="mailto:ufo4hyun@gmail.com">ufo4hyun@gmail.com</a>으로 계정 삭제를 요청할 수 있습니다.</p>
+    <h2>7. 안전성 조치</h2><p>확인된 조치에는 Firebase ID 토큰 인증, 서버 측 Gemini API 키 보관, 사용자별 Firestore 접근 규칙, 서버 전용 컬렉션의 클라이언트 접근 차단이 있습니다. 실제 운영 보안 조치와 침해 대응 절차는 공개 출시 전에 점검해야 합니다.</p>
+    <h2>8. 정책 변경</h2><p>서비스나 데이터 처리 방식이 변경되면 이 문서의 최종 수정일과 내용을 갱신해야 합니다. 베타 초안은 공개 출시 전에 법무 검토를 거쳐야 합니다.</p>
+    <h2 id="contact">9. 문의</h2><p>문의 및 개인정보 관련 요청은 <a href="mailto:ufo4hyun@gmail.com">ufo4hyun@gmail.com</a>으로 보내 주세요. 법적 주체, 주소, 보관기간 및 관할은 아직 확정되지 않았으며 공개 출시 전에 확인해야 합니다.</p>
+  </main>
+  <footer class="site-footer">딸깍영어 (OneClickEng) · 베타 초안</footer>
+</body>
+</html>

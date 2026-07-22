@@ -28,22 +28,25 @@ class SavedCardReadAuthTest {
     }
 
     @Test
-    fun `returns currentUid without signing in when present`() = runTest {
-        val auth = FakeAuth(uid = "uid-1")
-        assertEquals("uid-1", auth.uidForSavedCardRead())
-        assertEquals(0, auth.ensureCalls)
-    }
+    fun `returns currentUid without signing in when present`() =
+        runTest {
+            val auth = FakeAuth(uid = "uid-1")
+            assertEquals("uid-1", auth.uidForSavedCardRead())
+            assertEquals(0, auth.ensureCalls)
+        }
 
     @Test
-    fun `awaits anonymous sign-in when uid is null`() = runTest {
-        val auth = FakeAuth(uid = null, ensuredUid = "uid-ensured")
-        assertEquals("uid-ensured", auth.uidForSavedCardRead())
-        assertEquals(1, auth.ensureCalls)
-    }
+    fun `awaits anonymous sign-in when uid is null`() =
+        runTest {
+            val auth = FakeAuth(uid = null, ensuredUid = "uid-ensured")
+            assertEquals("uid-ensured", auth.uidForSavedCardRead())
+            assertEquals(1, auth.ensureCalls)
+        }
 
     @Test
-    fun `degrades to null when sign-in fails`() = runTest {
-        val auth = FakeAuth(uid = null, ensureThrows = true)
-        assertNull(auth.uidForSavedCardRead())
-    }
+    fun `degrades to null when sign-in fails`() =
+        runTest {
+            val auth = FakeAuth(uid = null, ensureThrows = true)
+            assertNull(auth.uidForSavedCardRead())
+        }
 }

@@ -62,7 +62,10 @@ class DialogueGeneratingScreenshotTest {
     @Test
     fun limit_dark() = captureLimit(name = "limit_dark", dark = true)
 
-    private fun captureLimit(name: String, dark: Boolean) {
+    private fun captureLimit(
+        name: String,
+        dark: Boolean,
+    ) {
         composeRule.setContent {
             OceTheme(darkTheme = dark) {
                 Surface(color = MaterialTheme.colorScheme.background) {
@@ -80,7 +83,10 @@ class DialogueGeneratingScreenshotTest {
     }
 
     /** 1s 게이트 이전의 96dp 로딩 트랙 + 중앙 앱 마크 표면. */
-    private fun captureLoading(name: String, dark: Boolean) {
+    private fun captureLoading(
+        name: String,
+        dark: Boolean,
+    ) {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             OceTheme(darkTheme = dark) {
@@ -105,8 +111,9 @@ class DialogueGeneratingScreenshotTest {
     }
 
     @Test
-    fun generating_quiz_dark() =
+    fun generating_quiz_dark() {
         captureAfterGate(DialogueGenState.Generating, name = "generating_quiz_dark", dark = true)
+    }
 
     /** 준비 완료(첫 상대턴 수신) — 퀴즈 + "대화 시작하기" CTA(프로토 준비 배너+CTA) 표면. */
     @Test

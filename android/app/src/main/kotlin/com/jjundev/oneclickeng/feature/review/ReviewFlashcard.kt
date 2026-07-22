@@ -90,8 +90,9 @@ fun ReviewFlashcard(
                 if (card is SavedCard.Word && card.exampleEnglish.isNotBlank()) {
                     Spacer(Modifier.size(OceTheme.spacing.lg))
                     Column(
-                        modifier = Modifier.fillMaxWidth().clip(OceTheme.shapes.radius12)
-                            .background(MaterialTheme.colorScheme.surface).padding(OceTheme.spacing.md),
+                        modifier =
+                            Modifier.fillMaxWidth().clip(OceTheme.shapes.radius12)
+                                .background(MaterialTheme.colorScheme.surface).padding(OceTheme.spacing.md),
                         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
                     ) {
                         Text(
@@ -116,10 +117,11 @@ fun ReviewFlashcard(
                     onClick = onReveal,
                     modifier = Modifier.fillMaxWidth().height(ReviewButtonHeight),
                     shape = OceTheme.shapes.radius12,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                    ),
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
                 ) { Text(text = "정답 보기", style = OceTheme.typography.sectionLabel) }
             }
         } else {
@@ -132,19 +134,21 @@ fun ReviewFlashcard(
                         onClick = { onGrade(false) },
                         modifier = Modifier.weight(1f).height(ReviewButtonHeight),
                         shape = OceTheme.shapes.radius12,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = OceTheme.colors.feedbackCorrectBg,
-                            contentColor = OceTheme.colors.feedbackCorrectAccent,
-                        ),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = OceTheme.colors.feedbackCorrectBg,
+                                contentColor = OceTheme.colors.feedbackCorrectAccent,
+                            ),
                     ) { Text(text = "다시", style = OceTheme.typography.sectionLabel) }
                     Button(
                         onClick = { onGrade(true) },
                         modifier = Modifier.weight(1f).height(ReviewButtonHeight),
                         shape = OceTheme.shapes.radius12,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = OceTheme.colors.feedbackNaturalAccent,
-                            contentColor = Color.White,
-                        ),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = OceTheme.colors.feedbackNaturalAccent,
+                                contentColor = Color.White,
+                            ),
                     ) { Text(text = "완료", style = OceTheme.typography.sectionLabel) }
                 }
             }
@@ -155,9 +159,10 @@ fun ReviewFlashcard(
 @Composable
 private fun SpeakButton(onClick: () -> Unit) {
     Column(
-        modifier = Modifier.size(38.dp).clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
-            .clickable(onClick = onClick),
+        modifier =
+            Modifier.size(38.dp).clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
+                .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {

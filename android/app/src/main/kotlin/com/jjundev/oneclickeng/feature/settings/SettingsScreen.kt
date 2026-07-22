@@ -83,17 +83,17 @@ import com.jjundev.oneclickeng.ui.component.OneClickSnackbarHost
 import com.jjundev.oneclickeng.ui.component.SliderMode
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickSwitch
+import com.jjundev.oneclickeng.ui.foundation.OceBottomNavDefaults
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
-import com.jjundev.oneclickeng.ui.foundation.OceBottomNavDefaults
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.foundation.PinnedTabHeader
 import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.foundation.rememberScreenEntrance
 import com.jjundev.oneclickeng.ui.foundation.staggerReveal
 import com.jjundev.oneclickeng.ui.theme.OceTheme
-import java.util.Locale
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 /**
  * 설정 탭(M3-09). 단일 스크롤 6섹션(프로필·음성·알림·데이터 관리·계정·정보). 위험 동작은 확인 다이얼로그로 마찰
@@ -107,6 +107,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
     linkViewModel: GoogleLinkViewModel = hiltViewModel(),
+    scrollResetKey: Any = Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val linkState by linkViewModel.uiState.collectAsStateWithLifecycle()
@@ -129,15 +130,20 @@ fun SettingsScreen(
     var notificationsEnabled by remember {
         mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
     }
+    // 설정은 탭 재진입마다 새 화면처럼 시작해야 한다. `rememberLazyListState()`는 NavHost의
+    // saveState/restoreState와 함께 이전 offset을 복원해 첫 프레임에 중간 위치가 보일 수 있으므로,
+    // Saver 없는 상태를 기억해 항상 0에서 최초 레이아웃을 시작한다.
+    val settingsListState = remember { LazyListState() }
     DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                notificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    notificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
+                }
+                if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) {
+                    snackbarHostState.currentSnackbarData?.dismiss()
+                }
             }
-            if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) {
-                snackbarHostState.currentSnackbarData?.dismiss()
-            }
-        }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
@@ -261,6 +267,8 @@ fun SettingsScreen(
             onPrivacy = { openUrl(context, SettingsUrls.PRIVACY) },
             onTerms = { openUrl(context, SettingsUrls.TERMS) },
             reduceMotion = rememberReduceMotion(),
+            listState = settingsListState,
+            scrollResetKey = scrollResetKey,
         )
 
         // ----- 오버레이(다이얼로그·시트·스낵바) -----
@@ -307,7 +315,10 @@ fun SettingsScreen(
                 body = stringResource(R.string.settings_reset_body),
                 confirmLabel = stringResource(R.string.settings_reset_action),
                 confirmColor = MaterialTheme.colorScheme.error,
-                onConfirm = { showResetDialog = false; viewModel.resetMetrics() },
+                onConfirm = {
+                    showResetDialog = false
+                    viewModel.resetMetrics()
+                },
                 onDismiss = { showResetDialog = false },
             )
         }
@@ -317,13 +328,19 @@ fun SettingsScreen(
                 body = stringResource(R.string.settings_logout_body),
                 confirmLabel = stringResource(R.string.settings_account_logout),
                 confirmColor = MaterialTheme.colorScheme.primary,
-                onConfirm = { showLogoutDialog = false; viewModel.logout() },
+                onConfirm = {
+                    showLogoutDialog = false
+                    viewModel.logout()
+                },
                 onDismiss = { showLogoutDialog = false },
             )
         }
         if (showDeleteDialog) {
             DeleteAccountDialog(
-                onConfirm = { showDeleteDialog = false; viewModel.deleteAccount() },
+                onConfirm = {
+                    showDeleteDialog = false
+                    viewModel.deleteAccount()
+                },
                 onDismiss = { showDeleteDialog = false },
             )
         }
@@ -370,12 +387,20 @@ internal fun SettingsContent(
     reduceMotion: Boolean = false,
     isGoogleSaveLoading: Boolean = false,
     listState: LazyListState = rememberLazyListState(),
+    scrollResetKey: Any = Unit,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         val entrance = rememberScreenEntrance(reduceMotion)
         PinnedTabHeader(titleRes = R.string.tab_settings)
+        LaunchedEffect(scrollResetKey) {
+            listState.scrollToItem(0)
+        }
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp)
+                    .testTag(SETTINGS_SCROLL_CONTENT_TAG),
             state = listState,
             contentPadding =
                 PaddingValues(
@@ -456,10 +481,11 @@ internal fun SettingsContent(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         text = reminderTimeLabel(state.reminderHour, state.reminderMinute),
-                                        style = OceTheme.typography.sectionLabel.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 15.sp,
-                                        ),
+                                        style =
+                                            OceTheme.typography.sectionLabel.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 15.sp,
+                                            ),
                                         color = MaterialTheme.colorScheme.primary,
                                     )
                                     Spacer(Modifier.width(OceTheme.spacing.xs))
@@ -538,10 +564,11 @@ internal fun SettingsContent(
                         trailing = {
                             Text(
                                 text = versionLabel,
-                                style = OceTheme.typography.helper.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 14.sp,
-                                ),
+                                style =
+                                    OceTheme.typography.helper.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp,
+                                    ),
                                 color = OceTheme.colors.textTertiary,
                             )
                         },
@@ -610,7 +637,10 @@ private fun ProfileRow(
     if (editing) {
         NicknameEditDialog(
             initial = nickname,
-            onConfirm = { onNicknameChange(it); editing = false },
+            onConfirm = {
+                onNicknameChange(it)
+                editing = false
+            },
             onDismiss = { editing = false },
         )
     }
@@ -620,11 +650,12 @@ private fun ProfileRow(
 @Composable
 private fun ChangeButton(onClick: () -> Unit) {
     Box(
-        modifier = Modifier
-            .clip(OceTheme.shapes.pill)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, OceTheme.shapes.pill)
-            .clickable(onClick = onClick)
-            .padding(horizontal = OceTheme.spacing.lg, vertical = 9.dp),
+        modifier =
+            Modifier
+                .clip(OceTheme.shapes.pill)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, OceTheme.shapes.pill)
+                .clickable(onClick = onClick)
+                .padding(horizontal = OceTheme.spacing.lg, vertical = 9.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -648,8 +679,11 @@ private fun ColumnScope.VoiceCardBody(
     val deviceLabel = stringResource(R.string.settings_voice_quality_device)
     var speed by remember(state.speechRate) { mutableStateOf(state.speechRate) }
     val qualityDesc =
-        if (state.ttsQuality == TtsQuality.DEVICE) stringResource(R.string.settings_voice_quality_desc_device)
-        else stringResource(R.string.settings_voice_quality_desc_server)
+        if (state.ttsQuality == TtsQuality.DEVICE) {
+            stringResource(R.string.settings_voice_quality_desc_device)
+        } else {
+            stringResource(R.string.settings_voice_quality_desc_server)
+        }
     SettingsRow(
         icon = OceIcon.GraphicEq,
         title = stringResource(R.string.settings_voice_quality_label),
@@ -982,6 +1016,9 @@ private val GoogleSaveLoadingIndicatorSize = 20.dp
 
 /** 설정 화면 Google 저장 로딩 스피너 testTag(컴포즈/스크린샷 테스트 seam). */
 internal const val GOOGLE_SAVE_LOADING_TAG = "google_save_loading"
+
+/** 설정 목록 스크롤 surface testTag. */
+internal const val SETTINGS_SCROLL_CONTENT_TAG = "settings_scroll_content"
 
 /**
  * 설정 화면 Google 저장 카드 로딩 유지 여부(순수). 탭 시점엔 `true`로 직접 세팅하고, 이후 `linkState`가

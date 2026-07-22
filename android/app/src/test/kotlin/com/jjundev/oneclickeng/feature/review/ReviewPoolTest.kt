@@ -8,12 +8,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ReviewPoolTest {
-    private fun item(id: String, hasSrs: Boolean = true) =
-        ReviewItem(
-            cardId = id,
-            card = SavedCard.Sentence(english = "s-$id", korean = "문장-$id"),
-            review = if (hasSrs) ReviewState(1, 0, 0, 1, 0) else null,
-        )
+    private fun item(
+        id: String,
+        hasSrs: Boolean = true,
+    ) = ReviewItem(
+        cardId = id,
+        card = SavedCard.Sentence(english = "s-$id", korean = "문장-$id"),
+        review = if (hasSrs) ReviewState(1, 0, 0, 1, 0) else null,
+    )
 
     @Test
     fun `due comes first, then new cards, capped at target`() {

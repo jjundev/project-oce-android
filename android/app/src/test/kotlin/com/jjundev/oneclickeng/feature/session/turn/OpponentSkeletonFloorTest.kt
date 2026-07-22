@@ -3,7 +3,6 @@ package com.jjundev.oneclickeng.feature.session.turn
 import android.app.Application
 import androidx.compose.material3.Surface
 import androidx.compose.ui.test.junit4.createComposeRule
-import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenState
 import com.jjundev.oneclickeng.feature.session.dialogue.DialogueStreamStatus
 import com.jjundev.oneclickeng.ui.theme.OceTheme
@@ -13,6 +12,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
 
 /**
  * 상대역 말풍선은 스켈레톤을 최소 [DEFAULT_OPPONENT_SKELETON_FLOOR_MS] 노출한 뒤에만 대사 합성/발화를

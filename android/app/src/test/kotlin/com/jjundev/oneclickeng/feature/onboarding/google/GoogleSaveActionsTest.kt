@@ -21,7 +21,7 @@ class GoogleSaveActionsTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun GoogleSaveActions_usesSharedButtonHeight_andShowsGoogleLogo() {
+    fun googleSaveActionsUsesSharedButtonHeightAndShowsGoogleLogo() {
         composeRule.setContent {
             OceTheme {
                 GoogleSaveActions(

@@ -107,10 +107,12 @@ class SettingsViewModelTest {
         ttsSettings = FakeTtsSettingsRepository(),
         reminderOrchestrator = FakeReminderOrchestrator(),
         studytimeRepository = studytimeRepository,
-        cardPurgeRepository = object : CardPurgeRepository {
-            override suspend fun count(scope: PurgeScope): Int = 0
-            override suspend fun purge(scope: PurgeScope): Int = 0
-        },
+        cardPurgeRepository =
+            object : CardPurgeRepository {
+                override suspend fun count(scope: PurgeScope): Int = 0
+
+                override suspend fun purge(scope: PurgeScope): Int = 0
+            },
         accountRepository = FakeAccount,
         pendingMergeStore = FakePendingMergeStore(),
         summarySaveSettings = summarySaveSettings,

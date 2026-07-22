@@ -21,6 +21,8 @@ import javax.inject.Singleton
 /** 재시도/스킵 API가 지정하는 슬림 섹션. 세 섹션은 각자 독립 카운터로 재시도된다(FB8). */
 enum class SlimSection { WritingScore, Grammar, NaturalExpression }
 
+// 상태 머신 코디네이터라 작은 전이 헬퍼가 많다(ReminderOrchestrator 선례와 동일 판단).
+
 /**
  * 턴 슬림 피드백(M1-07)을 오케스트레이션한다: `feedback` SSE([FeedbackStream])를 소비해 완성 섹션을
  * [SlimFeedbackState] 로 점진 노출하는 코루틴 상태 머신 — [com.jjundev.oneclickeng.feature.session.dialogue.DialogueGenerationCoordinator]
@@ -37,7 +39,6 @@ enum class SlimSection { WritingScore, Grammar, NaturalExpression }
  *
  * 트리거(start) 호출은 마이크 4상태 배선(M1-08) 소관이다. 이 코디네이터는 진입점(seam)만 노출한다.
  */
-// 상태 머신 코디네이터라 작은 전이 헬퍼가 많다(ReminderOrchestrator 선례와 동일 판단).
 @Suppress("TooManyFunctions")
 @Singleton
 class SlimFeedbackCoordinator

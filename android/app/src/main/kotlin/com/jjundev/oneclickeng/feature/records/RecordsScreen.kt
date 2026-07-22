@@ -98,11 +98,12 @@ internal fun RecordsResumeEffect(onResume: () -> Unit) {
     val currentOnResume by rememberUpdatedState(onResume)
 
     DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                currentOnResume()
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    currentOnResume()
+                }
             }
-        }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
@@ -137,6 +138,7 @@ internal fun RecordsContent(
     // 제스처/스냅 애니메이션 타이밍과 결합되지 않고, "새로고침이 실제로 시작됨"이라는 안정적 상태 계약만 본다.
     var cardsSkeletonMinHold by remember { mutableStateOf(false) }
     var skeletonJob by remember { mutableStateOf<Job?>(null) }
+
     fun flashCardsSkeleton() {
         skeletonJob?.cancel()
         cardsSkeletonMinHold = true

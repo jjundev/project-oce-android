@@ -28,11 +28,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -58,6 +59,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -85,9 +87,9 @@ import com.jjundev.oneclickeng.ui.component.OneClickShimmerPiece
 import com.jjundev.oneclickeng.ui.component.OneClickSlider
 import com.jjundev.oneclickeng.ui.component.SliderMode
 import com.jjundev.oneclickeng.ui.component.primitive.OneClickCard
+import com.jjundev.oneclickeng.ui.foundation.OceBottomNavDefaults
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
-import com.jjundev.oneclickeng.ui.foundation.OceBottomNavDefaults
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.foundation.ScreenEntranceState
 import com.jjundev.oneclickeng.ui.foundation.refresh.OverscrollRefreshBox
@@ -96,12 +98,12 @@ import com.jjundev.oneclickeng.ui.foundation.rememberReduceMotion
 import com.jjundev.oneclickeng.ui.foundation.rememberScreenEntrance
 import com.jjundev.oneclickeng.ui.foundation.staggerReveal
 import com.jjundev.oneclickeng.ui.theme.OceTheme
-import kotlin.math.PI
-import kotlin.math.roundToInt
-import kotlin.math.sin
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.PI
+import kotlin.math.roundToInt
+import kotlin.math.sin
 
 /** 히어로 CTA 최소 탭 타겟(오프라인 비활성 시에도 48dp 유지, H1/H7). */
 private val HeroMinHeight = 96.dp
@@ -126,6 +128,9 @@ private const val WAVE_PEAK_ALPHA = 0.5f
 
 /** 물결 글로우 반경 = 카드 폭의 이 비율. */
 private const val WAVE_RADIUS_FRACTION = 0.6f
+
+/** 학습 목록 스크롤 surface testTag. */
+internal const val HOME_SCROLL_CONTENT_TAG = "home_scroll_content"
 
 /**
  * 히어로 리빌 재생 여부. 최초 컴포지션이 아니고([primed]) 새 대화 모드([resumeTopic]==null)일 때만 재생한다.
@@ -155,6 +160,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
     reminderViewModel: HomeReminderViewModel = hiltViewModel(),
+    scrollResetKey: Any = Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val reminderState by reminderViewModel.uiState.collectAsStateWithLifecycle()
@@ -170,6 +176,7 @@ fun HomeScreen(
     val skeletonScope = rememberCoroutineScope()
     var situationsSkeleton by remember { mutableStateOf(false) }
     var skeletonJob by remember { mutableStateOf<Job?>(null) }
+
     fun flashSituationsSkeleton(durationMs: Long) {
         skeletonJob?.cancel()
         situationsSkeleton = true
@@ -225,6 +232,7 @@ fun HomeScreen(
         reminderMinute = reminderState.minute,
         onDismissReminderBanner = reminderViewModel::dismissEnabledBanner,
         onChangeReminderTime = { timeSheetVisible = true },
+        scrollResetKey = scrollResetKey,
     )
     if (timeSheetVisible) {
         ReminderTimeSheet(
@@ -266,11 +274,12 @@ internal fun HomeResumeEffect(onResume: () -> Unit) {
     val currentOnResume by rememberUpdatedState(onResume)
 
     DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                currentOnResume()
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    currentOnResume()
+                }
             }
-        }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
@@ -304,10 +313,14 @@ internal fun HomeContent(
     reminderMinute: Int = 0,
     onDismissReminderBanner: () -> Unit = {},
     onChangeReminderTime: () -> Unit = {},
+    listState: LazyListState = rememberLazyListState(),
+    scrollResetKey: Any = Unit,
 ) {
     val entrance = rememberScreenEntrance(reduceMotion)
-    val listState = rememberLazyListState()
     val scrollScope = rememberCoroutineScope()
+    LaunchedEffect(scrollResetKey) {
+        listState.scrollToItem(0)
+    }
     // 추천 상황 탭 = 히어로에 선택만 반영(프로토 pickTopic). 추천 리스트는 히어로보다 아래라, 반영이 화면
     // 밖에서 일어나 "아무 일도 안 난 것"처럼 보인다 → 반영 직후 상단(히어로)으로 스크롤해 결과를 보이고
     // ▶ CTA 로 학습을 이어가게 한다. reduce-motion 이면 애니 없이 즉시 점프.
@@ -318,8 +331,10 @@ internal fun HomeContent(
         }
     }
     OverscrollRefreshBox(
-        isRefreshing = false, // 추천 상황 회전은 동기/로컬 → 최소 표시 시간이 지배
-        onRefresh = onRefreshSituations, // 오직 추천 상황만 새로고침(오늘 N분/streak/hero 불변)
+        // 추천 상황 회전은 동기/로컬 → 최소 표시 시간이 지배
+        isRefreshing = false,
+        // 오직 추천 상황만 새로고침(오늘 N분/streak/hero 불변)
+        onRefresh = onRefreshSituations,
         modifier = modifier,
     ) {
         LazyColumn(
@@ -327,7 +342,8 @@ internal fun HomeContent(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .padding(horizontal = OceTheme.spacing.xl),
+                    .padding(horizontal = OceTheme.spacing.xl)
+                    .testTag(HOME_SCROLL_CONTENT_TAG),
             contentPadding =
                 PaddingValues(bottom = OceBottomNavDefaults.overlayContentBottomPadding),
         ) {

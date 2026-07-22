@@ -97,8 +97,7 @@ private class FakeDeepStream : DeepFeedbackStream {
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DeepFeedbackCoordinatorTest {
-    private fun TestScope.coordScope(): CoroutineScope =
-        CoroutineScope(UnconfinedTestDispatcher(testScheduler))
+    private fun TestScope.coordScope(): CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
 
     private fun DeepFeedbackCoordinator.begin() =
         start(

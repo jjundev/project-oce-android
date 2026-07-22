@@ -55,13 +55,19 @@ fun sessionHandoffExit(reduceMotion: Boolean): ExitTransition =
  * 슬라이드([summaryHandoffEnter]), 그 외/`null` 진입은 무전환. (현재 요약 진입 엣지는 하나뿐이나, 미래에 다른 진입
  * 경로가 생겨도 슬라이드가 새지 않도록 명시 게이트.)
  */
-fun summaryEnterFor(sourceRoute: String?, sessionRoute: String, reduceMotion: Boolean): EnterTransition =
-    if (sourceRoute == sessionRoute) summaryHandoffEnter(reduceMotion) else EnterTransition.None
+fun summaryEnterFor(
+    sourceRoute: String?,
+    sessionRoute: String,
+    reduceMotion: Boolean,
+): EnterTransition = if (sourceRoute == sessionRoute) summaryHandoffEnter(reduceMotion) else EnterTransition.None
 
 /**
  * 대화 목적지의 퇴장 전환을 **session→summary 엣지로 한정**한다. 퇴장 타깃([targetRoute])이 [summaryRoute]일 때만
  * 슬라이드([sessionHandoffExit]), 그 외(예: 온보딩의 홈-이동 `navigate(MAIN_TABS)`)는 무전환. 온보딩 session 은
  * 요약 외에도 전진 내비게이션이 있어 이 게이트가 필수다.
  */
-fun sessionExitFor(targetRoute: String?, summaryRoute: String, reduceMotion: Boolean): ExitTransition =
-    if (targetRoute == summaryRoute) sessionHandoffExit(reduceMotion) else ExitTransition.None
+fun sessionExitFor(
+    targetRoute: String?,
+    summaryRoute: String,
+    reduceMotion: Boolean,
+): ExitTransition = if (targetRoute == summaryRoute) sessionHandoffExit(reduceMotion) else ExitTransition.None

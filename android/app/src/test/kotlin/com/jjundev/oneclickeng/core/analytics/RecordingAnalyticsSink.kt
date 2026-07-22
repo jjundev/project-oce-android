@@ -9,7 +9,10 @@ class RecordingAnalyticsSink : AnalyticsSink {
         private set
     val userProperties = mutableMapOf<String, String?>()
 
-    override fun log(event: String, params: Map<String, Any>) {
+    override fun log(
+        event: String,
+        params: Map<String, Any>,
+    ) {
         events.add(Event(event, params))
     }
 
@@ -17,7 +20,10 @@ class RecordingAnalyticsSink : AnalyticsSink {
         this.userId = userId
     }
 
-    override fun setUserProperty(name: String, value: String?) {
+    override fun setUserProperty(
+        name: String,
+        value: String?,
+    ) {
         userProperties[name] = value
     }
 }

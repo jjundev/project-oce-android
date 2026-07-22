@@ -32,15 +32,15 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
-import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 /**
  * 확정된 프로토타입 당겨서-새로고침 애니메이션을 재생하는 재사용 컨테이너.
  * 헤더+리스트가 [content] 로 함께 들어와 한 덩어리로 하강한다. [isRefreshing] 이 true 인 동안 스프링 복귀를 미루고
- * (최소 표시 시간 [OverscrollDefaults.MinVisibleMs] 병행), 완료되면 통통 스프링으로 복귀한다.
+ * (최소 표시 시간 [OverscrollDefaults.MIN_VISIBLE_MS] 병행), 완료되면 통통 스프링으로 복귀한다.
  */
 @Composable
 fun OverscrollRefreshBox(
@@ -61,18 +61,19 @@ fun OverscrollRefreshBox(
         if (state.releaseRequest <= 0) return@LaunchedEffect
         try {
             // (A) 로딩 위치로 스냅
-            state.offset.animateTo(holdPx, tween(OverscrollDefaults.SnapToHoldMs, easing = FastOutSlowInEasing))
+            state.offset.animateTo(holdPx, tween(OverscrollDefaults.SNAP_TO_HOLD_MS, easing = FastOutSlowInEasing))
             // (B) 물결 + 폭죽 + 새로고침 트리거
             currentOnRefresh()
             state.fireBurst()
-            val waveJob = launch {
-                val total = OverscrollDefaults.WaveDurationMs + 8 * OverscrollDefaults.WaveStaggerMs
-                val clock = Animatable(0f)
-                clock.animateTo(total, tween(total.roundToInt(), easing = LinearEasing)) {
-                    state.wave.clockMs = value
+            val waveJob =
+                launch {
+                    val total = OverscrollDefaults.WAVE_DURATION_MS + 8 * OverscrollDefaults.WAVE_STAGGER_MS
+                    val clock = Animatable(0f)
+                    clock.animateTo(total, tween(total.roundToInt(), easing = LinearEasing)) {
+                        state.wave.clockMs = value
+                    }
+                    state.wave.clockMs = -1f
                 }
-                state.wave.clockMs = -1f
-            }
             // (C) 최소 표시 시간 확보 후, 그 시점에 아직 로딩 중이면 완료될 때까지 대기.
             // snapshotFlow 는 collect 시작 시점의 "현재" 값을 즉시 방출한다 — floor 이전에 평가하면
             // caller 의 onRefresh() 가 아직 상태를 true 로 뒤집기 전이라 항상 false 로 즉시 통과해버린다(원래 버그).
@@ -80,14 +81,15 @@ fun OverscrollRefreshBox(
             //  - 홈: isRefreshing 이 항상 false → floor 이후 first{!it} 이 즉시 통과(true 를 먼저 기다리면 영원히 멈춤).
             //  - 기록 탭, 빠른 재조회: floor 시점에 이미 false 로 복귀 → 즉시 통과.
             //  - 기록 탭, 느린 재조회(Firebase): floor 시점에도 아직 true → true→false 전환(로딩 완료)까지 대기.
-            delay(OverscrollDefaults.MinVisibleMs)
+            delay(OverscrollDefaults.MIN_VISIBLE_MS)
             waveJob.join()
             snapshotFlow { currentRefreshing }.first { !it }
             // (D) 통통 스프링 복귀
-            val bounceBackSpring = spring<Float>(
-                dampingRatio = OverscrollDefaults.SpringDampingRatio,
-                stiffness = OverscrollDefaults.SpringStiffness,
-            )
+            val bounceBackSpring =
+                spring<Float>(
+                    dampingRatio = OverscrollDefaults.SPRING_DAMPING_RATIO,
+                    stiffness = OverscrollDefaults.SPRING_STIFFNESS,
+                )
             state.offset.animateTo(0f, bounceBackSpring)
         } finally {
             // onRefresh() 가 던지거나 시퀀스가 취소돼도 busy 는 반드시 리셋된다(무한 대기 방지).
@@ -101,9 +103,10 @@ fun OverscrollRefreshBox(
 
         CompositionLocalProvider(LocalRefreshWave provides state.wave) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { translationY = state.currentPullPx() },
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { translationY = state.currentPullPx() },
                 content = content,
             )
         }
@@ -111,50 +114,60 @@ fun OverscrollRefreshBox(
         // 폭죽은 상단 인디케이터 지점(고정)에서 터진다 — 프로토타입처럼 당김량에 비례해 움직이지 않는다.
         RefreshBurst(
             fireKey = state.burstKey,
-            modifier = Modifier
-                .fillMaxSize()
-                .offset { IntOffset(0, OverscrollDefaults.IndicatorTop.toPx().roundToInt()) },
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .offset { IntOffset(0, OverscrollDefaults.IndicatorTop.toPx().roundToInt()) },
         )
     }
 }
 
 @Composable
-private fun BoxScope.RefreshIndicator(state: OverscrollRefreshState, fadeAtPx: Float, thresholdPx: Float) {
+private fun BoxScope.RefreshIndicator(
+    state: OverscrollRefreshState,
+    fadeAtPx: Float,
+    thresholdPx: Float,
+) {
     val density = LocalDensity.current
     val topPx = with(density) { OverscrollDefaults.IndicatorTop.toPx() }
-    val spin = if (state.busy) {
-        rememberInfiniteTransition(label = "spin").animateFloat(
-            0f, 360f, infiniteRepeatable(tween(900, easing = LinearEasing)), label = "spinAngle",
-        ).value
-    } else {
-        0f
-    }
+    val spin =
+        if (state.busy) {
+            rememberInfiniteTransition(label = "spin").animateFloat(
+                0f,
+                360f,
+                infiniteRepeatable(tween(900, easing = LinearEasing)),
+                label = "spinAngle",
+            ).value
+        } else {
+            0f
+        }
 
     Box(
-        modifier = Modifier
-            .align(Alignment.TopCenter)
-            .offset { IntOffset(0, topPx.roundToInt()) }
-            .graphicsLayer {
-                val pull = state.currentPullPx()
-                alpha = (pull / fadeAtPx).coerceIn(0f, 1f)
-                val p = (pull / thresholdPx).coerceIn(0f, 1f)
-                scaleX = 0.55f + 0.45f * p
-                scaleY = scaleX
-                rotationZ = spin
-            }
-            .size(OverscrollDefaults.IndicatorSize)
-            .clip(CircleShape)
-            .drawBehind {
-                drawCircle(color = Color(0xFFE5E8EB))
-                if (state.busy) {
-                    drawArc(
-                        color = Color(0xFFC6CDD5),
-                        startAngle = -90f,
-                        sweepAngle = 90f,
-                        useCenter = false,
-                        style = Stroke(width = size.width * 0.08f),
-                    )
+        modifier =
+            Modifier
+                .align(Alignment.TopCenter)
+                .offset { IntOffset(0, topPx.roundToInt()) }
+                .graphicsLayer {
+                    val pull = state.currentPullPx()
+                    alpha = (pull / fadeAtPx).coerceIn(0f, 1f)
+                    val p = (pull / thresholdPx).coerceIn(0f, 1f)
+                    scaleX = 0.55f + 0.45f * p
+                    scaleY = scaleX
+                    rotationZ = spin
                 }
-            },
+                .size(OverscrollDefaults.IndicatorSize)
+                .clip(CircleShape)
+                .drawBehind {
+                    drawCircle(color = Color(0xFFE5E8EB))
+                    if (state.busy) {
+                        drawArc(
+                            color = Color(0xFFC6CDD5),
+                            startAngle = -90f,
+                            sweepAngle = 90f,
+                            useCenter = false,
+                            style = Stroke(width = size.width * 0.08f),
+                        )
+                    }
+                },
     )
 }

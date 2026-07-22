@@ -25,7 +25,7 @@ class RefreshWaveTest {
     @Test fun translationY_laterIndexIsDelayed() {
         val state = RefreshWaveState()
         // clock at the first item's peak time (0.32 * 520ms ≈ 166ms)
-        state.clockMs = 0.32f * OverscrollDefaults.WaveDurationMs
+        state.clockMs = 0.32f * OverscrollDefaults.WAVE_DURATION_MS
         val first = state.translationYPx(index = 0, amplitudePx = 11f)
         val third = state.translationYPx(index = 2, amplitudePx = 11f)
         assertTrue("item 0 is near its peak", first > 9f)

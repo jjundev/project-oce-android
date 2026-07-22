@@ -3,18 +3,22 @@ package com.jjundev.oneclickeng.feature.session.turn
 // The feature.session.turn package declares its OWN unrelated `DialogueTurn`
 // (SampleDialogue.kt), so the network turn MUST be import-aliased — matching the
 // sibling tests (GeneratedDialogueStateTest, OpponentSkeletonFloorTest, SessionTurnSnapshotTest).
-import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import com.jjundev.oneclickeng.core.network.DialogueTurn as NetworkDialogueTurn
 
 class NextOpponentLineTest {
     private val turns =
         listOf(
-            NetworkDialogueTurn(ko = "안녕", en = "Hello", role = "model"), // 0 = opponent #0
-            NetworkDialogueTurn(ko = "나 좋아", en = "I am good", role = "user"), // 1 = learner
-            NetworkDialogueTurn(ko = "잘가", en = "Goodbye", role = "model"), // 2 = opponent #1
-            NetworkDialogueTurn(ko = "응", en = "Bye", role = "user"), // 3 = learner
+            // 0 = opponent #0
+            NetworkDialogueTurn(ko = "안녕", en = "Hello", role = "model"),
+            // 1 = learner
+            NetworkDialogueTurn(ko = "나 좋아", en = "I am good", role = "user"),
+            // 2 = opponent #1
+            NetworkDialogueTurn(ko = "잘가", en = "Goodbye", role = "model"),
+            // 3 = learner
+            NetworkDialogueTurn(ko = "응", en = "Bye", role = "user"),
         )
 
     @Test

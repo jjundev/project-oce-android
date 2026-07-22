@@ -10,7 +10,11 @@ import javax.inject.Inject
  * (same encoding as FirebaseHistoryAnalytics). PII: only session_id/surface enum/card_type enum.
  */
 interface SavedCardAnalytics {
-    fun savedCardCreate(sessionId: String, surface: String, cardType: CardType)
+    fun savedCardCreate(
+        sessionId: String,
+        surface: String,
+        cardType: CardType,
+    )
 
     companion object {
         const val SURFACE_SUMMARY = "summary"
@@ -22,7 +26,11 @@ interface SavedCardAnalytics {
 class NoOpSavedCardAnalytics
     @Inject
     constructor() : SavedCardAnalytics {
-        override fun savedCardCreate(sessionId: String, surface: String, cardType: CardType) = Unit
+        override fun savedCardCreate(
+            sessionId: String,
+            surface: String,
+            cardType: CardType,
+        ) = Unit
     }
 
 /** Firebase dispatch via the shared [AnalyticsSink] (M4-01a). */
@@ -31,9 +39,12 @@ class FirebaseSavedCardAnalytics
     constructor(
         private val sink: AnalyticsSink,
     ) : SavedCardAnalytics {
-        override fun savedCardCreate(sessionId: String, surface: String, cardType: CardType) =
-            sink.log(
-                "saved_card_create",
-                mapOf("session_id" to sessionId, "surface" to surface, "card_type" to cardType.wire),
-            )
+        override fun savedCardCreate(
+            sessionId: String,
+            surface: String,
+            cardType: CardType,
+        ) = sink.log(
+            "saved_card_create",
+            mapOf("session_id" to sessionId, "surface" to surface, "card_type" to cardType.wire),
+        )
     }

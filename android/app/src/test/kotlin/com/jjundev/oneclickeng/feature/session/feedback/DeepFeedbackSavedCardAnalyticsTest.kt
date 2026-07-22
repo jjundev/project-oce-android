@@ -11,7 +11,6 @@ import com.jjundev.oneclickeng.core.network.ToneStyleDto
 import com.jjundev.oneclickeng.core.network.VennCircleDto
 import com.jjundev.oneclickeng.core.network.VennDto
 import com.jjundev.oneclickeng.core.network.VennIntersectionDto
-import com.jjundev.oneclickeng.feature.session.analytics.NoOpSavedCardAnalytics
 import com.jjundev.oneclickeng.feature.session.analytics.RecordingSavedCardAnalytics
 import com.jjundev.oneclickeng.feature.session.analytics.SavedCardAnalytics
 import com.jjundev.oneclickeng.feature.session.saved.CardType
@@ -52,12 +51,10 @@ class DeepFeedbackSavedCardAnalyticsTest {
     /** Mirrors `DeepFeedbackCoordinatorTest`'s construction, threading [savedCardAnalytics] into the
      * (now +1-arg) constructor. Ties the coordinator's internal scope to this [TestScope]'s scheduler so
      * [runCurrent] here actually advances it (mirrors `DeepFeedbackCoordinatorTest.coordScope()`). */
-    private fun TestScope.newDeepCoordinator(
-        savedCardAnalytics: SavedCardAnalytics = NoOpSavedCardAnalytics(),
-    ): DeepFeedbackCoordinator {
+    private fun TestScope.newCoordinator(saved: SavedCardAnalytics): DeepFeedbackCoordinator {
         stream = SavedCardAnalyticsDeepStream()
         val scope: CoroutineScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler))
-        return DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), scope, savedCardAnalytics)
+        return DeepFeedbackCoordinator(stream, FakeSavedCardRepository(), scope, saved)
     }
 
     /** Drives [coordinator] to a Ready state carrying paraphrases for [sessionId] (mirrors
@@ -116,7 +113,7 @@ class DeepFeedbackSavedCardAnalyticsTest {
     fun `bookmarking a paraphrase logs one saved_card_create deep_feedback SENTENCE, unbookmark logs nothing`() =
         runTest {
             val saved = RecordingSavedCardAnalytics()
-            val coordinator = newDeepCoordinator(savedCardAnalytics = saved)
+            val coordinator = newCoordinator(saved = saved)
             val paraphrase = driveToDeepReadyWithParaphrase(coordinator, sessionId = "s1")
             coordinator.toggleBookmark(paraphrase) // added -> logs
             coordinator.toggleBookmark(paraphrase) // remove -> no log

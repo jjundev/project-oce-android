@@ -15,7 +15,6 @@ import com.jjundev.oneclickeng.feature.session.analytics.NoOpSessionFunnelAnalyt
 import com.jjundev.oneclickeng.feature.session.analytics.RecordingSessionFunnelAnalytics
 import com.jjundev.oneclickeng.feature.session.feedback.TurnFeedbackBuffer
 import com.jjundev.oneclickeng.feature.session.saved.FakeSavedCardRepository
-import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -23,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.time.LocalDate
 
 // Prefixed `SessionComplete*` — top-level `private` classes still collide by name across files in the
 // same package in Kotlin, and `SummaryCoordinatorTest.kt` already declares `FakeSummaryStream` etc.

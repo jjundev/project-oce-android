@@ -29,7 +29,10 @@ class GoogleReauthActionsScreenshotTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun capture(name: String, dark: Boolean) {
+    private fun capture(
+        name: String,
+        dark: Boolean,
+    ) {
         composeRule.setContent {
             OceTheme(darkTheme = dark) {
                 Surface(color = MaterialTheme.colorScheme.background) {

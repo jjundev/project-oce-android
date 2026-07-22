@@ -1,10 +1,17 @@
 package com.jjundev.oneclickeng.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.jjundev.oneclickeng.feature.home.HomeScreen
 import com.jjundev.oneclickeng.feature.records.RecordsScreen
 import com.jjundev.oneclickeng.feature.settings.SettingsScreen
@@ -25,6 +32,18 @@ fun OceNavHost(
     onEnterReview: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
+    var previousRoute by remember { mutableStateOf<String?>(null) }
+    var homeVisitCounter by remember { mutableIntStateOf(0) }
+    var settingsVisitCounter by remember { mutableIntStateOf(0) }
+    LaunchedEffect(currentRoute) {
+        homeVisitCounter = nextTabVisitCounter(previousRoute, currentRoute, OceTab.Home.route, homeVisitCounter)
+        settingsVisitCounter =
+            nextTabVisitCounter(previousRoute, currentRoute, OceTab.Settings.route, settingsVisitCounter)
+        previousRoute = currentRoute
+    }
+
     NavHost(
         navController = navController,
         startDestination = OceTab.Start.route,
@@ -45,9 +64,24 @@ fun OceNavHost(
                         popUpTo(navController.graph.startDestinationId) { inclusive = false }
                     }
                 },
+                scrollResetKey = homeVisitCounter,
             )
         }
         composable(OceTab.Records.route) { RecordsScreen(onEnterReview = onEnterReview) }
-        composable(OceTab.Settings.route) { SettingsScreen() }
+        composable(OceTab.Settings.route) {
+            SettingsScreen(scrollResetKey = settingsVisitCounter)
+        }
     }
 }
+
+internal fun nextTabVisitCounter(
+    previousRoute: String?,
+    currentRoute: String?,
+    targetRoute: String,
+    currentCounter: Int,
+): Int =
+    if (currentRoute == targetRoute && previousRoute != currentRoute) {
+        currentCounter + 1
+    } else {
+        currentCounter
+    }

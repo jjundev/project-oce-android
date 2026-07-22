@@ -16,8 +16,9 @@ import javax.inject.Singleton
  * 익명 사인인이 아직 진행 중) [AuthRepository.ensureSignedIn] 으로 대기한다(멱등·single-flight). 사인인이
  * 실패하면(오프라인 첫 실행 등) null 로 강등해 호출부가 빈 페이지로 degrade 하게 한다 — 표시 전용.
  */
-internal suspend fun AuthRepository.uidForSavedCardRead(): String? =
-    currentUid ?: runCatching { ensureSignedIn() }.getOrNull()
+internal suspend fun AuthRepository.uidForSavedCardRead(): String? {
+    return currentUid ?: runCatching { ensureSignedIn() }.getOrNull()
+}
 
 /** 기록 탭이 다루는 저장 카드 1건 = 문서 id([cardId]) + 타입별 도메인 content([card]). */
 data class SavedCardEntry(
@@ -78,8 +79,9 @@ class FirestoreSavedCardQuerySource
             after: DocumentSnapshot?,
             limit: Int,
         ): SavedCardPage {
-            val uid = authRepository.uidForSavedCardRead()
-                ?: return SavedCardPage(emptyList(), null, endReached = true)
+            val uid =
+                authRepository.uidForSavedCardRead()
+                    ?: return SavedCardPage(emptyList(), null, endReached = true)
             return try {
                 var query: Query =
                     firestore

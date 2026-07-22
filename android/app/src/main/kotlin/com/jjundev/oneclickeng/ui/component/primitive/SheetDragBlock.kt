@@ -32,10 +32,16 @@ internal fun Modifier.blockSheetDrag(): Modifier {
     val consumeLeftover =
         remember {
             object : NestedScrollConnection {
-                override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset =
-                    available
+                override fun onPostScroll(
+                    consumed: Offset,
+                    available: Offset,
+                    source: NestedScrollSource,
+                ): Offset = available
 
-                override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity = available
+                override suspend fun onPostFling(
+                    consumed: Velocity,
+                    available: Velocity,
+                ): Velocity = available
             }
         }
     val noOpDrag = rememberDraggableState { /* no-op: 시트 이동 없음 */ }
