@@ -32,7 +32,7 @@
 - Modify: `android/gradlew`, `android/gradlew.bat`, `android/gradle/wrapper/gradle-wrapper.jar` — regenerate wrapper launchers/checksum using the Gradle wrapper task; do not edit the JAR by hand.
 - Modify: `android/settings.gradle.kts` — remove the now-unused Foojay toolchain resolver convention after the Kotlin-specific toolchain configuration is removed.
 - Modify: `android/build.gradle.kts` — remove the root `kotlin-android` plugin alias while retaining application, Compose, Hilt, KSP, analysis, and Google Services plugins; the serialization plugin remains intentionally declared only in `:app`.
-- Modify: `android/app/build.gradle.kts` — remove the module `kotlin-android` plugin and Kotlin JVM-toolchain block; exclude debug-only Compose manifest tests from the release unit-test variant; replace legacy R8 configuration with AGP 9.3's release `optimization` block.
+- Modify: `android/app/build.gradle.kts` — remove the module `kotlin-android` plugin, Kotlin JVM-toolchain block, and obsolete release-unit-test exclusion block; replace legacy R8 configuration with AGP 9.3's release `optimization` block.
 - Modify: `android/gradle.properties` — keep existing AndroidX/Gradle settings, explicitly avoid AGP 8-only resource-shrinker properties, and document AGP 9's built-in-Kotlin/new-DSL policy.
 - Delete: `android/app/proguard-rules.pro` — it has no directives and AGP 9.3's optimization DSL no longer consumes a default ProGuard input list.
 - Modify: `scripts/verify-android.sh` — include the AGP 9.3 R8 configuration analyzer and optimized release assembly in the default isolated verification set.
@@ -41,7 +41,7 @@
 
 ## Decision Checkpoint
 
-No execution-level decision remains. The user requested the upgrade; Android's current official stable release is AGP `9.3.0`, which requires Gradle `9.5.0` and JDK `17`. The module is not KMP, contains no custom `applicationVariants`/`BaseExtension` build logic, uses KSP rather than kapt, and already targets Java 17. Hilt `2.56.2` was found to depend on AGP's removed `BaseExtension`, so Hilt is raised to `2.60.1`, which retains AGP 9 support. The pre-existing release test failures are all `createComposeRule()` tests without the debug-only Compose test manifest, so their classes join the existing release-only exclusion list. Those facts make a direct built-in-Kotlin migration preferable to AGP 9's temporary legacy opt-outs.
+No execution-level decision remains. The user requested the upgrade; Android's current official stable release is AGP `9.3.0`, which requires Gradle `9.5.0` and JDK `17`. The module is not KMP, contains no custom `applicationVariants`/`BaseExtension` build logic, uses KSP rather than kapt, and already targets Java 17. Hilt `2.56.2` was found to depend on AGP's removed `BaseExtension`, so Hilt is raised to `2.60.1`, which retains AGP 9 support. The pre-existing 11 release unit-test failures are all `createComposeRule()` tests without the debug-only Compose test manifest. AGP 9.3 does not create a `testReleaseUnitTest` task for this app, and all 11 methods pass in the generated debug unit-test variant. Remove the now-dead release exclusion block; use the complete debug suite for unit behavior and `analyzeReleaseR8Config` plus `assembleRelease` for release verification. Those facts make a direct built-in-Kotlin migration preferable to AGP 9's temporary legacy opt-outs.
 
 ### Task 1: Upgrade the build toolchain and migrate to built-in Kotlin
 
@@ -53,7 +53,7 @@ No execution-level decision remains. The user requested the upgrade; Android's c
 - Modify: `android/gradle/wrapper/gradle-wrapper.jar`
 - Modify: `android/settings.gradle.kts:1-27`
 - Modify: `android/build.gradle.kts:1-12`
-- Modify: `android/app/build.gradle.kts:1-10,88-160`
+- Modify: `android/app/build.gradle.kts:1-10,88-143`
 
 **Interfaces:**
 - Consumes: the current one-module Android build, JDK 17 CI configuration, KSP Hilt processors, Compose compiler plugin, Kotlin serialization compiler plugin, and Gradle version catalog.
@@ -63,10 +63,10 @@ No execution-level decision remains. The user requested the upgrade; Android's c
 
   ```bash
   rg -n 'applicationVariants|libraryVariants|testVariants|unitTestVariants|BaseExtension|CommonExtension|android\.newDsl|android\.builtInKotlin|kapt' android --glob '*.gradle.kts' --glob '*.gradle' --glob '*.toml'
-  scripts/verify-android.sh :app:assembleDebug :app:testDebugUnitTest :app:testReleaseUnitTest
+  scripts/verify-android.sh :app:assembleDebug :app:testDebugUnitTest
   ```
 
-  Expected: the search returns only no matches; the three baseline Gradle tasks are `BUILD SUCCESSFUL`. If a match appears, record its exact file/line and migrate it to the public AGP 9 API before continuing; do not add either legacy opt-out property.
+  Expected: the search returns only no matches and the two debug baseline Gradle tasks are `BUILD SUCCESSFUL`. Before migration, record the known 11 `testReleaseUnitTest` Compose-manifest failures as diagnostic context only; this AGP 8-only task is not a post-migration gate. If a match appears, record its exact file/line and migrate it to the public AGP 9 API before continuing; do not add either legacy opt-out property.
 
 - [ ] **Step 2: Regenerate the Gradle Wrapper before changing AGP**
 
@@ -166,29 +166,20 @@ No execution-level decision remains. The user requested the upgrade; Android's c
 
   Expected: `:wrapper` is `BUILD SUCCESSFUL` and the wrapper files listed in this task are generated by the target toolchain.
 
-- [ ] **Step 5: Repair the pre-existing release-only Compose test exclusions**
+- [ ] **Step 5: Remove the dead release-unit-test exclusion block and preserve the affected test coverage**
 
-  The baseline has 11 release unit-test failures. Each failed class uses `createComposeRule()`, while `compose-ui-test-manifest` is intentionally available only to debug; release Robolectric therefore cannot resolve `ComponentActivity`. Keep these tests enabled in debug and append only these class patterns to the existing `if (name.contains("Release", ignoreCase = true)) { exclude(...) }` list:
-
-  ```kotlin
-  "**/OceBottomNavScrollStateTest*",
-  "**/TopicSelectVisibilityTest*",
-  "**/ChatBubbleReplayButtonTest*",
-  "**/DialogueTurnPlayingIndicatorTest*",
-  "**/HomeScrollResetTest*",
-  ```
-
-  Do not move `compose-ui-test-manifest` into a release dependency and do not exclude any non-Compose test. The existing comment above the list remains the source-of-truth policy for future `createComposeRule()` tests.
+  AGP 9.3 creates `testDebugUnitTest` but no `testReleaseUnitTest` task for this application. Remove the complete `if (name.contains("Release", ignoreCase = true)) { exclude(...) }` block and its stale Compose-manifest comment from `android/app/build.gradle.kts`; it can no longer affect a generated task. Do not move `compose-ui-test-manifest` into a release dependency and do not exclude any test. Confirm the five formerly failing classes run as 11 passing methods in the debug test XML: `OceBottomNavScrollStateTest` (1), `TopicSelectVisibilityTest` (1), `ChatBubbleReplayButtonTest` (5), `DialogueTurnPlayingIndicatorTest` (3), and `HomeScrollResetTest` (1).
 
 - [ ] **Step 6: Prove the AGP 9 built-in-Kotlin migration before changing R8 behavior**
 
   ```bash
-  scripts/verify-android.sh :app:assembleDebug :app:compileDebugAndroidTestKotlin :app:testDebugUnitTest :app:testReleaseUnitTest
+  scripts/verify-android.sh :app:assembleDebug :app:compileDebugAndroidTestKotlin :app:testDebugUnitTest
   rg -n 'agp = "9.3.0"|kotlin = "2.3.21"|ksp = "2.3.9"|hilt = "2.60.1"' android/gradle/libs.versions.toml
   ! rg -n 'kotlin-android|libs\.plugins\.kotlin\.android' android/build.gradle.kts android/app/build.gradle.kts android/gradle/libs.versions.toml
+  ! (cd android && ./gradlew :app:tasks --all | rg -q 'testReleaseUnitTest')
   ```
 
-  Expected: all verification tasks are `BUILD SUCCESSFUL`; the catalog command prints exactly the four pinned versions; and the negative search succeeds without output. No `Cannot add extension with name 'kotlin'`, `org.jetbrains.kotlin.android`, or Hilt `BaseExtension` error may appear. A plugin compatibility error is a stop-the-line toolchain failure: record its exact plugin and version in the issue tracker, retain the AGP 9.3/built-in-Kotlin configuration, and do not introduce `android.builtInKotlin=false` or `android.newDsl=false` as a workaround.
+  Expected: all verification tasks are `BUILD SUCCESSFUL`; the catalog command prints exactly the four pinned versions; both negative searches succeed without output; and the 11 Compose methods run in debug with no failures. No `Cannot add extension with name 'kotlin'`, `org.jetbrains.kotlin.android`, or Hilt `BaseExtension` error may appear. A plugin compatibility error is a stop-the-line toolchain failure: record its exact plugin and version in the issue tracker, retain the AGP 9.3/built-in-Kotlin configuration, and do not introduce `android.builtInKotlin=false` or `android.newDsl=false` as a workaround.
 
 - [ ] **Step 7: Commit the toolchain migration**
 
@@ -248,7 +239,7 @@ No execution-level decision remains. The user requested the upgrade; Android's c
 - [ ] **Step 4: Run the optimized release regression cycle and R8 configuration analysis**
 
   ```bash
-  scripts/verify-android.sh :app:testReleaseUnitTest :app:analyzeReleaseR8Config :app:assembleRelease
+  scripts/verify-android.sh :app:analyzeReleaseR8Config :app:assembleRelease
   test -s android/app/build/outputs/mapping/release/mapping.txt
   find android/app/build/outputs/apk/release -type f -name '*.apk' -size +0c -print -quit | grep -q .
   ```
@@ -292,7 +283,6 @@ No execution-level decision remains. The user requested the upgrade; Android's c
       :app:detekt
       :app:compileDebugAndroidTestKotlin
       :app:testDebugUnitTest
-      :app:testReleaseUnitTest
       :app:analyzeReleaseR8Config
       :app:assembleRelease
     )
@@ -306,14 +296,14 @@ No execution-level decision remains. The user requested the upgrade; Android's c
   test -s android/app/build/outputs/mapping/release/mapping.txt
   ```
 
-  Expected: detekt, debug Android-test compilation, debug/release unit tests, standalone R8 configuration analysis, and optimized release assembly are `BUILD SUCCESSFUL`; a non-empty release mapping exists.
+  Expected: detekt, debug Android-test compilation, debug unit tests, standalone R8 configuration analysis, and optimized release assembly are `BUILD SUCCESSFUL`; a non-empty release mapping exists.
 
 - [ ] **Step 3: Update Android CI to exercise the AGP 9.3 release path**
 
   In `.github/workflows/android-ci.yml`, replace the existing Gradle invocation in the “Assemble, unit test, lint, static analysis” step with:
 
   ```yaml
-  run: ./gradlew assembleDebug assembleRelease testDebugUnitTest testReleaseUnitTest analyzeReleaseR8Config lint detekt ktlintCheck
+  run: ./gradlew assembleDebug assembleRelease testDebugUnitTest analyzeReleaseR8Config lint detekt ktlintCheck
   ```
 
   Retain the existing prior redacted `app/google-services.json` generation step exactly as-is; it permits Gradle configuration but must never be used for Firebase runtime tests.
@@ -332,7 +322,7 @@ No execution-level decision remains. The user requested the upgrade; Android's c
 - [ ] **Step 5: Run the CI-equivalent verification set locally**
 
   ```bash
-  scripts/verify-android.sh :app:assembleDebug :app:assembleRelease :app:testDebugUnitTest :app:testReleaseUnitTest :app:analyzeReleaseR8Config :app:lint :app:detekt :app:ktlintCheck
+  scripts/verify-android.sh :app:assembleDebug :app:assembleRelease :app:testDebugUnitTest :app:analyzeReleaseR8Config :app:lint :app:detekt :app:ktlintCheck
   test -s android/app/build/outputs/mapping/release/mapping.txt
   find android/app/build/outputs/apk/release -type f -name '*.apk' -size +0c -print -quit | grep -q .
   ```
