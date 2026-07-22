@@ -65,7 +65,13 @@ echo "▶ GRADLE_USER_HOME=$GRADLE_USER_HOME (워크트리 격리)"
 #    (DialogueTurnScreen.kt import 정렬)이 있어 항상 실패하기 때문(내 변경과 무관).
 TASKS=("$@")
 if [[ ${#TASKS[@]} -eq 0 ]]; then
-  TASKS=(:app:detekt :app:compileDebugAndroidTestKotlin :app:testDebugUnitTest :app:testReleaseUnitTest)
+  TASKS=(
+    :app:detekt
+    :app:compileDebugAndroidTestKotlin
+    :app:testDebugUnitTest
+    :app:analyzeReleaseR8Config
+    :app:assembleRelease
+  )
 fi
 
 echo "▶ (cd android) ./gradlew --no-build-cache ${TASKS[*]}"

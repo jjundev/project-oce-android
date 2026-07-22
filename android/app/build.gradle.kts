@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
@@ -49,14 +48,12 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            optimization {
+                enable = true
+            }
             if (releaseSigningConfigured) {
                 signingConfig = signingConfigs.getByName("release")
             }
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
-            )
         }
     }
 
@@ -85,62 +82,11 @@ android {
     }
 }
 
-// 로컬 JDK 가 21 이어도 JDK 17 타깃으로 컴파일한다(툴체인은 settings 의 foojay-resolver 가 프로비저닝).
-kotlin {
-    jvmToolchain(17)
-}
-
 // Roborazzi 스크린샷 기록 스위치 — `-Proborazzi.record` 를 주면 captureRoboImage 가 PNG 를 기록한다.
 // 프로퍼티가 없으면 기본(비교) 동작이라 일반 단위테스트 실행에는 영향이 없다.
 tasks.withType<Test>().configureEach {
     if (project.hasProperty("roborazzi.record")) {
         systemProperty("roborazzi.test.record", "true")
-    }
-    // createComposeRule 을 쓰는 단위테스트(스크린샷 캡처 포함)는 compose-ui-test-manifest 가
-    // debug 매니페스트에만 병합돼 release 단위테스트에서 ComponentActivity 를 못 찾는다
-    // → release 변이에선 전부 제외(디버그 전용). 새 createComposeRule 테스트를 추가하면 여기에도 등록할 것.
-    if (name.contains("Release", ignoreCase = true)) {
-        exclude(
-            "**/*ScreenshotTest*",
-            "**/RecordsScreenRefreshTest*",
-            "**/SlimFeedbackSheetTest*",
-            "**/ConceptualBridgeLegendTest*",
-            "**/ConceptualBridgeInsideModeTest*",
-            "**/HomeHeroRevealTest*",
-            "**/HomeSituationsSkeletonTest*",
-            "**/MainTabsOverlayTest*",
-            "**/OneClickBottomSheetExpandTest*",
-            "**/OneClickConfirmSheetTest*",
-            "**/ReminderTimeSheetDragHandleTest*",
-            "**/TopicSelectDragBlockTest*",
-            "**/GoogleSaveActionsTest*",
-            "**/MicDockTogglePositionTest*",
-            "**/MicDockCancelSpeakingTest*",
-            "**/DeepFeedbackRegionTest*",
-            "**/SummaryScrollEndGateTest*",
-            "**/SummaryScrollFabTest*",
-            "**/SummaryInteractionTest*",
-            "**/SummaryHandoffDelayTest*",
-            "**/OpponentSkeletonFloorTest*",
-            "**/HomeSettingsChipTest*",
-            "**/HomeSettingsSliderTest*",
-            "**/HomeSituationTapTest*",
-            "**/HomeStatsStripTest*",
-            "**/OneClickCountUpFormatTest*",
-            "**/RecordsTitleBarTest*",
-            "**/DialogueExitGuardTest*",
-            "**/DialogueHeaderProgressTest*",
-            "**/AppExitGuardTest*",
-            "**/RecordsDeleteDialogTest*",
-            "**/ReviewFlowBehaviorTest*",
-            "**/DialogueTranslationToggleTest*",
-            "**/OverscrollRefreshBoxTest*",
-            "**/HomePullRefreshTest*",
-            "**/RecordsScreenPullRefreshTest*",
-            "**/RecordsSkeletonTest*",
-            "**/RecordsSkeletonMinHoldTest*",
-            "**/OneClickUpdateGateTest*",
-        )
     }
 }
 
