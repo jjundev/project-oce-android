@@ -1,9 +1,9 @@
 package com.jjundev.oneclickeng.feature.settings
 
 import android.app.Application
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface

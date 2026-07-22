@@ -77,6 +77,7 @@ fun AppRoot(
     onNavConsumed: () -> Unit = {},
 ) {
     if (startRoute == null) {
+        val bootAuthStateViewModel = hiltViewModel<BootAuthStateViewModel>()
         val updateGateViewModel = hiltViewModel<UpdateGateViewModel>()
         val updateGateState by updateGateViewModel.state.collectAsStateWithLifecycle()
         val updateContext = LocalContext.current
@@ -105,7 +106,7 @@ fun AppRoot(
         }
         when (updateGateState) {
             UpdateGateState.Checking -> {
-                BootSplash()
+                BootSplash(isAnonymous = bootAuthStateViewModel.isAnonymous)
                 return
             }
             UpdateGateState.Required -> {
@@ -134,7 +135,7 @@ fun AppRoot(
 
     if (resolvedStart == null) {
         when (bootState) {
-            BootState.Loading -> BootSplash()
+            BootState.Loading -> BootSplash(isAnonymous = appViewModel.isAnonymous)
             BootState.AuthFailed ->
                 OneClickBlockingGate(
                     surface = BlockingGateSurface.Auth,
@@ -189,9 +190,10 @@ fun AppRoot(
     }
 }
 
-/** 부트 게이트 대기 화면 — 로그인 중 로딩 표면. boot 확정 시 NavHost 로 교체된다. */
+/** 부트 게이트 대기 화면 — 계정 상태에 맞춘 로딩 표면. boot 확정 시 NavHost 로 교체된다. */
 @Composable
-private fun BootSplash() {
+private fun BootSplash(isAnonymous: Boolean) {
+    val loadingCopy = bootLoadingCopyFor(isAnonymous)
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
@@ -200,15 +202,34 @@ private fun BootSplash() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
         ) {
-            OneClickAppLoadingIndicator(contentDescription = "로그인 하는 중")
+            OneClickAppLoadingIndicator(contentDescription = loadingCopy.contentDescription)
             Text(
-                text = "로그인 하는 중이에요...",
+                text = loadingCopy.text,
                 style = OceTheme.typography.helper,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
 }
+
+/** Account-aware copy shared by update-check and regular-bootstrap splash renders. */
+internal fun bootLoadingCopyFor(isAnonymous: Boolean): BootLoadingCopy =
+    if (isAnonymous) {
+        BootLoadingCopy(
+            text = "잠시만 기다려주세요...",
+            contentDescription = "앱 준비 중",
+        )
+    } else {
+        BootLoadingCopy(
+            text = "로그인 하는 중이에요...",
+            contentDescription = "로그인 하는 중",
+        )
+    }
+
+internal data class BootLoadingCopy(
+    val text: String,
+    val contentDescription: String,
+)
 
 /**
  * 3탭 셸(F8). [MainTabsOverlay]가 플로팅 오버레이를 소유하고 [OceNavHost]는 탭 뷰포트를 채우며,
