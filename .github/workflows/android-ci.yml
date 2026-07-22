@@ -70,4 +70,9 @@ jobs:
       # A3: 유닛 테스트(testDebugUnitTest)를 게이트에 포함해 src/test 예시 테스트가 실제로 실행되게 한다.
       # 계측 테스트(androidTest)는 에뮬레이터가 필요하므로 CI 게이트에서 제외(로컬 스모크).
       - name: Assemble, unit test, lint, static analysis
-        run: ./gradlew assembleDebug testDebugUnitTest lint detekt ktlintCheck
+        run: ./gradlew assembleDebug assembleRelease testDebugUnitTest analyzeReleaseR8Config lint detekt ktlintCheck
+
+      - name: Verify optimized release outputs
+        run: |
+          test -s app/build/outputs/mapping/release/mapping.txt
+          find app/build/outputs/apk/release -type f -name '*.apk' -size +0c -print -quit | grep -q .
