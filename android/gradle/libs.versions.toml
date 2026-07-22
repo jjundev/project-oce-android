@@ -1,8 +1,8 @@
 [versions]
-# 빌드 툴 (사용자 확정 #17 — archive 와 동일 라인)
-agp = "8.13.2"
-kotlin = "2.1.20"
-ksp = "2.1.20-2.0.1"
+# Build tools: AGP 9.3 requires Gradle 9.5 and JDK 17.
+agp = "9.3.0"
+kotlin = "2.3.21"
+ksp = "2.3.9"
 hilt = "2.56.2"
 
 # AndroidX / Compose
@@ -121,7 +121,6 @@ roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
