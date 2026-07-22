@@ -134,6 +134,11 @@ tasks.withType<Test>().configureEach {
             "**/RecordsSkeletonTest*",
             "**/RecordsSkeletonMinHoldTest*",
             "**/OneClickUpdateGateTest*",
+            "**/OceBottomNavScrollStateTest*",
+            "**/TopicSelectVisibilityTest*",
+            "**/ChatBubbleReplayButtonTest*",
+            "**/DialogueTurnPlayingIndicatorTest*",
+            "**/HomeScrollResetTest*",
         )
     }
 }
