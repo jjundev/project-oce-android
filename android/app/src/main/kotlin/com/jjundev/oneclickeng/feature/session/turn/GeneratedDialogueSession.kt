@@ -133,8 +133,8 @@ fun GeneratedDialogueSessionRoute(
                 )
             },
             onReplay = { text -> viewModel.replayOpponent(text) },
-            // 상대 발화자 이름을 말풍선에 반영. 미배정(초기·sessionId 미도착)이면 "Emma" 폴백.
-            opponentSpeaker = viewModel.opponentSpeaker?.name ?: "Emma",
+            // Avatar and TTS voice use the same session-assigned gender.
+            opponentSpeaker = viewModel.opponentSpeaker ?: DEFAULT_OPPONENT_SPEAKER,
             // 자기 녹음 재생: 어떤 학습자 말풍선에 버튼을 띄울지 + 탭 시 그 순번 클립 재생.
             learnerClipIndices = viewModel.learnerClipIndices,
             onPlayLearnerClip = { index -> viewModel.playLearnerClip(index) },
@@ -216,7 +216,7 @@ class GeneratedDialogueSessionViewModel
         /**
          * 이 세션의 상대 발화자(로컬 [SpeakerDirectory] 배정). sessionId 가 처음 알려질 때 1회 배정하고,
          * 배정은 sessionId 결정적이라 복원 시 [seedFrom] 이 동일 발화자를 재도출한다(영속 불필요).
-         * Route 가 이름을 말풍선에, [speakOpponent]/[replayOpponent] 가 성별을 TTS 에 쓴다.
+         * Route 와 [speakOpponent]/[replayOpponent] 가 같은 완전한 [Speaker] 신원을 각각 아바타와 TTS 에 쓴다.
          */
         var opponentSpeaker by mutableStateOf<Speaker?>(null)
             private set
@@ -887,8 +887,8 @@ internal fun GeneratedDialogueSessionContent(
     dock: (@Composable (ScaffoldTask) -> Unit)? = null,
     // 상대역 말풍선 "다시 듣기" 콜백(발화 텍스트 전달). 미주입이면 no-op(프리뷰·테스트 호환).
     onReplay: (String) -> Unit = {},
-    // 상대역 화자명(로컬 SpeakerDirectory 배정). 미주입(프리뷰·테스트)이면 "Emma" 고정(스크린샷 계약 유지).
-    opponentSpeaker: String = "Emma",
+    // 상대역 화자(로컬 SpeakerDirectory 배정). 미주입(프리뷰·테스트)이면 Emma 여성 고정(스크린샷 계약 유지).
+    opponentSpeaker: Speaker = DEFAULT_OPPONENT_SPEAKER,
     // 자기 녹음이 있는 학습자 말풍선 순번 집합. 미주입(프리뷰·테스트)이면 빈 집합(버튼 없음, 스크린샷 계약 유지).
     learnerClipIndices: Set<Int> = emptySet(),
     // 학습자 말풍선 스피커 탭 콜백. 미주입이면 no-op.

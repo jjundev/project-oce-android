@@ -1,6 +1,7 @@
 package com.jjundev.oneclickeng.feature.session.turn
 
 import android.content.res.Configuration
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,6 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -32,6 +35,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jjundev.oneclickeng.R
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
 import com.jjundev.oneclickeng.ui.theme.OceTheme
@@ -170,7 +174,7 @@ fun LearnerTurn(
 fun OpponentTurn(
     text: String,
     modifier: Modifier = Modifier,
-    speaker: String = "Emma",
+    speaker: Speaker = DEFAULT_OPPONENT_SPEAKER,
     korean: String = "",
     translationShown: Boolean = false,
     isPlaying: Boolean = false,
@@ -184,10 +188,10 @@ fun OpponentTurn(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.sm),
         ) {
-            TurnAvatar(letter = avatarInitial(speaker), modifier = Modifier.padding(top = 20.dp))
+            TurnAvatar(speaker = speaker, modifier = Modifier.padding(top = 20.dp))
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(
-                    text = speaker,
+                    text = speaker.name,
                     style = OceTheme.typography.sectionLabel.copy(fontSize = 12.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 2.dp),
@@ -260,26 +264,27 @@ private fun OpponentBubble(
     }
 }
 
-/** 상대역 원형 아바타(30dp, brand). 화자 이니셜을 흰 글자로 담는다. */
+internal fun opponentAvatarResource(speaker: Speaker): Int =
+    when (speaker.gender) {
+        "male" -> R.drawable.profile_opponent_male
+        "female" -> R.drawable.profile_opponent_female
+        else -> R.drawable.profile_opponent_female
+    }
+
 @Composable
 private fun TurnAvatar(
-    letter: String,
+    speaker: Speaker,
     modifier: Modifier = Modifier,
 ) {
-    Box(
+    Image(
+        painter = painterResource(opponentAvatarResource(speaker)),
+        contentDescription = "${speaker.name}의 프로필 사진",
+        contentScale = ContentScale.Crop,
         modifier =
             modifier
                 .size(30.dp)
                 .clip(OceTheme.shapes.pill)
-                .background(MaterialTheme.colorScheme.primary),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = letter,
-            style = OceTheme.typography.sectionLabel.copy(fontSize = 13.sp),
-            color = MaterialTheme.colorScheme.onPrimary,
-        )
-    }
+    )
 }
 
 /**
