@@ -123,11 +123,14 @@ private fun NavDestination?.isOn(tab: OceTab): Boolean {
     return this?.hierarchy?.any { it.route == tab.route } == true
 }
 
-/** 탭 재선택/전환 표준 패턴: 시작 목적지까지 pop + 상태 저장/복원, 단일 인스턴스(F8 · #10). */
+/** 탭 재선택/전환 표준 패턴: 시작 목적지까지 pop + 단일 인스턴스(F8 · #10). */
 private fun NavController.navigateToTab(tab: OceTab) {
+    // 설정은 진입할 때마다 최상단부터 다시 읽는다. 이 화면의 LazyListState 를 저장/복원하면 다른 탭을
+    // 거친 뒤에도 중간 스크롤 위치가 남는다. 나머지 탭은 기존대로 상태를 보존한다.
+    val leavingSettings = currentDestination.isOn(OceTab.Settings)
     navigate(tab.route) {
-        popUpTo(graph.findStartDestination().id) { saveState = true }
+        popUpTo(graph.findStartDestination().id) { saveState = !leavingSettings }
         launchSingleTop = true
-        restoreState = true
+        restoreState = tab != OceTab.Settings
     }
 }
