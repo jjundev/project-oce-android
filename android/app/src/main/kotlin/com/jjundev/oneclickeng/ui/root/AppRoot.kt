@@ -106,7 +106,7 @@ fun AppRoot(
         }
         when (updateGateState) {
             UpdateGateState.Checking -> {
-                BootSplash()
+                BootSplash(isAnonymous = true)
                 return
             }
             UpdateGateState.Required -> {
@@ -135,7 +135,7 @@ fun AppRoot(
 
     if (resolvedStart == null) {
         when (bootState) {
-            BootState.Loading -> BootSplash()
+            BootState.Loading -> BootSplash(isAnonymous = appViewModel.isAnonymous)
             BootState.AuthFailed ->
                 OneClickBlockingGate(
                     surface = BlockingGateSurface.Auth,
@@ -190,9 +190,11 @@ fun AppRoot(
     }
 }
 
-/** 부트 게이트 대기 화면 — 로그인 중 로딩 표면. boot 확정 시 NavHost 로 교체된다. */
+/** 부트 게이트 대기 화면 — 계정 상태에 맞춘 로딩 표면. boot 확정 시 NavHost 로 교체된다. */
 @Composable
-private fun BootSplash() {
+private fun BootSplash(isAnonymous: Boolean) {
+    val loadingCopy = if (isAnonymous) "잠시만 기다려주세요..." else "로그인 하는 중이에요..."
+    val loadingDescription = if (isAnonymous) "앱 준비 중" else "로그인 하는 중"
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
@@ -201,9 +203,9 @@ private fun BootSplash() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
         ) {
-            OneClickAppLoadingIndicator(contentDescription = "로그인 하는 중")
+            OneClickAppLoadingIndicator(contentDescription = loadingDescription)
             Text(
-                text = "로그인 하는 중이에요...",
+                text = loadingCopy,
                 style = OceTheme.typography.helper,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

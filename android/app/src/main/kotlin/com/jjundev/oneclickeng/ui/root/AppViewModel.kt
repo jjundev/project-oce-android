@@ -63,6 +63,10 @@ class AppViewModel
         private val _uiState = MutableStateFlow<BootState>(BootState.Loading)
         val uiState: StateFlow<BootState> = _uiState.asStateFlow()
 
+        /** 부트 로딩 카피 분기용 현재 계정 상태. 익명·미인증은 로그인하지 않은 사용자로 취급한다. */
+        val isAnonymous: Boolean
+            get() = authRepository.isAnonymous
+
         /**
          * 글로벌 오프라인 배너(C4)용 앱 스코프 연결 상태(M3-08, H7/P8). M4-04 [ConnectivityObserver] 를 단일
          * 연결성 소스로 삼아 Boolean 으로 파생한다(M3-08 의 별도 ConnectivityMonitor 는 이 병합에서 폐기).
