@@ -1,6 +1,5 @@
 package com.jjundev.oneclickeng.feature.onboarding.level
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,7 +23,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
@@ -98,22 +96,18 @@ internal fun LevelQuestionContent(
         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.actionGap),
     ) {
         OnboardingStepBar(step = 1, total = 2, modifier = Modifier.staggerReveal(0, entrance))
-        GoogleReauthEntryLink(
-            onClick = onReauthTapped,
-            modifier = Modifier.staggerReveal(1, entrance),
-        )
         Text(
             text = "먼저, 오늘 연습을 맞춰볼게요",
             // 온보딩 H1 은 프로토 정합상 ExtraBold·24sp → homeTitle(800·25sp) 재사용(±1sp, 공용 screenTitle 과 구분).
             style = OceTheme.typography.homeTitle,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.staggerReveal(2, entrance).semantics { heading() },
+            modifier = Modifier.staggerReveal(1, entrance).semantics { heading() },
         )
         Text(
             text = "첫 대화는 쉽게 시작하고, 선택한 난이도는 다음 대화부터 반영돼요.",
             style = OceTheme.typography.helper,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.staggerReveal(3, entrance).padding(bottom = OceTheme.spacing.md),
+            modifier = Modifier.staggerReveal(2, entrance).padding(bottom = OceTheme.spacing.md),
         )
         LEVEL_OPTIONS.forEachIndexed { index, option ->
             Box(modifier = Modifier.staggerReveal(index + LEVEL_CARD_STAGGER_OFFSET, entrance)) {
@@ -123,72 +117,31 @@ internal fun LevelQuestionContent(
                 )
             }
         }
+        ExistingAccountEntry(
+            onClick = onReauthTapped,
+            modifier = Modifier.staggerReveal(LEVEL_OPTIONS.size + LEVEL_CARD_STAGGER_OFFSET, entrance),
+        )
     }
 }
 
-/** Column 직계 자식 중 스텝바/재인증 배너/제목/부제(0~3) 다음, LevelCard 스태거 인덱스 시작 오프셋. */
-private const val LEVEL_CARD_STAGGER_OFFSET = 4
+/** Column 직계 자식 중 스텝바/제목/부제(0~2) 다음, LevelCard 스태거 인덱스 시작 오프셋. */
+private const val LEVEL_CARD_STAGGER_OFFSET = 3
 
-/**
- * 레벨 화면 상단 재인증 진입점 — 로그아웃 후 재부트된 사용자는 새 익명 UID·레벨 없음으로 이 화면에 떨어지고,
- * 클라이언트는 "진짜 첫 설치"와 구분할 신뢰 가능한 신호가 없다(둘 다 레벨 없는 새 익명 UID). 그래서 조건부
- * 노출 대신 항상 노출한다 — 진짜 신규 사용자는 그냥 무시하고 카드로 넘어가면 된다.
- */
 @Composable
-private fun GoogleReauthEntryLink(
+private fun ExistingAccountEntry(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 레벨 카드와 치수(패딩·아이콘 박스·폰트 크기)는 동일하게 맞추되, 레벨 선택지의 4번째 항목으로 오인되지
-    // 않도록 흰 배경+테두리 카드 대신 브랜드 톤 채움(테두리 없음)으로 시각적으로 구분한다.
-    Row(
+    Text(
+        text = "이미 계정이 있나요?",
+        style = OceTheme.typography.helper,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier =
             modifier
                 .fillMaxWidth()
-                .clip(OceTheme.shapes.radius16)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = ICON_BG_ALPHA))
                 .clickable(onClick = onClick)
-                .padding(horizontal = OceTheme.spacing.lg, vertical = OceTheme.spacing.xl),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(48.dp)
-                    .clip(OceTheme.shapes.radius12)
-                    .background(MaterialTheme.colorScheme.surface),
-            contentAlignment = Alignment.Center,
-        ) {
-            Image(
-                painter = painterResource(com.google.android.gms.base.R.drawable.googleg_standard_color_18),
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-            )
-        }
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.xs),
-        ) {
-            Text(
-                text = "Google로 로그인",
-                // 레벨 카드 제목과 동일 크기(sectionLabel·Bold·17sp), 색만 브랜드 톤으로 구분.
-                style = OceTheme.typography.sectionLabel.copy(fontSize = 17.sp),
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                text = "이미 계정이 있으신가요?",
-                style = OceTheme.typography.helper,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        OneClickIcon(
-            icon = OceIcon.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            size = OceIconSize.ListDisclosure,
-        )
-    }
+                .padding(vertical = OceTheme.spacing.sm),
+    )
 }
 
 /**
