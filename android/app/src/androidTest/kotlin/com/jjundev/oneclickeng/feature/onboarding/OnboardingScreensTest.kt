@@ -1,7 +1,9 @@
 package com.jjundev.oneclickeng.feature.onboarding
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.jjundev.oneclickeng.core.auth.AuthRepository
@@ -67,6 +69,18 @@ class OnboardingScreensTest {
 
         composeRule.onNodeWithText("어려움").performClick()
         assertEquals("hard", picked)
+    }
+
+    @Test
+    fun levelQuestionShowsTextOnlyExistingAccountEntry() {
+        composeRule.setContent {
+            OceTheme {
+                LevelQuestionScreen(onLevelSelected = {}, viewModel = fakeViewModel())
+            }
+        }
+
+        composeRule.onAllNodesWithText("Google로 로그인").assertCountEquals(0)
+        composeRule.onNodeWithText("이미 계정이 있나요?").assertIsDisplayed()
     }
 
     @Test
