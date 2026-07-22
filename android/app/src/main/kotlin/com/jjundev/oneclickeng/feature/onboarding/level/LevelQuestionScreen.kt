@@ -141,8 +141,10 @@ private fun ExistingAccountEntry(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier =
             modifier
+                .padding(top = OceTheme.spacing.xl, bottom = OceTheme.spacing.sm)
+                .clip(OceTheme.shapes.pill)
                 .clickable(onClick = onClick)
-                .padding(top = OceTheme.spacing.xl, bottom = OceTheme.spacing.sm),
+                .padding(horizontal = OceTheme.spacing.md, vertical = OceTheme.spacing.sm),
     )
 }
 
