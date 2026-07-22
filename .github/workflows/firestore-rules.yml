@@ -11,10 +11,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node 20
+      - name: Set up Node 22
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       # Firestore 에뮬레이터는 JAR(JVM)로 구동된다 — android-ci.yml 과 동일 temurin/17.
       - name: Set up JDK 17
