@@ -44,15 +44,4 @@ class SpeakerDirectoryTest {
         assertTrue("expected variety across sessions, got ${distinct.size}", distinct.size > 1)
     }
 
-    @Test
-    fun `avatarInitial returns first character uppercased`() {
-        assertEquals("E", avatarInitial("Emma"))
-        assertEquals("L", avatarInitial("liam"))
-        assertEquals("?", avatarInitial(""))
-    }
-
-    @Test
-    fun `avatarInitial handles empty string`() {
-        assertEquals("?", avatarInitial(""))
-    }
 }

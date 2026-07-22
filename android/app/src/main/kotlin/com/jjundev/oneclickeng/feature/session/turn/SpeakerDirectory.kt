@@ -6,16 +6,19 @@ package com.jjundev.oneclickeng.feature.session.turn
  */
 data class Speaker(val name: String, val gender: String)
 
+/** Stub/preview fallback; avatar and TTS selection must agree on this complete identity. */
+val DEFAULT_OPPONENT_SPEAKER = Speaker(name = "Emma", gender = "female")
+
 /**
  * 기기에 미리 저장된 상대 발화자 풀. 세션마다 [assign] 이 `sessionId` 결정적 매핑으로 1명을 배정한다
  * — 순수 함수라 재구성·프로세스킬/회전 복원에도 같은 세션이면 같은 발화자가 나온다(영속 불필요).
  * 백엔드의 `DialogueMeta.opponentName/opponentGender` 는 쓰지 않는다(로컬 풀만 사용).
  */
 object SpeakerDirectory {
-    /** en-US 이름 + 성별 풀(성별 혼합). 아바타 이니셜은 이름 첫 글자에서 파생한다. */
+    /** en-US 이름 + 성별 풀(성별 혼합). */
     val ENTRIES: List<Speaker> =
         listOf(
-            Speaker("Emma", "female"),
+            DEFAULT_OPPONENT_SPEAKER,
             Speaker("Olivia", "female"),
             Speaker("Ava", "female"),
             Speaker("Sophia", "female"),
@@ -66,8 +69,3 @@ object SpeakerDirectory {
         return ENTRIES[index]
     }
 }
-
-/**
- * 아바타 이니셜 = 발화자 이름의 첫 글자(대문자). 예: Emma → "E", Liam → "L".
- */
-fun avatarInitial(name: String): String = name.firstOrNull()?.uppercase() ?: "?"

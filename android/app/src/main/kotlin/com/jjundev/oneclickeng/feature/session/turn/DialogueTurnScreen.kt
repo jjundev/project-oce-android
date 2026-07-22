@@ -143,8 +143,8 @@ internal fun DialogueTurnContent(
     // 상대역 발화 append 직전 타이핑 스켈레톤 국면(프로토타입 정합). 기본 false 라 프리뷰·스크린샷 테스트·
     // 무상태 렌더는 스켈레톤을 그리지 않는다(결정성 유지). 상태 홀더만 실제 국면을 주입한다.
     opponentTyping: Boolean = false,
-    // 상대역 말풍선 화자명(로컬 SpeakerDirectory 배정). 미주입(스텁·프리뷰·스크린샷)이면 "Emma" 고정.
-    opponentSpeaker: String = "Emma",
+    // 상대역 말풍선 화자(로컬 SpeakerDirectory 배정). 미주입(스텁·프리뷰·스크린샷)이면 Emma 여성 고정.
+    opponentSpeaker: Speaker = DEFAULT_OPPONENT_SPEAKER,
     // 자기 녹음이 있는 학습자 말풍선의 0-based 순번 집합(세션 메모리). 미주입(스텁·프리뷰·스크린샷)이면
     // 빈 집합이라 스피커 버튼이 없다(기존 렌더 유지).
     learnerClipIndices: Set<Int> = emptySet(),

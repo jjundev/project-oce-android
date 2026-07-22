@@ -53,12 +53,31 @@ class DialogueTurnScreenshotTest {
         )
 
     @Test
-    fun session_opponent_light() {
-        captureOpponent(name = "session_opponent_light", dark = false)
+    fun session_opponent_female_light() {
+        captureOpponent(
+            name = "session_opponent_female_light",
+            dark = false,
+            opponentSpeaker = Speaker(name = "Emma", gender = "female"),
+        )
     }
 
     @Test
-    fun session_opponent_dark() = captureOpponent(name = "session_opponent_dark", dark = true)
+    fun session_opponent_male_light() {
+        captureOpponent(
+            name = "session_opponent_male_light",
+            dark = false,
+            opponentSpeaker = Speaker(name = "Liam", gender = "male"),
+        )
+    }
+
+    @Test
+    fun session_opponent_dark() {
+        captureOpponent(
+            name = "session_opponent_dark",
+            dark = true,
+            opponentSpeaker = DEFAULT_OPPONENT_SPEAKER,
+        )
+    }
 
     @Test
     fun session_opponent_playing_light() {
@@ -134,6 +153,7 @@ class DialogueTurnScreenshotTest {
     private fun captureOpponent(
         name: String,
         dark: Boolean,
+        opponentSpeaker: Speaker,
     ) {
         capture(name, dark) {
             DialogueTurnContent(
@@ -145,6 +165,7 @@ class DialogueTurnScreenshotTest {
                 onSubmitStub = {},
                 onViewSummary = {},
                 header = header,
+                opponentSpeaker = opponentSpeaker,
             )
         }
     }
