@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -367,12 +369,14 @@ internal fun SettingsContent(
     modifier: Modifier = Modifier,
     reduceMotion: Boolean = false,
     isGoogleSaveLoading: Boolean = false,
+    listState: LazyListState = rememberLazyListState(),
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         val entrance = rememberScreenEntrance(reduceMotion)
         PinnedTabHeader(titleRes = R.string.tab_settings)
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
+            state = listState,
             contentPadding =
                 PaddingValues(
                     top = 8.dp,
@@ -381,9 +385,11 @@ internal fun SettingsContent(
             verticalArrangement = Arrangement.spacedBy(26.dp),
         ) {
             // 프로토 order:-1 = 게스트는 계정 카드(Google 저장)를 최상단으로 승격. LazyListScope 엔 CSS order 가
-            // 없으므로 방출 위치를 분기해 동일 순서를 만든다(게스트=계정 먼저 / 회원=데이터 다음).
+            // 없으므로 방출 위치를 분기해 동일 순서를 만든다(게스트=계정 먼저 / 회원=데이터 다음). 이 항목은
+            // 로그인 상태에 따라 위치가 바뀌므로 key를 주지 않는다. 안정 키를 주면 LazyColumn이 같은 계정을
+            // 계속 보이게 하려고 첫 렌더 뒤 목록 중간으로 viewport를 이동시킨다.
             if (state.isGuest) {
-                item(key = "account") {
+                item {
                     AccountSection(
                         state = state,
                         onGoogleSave = onGoogleSave,
@@ -506,7 +512,7 @@ internal fun SettingsContent(
 
             // ----- 계정 (회원은 데이터 다음 정상 위치; 게스트는 위에서 이미 최상단 승격) -----
             if (!state.isGuest) {
-                item(key = "account") {
+                item {
                     AccountSection(
                         state = state,
                         onGoogleSave = onGoogleSave,

@@ -1,6 +1,8 @@
 package com.jjundev.oneclickeng.feature.settings
 
 import android.app.Application
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarResult
@@ -77,6 +79,52 @@ class SettingsScreenScreenshotTest {
         assertEquals(1, snackbarCalls)
 
         releaseSnackbar.complete(Unit)
+    }
+
+    @Test
+    fun `settings list stays at top when account section moves after account state loads`() {
+        var state by mutableStateOf(SettingsUiState(loading = false, nickname = "준영", isGuest = true))
+        lateinit var listState: LazyListState
+
+        composeRule.setContent {
+            listState = rememberLazyListState()
+            OceTheme {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    SettingsContent(
+                        state = state,
+                        versionLabel = "1.0.0 (1)",
+                        notificationsBlocked = false,
+                        onNicknameChange = {},
+                        onQualityChange = {},
+                        onSpeedChange = {},
+                        onMuteChange = {},
+                        onReminderToggle = {},
+                        onReminderTimeClick = {},
+                        onOpenNotificationSettings = {},
+                        onPurgeClick = {},
+                        onResetClick = {},
+                        onSummarySaveDefaultChange = {},
+                        onGoogleSave = {},
+                        onLogoutClick = {},
+                        onDeleteClick = {},
+                        onRetryMerge = {},
+                        onPrivacy = {},
+                        onTerms = {},
+                        listState = listState,
+                        reduceMotion = true,
+                    )
+                }
+            }
+        }
+        composeRule.waitForIdle()
+
+        state = state.copy(isGuest = false)
+        composeRule.waitForIdle()
+
+        composeRule.runOnIdle {
+            assertEquals(0, listState.firstVisibleItemIndex)
+            assertEquals(0, listState.firstVisibleItemScrollOffset)
+        }
     }
 
     private fun renderSettings(
