@@ -97,7 +97,7 @@ internal fun LevelQuestionContent(
     ) {
         OnboardingStepBar(step = 1, total = 2, modifier = Modifier.staggerReveal(0, entrance))
         Text(
-            text = "먼저, 오늘 연습을 맞춰볼게요",
+            text = "나에게 맞는 난이도를 골라주세요",
             // 온보딩 H1 은 프로토 정합상 ExtraBold·24sp → homeTitle(800·25sp) 재사용(±1sp, 공용 screenTitle 과 구분).
             style = OceTheme.typography.homeTitle,
             color = MaterialTheme.colorScheme.onSurface,
