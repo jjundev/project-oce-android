@@ -1,0 +1,11 @@
+# WorkManager's internal Room database (WorkDatabase) is instantiated by
+# androidx.room.RoomDatabase.Builder via Class.getDeclaredConstructor() on the
+# Room-generated WorkDatabase_Impl class. R8's default rules preserve the
+# class's *name* (Class.forName must still resolve it) but not its members,
+# so the no-arg constructor -- reachable only through that reflection call,
+# invisible to R8's static analysis -- gets stripped. That crashes every
+# WorkManager.getInstance(context) call (reminder scheduling, app-start
+# repairSchedule()) with NoSuchMethodException.
+-keep class androidx.work.impl.WorkDatabase_Impl {
+    <init>();
+}

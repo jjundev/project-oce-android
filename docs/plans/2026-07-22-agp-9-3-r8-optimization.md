@@ -396,6 +396,17 @@ No execution-level decision remains. The user requested the upgrade; Android's c
 
   Attach the CI URL, source commit SHA, AGP/Gradle versions, internal-test version code, device/API level, smoke result, and mapping location to the release checklist or release notes. Mark the candidate ready for its next Play track only when every smoke action passes.
 
+### Task 4 outcome: reminder-permission regression (found and fixed)
+
+The Step 5 "optimization-only regression" scenario this task anticipated occurred: enabling 설정 → 학습 리마인더 and granting the notification permission crashed the release build with
+`java.lang.NoSuchMethodException: androidx.work.impl.WorkDatabase_Impl.<init> []`, and every
+subsequent cold launch crashed identically via `OceApp.onCreate()`'s `repairSchedule()` call.
+R8 was removing `WorkDatabase_Impl`'s no-arg constructor (reachable only via
+`RoomDatabase.Builder`'s `Class.getDeclaredConstructor()` reflection) while still keeping the
+class's name. Fixed per this task's own Step 5 instruction: see
+`docs/plans/2026-07-22-reminder-permission-r8-crash-fix.md` and
+`android/app/src/main/keepRules/workmanager.keep`.
+
 ## Self-Review
 
 - Spec coverage: Task 1 covers AGP 9.3's Gradle/JDK compatibility, built-in Kotlin, KSP, plugin migration, and removal of legacy DSL/toolchain dependencies. Task 2 adopts the requested AGP 9.3 R8 optimization DSL and resource shrinking. Task 3 makes AGP 9/R8 analysis and output checks continuous. Task 4 protects the runtime and Play-release boundary.
