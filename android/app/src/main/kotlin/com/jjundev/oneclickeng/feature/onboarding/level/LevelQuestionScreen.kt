@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -136,11 +137,12 @@ private fun ExistingAccountEntry(
         text = "이미 계정이 있나요?",
         style = OceTheme.typography.helper,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
         modifier =
             modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
-                .padding(vertical = OceTheme.spacing.sm),
+                .padding(top = OceTheme.spacing.xl, bottom = OceTheme.spacing.sm),
     )
 }
 
