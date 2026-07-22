@@ -6,7 +6,7 @@
 
 **Architecture:** First make the single Android app module compatible with AGP 9's public DSL and built-in Kotlin: remove the incompatible `org.jetbrains.kotlin.android` plugin, retain KSP plus the Compose and serialization compiler plugins, and let `compileOptions` remain the sole JVM 17 target declaration. Then replace the legacy minify/resource-shrink configuration with AGP 9.3's `optimization { enable = true }`, which turns on code optimization and optimized resource shrinking together. The existing project has no custom keep rules: Firestore payloads are maps/typed snapshot reads and app JSON uses generated Kotlin serializers, so no broad rule is carried forward; future evidence-based rules belong in `src/main/keepRules/*.keep`.
 
-**Tech Stack:** Android Gradle Plugin 9.3.0, Gradle 9.5.0, JDK 17, Kotlin compiler plugins 2.3.21, KSP 2.3.9, Gradle Kotlin DSL, R8, Jetpack Compose, Hilt, Firebase, GitHub Actions
+**Tech Stack:** Android Gradle Plugin 9.3.0, Gradle 9.5.0, JDK 17, Kotlin compiler plugins 2.3.21, KSP 2.3.9, Hilt 2.60.1, Gradle Kotlin DSL, R8, Jetpack Compose, Firebase, GitHub Actions
 
 ## Global Constraints
 
@@ -15,6 +15,7 @@
 - This repository is one non-KMP Android application module. Migrate to AGP built-in Kotlin; do not opt out with `android.builtInKotlin=false` or `android.newDsl=false`.
 - Remove every use and declaration of `org.jetbrains.kotlin.android`; AGP 9's new DSL is incompatible with that plugin.
 - Keep KSP, the Kotlin Compose compiler plugin, and the Kotlin serialization compiler plugin. Pin the catalog’s compiler-plugin version to `2.3.21` and KSP to `2.3.9`; do not introduce kapt.
+- Pin Hilt to `2.60.1`. Hilt `2.59` added AGP 9 support and `2.59.1` fixed an AGP 9/Jetifier issue; use the current stable patch release rather than retaining incompatible `2.56.2`.
 - Enable optimization only in `release`. Debug, unit-test, instrumentation-test, and library variants remain unminified and unshrunk.
 - Use AGP 9.3 `optimization { enable = true }`; it enables R8 code optimization and optimized resource shrinking together. Do not retain legacy `isMinifyEnabled`, `isShrinkResources`, `proguardFiles(...)`, or `android.r8.optimizedResourceShrinking=true` configuration.
 - AGP 9.3 supplies Android's default keep rules. Delete the obsolete comment-only `proguard-rules.pro`; do not add speculative `-keep`, `-dontwarn`, `-dontobfuscate`, or `-dontoptimize` directives.
@@ -26,12 +27,12 @@
 
 ## File Structure
 
-- Modify: `android/gradle/libs.versions.toml` — pin AGP 9.3.0, Kotlin compiler plugins 2.3.21, and KSP 2.3.9; remove the obsolete `kotlin-android` plugin alias.
+- Modify: `android/gradle/libs.versions.toml` — pin AGP 9.3.0, Kotlin compiler plugins 2.3.21, KSP 2.3.9, and Hilt 2.60.1; remove the obsolete `kotlin-android` plugin alias.
 - Modify: `android/gradle/wrapper/gradle-wrapper.properties` — point the wrapper distribution at Gradle 9.5.0.
 - Modify: `android/gradlew`, `android/gradlew.bat`, `android/gradle/wrapper/gradle-wrapper.jar` — regenerate wrapper launchers/checksum using the Gradle wrapper task; do not edit the JAR by hand.
 - Modify: `android/settings.gradle.kts` — remove the now-unused Foojay toolchain resolver convention after the Kotlin-specific toolchain configuration is removed.
 - Modify: `android/build.gradle.kts` — remove the root `kotlin-android` plugin alias while retaining application, Compose, Hilt, KSP, analysis, and Google Services plugins; the serialization plugin remains intentionally declared only in `:app`.
-- Modify: `android/app/build.gradle.kts` — remove the module `kotlin-android` plugin and Kotlin JVM-toolchain block; replace legacy R8 configuration with AGP 9.3's release `optimization` block.
+- Modify: `android/app/build.gradle.kts` — remove the module `kotlin-android` plugin and Kotlin JVM-toolchain block; exclude debug-only Compose manifest tests from the release unit-test variant; replace legacy R8 configuration with AGP 9.3's release `optimization` block.
 - Modify: `android/gradle.properties` — keep existing AndroidX/Gradle settings, explicitly avoid AGP 8-only resource-shrinker properties, and document AGP 9's built-in-Kotlin/new-DSL policy.
 - Delete: `android/app/proguard-rules.pro` — it has no directives and AGP 9.3's optimization DSL no longer consumes a default ProGuard input list.
 - Modify: `scripts/verify-android.sh` — include the AGP 9.3 R8 configuration analyzer and optimized release assembly in the default isolated verification set.
@@ -40,7 +41,7 @@
 
 ## Decision Checkpoint
 
-No execution-level decision remains. The user requested the upgrade; Android's current official stable release is AGP `9.3.0`, which requires Gradle `9.5.0` and JDK `17`. The module is not KMP, contains no custom `applicationVariants`/`BaseExtension` build logic, uses KSP rather than kapt, and already targets Java 17. Those repository facts make a direct built-in-Kotlin migration preferable to AGP 9's temporary legacy opt-outs.
+No execution-level decision remains. The user requested the upgrade; Android's current official stable release is AGP `9.3.0`, which requires Gradle `9.5.0` and JDK `17`. The module is not KMP, contains no custom `applicationVariants`/`BaseExtension` build logic, uses KSP rather than kapt, and already targets Java 17. Hilt `2.56.2` was found to depend on AGP's removed `BaseExtension`, so Hilt is raised to `2.60.1`, which retains AGP 9 support. The pre-existing release test failures are all `createComposeRule()` tests without the debug-only Compose test manifest, so their classes join the existing release-only exclusion list. Those facts make a direct built-in-Kotlin migration preferable to AGP 9's temporary legacy opt-outs.
 
 ### Task 1: Upgrade the build toolchain and migrate to built-in Kotlin
 
@@ -52,7 +53,7 @@ No execution-level decision remains. The user requested the upgrade; Android's c
 - Modify: `android/gradle/wrapper/gradle-wrapper.jar`
 - Modify: `android/settings.gradle.kts:1-27`
 - Modify: `android/build.gradle.kts:1-12`
-- Modify: `android/app/build.gradle.kts:1-10,88-91`
+- Modify: `android/app/build.gradle.kts:1-10,88-160`
 
 **Interfaces:**
 - Consumes: the current one-module Android build, JDK 17 CI configuration, KSP Hilt processors, Compose compiler plugin, Kotlin serialization compiler plugin, and Gradle version catalog.
@@ -88,7 +89,7 @@ No execution-level decision remains. The user requested the upgrade; Android's c
   agp = "9.3.0"
   kotlin = "2.3.21"
   ksp = "2.3.9"
-  hilt = "2.56.2"
+  hilt = "2.60.1"
   ```
 
   Retain the existing `kotlin-compose` and `kotlin-serialization` plugin aliases, which now use `kotlin = "2.3.21"`. Delete this one plugin alias and no other `[plugins]` entry:
@@ -165,17 +166,31 @@ No execution-level decision remains. The user requested the upgrade; Android's c
 
   Expected: `:wrapper` is `BUILD SUCCESSFUL` and the wrapper files listed in this task are generated by the target toolchain.
 
-- [ ] **Step 5: Prove the AGP 9 built-in-Kotlin migration before changing R8 behavior**
+- [ ] **Step 5: Repair the pre-existing release-only Compose test exclusions**
+
+  The baseline has 11 release unit-test failures. Each failed class uses `createComposeRule()`, while `compose-ui-test-manifest` is intentionally available only to debug; release Robolectric therefore cannot resolve `ComponentActivity`. Keep these tests enabled in debug and append only these class patterns to the existing `if (name.contains("Release", ignoreCase = true)) { exclude(...) }` list:
+
+  ```kotlin
+  "**/OceBottomNavScrollStateTest*",
+  "**/TopicSelectVisibilityTest*",
+  "**/ChatBubbleReplayButtonTest*",
+  "**/DialogueTurnPlayingIndicatorTest*",
+  "**/HomeScrollResetTest*",
+  ```
+
+  Do not move `compose-ui-test-manifest` into a release dependency and do not exclude any non-Compose test. The existing comment above the list remains the source-of-truth policy for future `createComposeRule()` tests.
+
+- [ ] **Step 6: Prove the AGP 9 built-in-Kotlin migration before changing R8 behavior**
 
   ```bash
   scripts/verify-android.sh :app:assembleDebug :app:compileDebugAndroidTestKotlin :app:testDebugUnitTest :app:testReleaseUnitTest
-  rg -n 'agp = "9.3.0"|kotlin = "2.3.21"|ksp = "2.3.9"' android/gradle/libs.versions.toml
+  rg -n 'agp = "9.3.0"|kotlin = "2.3.21"|ksp = "2.3.9"|hilt = "2.60.1"' android/gradle/libs.versions.toml
   ! rg -n 'kotlin-android|libs\.plugins\.kotlin\.android' android/build.gradle.kts android/app/build.gradle.kts android/gradle/libs.versions.toml
   ```
 
-  Expected: all verification tasks are `BUILD SUCCESSFUL`; the catalog command prints exactly the three pinned versions; and the negative search succeeds without output. No `Cannot add extension with name 'kotlin'` or `org.jetbrains.kotlin.android` error may appear. A plugin compatibility error is a stop-the-line toolchain failure: record its exact plugin and version in the issue tracker, retain the AGP 9.3/built-in-Kotlin configuration, and do not introduce `android.builtInKotlin=false` or `android.newDsl=false` as a workaround.
+  Expected: all verification tasks are `BUILD SUCCESSFUL`; the catalog command prints exactly the four pinned versions; and the negative search succeeds without output. No `Cannot add extension with name 'kotlin'`, `org.jetbrains.kotlin.android`, or Hilt `BaseExtension` error may appear. A plugin compatibility error is a stop-the-line toolchain failure: record its exact plugin and version in the issue tracker, retain the AGP 9.3/built-in-Kotlin configuration, and do not introduce `android.builtInKotlin=false` or `android.newDsl=false` as a workaround.
 
-- [ ] **Step 6: Commit the toolchain migration**
+- [ ] **Step 7: Commit the toolchain migration**
 
   ```bash
   git add android/gradle/libs.versions.toml android/gradle/wrapper/gradle-wrapper.properties android/gradlew android/gradlew.bat android/gradle/wrapper/gradle-wrapper.jar android/settings.gradle.kts android/build.gradle.kts android/app/build.gradle.kts
