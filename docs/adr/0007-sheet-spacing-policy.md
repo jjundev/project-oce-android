@@ -18,11 +18,12 @@ Accepted (2026-07-11, PR D)
 3. 3탭 화면은 전역 Scaffold(AppRoot) innerPadding 이 이미 systemBars 를 흡수하므로 제외.
 
 ## Exceptions
-- `SlimFeedbackSheet`·`DialogueGeneratingScreen.ReadyBottomSheet`: raw/인-컴포지션 커스텀 오버레이
-  (Robolectric 별도-윈도 스크린샷 정합 사유). 자체 `navigationBarsPadding()` 유지.
+- `SlimFeedbackSheet`: raw/인-컴포지션 커스텀 오버레이(콘텐츠·Robolectric 별도-윈도 스크린샷 정합 사유).
+- `DialogueGeneratingScreen.ReadyBottomSheet`: 컨테이너와 장식 핸들은 커스텀 오버레이로 유지하지만,
+  외곽 스페이싱은 `OceSheetDefaults.contentPadding` 및 `navigationBarsPadding()`을 공유한다.
 - `DialogueTurnScreen`: 자체 Scaffold + `DialogueHeader(Modifier.statusBarsPadding())` 로 이미 처리.
 
 ## Consequences
-신규 시트는 프리미티브만 쓰면 자동으로 정합. 신규 풀스크린 형제는 루트 `statusBarsPadding()` 를
-잊지 말 것. Robolectric 스크린샷은 프리미티브를 우회 재현하므로 `OceSheetDefaults.contentPadding`
-를 재적용해야 한다.
+신규 시트와 `ReadyBottomSheet`는 공용 스페이싱 기준을 따르면 자동으로 정합된다. 신규 풀스크린 형제는 루트
+`statusBarsPadding()`를 잊지 말 것. Robolectric 스크린샷은 프리미티브를 우회 재현할 때
+`OceSheetDefaults.contentPadding`를 재적용해야 한다.
