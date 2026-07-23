@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -32,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -47,6 +49,7 @@ import com.jjundev.oneclickeng.ui.component.OneClickWaitQuiz
 import com.jjundev.oneclickeng.ui.component.QuizItem
 import com.jjundev.oneclickeng.ui.component.previewWaitQuizItems
 import com.jjundev.oneclickeng.ui.component.selectLimitSurface
+import com.jjundev.oneclickeng.ui.component.primitive.OceSheetDefaults
 import com.jjundev.oneclickeng.ui.foundation.OceIcon
 import com.jjundev.oneclickeng.ui.foundation.OceIconSize
 import com.jjundev.oneclickeng.ui.foundation.OneClickIcon
@@ -331,7 +334,9 @@ private fun ReadyBottomSheet(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(topStart = SheetTopRadius, topEnd = SheetTopRadius))
                 .background(MaterialTheme.colorScheme.surface)
-                .padding(horizontal = OceTheme.spacing.xl, vertical = OceTheme.spacing.md),
+                .testTag(READY_BOTTOM_SHEET_TEST_TAG)
+                .navigationBarsPadding()
+                .padding(OceSheetDefaults.contentPadding),
         verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
     ) {
         // 장식 핸들바(작동 X — 디자인만).
@@ -347,7 +352,7 @@ private fun ReadyBottomSheet(
         ReadyBanner()
         Button(
             onClick = onStartConversation,
-            modifier = Modifier.fillMaxWidth().height(PrimaryCtaHeight),
+            modifier = Modifier.fillMaxWidth().height(PrimaryCtaHeight).testTag(READY_BOTTOM_SHEET_CTA_TEST_TAG),
             shape = OceTheme.shapes.radius12,
         ) {
             Text(text = "대화 시작하기", style = OceTheme.typography.sectionLabel)
@@ -396,6 +401,9 @@ private const val READY_BANNER_BORDER_ALPHA = 0.25f
 
 /** primary CTA 높이(프로토 Button primary 52px). */
 private val PrimaryCtaHeight = 52.dp
+
+internal const val READY_BOTTOM_SHEET_TEST_TAG = "dialogue_ready_bottom_sheet"
+internal const val READY_BOTTOM_SHEET_CTA_TEST_TAG = "dialogue_ready_bottom_sheet_cta"
 
 /** 준비 하단 시트 상단 라운드/장식 핸들바 치수(바텀시트 관용구 정합). */
 private val SheetTopRadius = 24.dp
