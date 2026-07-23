@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material3.MaterialTheme
@@ -233,7 +234,7 @@ internal data class BootLoadingCopy(
 
 /**
  * 3탭 셸(F8). [MainTabsOverlay]가 플로팅 오버레이를 소유하고 [OceNavHost]는 탭 뷰포트를 채우며,
- * [OceBottomNav]는 그 하단 가장자리 위에 정렬된다.
+ * 시스템 내비게이션 바 인셋을 소비한 뒤 [OceBottomNav]는 그 하단 가장자리 위에 정렬된다.
  * 탭 선택 지속은 자체 [rememberNavController] 백스택이 담당한다(회전/복귀 시 상태 유지).
  *
  * [isOnline]=false 면 상단에 글로벌 오프라인 배너(C4)를 노출한다(M3-08 A4). [onStartSession]/[onResume]/
@@ -290,9 +291,15 @@ internal fun MainTabsOverlay(
     isOnline: Boolean,
     modifier: Modifier = Modifier,
     contentTopInset: Dp = WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
+    contentBottomInset: Dp = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
     content: @Composable (Modifier) -> Unit,
 ) {
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(bottom = contentBottomInset),
+    ) {
         Column(
             modifier =
                 Modifier

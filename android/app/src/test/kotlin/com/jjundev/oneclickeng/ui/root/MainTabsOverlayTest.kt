@@ -11,6 +11,7 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
@@ -89,5 +90,38 @@ class MainTabsOverlayTest {
             composeRule.onNodeWithTag(MAIN_TABS_CONTENT_TAG).getUnclippedBoundsInRoot().top
 
         assertEquals(24f, contentTop.value, 0.5f)
+    }
+
+    @Test
+    fun tab_content_reserves_navigation_bar_bottom_inset() {
+        composeRule.setContent {
+            OceTheme(darkTheme = false) {
+                val navController = rememberNavController()
+                MainTabsOverlay(
+                    navController = navController,
+                    isOnline = true,
+                    contentBottomInset = 48.dp,
+                ) { contentModifier ->
+                    Box(
+                        modifier =
+                            contentModifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.background)
+                                .testTag(MAIN_TABS_CONTENT_TAG),
+                    )
+                }
+            }
+        }
+
+        val rootBottom = composeRule.onRoot().getUnclippedBoundsInRoot().bottom
+        val contentBottom =
+            composeRule.onNodeWithTag(MAIN_TABS_CONTENT_TAG).getUnclippedBoundsInRoot().bottom
+
+        assertEquals(
+            "Tab content must stop above the system navigation-bar inset",
+            (rootBottom - 48.dp).value,
+            contentBottom.value,
+            0.5f,
+        )
     }
 }
