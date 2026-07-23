@@ -21,7 +21,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -323,6 +325,7 @@ private fun SlimLoading(message: String) {
  * 준비 완료 하단 시트(프로토 genReady 하단 컨테이너 정합, 사용자 요청) — 화면 하단 edge-to-edge, 상단 라운드
  * (radius24) + 장식 핸들바(작동 X) + 흰 서피스 + 상단 hairline. 안에 [ReadyBanner] + "대화 시작하기" CTA(52dp).
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReadyBottomSheet(
     onStartConversation: () -> Unit,
@@ -335,27 +338,26 @@ private fun ReadyBottomSheet(
                 .clip(RoundedCornerShape(topStart = SheetTopRadius, topEnd = SheetTopRadius))
                 .background(MaterialTheme.colorScheme.surface)
                 .testTag(READY_BOTTOM_SHEET_TEST_TAG)
-                .navigationBarsPadding()
-                .padding(OceSheetDefaults.contentPadding),
-        verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
+                .navigationBarsPadding(),
     ) {
-        // 장식 핸들바(작동 X — 디자인만).
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(width = SheetHandleWidth, height = SheetHandleHeight)
-                        .clip(OceTheme.shapes.pill)
-                        .background(MaterialTheme.colorScheme.outlineVariant),
-            )
-        }
-        ReadyBanner()
-        Button(
-            onClick = onStartConversation,
-            modifier = Modifier.fillMaxWidth().height(PrimaryCtaHeight).testTag(READY_BOTTOM_SHEET_CTA_TEST_TAG),
-            shape = OceTheme.shapes.radius12,
+        Box(
+            modifier = Modifier.fillMaxWidth().testTag(READY_BOTTOM_SHEET_HANDLE_TEST_TAG),
+            contentAlignment = Alignment.Center,
         ) {
-            Text(text = "대화 시작하기", style = OceTheme.typography.sectionLabel)
+            BottomSheetDefaults.DragHandle()
+        }
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(OceSheetDefaults.contentPadding),
+            verticalArrangement = Arrangement.spacedBy(OceTheme.spacing.md),
+        ) {
+            ReadyBanner()
+            Button(
+                onClick = onStartConversation,
+                modifier = Modifier.fillMaxWidth().height(PrimaryCtaHeight).testTag(READY_BOTTOM_SHEET_CTA_TEST_TAG),
+                shape = OceTheme.shapes.radius12,
+            ) {
+                Text(text = "대화 시작하기", style = OceTheme.typography.sectionLabel)
+            }
         }
     }
 }
@@ -403,12 +405,11 @@ private const val READY_BANNER_BORDER_ALPHA = 0.25f
 private val PrimaryCtaHeight = 52.dp
 
 internal const val READY_BOTTOM_SHEET_TEST_TAG = "dialogue_ready_bottom_sheet"
+internal const val READY_BOTTOM_SHEET_HANDLE_TEST_TAG = "dialogue_ready_bottom_sheet_handle"
 internal const val READY_BOTTOM_SHEET_CTA_TEST_TAG = "dialogue_ready_bottom_sheet_cta"
 
 /** 준비 하단 시트 상단 라운드/장식 핸들바 치수(바텀시트 관용구 정합). */
 private val SheetTopRadius = 24.dp
-private val SheetHandleWidth = 32.dp
-private val SheetHandleHeight = 4.dp
 
 @Suppress("UnusedPrivateMember")
 @Preview(showBackground = true, widthDp = 360, heightDp = 640)

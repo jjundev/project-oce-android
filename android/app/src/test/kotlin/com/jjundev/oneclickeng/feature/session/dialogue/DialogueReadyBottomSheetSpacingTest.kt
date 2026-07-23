@@ -49,8 +49,10 @@ class DialogueReadyBottomSheetSpacingTest {
         composeRule.mainClock.advanceTimeBy(2_000L)
 
         val sheet = composeRule.onNodeWithTag(READY_BOTTOM_SHEET_TEST_TAG).getUnclippedBoundsInRoot()
+        val handle = composeRule.onNodeWithTag(READY_BOTTOM_SHEET_HANDLE_TEST_TAG).getUnclippedBoundsInRoot()
         val cta = composeRule.onNodeWithTag(READY_BOTTOM_SHEET_CTA_TEST_TAG).getUnclippedBoundsInRoot()
 
+        assertEquals(0f, (handle.top - sheet.top).value, 0.5f)
         assertEquals(24f, (cta.left - sheet.left).value, 0.5f)
         assertEquals(24f, (sheet.right - cta.right).value, 0.5f)
         assertTrue(
