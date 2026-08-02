@@ -15,7 +15,7 @@ describe("llm runtime options", () => {
     expect(LLM_SECRET_NAME).toBe("GEMINI_API_KEY");
   });
 
-  it("defaults min-instances to 1 per SoT (NFR-3 warming)", () => {
-    expect(LLM_MIN_INSTANCES_DEFAULT).toBe(1);
+  it("defaults min-instances to 0 for cost optimization (Scale-to-Zero)", () => {
+    expect(LLM_MIN_INSTANCES_DEFAULT).toBe(0);
   });
 });

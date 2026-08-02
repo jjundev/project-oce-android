@@ -20,10 +20,7 @@ import {
 export const GEMINI_API_KEY = defineSecret(LLM_SECRET_NAME);
 
 /**
- * Warming instances for /llm. Default is 1 per SoT (backend-functions.md:26,
- * M0-07 issue:25) for cold-start mitigation (NFR-3). `LLM_MIN_INSTANCES` is a
- * NON-PROD knob (test/staging) only — production 0 re-violates NFR-3 and requires
- * an SoT amendment. The M0-07 scaffold does not deploy, so no warming cost yet.
+ * Warming instances for /llm. Set to 0 default for scale-to-zero cost optimization.
  */
 export const LLM_MIN_INSTANCES = defineInt(LLM_MIN_INSTANCES_PARAM, {
   default: LLM_MIN_INSTANCES_DEFAULT,

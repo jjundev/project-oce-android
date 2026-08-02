@@ -15,8 +15,7 @@ export const LLM_SECRET_NAME = "GEMINI_API_KEY";
 export const LLM_MIN_INSTANCES_PARAM = "LLM_MIN_INSTANCES";
 
 /**
- * Production min-instances default. SoT mandates 1 for warming / cold-start
- * mitigation (backend-functions.md:26, NFR-3). The param above may lower this in
- * NON-PROD only; production 0 re-violates NFR-3 and requires an SoT amendment.
+ * Production min-instances default. Set to 0 for single-user scale-to-zero
+ * cost optimization.
  */
-export const LLM_MIN_INSTANCES_DEFAULT = 1;
+export const LLM_MIN_INSTANCES_DEFAULT = 0;
