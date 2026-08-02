@@ -36,11 +36,9 @@ test/                 # Jest offline 단위테스트(에뮬레이터·네트워�
 - `npm run deploy` — 배포(프로젝트 프로비저닝 이후에만).
 
 ## 운영 주의
-- **min-instances:** 프로덕션은 SoT대로 **1 고정**(워밍, NFR-3). `LLM_MIN_INSTANCES`
-  파라미터는 비프로덕션(테스트/스테이징) 전용 노브다. 프로덕션 0은 NFR-3 재위반 →
-  금지(변경 시 backend-functions.md·NFR-3 동반 개정).
-  - **배포 체크:** 프로덕션 배포 env/`.env`에 `LLM_MIN_INSTANCES`가 설정돼 있지
-    않은지 확인(미설정 시 코드 기본값 1 사용). 값(region/secret 이름/기본값)은
+- **min-instances:** 단일 사용자 scale-to-zero 비용 최적화를 위해 기본값 **0**으로 설정된다 (`LLM_MIN_INSTANCES` 기본값 0).
+  필요 시 env/`.env` 또는 파라미터를 통해 1 이상으로 상향 조절할 수 있다.
+  - **배포 체크:** 미설정 시 코드 기본값 0(scale-to-zero)이 사용된다. 값(region/secret 이름/기본값)은
     `src/llm/options.ts`에 집약돼 있고 `test/options.test.ts`가 회귀를 막는다.
 - **DoD(M0-07):** build + 에뮬레이터 스모크 + 단위테스트 green. 실 `firebase deploy`는
   백엔드 Firebase/GCP 프로젝트 프로비저닝 이후. `.firebaserc`의 `default`는
