@@ -12,7 +12,6 @@ import {
 } from "../src/llm/session-cap";
 
 const NOW = 1_000_000;
-const FUTURE = NOW + 60_000;
 const PAST = NOW - 1;
 
 function state(over: Partial<SessionState> = {}): SessionState {
@@ -88,35 +87,35 @@ describe("firestoreSessionGate", () => {
   const now = () => NOW;
 
   it("reserve increments callCount on a valid, under-cap session", async () => {
-    const f = fakeDb({ uid: "u1", expiresAt: FUTURE, turnCount: 3, callCount: 1 });
+    const f = fakeDb({ uid: "u1", turnCount: 3, callCount: 1 });
     const gate = firestoreSessionGate(2, f.db, now);
     await gate.reserve("u1", "s1");
     expect(f.doc?.callCount).toBe(2);
   });
 
   it("reserve rejects (and does not increment) a foreign session", async () => {
-    const f = fakeDb({ uid: "other", expiresAt: FUTURE, turnCount: 3, callCount: 1 });
+    const f = fakeDb({ uid: "other", turnCount: 3, callCount: 1 });
     const gate = firestoreSessionGate(2, f.db, now);
     await expect(gate.reserve("u1", "s1")).rejects.toBeInstanceOf(SessionInvalidError);
     expect(f.doc?.callCount).toBe(1); // unchanged
   });
 
   it("reserve rejects a call at the cap", async () => {
-    const f = fakeDb({ uid: "u1", expiresAt: FUTURE, turnCount: 2, callCount: 4 });
+    const f = fakeDb({ uid: "u1", turnCount: 2, callCount: 4 });
     const gate = firestoreSessionGate(2, f.db, now); // cap = 4
     await expect(gate.reserve("u1", "s1")).rejects.toBeInstanceOf(CapExceededError);
     expect(f.doc?.callCount).toBe(4);
   });
 
   it("refund decrements callCount (best-effort, floored at 0)", async () => {
-    const f = fakeDb({ uid: "u1", expiresAt: FUTURE, turnCount: 3, callCount: 2 });
+    const f = fakeDb({ uid: "u1", turnCount: 3, callCount: 2 });
     const gate = firestoreSessionGate(2, f.db, now);
     await gate.refund("s1");
     expect(f.doc?.callCount).toBe(1);
   });
 
   it("reserve then refund nets zero — models a success-only count on terminal failure", async () => {
-    const f = fakeDb({ uid: "u1", expiresAt: FUTURE, turnCount: 3, callCount: 0 });
+    const f = fakeDb({ uid: "u1", turnCount: 3, callCount: 0 });
     const gate = firestoreSessionGate(2, f.db, now);
     await gate.reserve("u1", "s1"); // +1 → 1
     await gate.refund("s1"); // -1 → 0
