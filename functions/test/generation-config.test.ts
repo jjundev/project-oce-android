@@ -1,5 +1,10 @@
 import { buildGenerateBody, buildRepairBody } from "../src/providers/gemini";
-import { tuningFor, GENERATION_TUNING, FEEDBACK_TEMPERATURE } from "../src/config/generation";
+import {
+  tuningFor,
+  GENERATION_TUNING,
+  FEEDBACK_TEMPERATURE,
+  TEXT_THINKING_LEVEL,
+} from "../src/config/generation";
 
 describe("buildGenerateBody — current behaviour (characterisation)", () => {
   it("wraps the payload as one user text part with role", () => {
@@ -47,6 +52,13 @@ describe("buildGenerateBody — current behaviour (characterisation)", () => {
       .toEqual({ responseMimeType: "application/json" });
     expect(buildGenerateBody({}, undefined, undefined, undefined).generationConfig)
       .toEqual({ responseMimeType: "application/json" });
+  });
+
+  it("adds thinkingConfig only when tuning provides a thinkingLevel", () => {
+    expect(buildGenerateBody({}, undefined, undefined, { thinkingLevel: "MINIMAL" }).generationConfig)
+      .toEqual({ responseMimeType: "application/json", thinkingConfig: { thinkingLevel: "MINIMAL" } });
+    expect(buildGenerateBody({}, undefined, undefined, { temperature: 0 }).generationConfig)
+      .not.toHaveProperty("thinkingConfig");
   });
 
   it("keeps temperature 0 — a falsy but meaningful value", () => {
@@ -98,13 +110,26 @@ describe("tuningFor", () => {
     expect(tuningFor("feedbackDeep").temperature).toBe(FEEDBACK_TEMPERATURE);
   });
 
-  it("leaves dialogue, summary, speaking and tts unset (provider default)", () => {
+  it("leaves temperature unset for dialogue, summary, speaking and tts (provider default)", () => {
     // They have no eval coverage, so setting a temperature for them could regress
     // behaviour nothing here measures.
-    expect(tuningFor("dialogue")).toEqual({});
-    expect(tuningFor("summary")).toEqual({});
-    expect(tuningFor("speaking")).toEqual({});
+    expect(tuningFor("dialogue")).toEqual({ thinkingLevel: "MINIMAL" });
+    expect(tuningFor("summary")).toEqual({ thinkingLevel: "MINIMAL" });
+    expect(tuningFor("speaking")).toEqual({ thinkingLevel: "MINIMAL" });
     expect(tuningFor("tts")).toEqual({});
+  });
+
+  it("pins MINIMAL thinking on exactly the 3.5-flash-lite tasks", () => {
+    // Thought tokens bill at the output rate. feedback/feedbackDeep stay on 3.1 with their
+    // eval-confirmed request unchanged; the TTS model has no thinking at all.
+    expect(TEXT_THINKING_LEVEL).toBe("MINIMAL");
+    const withThinking = ["dialogue", "speaking", "summary"];
+    for (const task of Object.keys(GENERATION_TUNING)) {
+      const tuning = GENERATION_TUNING[task as keyof typeof GENERATION_TUNING];
+      expect(tuning.thinkingLevel).toBe(
+        withThinking.includes(task) ? TEXT_THINKING_LEVEL : undefined
+      );
+    }
   });
 
   it("carries a temperature for exactly feedback and feedbackDeep in GENERATION_TUNING", () => {
@@ -113,9 +138,9 @@ describe("tuningFor", () => {
     for (const task of Object.keys(GENERATION_TUNING)) {
       const tuning = GENERATION_TUNING[task as keyof typeof GENERATION_TUNING];
       if (withTemperature.includes(task)) {
-        expect(tuning).toEqual({ temperature: 0 });
+        expect(tuning.temperature).toBe(0);
       } else {
-        expect(tuning).toEqual({});
+        expect(tuning).not.toHaveProperty("temperature");
       }
     }
   });
@@ -141,8 +166,8 @@ describe("tuningFor", () => {
   it("returns a tuning object a caller cannot mutate the shared table through", () => {
     const first = tuningFor("dialogue");
     (first as { temperature?: number }).temperature = 0.9;
-    expect(tuningFor("dialogue")).toEqual({});
-    expect(GENERATION_TUNING.dialogue).toEqual({});
+    expect(tuningFor("dialogue")).toEqual({ thinkingLevel: "MINIMAL" });
+    expect(GENERATION_TUNING.dialogue).toEqual({ thinkingLevel: "MINIMAL" });
   });
 
   it("keeps the feedback temperature within the valid Gemini range", () => {

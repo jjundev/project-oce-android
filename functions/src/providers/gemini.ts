@@ -11,7 +11,7 @@
  * re-verified against current Gemini docs before production (plan decision #4/#9).
  */
 import { modelFor } from "../config/models";
-import { GenerationTuning, tuningFor } from "../config/generation";
+import { GenerationTuning, TEXT_THINKING_LEVEL, tuningFor } from "../config/generation";
 import { ErrorCode, Task } from "../types/protocol";
 import {
   GenerateRequest,
@@ -436,6 +436,7 @@ export function buildAnalysisBody(audioBase64: string): Record<string, unknown> 
         },
         required: ["transcript", "feedbackMessage"],
       },
+      thinkingConfig: { thinkingLevel: TEXT_THINKING_LEVEL },
     },
   };
 }
@@ -584,6 +585,9 @@ export function buildGenerateBody(
   // explicit undefined check — temperature 0 is meaningful and must survive
   if (tuning?.temperature !== undefined) {
     generationConfig.temperature = tuning.temperature;
+  }
+  if (tuning?.thinkingLevel !== undefined) {
+    generationConfig.thinkingConfig = { thinkingLevel: tuning.thinkingLevel };
   }
   const body: Record<string, unknown> = {
     contents: [{ role: "user", parts: [{ text: JSON.stringify(payload ?? {}) }] }],

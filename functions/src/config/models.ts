@@ -9,15 +9,20 @@
 import { Task } from "../types/protocol";
 
 export const MODEL_IDS: Record<Task, string> = {
-  // All text tasks run on gemini-3.1-flash-lite (Vertex express) — newer generation and cheaper
-  // than 2.5-flash (output -40%, audio input -50%). dialogue was validated 2026-07-08 against the
-  // real prompt+responseSchema; the rest moved 2026-07-09 on the same key (only 3.1 model exposed;
-  // 3.1-pro/3.1-flash are 404). TTS stays on 2.5 (3.1 TTS costs 2x per audio-output token).
-  dialogue: "gemini-3.1-flash-lite",
-  speaking: "gemini-3.1-flash-lite",
+  // dialogue/speaking/summary run on gemini-3.5-flash-lite (Vertex express), the official
+  // successor to 3.1-flash-lite. Moved 2026-09-23: ~5x lower time-to-first-token for +20% input /
+  // +67% output price ($0.30/$2.50 vs $0.25/$1.50 per 1M). Thinking is pinned to MINIMAL in
+  // config/generation.ts so thought tokens (billed as output) stay near zero.
+  // feedback/feedbackDeep STAY on gemini-3.1-flash-lite: the 2026-09-23 eval (14 cases x 3, t=0)
+  // showed 3.5 regress on grading — 5-7 missed/over-marked learner errors vs 0 and score stddev
+  // 1.6-2.0 vs 0.0 — at both MINIMAL and LOW thinking. 3.1 shuts down 2027-05-07, so the
+  // feedback prompts must be re-tuned for 3.5 and re-evaluated before then.
+  // TTS stays on 2.5 (3.1 TTS costs 2x per audio-output token).
+  dialogue: "gemini-3.5-flash-lite",
+  speaking: "gemini-3.5-flash-lite",
   feedback: "gemini-3.1-flash-lite",
   feedbackDeep: "gemini-3.1-flash-lite",
-  summary: "gemini-3.1-flash-lite",
+  summary: "gemini-3.5-flash-lite",
   tts: "gemini-2.5-flash-preview-tts",
 };
 

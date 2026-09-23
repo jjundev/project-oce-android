@@ -38,6 +38,7 @@ const {
   FEEDBACK_DEEP_RESPONSE_SCHEMA,
 } = require("../lib/providers/gemini");
 const { modelFor } = require("../lib/config/models");
+const { tuningFor } = require("../lib/config/generation");
 const { LEVEL_TOKENS } = require("../lib/config/levels");
 const { populationStdDev } = require("./stats");
 
@@ -657,7 +658,10 @@ async function main() {
       for (let repeat = 1; repeat <= opts.repeats; repeat++) {
         n++;
         process.stderr.write(`[${n}/${total}] ${c.id} t=${temp} #${repeat}\n`);
-        const body = buildGenerateBody(c.payload, system, schema, { temperature: temp });
+        const body = buildGenerateBody(c.payload, system, schema, {
+          ...tuningFor(opts.task),
+          temperature: temp,
+        });
         try {
           const result = await runCase(apiKey, model, body, isDeep, c.expect);
           runs.push({ caseId: c.id, temp, repeat, ...result });

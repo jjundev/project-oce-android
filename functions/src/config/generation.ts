@@ -13,9 +13,13 @@
  */
 import { Task } from "../types/protocol";
 
+export type ThinkingLevel = "MINIMAL" | "LOW" | "MEDIUM" | "HIGH";
+
 export interface GenerationTuning {
   /** sampling temperature; `undefined` = omit the key entirely (provider default) */
   temperature?: number;
+  /** Gemini 3.x `thinkingConfig.thinkingLevel`; `undefined` = omit (provider default) */
+  thinkingLevel?: ThinkingLevel;
 }
 
 /**
@@ -36,10 +40,20 @@ export interface GenerationTuning {
 export const FEEDBACK_TEMPERATURE = 0;
 
 /**
+ * Thinking level for the text tasks moved to `gemini-3.5-flash-lite` (2026-09-23 model
+ * swap: dialogue, speaking, summary). Thought tokens are billed at the output rate and add
+ * latency; these are short, schema-constrained generations that never needed reasoning on
+ * 3.1-flash-lite, so MINIMAL keeps cost and time-to-first-token at the level the swap was
+ * chosen for. feedback/feedbackDeep stay on 3.1 (config/models.ts) with their eval-confirmed
+ * request unchanged, so they carry no thinking level. tts has no thinking at all.
+ */
+export const TEXT_THINKING_LEVEL: ThinkingLevel = "MINIMAL";
+
+/**
  * feedback/feedbackDeep now carry the measured temperature above. dialogue, speaking,
- * summary and tts are deliberately left unset (provider default) — they have no eval
- * coverage, so setting a temperature for them could regress behaviour nothing here
- * measures.
+ * summary and tts deliberately leave temperature unset (provider default) — they have no
+ * eval coverage, so setting a temperature for them could regress behaviour nothing here
+ * measures. The tasks on 3.5-flash-lite carry TEXT_THINKING_LEVEL.
  *
  * Note: `0` is falsy. `buildGenerateBody` (providers/gemini.ts) uses an explicit
  * `tuning?.temperature !== undefined` check rather than `if (tuning?.temperature)` so a
@@ -47,11 +61,11 @@ export const FEEDBACK_TEMPERATURE = 0;
  * load-bearing now, not hypothetical. Do not "simplify" it to a truthiness check.
  */
 export const GENERATION_TUNING: Record<Task, GenerationTuning> = {
-  dialogue: {},
-  speaking: {},
+  dialogue: { thinkingLevel: TEXT_THINKING_LEVEL },
+  speaking: { thinkingLevel: TEXT_THINKING_LEVEL },
   feedback: { temperature: FEEDBACK_TEMPERATURE },
   feedbackDeep: { temperature: FEEDBACK_TEMPERATURE },
-  summary: {},
+  summary: { thinkingLevel: TEXT_THINKING_LEVEL },
   tts: {},
 };
 
