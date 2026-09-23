@@ -49,7 +49,7 @@
   - **`SERVER_WATCHDOG_MS` 8초** — **라이브 재생 대기**만의 상한(`playFromServer`). 합성 잡은 코디네이터 스코프의 형제 코루틴이라, 이 타임아웃은 *대기*만 포기할 뿐 합성은 백그라운드에서 계속 진행해 캐시를 채운다 — 라이브는 제때 단말 폴백, 콜드 합성 결과는 다음 재생에 재사용.
   - 단말 워치독은 7초(옛 `SCRIPT_TTS_WATCHDOG_ANDROID_MS` 계승).
 - 단말 폴백 **조건부:** `LANG_MISSING_DATA` 또는 `LANG_NOT_SUPPORTED`(영어 데이터 미설치/미지원)면 음성 없이 **대사 텍스트만** 표시 + 재시도. "완전 오프라인 음성"은 영어 데이터 설치 시에만 성립.
-- **모델 예열(2026-07-16):** 텍스트 태스크(`gemini-3.1-flash-lite`)와 TTS(`gemini-2.5-flash-preview-tts`)는
+- **모델 예열(2026-07-16):** 텍스트 태스크(당시 `gemini-3.1-flash-lite`, 현재 `config/models.ts` 참고)와 TTS(`gemini-2.5-flash-preview-tts`)는
   **다른 모델**이라 대본 생성이 음성 모델을 데우지 못한다. 세션 첫 합성은 콜드(>7초)라 서버가 자체
   per-attempt 타임아웃(`gemini.ts` REQUEST_TIMEOUT_MS 7초 × 2회)으로 포기 → 첫 대사가 단말 폴백됐다.
   대응: 앱 전면 진입 시 throwaway 합성으로 모델을 예열(`warmUpModel`, SERVER·비음소거 한정, 결과 폐기·
