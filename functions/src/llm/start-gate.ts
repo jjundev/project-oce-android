@@ -19,12 +19,11 @@ import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { randomUUID } from "node:crypto";
 import { kstDateKey } from "../config/kst";
 import { ErrorCode } from "../types/protocol";
+import { SESSION_TTL_MS } from "./session-cap";
 
 /** default daily free-session limit when config/limits is absent (firestore-schema.md:286). */
 export const DEFAULT_DAILY_FREE_SESSIONS = 3;
 
-/** ephemeral session hard-expiry window — decision #20 (backend-functions.md:98). */
-const SESSION_TTL_MS = 2 * 60 * 60 * 1000; // 2h
 /** idempotency dedup window — decision #21; must outlive the transport retry window. */
 const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 

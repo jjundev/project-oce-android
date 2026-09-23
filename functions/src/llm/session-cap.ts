@@ -4,7 +4,7 @@
  * `sessions/{sessionId}` record before the Gemini call runs.
  *
  * Design:
- * - `evaluateSlot` is the PURE cap decision (owner + expiry + callCount < turnCount×factor),
+ * - `evaluateSlot` is the PURE cap decision (owner + callCount < turnCount×factor),
  *   free of firebase-admin types so it unit-tests without the emulator.
  * - `firestoreSessionGate` wraps it in a Firestore transaction (serialized against concurrent
  *   calls) and adds best-effort refund.
@@ -17,10 +17,12 @@
  * refund. This is deliberate, not a bug.
  *
  * Ordering: `sessions/{sessionId}` records are CREATED by the dialogue start-gate (M1-02, §7);
- * this gate only VERIFIES + increments. A missing record (e.g. M1-02 not yet shipped, or an
- * expired/foreign session) is rejected as SESSION_INVALID.
+ * this gate only VERIFIES + increments. A missing or foreign record is rejected as
+ * SESSION_INVALID. Time is NOT judged: the home resume snapshot has no time expiry
+ * (docs/ui/04-screen-02-home.md H5), so a resumed session must keep working days later — cost is
+ * bounded by the per-session cap alone. `expiresAt` is only a cleanup horizon (SESSION_TTL_MS).
  */
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { ErrorCode } from "../types/protocol";
 
 /**
@@ -33,6 +35,13 @@ import { ErrorCode } from "../types/protocol";
  */
 export const DEFAULT_CAP_FACTOR = 3;
 
+/**
+ * Cleanup horizon for `sessions/{id}.expiresAt` — NOT an access deadline. Set on creation
+ * (start-gate) and slid forward on every reserve, so a future Firestore TTL policy only reaps
+ * sessions untouched for this long. Cost is bounded by turnCount × factor, not by time.
+ */
+export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30d
+
 /** per-session cap reached — mapped to 429 CAP_EXCEEDED. */
 export class CapExceededError extends Error {
   readonly code = ErrorCode.CAP_EXCEEDED;
@@ -42,7 +51,7 @@ export class CapExceededError extends Error {
   }
 }
 
-/** session missing / expired / not owned by the caller — mapped to 403 SESSION_INVALID. */
+/** session missing / not owned by the caller — mapped to 403 SESSION_INVALID. */
 export class SessionInvalidError extends Error {
   readonly code = ErrorCode.SESSION_INVALID;
   constructor(what: string) {
@@ -51,23 +60,20 @@ export class SessionInvalidError extends Error {
   }
 }
 
-/** the fields of `sessions/{sessionId}` this gate reads (backend-functions.md:98). */
+/** the fields of `sessions/{sessionId}` this gate judges (backend-functions.md:98). */
 export interface SessionState {
   uid: string;
-  /** session hard-expiry as epoch millis (Firestore Timestamp → toMillis()). */
-  expiresAtMs: number;
   turnCount: number;
   callCount: number;
 }
 
 /**
  * Pure cap decision. Returns the callCount to commit (current + 1), or throws:
- * SessionInvalidError (absent / foreign uid / expired) or CapExceededError (at cap).
+ * SessionInvalidError (absent / foreign uid) or CapExceededError (at cap).
  */
 export function evaluateSlot(
   state: SessionState | undefined,
   uid: string,
-  nowMs: number,
   factor: number
 ): number {
   if (!state) {
@@ -75,9 +81,6 @@ export function evaluateSlot(
   }
   if (state.uid !== uid) {
     throw new SessionInvalidError("session not owned by caller");
-  }
-  if (state.expiresAtMs <= nowMs) {
-    throw new SessionInvalidError("session expired");
   }
   const cap = state.turnCount * factor;
   if (state.callCount >= cap) {
@@ -106,14 +109,6 @@ export interface DbLike {
   runTransaction<T>(fn: (txn: TxnLike) => Promise<T>): Promise<T>;
 }
 
-/** Read `expiresAt` (Firestore Timestamp or millis) off a doc → epoch millis. */
-function toMillis(value: unknown): number {
-  if (value && typeof (value as { toMillis?: unknown }).toMillis === "function") {
-    return (value as { toMillis(): number }).toMillis();
-  }
-  return typeof value === "number" ? value : 0;
-}
-
 function toState(snap: DocSnapLike): SessionState | undefined {
   if (!snap.exists) {
     return undefined;
@@ -121,7 +116,6 @@ function toState(snap: DocSnapLike): SessionState | undefined {
   const d = snap.data() ?? {};
   return {
     uid: typeof d.uid === "string" ? d.uid : "",
-    expiresAtMs: toMillis(d.expiresAt),
     turnCount: typeof d.turnCount === "number" ? d.turnCount : 0,
     callCount: typeof d.callCount === "number" ? d.callCount : 0,
   };
@@ -141,8 +135,11 @@ export function firestoreSessionGate(
       const ref = db.collection("sessions").doc(sessionId);
       await db.runTransaction(async (txn) => {
         const snap = await txn.get(ref);
-        const next = evaluateSlot(toState(snap), uid, now(), factor);
-        txn.update(ref, { callCount: next });
+        const next = evaluateSlot(toState(snap), uid, factor);
+        txn.update(ref, {
+          callCount: next,
+          expiresAt: Timestamp.fromMillis(now() + SESSION_TTL_MS),
+        });
       });
     },
     async refund(sessionId) {

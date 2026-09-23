@@ -7,6 +7,7 @@ import {
   evaluateStart,
   firestoreStartGate,
 } from "../src/llm/start-gate";
+import { SESSION_TTL_MS } from "../src/llm/session-cap";
 import { kstDateKey } from "../src/config/kst";
 
 const NOW = 1_700_000_000_000; // fixed instant
@@ -96,7 +97,7 @@ describe("firestoreStartGate.reserve — fresh start", () => {
     expect(session?.uid).toBe("u1");
     expect(session?.turnCount).toBe(10);
     expect(session?.callCount).toBe(0);
-    expect(session?.expiresAt).toBeDefined();
+    expect((session?.expiresAt as { toMillis(): number }).toMillis()).toBe(NOW + SESSION_TTL_MS);
   });
 
   it("counts against an existing same-day usage doc", async () => {

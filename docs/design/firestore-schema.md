@@ -36,12 +36,12 @@ config/
   ├─ limits                      # 서버 전용 — dailyFreeSessions 등
   ├─ prompts                     # 서버 전용 — 프롬프트 버전/본문(B-1)
   └─ models                      # 서버 전용 — task별 모델 ID(라이브 스왑) [backend-functions.md §6]
-sessions/{sessionId}             # 서버 전용 ephemeral — {uid, createdAt, expiresAt, turnCount, callCount}; TTL on expiresAt [backend §8]
+sessions/{sessionId}             # 서버 전용 ephemeral — {uid, createdAt, expiresAt, turnCount, callCount}; expiresAt = 30일 sliding 정리 기한(TTL 정책 현재 미활성) [backend §8]
 idempotency/{key}                # 서버 전용 — startIntent dedup → {sessionId, createdAt, expiresAt}; TTL [backend §7]
 ```
 
 > `gamification`은 `progress`·`studytime` 두 개의 고정 id 문서를 담는 서브컬렉션이다. `point_ledger`·`progress_marks`는 `users/{uid}` 직속 서브컬렉션이다.
-> `sessions`·`idempotency`·`config/*`는 **서버 전용**(Admin SDK 기록, 클라 default-deny). `sessions`·`idempotency`는 **Firestore TTL 정책**으로 `expiresAt` 자동 정리. 백엔드 프록시·게이트·캐시 설계는 [backend-functions.md](backend-functions.md) 참조.
+> `sessions`·`idempotency`·`config/*`는 **서버 전용**(Admin SDK 기록, 클라 default-deny). `sessions`·`idempotency`는 `expiresAt` 기반 **Firestore TTL 정책** 정리 대상(`sessions` 는 30일 sliding 기한) — 단 TTL 정책은 현재 미활성이라 자동 삭제되지 않음([backend-functions.md §8](backend-functions.md)). 백엔드 프록시·게이트·캐시 설계는 [backend-functions.md](backend-functions.md) 참조.
 
 ---
 
