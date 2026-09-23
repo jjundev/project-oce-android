@@ -94,8 +94,8 @@ interface LlmProvider {
 
 ## 8. Ephemeral 세션 레코드 + per-session 캡
 - **저장:** **Firestore `sessions/{sessionId}`**(서버 전용; in-memory 금지 — Cloud Run 인스턴스 휘발·min=1이 클라 고정 안 함). 시작 트랜잭션(§7)에서 생성.
-- **필드:** `{uid, createdAt, expiresAt, turnCount, callCount}`. `expiresAt` = 시작 + **최대 세션 길이 이상(예 2h)** → 정상 학습자는 중도 거부 없음. Firestore **TTL 정책**으로 `expiresAt` 자동 정리.
-- **검증(feedback/speaking/summary 매 호출):** 트랜잭션 `{소유(uid)·미만료 확인 → callCount < cap(=turnCount × factor)이면 +1, 아니면 거부}`. → 무계량 비싼 오디오 경로 차단(FR-27/NFR-2). 비용 상한 = (일일 시작 캡) × (turnCount × factor).
+- **필드:** `{uid, createdAt, expiresAt, turnCount, callCount}`. `expiresAt` 은 **접근 기한이 아니라 정리 기한**이다 — 생성 시 +30일, **reserve 마다 now+30일로 연장**(sliding). 홈 이어하기 스냅샷이 시간 만료 없음(04-screen-02-home H5)이므로 게이트는 시간을 판정하지 않는다(2026-09-23, 2h 만료가 이어하기를 403 으로 깨던 버그 수정). TTL 정책은 현재 미활성.
+- **검증(feedback/speaking/summary 매 호출):** 트랜잭션 `{존재·소유(uid) 확인 → callCount < cap(=turnCount × factor)이면 +1(+expiresAt 연장), 아니면 거부}`. → 무계량 비싼 오디오 경로 차단(FR-27/NFR-2). 비용 상한 = (일일 시작 캡) × (turnCount × factor) — 시간과 무관하게 유지.
 - **캡 카운트 정책(A1):** **성공(비-서버에러) 호출만** 캡에 카운트 → 네트워크/LLM 실패 재시도가 정상 학습자를 중도 차단하지 않음. 캡 도달 시 비난 없는 문구.
 - **완주와 독립:** 완주(`point_ledger` create)는 클라→Firestore 직접(프록시 비경유, 규칙은 만료 미검사) — 세션 만료와 무관하게 XP 적립 가능(의도된 분리, schema §4.2/§5).
 
