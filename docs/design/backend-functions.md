@@ -86,7 +86,7 @@ interface LlmProvider {
 2. **없거나 만료됐으면**: `users/{uid}/usage/{kstDate}.sessionCount < config.limits.dailyFreeSessions` 확인 → +1(merge — 같은 문서의 `ttsCount` 보존), **서버 UUID `sessionId`** 발급, `idempotency/{uid}_{key}` 에 `{uid, sessionId, createdAt, expiresAt, replayCount:0}` 기록, **ephemeral 세션 레코드 생성**(§8) — 모두 같은 커밋. 한도 초과면 거부(`{remaining:0}`). 한도는 **사용자별**이다(2026-09-24 이전 구현은 전역 `usage/{date}` 한 문서를 공유하던 버그).
 3. 통과 시 대본 생성 시작, `event:meta {sessionId, remaining}` emit.
 
-**환불(best-effort, terminal 실패만):** 백오프 재시도(§12) **소진 후** gen이 최종 실패하면 → **환불 트랜잭션이 `usage` decrement + `idempotency/{key}` 삭제를 원자적으로**(재시도=fresh start, 슬롯 누수/이중과금 모두 차단). 환불은 이번 호출이 usage 를 올린 경우(새 시작 또는 유료 재요청)에만 하며, 키 삭제는 새 시작일 때만 한다. 환불 write 자체가 실패하면 슬롯 소실 수용(schema §9 기존 tolerance).
+**환불(best-effort, terminal 실패만):** 백오프 재시도(§12) **소진 후** gen이 최종 실패하면 환불 트랜잭션을 돈다. 환불은 **이번 호출이 usage 를 올린 경우에만**(무료 재요청은 no-op). 새 시작의 환불은 `usage` decrement + `idempotency/{uid}_{key}` 삭제를 원자적으로 한다(재시도=fresh start, 슬롯 누수/이중과금 차단) — **단 그 키의 재요청이 이미 받아들여졌으면(`replayCount > 0`) 아무것도 환불하지 않는다**(재요청이 이미 이 세션을 전달했으므로; 무료 재요청을 0 비용으로 만드는 우회 차단). 유료 재요청의 환불은 decrement 만 하고 키는 유지한다. 환불 write 자체가 실패하면 슬롯 소실 수용(schema §9 기존 tolerance).
 
 > KST 일경계로 `users/{uid}/usage/{yyyymmdd}` 산출(streak와 일관). 일일 캡은 **dialogue 시작만** 카운트(tts 는 같은 문서의 `ttsCount`, §12).
 
@@ -96,7 +96,7 @@ interface LlmProvider {
 - **저장:** **Firestore `sessions/{sessionId}`**(서버 전용; in-memory 금지 — Cloud Run 인스턴스 휘발·min=1이 클라 고정 안 함). 시작 트랜잭션(§7)에서 생성.
 - **필드:** `{uid, createdAt, expiresAt, turnCount, callCount, summaryCount}`. `expiresAt` 은 **접근 기한이 아니라 정리 기한**이다 — 생성 시 +30일, **reserve 마다 now+30일로 연장**(sliding). 홈 이어하기 스냅샷이 시간 만료 없음(04-screen-02-home H5)이므로 게이트는 시간을 판정하지 않는다(2026-09-23, 2h 만료가 이어하기를 403 으로 깨던 버그 수정). TTL 정책은 현재 미활성.
 - **검증(feedback/feedbackDeep/speaking 매 호출):** 트랜잭션 `{존재·소유(uid) 확인 → callCount < cap(=turnCount × factor)이면 +1(+expiresAt 연장), 아니면 거부}`. → 무계량 비싼 오디오 경로 차단(FR-27/NFR-2). 비용 상한은 세션 단위·누적 — 각 세션은 일일 캡이 걸린 시작 1회로 발급되고 turnCount × factor 호출을 넘지 못한다. 단 하루 단위 상한은 아니다(이전 날 시작한 세션이 남은 예산을 이후 날짜에 소비 가능).
-- **요약 캡(2026-09-24):** `summary` 는 공유 `callCount` 가 아니라 별도 `summaryCount < SUMMARY_CAP(=6)` 로 센다(첫 요청 + 섹션 재시도). 피드백 예산을 다 쓴 세션도 요약은 받을 수 있다. 존재·소유 검사는 동일(403), 캡 도달은 스트림 전 429 `CAP_EXCEEDED`(클라 중립 QuotaExceeded). 부분 실패는 환불하지 않는다.
+- **요약 캡(2026-09-24):** `summary` 는 공유 `callCount` 가 아니라 별도 `summaryCount < SUMMARY_CAP(=6)` 로 센다(첫 요청 + 섹션 재시도). 피드백 예산을 다 쓴 세션도 요약은 받을 수 있다. 존재·소유 검사는 동일(403), 캡 도달은 스트림 전 429 `CAP_EXCEEDED`(클라 중립 QuotaExceeded). 부분 실패는 환불하지 않는다. 게스트로 시작한 세션은 `sessions/{id}` 에 게스트 uid 를 유지하므로, uid 가 바뀌는 게스트→Google 병합 후 이어한 그 세션의 요약은 (피드백처럼) 403 이다.
 - **캡 카운트 정책(A1):** **성공(비-서버에러) 호출만** 캡에 카운트 → 네트워크/LLM 실패 재시도가 정상 학습자를 중도 차단하지 않음. 캡 도달 시 비난 없는 문구.
 - **완주와 독립:** 완주(`point_ledger` create)는 클라→Firestore 직접(프록시 비경유, 규칙은 만료 미검사) — 세션 만료와 무관하게 XP 적립 가능(의도된 분리, schema §4.2/§5).
 
@@ -121,8 +121,9 @@ interface LlmProvider {
 ## 11. 신규 Firestore 컬렉션 (서버 전용)
 [firestore-schema.md](firestore-schema.md) §2에 동기화:
 ```
-sessions/{sessionId}     # 서버 전용 ephemeral — {uid, createdAt, expiresAt, turnCount, callCount}; TTL on expiresAt
-idempotency/{key}        # 서버 전용 — startIntent dedup → {sessionId, createdAt, expiresAt}; TTL
+sessions/{sessionId}     # 서버 전용 ephemeral — {uid, createdAt, expiresAt, turnCount, callCount, summaryCount}; TTL on expiresAt
+idempotency/{uid}_{key}  # 서버 전용 — startIntent dedup → {uid, sessionId, createdAt, expiresAt, replayCount}; TTL
+users/{uid}/usage/{yyyymmdd}  # 서버 전용 — 사용자별 일일 카운터 {sessionCount, ttsCount, updatedAt}
 config/models            # 서버 전용 — task별 모델 ID(라이브 스왑)
 ```
 전부 Admin SDK만 기록·읽기(클라 default-deny). TTL 정책 2개(`sessions.expiresAt`, `idempotency.expiresAt`).
@@ -132,7 +133,7 @@ config/models            # 서버 전용 — task별 모델 ID(라이브 스왑)
 ## 12. 신뢰성 · 비용 · 보안
 - **신뢰성:** Gemini 호출에 타임아웃 + 지수 백오프 재시도, 실패 시 타입드 에러 SSE(`event:error`) → 클라 "다시 시도".
 - **비용 모니터링(NFR-2, 정직 회계):** Gemini `usageMetadata`(토큰) 구조화 로깅 + GCP 예산 알림. 신규 상시/호출당 비용 명시 — 워밍 인스턴스(min=1) + 세션 검증 트랜잭션(호출당) + 시작 dedup 트랜잭션.
-- **rate-limit:** 별도 per-instance 리미터 없음(인스턴스>1서 깨짐). 비용은 **(1인당 일일 시작 캡) + (§8 per-session 캡·요약 캡) + (1인당 일일 tts 캡: `users/{uid}/usage/{day}.ttsCount < config.limits.dailyTtsLines`(기본 300), 초과 시 429 → 클라 기기 음성 폴백) + (payload 크기 상한: 텍스트 64KB·speaking 1.5MB·tts 문장 500자) + `maxInstances`(10) + 인증**으로 한정(2026-09-24). 게스트 계정 대량 생성 우회는 App Check 라운드에서 막는다.
+- **rate-limit:** 별도 per-instance 리미터 없음(인스턴스>1서 깨짐). 비용은 **(1인당 일일 시작 캡) + (§8 per-session 캡·요약 캡) + (1인당 일일 tts 캡: `users/{uid}/usage/{day}.ttsCount < config.limits.dailyTtsLines`(기본 300), 초과 시 429 → 클라 기기 음성 폴백) + (payload 크기 상한: 텍스트 64KB·speaking 1.5MB·tts 문장 500자) + `maxInstances`(10) + 인증**으로 한정(2026-09-24). 게스트 계정 대량 생성 우회는 App Check 라운드에서 막는다. 한도 값은 **> 0** 이어야 한다 — `firestoreLimitProvider` 는 0/음수를 부재로 보고 기본값으로 폴백한다(`dailyTtsLines=0` 은 tts 를 끄지 않는다).
 - **보안:** 키=Secret. `usage`/`progress`/`progress_marks`/`sessions`/`idempotency`/`config`는 Admin만(규칙 default-deny). 파일/스펙 내용은 데이터로만 취급.
 
 ---

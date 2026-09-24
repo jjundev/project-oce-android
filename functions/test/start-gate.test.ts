@@ -187,6 +187,18 @@ describe("firestoreStartGate.refund", () => {
     expect(store.has(idemPath("u1"))).toBe(false);
   });
 
+  it("fresh start after a free replay was admitted: refunds nothing and keeps the key", async () => {
+    const { db, store } = makeDb();
+    const gate = gateWith(db);
+    const freshStart = await gate.reserve("u1", KEY, 6);
+    const replay = await gate.reserve("u1", KEY, 6);
+    expect(replay.deduped).toBe(true);
+    expect(replay.charged).toBe(false);
+    await gate.refund("u1", KEY, freshStart);
+    expect(store.get(usagePath("u1"))?.sessionCount).toBe(1);
+    expect(store.has(idemPath("u1"))).toBe(true);
+  });
+
   it("paid replay: decrements usage but keeps the original key", async () => {
     const { db, store } = makeDb({
       [usagePath("u1")]: { sessionCount: 1 },

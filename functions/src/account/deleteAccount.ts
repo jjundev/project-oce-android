@@ -9,7 +9,7 @@
  * `progress_marks`·`gamification/*`·`usage`) 일괄 삭제 → 성공 후 `auth.deleteUser`. 비원자 배치라 중간 실패 시
  * "일부 데이터 남은 Auth" orphan 이 남을 수 있으나, 클라가 로컬 "삭제 진행 중" 플래그로 멱등 재호출해 수렴한다.
  *
- * top-level ephemeral(`sessions/{id}`·`idempotency/{key}`)은 `users/{uid}` 서브트리가 아니라 루트 직속이라
+ * top-level ephemeral(`sessions/{id}`·`idempotency/{uid}_{key}`)은 `users/{uid}` 서브트리가 아니라 루트 직속이라
  * recursiveDelete 가 순회하지 않는다(firestore-schema.md:40-41). `sessions` 의 `expiresAt` 은 30일 sliding 정리 기한일
  * 뿐이며 현재 Firestore TTL 정책이 활성화돼 있지 않아, 이 문서들은 지금은 자동 삭제되지 않는다(backend-functions.md §8).
  *

@@ -222,8 +222,9 @@ export function firestoreStartGate(
 
     async refund(uid, idempotencyKey, start) {
       // Only a charged start moved usage. A fresh start also deletes its key so a retry is a fresh
-      // start; a paid replay keeps the key (it belongs to the original attempt). Best-effort: a
-      // failed refund tolerates slot loss (backend-functions.md §7).
+      // start — unless a replay of that key was already admitted (it delivered this session), in
+      // which case nothing is refunded. A paid replay keeps the key (it belongs to the original
+      // attempt). Best-effort: a failed refund tolerates slot loss (backend-functions.md §7).
       if (!start.charged) {
         return;
       }
@@ -232,6 +233,10 @@ export function firestoreStartGate(
           const usageRef = db.doc(usageDocPath(uid, start.usageKey));
           const idemRef = db.collection("idempotency").doc(idempotencyDocId(uid, idempotencyKey));
           const usageSnap = await txn.get(usageRef);
+          const idemSnap = await txn.get(idemRef);
+          if (!start.deduped && idemSnap.exists && readNumber(idemSnap, "replayCount") > 0) {
+            return;
+          }
           if (usageSnap.exists) {
             const sessionCount = readNumber(usageSnap, "sessionCount");
             txn.update(usageRef, { sessionCount: Math.max(0, sessionCount - 1) });
