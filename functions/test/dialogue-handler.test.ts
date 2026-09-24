@@ -104,8 +104,8 @@ function streamProvider(chunks: string[], failAtEnd = false): LlmProvider {
 function fakeGate(opts: {
   reserve?: Partial<StartResult>;
   throwLimit?: boolean;
-}): { gate: StartGate; refunds: Array<[string, string]> } {
-  const refunds: Array<[string, string]> = [];
+}): { gate: StartGate; refunds: Array<[string, string, string]> } {
+  const refunds: Array<[string, string, string]> = [];
   const gate: StartGate = {
     async reserve() {
       if (opts.throwLimit) {
@@ -115,12 +115,13 @@ function fakeGate(opts: {
         sessionId: "sess-1",
         remaining: 2,
         deduped: false,
+        charged: true,
         usageKey: "20231114",
         ...opts.reserve,
       };
     },
-    async refund(idempotencyKey, usageKey) {
-      refunds.push([idempotencyKey, usageKey]);
+    async refund(uid, idempotencyKey, start) {
+      refunds.push([uid, idempotencyKey, start.usageKey]);
     },
   };
   return { gate, refunds };
@@ -140,13 +141,49 @@ describe("handle task=dialogue", () => {
     expect(res.writes).toHaveLength(0);
   });
 
+  it("400 INVALID_PAYLOAD when idempotencyKey is not a UUID (never reaches the gate)", async () => {
+    const res = recorder();
+    const { gate } = fakeGate({});
+    const reserve = jest.spyOn(gate, "reserve");
+    await handle(
+      req({
+        task: "dialogue",
+        idempotencyKey: "a/b",
+        payload: { level: "easy", topic: "t", length: 10, firstSession: false },
+      }),
+      res,
+      { startGate: gate, provider: streamProvider([]) }
+    );
+    expect(res.statusCode).toBe(400);
+    expect(res.jsonBody).toEqual({ code: ErrorCode.INVALID_PAYLOAD });
+    expect(reserve).not.toHaveBeenCalled();
+  });
+
+  it("400 INVALID_PAYLOAD for an oversized payload before the gate runs", async () => {
+    const res = recorder();
+    const { gate } = fakeGate({});
+    const reserve = jest.spyOn(gate, "reserve");
+    await handle(
+      req({
+        task: "dialogue",
+        idempotencyKey: "00000000-0000-4000-8000-0000000000a1",
+        payload: { level: "easy", topic: "x".repeat(70_000), length: 10, firstSession: false },
+      }),
+      res,
+      { startGate: gate, provider: streamProvider([]) }
+    );
+    expect(res.statusCode).toBe(400);
+    expect(res.jsonBody).toEqual({ code: ErrorCode.INVALID_PAYLOAD });
+    expect(reserve).not.toHaveBeenCalled();
+  });
+
   it("429 DAILY_LIMIT_EXCEEDED pre-stream when the gate rejects", async () => {
     const res = recorder();
     const { gate } = fakeGate({ throwLimit: true });
     await handle(
       req({
         task: "dialogue",
-        idempotencyKey: "k1",
+        idempotencyKey: "00000000-0000-4000-8000-0000000000a1",
         payload: { level: "easy", topic: "t", length: 10, firstSession: false },
       }),
       res,
@@ -163,7 +200,7 @@ describe("handle task=dialogue", () => {
     await handle(
       req({
         task: "dialogue",
-        idempotencyKey: "k1",
+        idempotencyKey: "00000000-0000-4000-8000-0000000000a1",
         payload: { level: "normal", topic: "커피", length: 10, firstSession: false },
       }),
       res,
@@ -193,7 +230,7 @@ describe("handle task=dialogue", () => {
     await handle(
       req({
         task: "dialogue",
-        idempotencyKey: "k1",
+        idempotencyKey: "00000000-0000-4000-8000-0000000000a1",
         payload: { level: "easy", topic: "t", length: 10, firstSession: false },
       }),
       res,
@@ -204,16 +241,16 @@ describe("handle task=dialogue", () => {
     expect(events).toContainEqual({ event: "error", data: { code: ErrorCode.INTERNAL } });
     expect(events[events.length - 1]).toEqual({ event: "done", data: { status: "error" } });
     expect(res.ended).toBe(true);
-    expect(refunds).toEqual([["k1", "20231114"]]); // fresh start → refunded
+    expect(refunds).toEqual([["u1", "00000000-0000-4000-8000-0000000000a1", "20231114"]]); // fresh start → refunded
   });
 
-  it("does NOT refund a deduped replay whose generation fails", async () => {
+  it("does NOT refund a free (uncharged) replay whose generation fails", async () => {
     const res = recorder();
-    const { gate, refunds } = fakeGate({ reserve: { deduped: true } });
+    const { gate, refunds } = fakeGate({ reserve: { deduped: true, charged: false } });
     await handle(
       req({
         task: "dialogue",
-        idempotencyKey: "k1",
+        idempotencyKey: "00000000-0000-4000-8000-0000000000a1",
         payload: { level: "easy", topic: "t", length: 10, firstSession: false },
       }),
       res,
@@ -222,10 +259,25 @@ describe("handle task=dialogue", () => {
     expect(refunds).toHaveLength(0); // replay slot belongs to the original attempt
   });
 
+  it("refunds a paid (charged) replay whose generation fails", async () => {
+    const res = recorder();
+    const { gate, refunds } = fakeGate({ reserve: { deduped: true, charged: true } });
+    await handle(
+      req({
+        task: "dialogue",
+        idempotencyKey: "00000000-0000-4000-8000-0000000000a1",
+        payload: { level: "easy", topic: "t", length: 10, firstSession: false },
+      }),
+      res,
+      { startGate: gate, provider: streamProvider([], true) }
+    );
+    expect(refunds).toEqual([["u1", "00000000-0000-4000-8000-0000000000a1", "20231114"]]);
+  });
+
   it("falls back to the NOT_IMPLEMENTED stub when startGate is absent", async () => {
     const res = recorder();
     await handle(
-      req({ task: "dialogue", idempotencyKey: "k1", payload: {} }),
+      req({ task: "dialogue", idempotencyKey: "00000000-0000-4000-8000-0000000000a1", payload: {} }),
       res,
       { provider: streamProvider([]) }
     );

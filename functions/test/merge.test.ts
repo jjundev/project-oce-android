@@ -1,6 +1,7 @@
 import {
   DocData,
   GuestDoc,
+  isAnonymousGuest,
   MergeStore,
   resolveSavedCardWrite,
   resolveStudytimeTotal,
@@ -167,5 +168,17 @@ describe("runMerge", () => {
     expect(r).toEqual({ cardsCopied: 0, cardsTombstoned: 0, ledgersCopied: 0, studytimeAdded: false });
     expect(s.subtreeDeleted).toEqual(["guest-1"]);
     expect(s.authDeleted).toEqual(["guest-1"]);
+  });
+});
+
+describe("isAnonymousGuest (merge source must be a guest)", () => {
+  it("accepts an anonymous-provider token", () => {
+    expect(isAnonymousGuest({ uid: "g", firebase: { sign_in_provider: "anonymous" } })).toBe(true);
+  });
+
+  it("rejects a real account token or one without a provider", () => {
+    expect(isAnonymousGuest({ uid: "v", firebase: { sign_in_provider: "google.com" } })).toBe(false);
+    expect(isAnonymousGuest({ uid: "v", firebase: { sign_in_provider: "password" } })).toBe(false);
+    expect(isAnonymousGuest({ uid: "v" })).toBe(false);
   });
 });

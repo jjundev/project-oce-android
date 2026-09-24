@@ -30,6 +30,7 @@ import {
   CapExceededError,
   SessionGate,
   SessionInvalidError,
+  SummaryGate,
 } from "./session-cap";
 import {
   InvalidDialoguePayloadError,
@@ -45,6 +46,8 @@ import {
   orchestrateFeedbackDeep,
   parseFeedbackDeepPayload,
 } from "./feedbackDeep";
+import { isUuid, payloadWithinLimit } from "./request-guards";
+import { TtsQuota } from "./tts-quota";
 import { DailyLimitError, StartGate, StartResult } from "./start-gate";
 import { SpeakingAnalyzeError, TtsSynthError } from "../providers/gemini";
 import { LlmProvider } from "../providers/LlmProvider";
@@ -69,6 +72,12 @@ export interface HandlerDeps {
   /** dialogue start gate (dedup + daily limit + session create, backend-functions.md §7). When
    *  absent (or provider absent), dialogue falls back to the NOT_IMPLEMENTED SSE stub. */
   startGate?: StartGate;
+  /** per-session summary cap (`sessions/{id}.summaryCount`). When absent, summary falls back to
+   *  the NOT_IMPLEMENTED stub — same pattern as the other gates. */
+  summaryGate?: SummaryGate;
+  /** per-user daily tts quota (`users/{uid}/usage/{day}.ttsCount`). When absent, tts falls back
+   *  to the 501 stub. */
+  ttsQuota?: TtsQuota;
 }
 
 export interface HandlerResponse {
@@ -110,12 +119,18 @@ export async function handle(
   }
   const task = body.task;
 
+  // 2b. size guard — before any Firestore transaction or Gemini call (cost defense).
+  if (!payloadWithinLimit(task, body.payload)) {
+    res.status(400).json({ code: ErrorCode.INVALID_PAYLOAD });
+    return;
+  }
+
   // 3. dispatch to a stub by response mode
   try {
     if (responseModeFor(task) === "sse") {
-      if (task === "summary" && deps.provider) {
-        // task=summary, implemented — 3-call orchestration over a single SSE (M2-01).
-        await handleSummary(body.payload, deps.provider, res);
+      if (task === "summary" && deps.provider && deps.summaryGate) {
+        // task=summary — per-session summary cap, then 3-call orchestration over one SSE (M2-01).
+        await handleSummary(body, uid, deps.provider, deps.summaryGate, res);
       } else if (task === "dialogue" && deps.startGate && deps.provider) {
         // task=dialogue, implemented — start gate + streaming script parser (M1-02).
         await handleDialogue(body, uid, deps.startGate, deps.provider, res);
@@ -136,9 +151,9 @@ export async function handle(
         writeEvent(res, { event: "done", data: { status: "error" } });
         res.end();
       }
-    } else if (task === "tts" && deps.provider) {
-      // JSON transport, implemented — synthesize and return base64 PCM (M1-05).
-      await handleTts(body.payload, deps.provider, res);
+    } else if (task === "tts" && deps.provider && deps.ttsQuota) {
+      // JSON transport — per-user daily quota, then synthesize and return base64 PCM (M1-05).
+      await handleTts(body.payload, uid, deps.provider, deps.ttsQuota, res);
     } else if (task === "speaking" && deps.provider && deps.sessionGate) {
       // JSON transport, implemented — transcribe + encourage (M1-06).
       await handleSpeaking(body, uid, deps.provider, deps.sessionGate, res);
@@ -163,8 +178,8 @@ export async function handle(
  *
  * Failure tail (decision #19): a post-openSse generation failure emits `error`+`done`, closes the
  * stream, THEN best-effort refunds — the client isn't blocked on the second transaction. Only a
- * FRESH (non-deduped) start refunds: a replayed key's slot belongs to the original attempt, and
- * deleting its idempotency doc would corrupt that attempt's dedup.
+ * CHARGED start refunds (fresh, or a replay past FREE_REPLAYS); a free replay's slot belongs to the
+ * original attempt. The gate decides whether the idempotency doc is deleted.
  */
 async function handleDialogue(
   body: Partial<RequestBody>,
@@ -178,8 +193,8 @@ async function handleDialogue(
     typeof body.idempotencyKey === "string" ? body.idempotencyKey.trim() : "";
   let payload: DialoguePayload;
   try {
-    if (!idempotencyKey) {
-      throw new InvalidDialoguePayloadError("missing idempotencyKey");
+    if (!isUuid(idempotencyKey)) {
+      throw new InvalidDialoguePayloadError("missing or malformed idempotencyKey");
     }
     payload = parseDialoguePayload(body.payload);
   } catch (e) {
@@ -215,8 +230,8 @@ async function handleDialogue(
     writeEvent(res, { event: "error", data: { code: ErrorCode.INTERNAL } });
     writeEvent(res, { event: "done", data: { status: "error" } });
     res.end();
-    if (!start.deduped) {
-      await gate.refund(idempotencyKey, start.usageKey);
+    if (start.charged) {
+      await gate.refund(uid, idempotencyKey, start);
     }
   }
 }
@@ -246,7 +261,7 @@ async function handleFeedback(
     typeof body.sessionId === "string" ? body.sessionId.trim() : "";
   let payload;
   try {
-    if (!sessionId) {
+    if (!isUuid(sessionId)) {
       throw new InvalidFeedbackPayloadError("missing sessionId");
     }
     payload = parseFeedbackPayload(body.payload);
@@ -309,7 +324,7 @@ async function handleFeedbackDeep(
     typeof body.sessionId === "string" ? body.sessionId.trim() : "";
   let payload;
   try {
-    if (!sessionId) {
+    if (!isUuid(sessionId)) {
       throw new InvalidFeedbackPayloadError("missing sessionId");
     }
     payload = parseFeedbackDeepPayload(body.payload);
@@ -351,20 +366,27 @@ async function handleFeedbackDeep(
 }
 
 /**
- * Handle `task=summary` (SSE). Validates the payload BEFORE opening the stream so a
- * malformed body → 400 INVALID_PAYLOAD with headers unsent (mirrors the tts precedent,
- * but on the SSE path). Once validated, opens the stream and hands off to the 3-call
- * orchestrator, which owns all card/done emission and closes the stream. Any non-typed
- * throw propagates to the outer catch (→ 500 only if nothing was committed yet).
+ * Handle `task=summary` (SSE). Validates sessionId + payload and reserves a per-session summary
+ * slot BEFORE opening the stream, so a malformed body → 400, a foreign/missing session → 403 and a
+ * cap rejection → 429 all land with headers unsent (the client maps the pre-stream 429 to its
+ * neutral QuotaExceeded state — SummarySseStream.kt). Once reserved, opens the stream and hands off
+ * to the 3-call orchestrator, which owns all card/done emission and closes the stream.
  */
 async function handleSummary(
-  payload: unknown,
+  body: Partial<RequestBody>,
+  uid: string,
   provider: LlmProvider,
+  gate: SummaryGate,
   res: HandlerResponse
 ): Promise<void> {
+  const sessionId =
+    typeof body.sessionId === "string" ? body.sessionId.trim() : "";
   let parsed;
   try {
-    parsed = parseSummaryPayload(payload);
+    if (!isUuid(sessionId)) {
+      throw new InvalidSummaryPayloadError("missing or malformed sessionId");
+    }
+    parsed = parseSummaryPayload(body.payload);
   } catch (e) {
     if (e instanceof InvalidSummaryPayloadError) {
       res.status(400).json({ code: ErrorCode.INVALID_PAYLOAD });
@@ -372,6 +394,21 @@ async function handleSummary(
     }
     throw e;
   }
+
+  try {
+    await gate.reserve(uid, sessionId);
+  } catch (e) {
+    if (e instanceof CapExceededError) {
+      res.status(429).json({ code: ErrorCode.CAP_EXCEEDED });
+      return;
+    }
+    if (e instanceof SessionInvalidError) {
+      res.status(403).json({ code: ErrorCode.SESSION_INVALID });
+      return;
+    }
+    throw e; // → outer catch 500 (headers still unsent)
+  }
+
   openSse(res);
   await orchestrateSummary(parsed, provider, res);
 }
@@ -380,11 +417,14 @@ async function handleSummary(
  * Synthesize a tts request and write the JSON response. Maps the two typed failures to
  * distinct statuses: a malformed payload → 400 INVALID_PAYLOAD; a synthesis failure
  * (after provider retries) → 502 TTS_SYNTH_FAILED. Any other throw propagates to the
- * outer catch → 500 INTERNAL.
+ * outer catch → 500 INTERNAL; a spent daily quota → 429 DAILY_LIMIT_EXCEEDED (checked after the
+ * payload, before synthesis).
  */
 async function handleTts(
   payload: unknown,
+  uid: string,
   provider: LlmProvider,
+  quota: TtsQuota,
   res: HandlerResponse
 ): Promise<void> {
   let request;
@@ -393,6 +433,18 @@ async function handleTts(
   } catch (e) {
     if (e instanceof InvalidTtsPayloadError) {
       res.status(400).json({ code: ErrorCode.INVALID_PAYLOAD });
+      return;
+    }
+    throw e;
+  }
+
+  // Daily quota BEFORE spending on synthesis. Over the limit → 429; the client falls back to
+  // device TTS, so the learner never sees an error.
+  try {
+    await quota.reserve(uid);
+  } catch (e) {
+    if (e instanceof DailyLimitError) {
+      res.status(429).json({ code: ErrorCode.DAILY_LIMIT_EXCEEDED });
       return;
     }
     throw e;
@@ -432,7 +484,7 @@ async function handleSpeaking(
     typeof body.sessionId === "string" ? body.sessionId.trim() : "";
   let request;
   try {
-    if (!sessionId) {
+    if (!isUuid(sessionId)) {
       throw new InvalidSpeakingPayloadError("missing sessionId");
     }
     request = parseSpeakingPayload(body.payload);

@@ -30,14 +30,14 @@ users/{uid}                      # 루트 문서: nickname, level, createdAt, up
   ├─ progress_marks/{sessionId}  # Functions 전용; 멱등 마커(문서 존재 = 해당 세션 집계 완료)
   ├─ gamification/progress       # Functions 전용; {xp, streak, studyDays, lastStudyDate, resetAt, updatedAt}
   ├─ gamification/studytime      # client RW; {totalSeconds, today:{dayKey,seconds}, updatedAt}
-  └─ usage/{yyyymmdd}            # Functions 전용; {sessionCount, updatedAt}
+  └─ usage/{yyyymmdd}            # Functions 전용; {sessionCount, ttsCount, updatedAt}
 config/
   ├─ topics                      # 내보낸 카탈로그(서버/운영용); Android 클라이언트는 읽지 않음
   ├─ limits                      # 서버 전용 — dailyFreeSessions 등
   ├─ prompts                     # 서버 전용 — 프롬프트 버전/본문(B-1)
   └─ models                      # 서버 전용 — task별 모델 ID(라이브 스왑) [backend-functions.md §6]
-sessions/{sessionId}             # 서버 전용 ephemeral — {uid, createdAt, expiresAt, turnCount, callCount}; expiresAt = 30일 sliding 정리 기한(TTL 정책 현재 미활성) [backend §8]
-idempotency/{key}                # 서버 전용 — startIntent dedup → {sessionId, createdAt, expiresAt}; TTL [backend §7]
+sessions/{sessionId}             # 서버 전용 ephemeral — {uid, createdAt, expiresAt, turnCount, callCount, summaryCount}; expiresAt = 30일 sliding 정리 기한(TTL 정책 현재 미활성) [backend §8]
+idempotency/{uid}_{key}          # 서버 전용 — startIntent dedup → {uid, sessionId, createdAt, expiresAt, replayCount}; TTL [backend §7]
 ```
 
 > `gamification`은 `progress`·`studytime` 두 개의 고정 id 문서를 담는 서브컬렉션이다. `point_ledger`·`progress_marks`는 `users/{uid}` 직속 서브컬렉션이다.
@@ -125,7 +125,7 @@ idempotency/{key}                # 서버 전용 — startIntent dedup → {sess
 
 ### 4.1 세션 시작 (한도 게이트)
 1. client → LLM 프록시 Function.
-2. Function이 `usage/{today}`를 트랜잭션으로 읽어 `sessionCount < config.limits.dailyFreeSessions`면 **+1(비싼 LLM 호출을 게이트하려고 생성 *전*에 증가)**, 아니면 거부.
+2. Function이 `users/{uid}/usage/{today}`를 트랜잭션으로 읽어 `sessionCount < config.limits.dailyFreeSessions`면 **+1(비싼 LLM 호출을 게이트하려고 생성 *전*에 증가)**, 아니면 거부.
 3. 통과 시 **서버 생성 `sessionId`(전역 UUID)** 발급 → 대본 생성. **gen 실패 시 같은 호출 내에서 best-effort 환불(decrement); 환불 write까지 실패하면 슬롯 1개 소실 수용**(§9). 성공 시 `{sessionId, remaining}` 반환.
 4. 클라이언트는 이 `sessionId`를 세션 내내 보유한다(종료 시 ledger 키로 재사용 → 게이트와 멱등이 동일 키 공유).
 
@@ -275,6 +275,7 @@ service cloud.firestore {
 **확정값(오버라이드 가능한 권장 기본값):**
 - 난이도→XP 맵: `easy/normal/hard = 10/20/35` — 옛 곡선(`LearningDifficulty.java:9-13` = 5/10/20/35/50)의 elementary/intermediate/upper 값. 신규 easy=옛 elementary(10)(floor가 A2). 트리거 코드 상수.
 - 일일 무료 한도 `dailyFreeSessions = 3` — `config/limits`(원격 라이브 튜닝, [PRD.md](../../PRD.md) FR-26).
+- 일일 tts 한도 `dailyTtsLines = 300` — `config/limits`(사용자별 일일 서버 tts 줄 수, [backend-functions.md](backend-functions.md) §12).
 - streak 단위 = "**세션 완주일**" + **1일 유예**(하루 미스는 유지, 2일+ 리셋).
 - 완주 정의 = **세션 요약 라우트 진입**(요약 렌더 성공과 무관, §4.2).
 - (needs-you 잔여) #8: gen 성공 후 이탈 시 슬롯 소비 = 기본. 불안 이탈자 보호 원하면 "첫 턴부터 카운트"로 이동(제품 레버).

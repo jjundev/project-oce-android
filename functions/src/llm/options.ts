@@ -19,3 +19,10 @@ export const LLM_MIN_INSTANCES_PARAM = "LLM_MIN_INSTANCES";
  * cost optimization.
  */
 export const LLM_MIN_INSTANCES_DEFAULT = 0;
+
+/**
+ * Hard ceiling on concurrent `llm` instances (2026-09-24). Each 2nd-gen instance serves many
+ * concurrent requests, so 10 covers hundreds of simultaneous learners while bounding the worst-case
+ * bill if the endpoint is abused.
+ */
+export const LLM_MAX_INSTANCES = 10;

@@ -143,3 +143,19 @@ export async function runMerge(
 
   return result;
 }
+
+/** the decoded-ID-token fields the guest check reads (DecodedIdToken is structurally assignable). */
+export interface GuestTokenClaims {
+  uid: string;
+  firebase?: { sign_in_provider?: string };
+}
+
+/**
+ * Only an anonymous (guest) account may be a merge SOURCE. runMerge deletes the source's Firestore
+ * subtree and Auth record, so accepting any account's token would let a holder of a stolen real-
+ * account token absorb that user's data and delete the account. The client only ever sends the
+ * guest token captured before Google sign-in (GoogleAccountLinker FR-3b (a)).
+ */
+export function isAnonymousGuest(claims: GuestTokenClaims): boolean {
+  return claims.firebase?.sign_in_provider === "anonymous";
+}

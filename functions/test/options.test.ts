@@ -1,4 +1,5 @@
 import {
+  LLM_MAX_INSTANCES,
   LLM_MIN_INSTANCES_DEFAULT,
   LLM_REGION,
   LLM_SECRET_NAME,
@@ -17,5 +18,9 @@ describe("llm runtime options", () => {
 
   it("defaults min-instances to 0 for cost optimization (Scale-to-Zero)", () => {
     expect(LLM_MIN_INSTANCES_DEFAULT).toBe(0);
+  });
+
+  it("caps instances at 10 so a traffic spike or abuse has a hard cost ceiling", () => {
+    expect(LLM_MAX_INSTANCES).toBe(10);
   });
 });

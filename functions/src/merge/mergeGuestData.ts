@@ -18,7 +18,7 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import type { Firestore } from "firebase-admin/firestore";
 import type { Auth } from "firebase-admin/auth";
 import { LLM_REGION } from "../llm/options";
-import { DocData, MergeStore, runMerge } from "./merge";
+import { DocData, GuestTokenClaims, MergeStore, isAnonymousGuest, runMerge } from "./merge";
 
 const USERS = "users";
 const SAVED_CARDS = "saved_cards";
@@ -95,16 +95,22 @@ export const mergeGuestData = onCall({ region: LLM_REGION }, async (request) => 
     throw new HttpsError("invalid-argument", "guestIdToken required");
   }
 
-  let guestUid: string;
+  let claims: GuestTokenClaims;
   try {
-    guestUid = (await getAuth().verifyIdToken(guestIdToken)).uid;
+    claims = await getAuth().verifyIdToken(guestIdToken);
   } catch {
     throw new HttpsError("unauthenticated", "invalid guest token");
   }
+  const guestUid = claims.uid;
 
   // 인플레이스 승격(FR-3a)은 클라가 linkWithCredential 로 처리 — target==guest 면 이관할 게 없다.
   if (guestUid === targetUid) {
     return { ok: true, merged: null };
+  }
+
+  // 이관 원본은 익명 게스트만 — 탈취한 정식 계정 토큰으로 남의 데이터를 가져가고 원 계정을 삭제시키는 경로 차단.
+  if (!isAnonymousGuest(claims)) {
+    throw new HttpsError("permission-denied", "guest token must belong to an anonymous account");
   }
 
   const merged = await runMerge(guestUid, targetUid, firestoreMergeStore());
