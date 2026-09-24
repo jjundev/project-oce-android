@@ -8,6 +8,7 @@ import { defineInt, defineSecret } from "firebase-functions/params";
 import { handle, HandlerRequest, HandlerResponse } from "./handle";
 import { firestoreSessionGate, firestoreSummaryGate } from "./session-cap";
 import { firestoreLimitProvider, firestoreStartGate } from "./start-gate";
+import { DEFAULT_DAILY_TTS_LINES, firestoreTtsQuota } from "./tts-quota";
 import { createGeminiProvider } from "../providers/gemini";
 import {
   LLM_MIN_INSTANCES_DEFAULT,
@@ -43,10 +44,14 @@ export const llm = onRequest(
     const startGate = firestoreStartGate(firestoreLimitProvider());
     // Per-session summary cap (summaryCount, separate from callCount) — 2026-09-24.
     const summaryGate = firestoreSummaryGate();
+    // Per-user daily tts quota on the same usage doc (config/limits.dailyTtsLines, fallback 300).
+    const ttsQuota = firestoreTtsQuota(
+      firestoreLimitProvider(undefined, DEFAULT_DAILY_TTS_LINES, "dailyTtsLines")
+    );
     await handle(
       req as unknown as HandlerRequest,
       res as unknown as HandlerResponse,
-      { provider, sessionGate, startGate, summaryGate }
+      { provider, sessionGate, startGate, summaryGate, ttsQuota }
     );
   }
 );

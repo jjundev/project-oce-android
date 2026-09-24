@@ -47,6 +47,7 @@ import {
   parseFeedbackDeepPayload,
 } from "./feedbackDeep";
 import { isUuid, payloadWithinLimit } from "./request-guards";
+import { TtsQuota } from "./tts-quota";
 import { DailyLimitError, StartGate, StartResult } from "./start-gate";
 import { SpeakingAnalyzeError, TtsSynthError } from "../providers/gemini";
 import { LlmProvider } from "../providers/LlmProvider";
@@ -74,6 +75,9 @@ export interface HandlerDeps {
   /** per-session summary cap (`sessions/{id}.summaryCount`). When absent, summary falls back to
    *  the NOT_IMPLEMENTED stub — same pattern as the other gates. */
   summaryGate?: SummaryGate;
+  /** per-user daily tts quota (`users/{uid}/usage/{day}.ttsCount`). When absent, tts falls back
+   *  to the 501 stub. */
+  ttsQuota?: TtsQuota;
 }
 
 export interface HandlerResponse {
@@ -147,9 +151,9 @@ export async function handle(
         writeEvent(res, { event: "done", data: { status: "error" } });
         res.end();
       }
-    } else if (task === "tts" && deps.provider) {
-      // JSON transport, implemented — synthesize and return base64 PCM (M1-05).
-      await handleTts(body.payload, deps.provider, res);
+    } else if (task === "tts" && deps.provider && deps.ttsQuota) {
+      // JSON transport — per-user daily quota, then synthesize and return base64 PCM (M1-05).
+      await handleTts(body.payload, uid, deps.provider, deps.ttsQuota, res);
     } else if (task === "speaking" && deps.provider && deps.sessionGate) {
       // JSON transport, implemented — transcribe + encourage (M1-06).
       await handleSpeaking(body, uid, deps.provider, deps.sessionGate, res);
@@ -413,11 +417,14 @@ async function handleSummary(
  * Synthesize a tts request and write the JSON response. Maps the two typed failures to
  * distinct statuses: a malformed payload → 400 INVALID_PAYLOAD; a synthesis failure
  * (after provider retries) → 502 TTS_SYNTH_FAILED. Any other throw propagates to the
- * outer catch → 500 INTERNAL.
+ * outer catch → 500 INTERNAL; a spent daily quota → 429 DAILY_LIMIT_EXCEEDED (checked after the
+ * payload, before synthesis).
  */
 async function handleTts(
   payload: unknown,
+  uid: string,
   provider: LlmProvider,
+  quota: TtsQuota,
   res: HandlerResponse
 ): Promise<void> {
   let request;
@@ -426,6 +433,18 @@ async function handleTts(
   } catch (e) {
     if (e instanceof InvalidTtsPayloadError) {
       res.status(400).json({ code: ErrorCode.INVALID_PAYLOAD });
+      return;
+    }
+    throw e;
+  }
+
+  // Daily quota BEFORE spending on synthesis. Over the limit → 429; the client falls back to
+  // device TTS, so the learner never sees an error.
+  try {
+    await quota.reserve(uid);
+  } catch (e) {
+    if (e instanceof DailyLimitError) {
+      res.status(429).json({ code: ErrorCode.DAILY_LIMIT_EXCEEDED });
       return;
     }
     throw e;

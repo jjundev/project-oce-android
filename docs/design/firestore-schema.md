@@ -30,7 +30,7 @@ users/{uid}                      # 루트 문서: nickname, level, createdAt, up
   ├─ progress_marks/{sessionId}  # Functions 전용; 멱등 마커(문서 존재 = 해당 세션 집계 완료)
   ├─ gamification/progress       # Functions 전용; {xp, streak, studyDays, lastStudyDate, resetAt, updatedAt}
   ├─ gamification/studytime      # client RW; {totalSeconds, today:{dayKey,seconds}, updatedAt}
-  └─ usage/{yyyymmdd}            # Functions 전용; {sessionCount, updatedAt}
+  └─ usage/{yyyymmdd}            # Functions 전용; {sessionCount, ttsCount, updatedAt}
 config/
   ├─ topics                      # 내보낸 카탈로그(서버/운영용); Android 클라이언트는 읽지 않음
   ├─ limits                      # 서버 전용 — dailyFreeSessions 등

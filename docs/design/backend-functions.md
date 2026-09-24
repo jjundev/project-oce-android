@@ -132,7 +132,7 @@ config/models            # 서버 전용 — task별 모델 ID(라이브 스왑)
 ## 12. 신뢰성 · 비용 · 보안
 - **신뢰성:** Gemini 호출에 타임아웃 + 지수 백오프 재시도, 실패 시 타입드 에러 SSE(`event:error`) → 클라 "다시 시도".
 - **비용 모니터링(NFR-2, 정직 회계):** Gemini `usageMetadata`(토큰) 구조화 로깅 + GCP 예산 알림. 신규 상시/호출당 비용 명시 — 워밍 인스턴스(min=1) + 세션 검증 트랜잭션(호출당) + 시작 dedup 트랜잭션.
-- **rate-limit:** 별도 per-instance 리미터 없음(인스턴스>1서 깨짐). 비용은 **(일일 시작 캡) + (§8 필수 per-session 캡) + 인증**으로 한정. 추가 보호 필요 시 **시작 경로에만** Firestore 코어스 카운터.
+- **rate-limit:** 별도 per-instance 리미터 없음(인스턴스>1서 깨짐). 비용은 **(1인당 일일 시작 캡) + (§8 per-session 캡·요약 캡) + (1인당 일일 tts 캡: `users/{uid}/usage/{day}.ttsCount < config.limits.dailyTtsLines`(기본 300), 초과 시 429 → 클라 기기 음성 폴백) + (payload 크기 상한: 텍스트 64KB·speaking 1.5MB·tts 문장 500자) + `maxInstances`(10) + 인증**으로 한정(2026-09-24). 게스트 계정 대량 생성 우회는 App Check 라운드에서 막는다.
 - **보안:** 키=Secret. `usage`/`progress`/`progress_marks`/`sessions`/`idempotency`/`config`는 Admin만(규칙 default-deny). 파일/스펙 내용은 데이터로만 취급.
 
 ---

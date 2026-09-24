@@ -6,7 +6,9 @@ import {
   parseSampleRate,
   clampRate,
 } from "../src/providers/gemini";
-import { resolveVoiceName, parseTtsPayload } from "../src/llm/tts";
+import { InvalidTtsPayloadError, MAX_TTS_TEXT_CHARS, parseTtsPayload, resolveVoiceName } from "../src/llm/tts";
+import { DailyLimitError } from "../src/llm/start-gate";
+import { TtsQuota } from "../src/llm/tts-quota";
 import { ErrorCode } from "../src/types/protocol";
 
 // Mock auth so the pipeline test is offline and deterministic.
@@ -66,6 +68,12 @@ function req(headers: Record<string, string>, body: unknown): HandlerRequest {
   return { headers, body };
 }
 
+const okQuota: TtsQuota = {
+  async reserve() {
+    /* allow */
+  },
+};
+
 /** provider stub that records the args it was called with and returns a fixed clip. */
 function fakeProvider(
   impl?: (text: string, voice: string, rate: number) => Promise<TtsResult>
@@ -99,7 +107,7 @@ describe("tts handler pipeline", () => {
         { task: "tts", payload: { text: "Hello", gender: "female", speechRate: 1.0 } }
       ),
       res,
-      { provider }
+      { provider, ttsQuota: okQuota }
     );
     expect(res.statusCode).toBe(200);
     expect(res.jsonBody).toEqual({
@@ -118,7 +126,7 @@ describe("tts handler pipeline", () => {
         { task: "tts", payload: { text: "Hi", gender: "male", speechRate: 0.9 } }
       ),
       res,
-      { provider }
+      { provider, ttsQuota: okQuota }
     );
     expect(calls).toEqual([["Hi", "Puck", 0.9]]);
   });
@@ -129,7 +137,7 @@ describe("tts handler pipeline", () => {
     await handle(
       req({ authorization: "Bearer valid" }, { task: "tts", payload: { text: "Hi" } }),
       res,
-      { provider }
+      { provider, ttsQuota: okQuota }
     );
     expect(calls[0][1]).toBe("Kore");
     expect(calls[0][2]).toBe(1.0); // default rate
@@ -144,7 +152,7 @@ describe("tts handler pipeline", () => {
         { task: "tts", payload: { text: "   " } }
       ),
       res,
-      { provider }
+      { provider, ttsQuota: okQuota }
     );
     expect(res.statusCode).toBe(400);
     expect(res.jsonBody).toEqual({ code: ErrorCode.INVALID_PAYLOAD });
@@ -159,7 +167,7 @@ describe("tts handler pipeline", () => {
     await handle(
       req({ authorization: "Bearer valid" }, { task: "tts", payload: { text: "Hi" } }),
       res,
-      { provider }
+      { provider, ttsQuota: okQuota }
     );
     expect(res.statusCode).toBe(502);
     expect(res.jsonBody).toEqual({ code: ErrorCode.TTS_SYNTH_FAILED });
@@ -173,6 +181,64 @@ describe("tts handler pipeline", () => {
     );
     expect(res.statusCode).toBe(501);
     expect(res.jsonBody).toEqual({ code: ErrorCode.NOT_IMPLEMENTED });
+  });
+
+  it("reserves the caller's daily tts quota before synthesizing", async () => {
+    const res = recorder();
+    const { provider } = fakeProvider();
+    const uids: string[] = [];
+    const quota: TtsQuota = {
+      async reserve(uid) {
+        uids.push(uid);
+      },
+    };
+    await handle(
+      req({ authorization: "Bearer valid" }, { task: "tts", payload: { text: "Hi" } }),
+      res,
+      { provider, ttsQuota: quota }
+    );
+    expect(res.statusCode).toBe(200);
+    expect(uids).toEqual(["u1"]);
+  });
+
+  it("429 DAILY_LIMIT_EXCEEDED when the daily tts quota is spent (no synthesis)", async () => {
+    const res = recorder();
+    const { provider, calls } = fakeProvider();
+    const quota: TtsQuota = {
+      async reserve() {
+        throw new DailyLimitError("tts");
+      },
+    };
+    await handle(
+      req({ authorization: "Bearer valid" }, { task: "tts", payload: { text: "Hi" } }),
+      res,
+      { provider, ttsQuota: quota }
+    );
+    expect(res.statusCode).toBe(429);
+    expect(res.jsonBody).toEqual({ code: ErrorCode.DAILY_LIMIT_EXCEEDED });
+    expect(calls).toHaveLength(0);
+  });
+
+  it("400 INVALID_PAYLOAD for text over the length cap (quota untouched)", async () => {
+    const res = recorder();
+    const { provider } = fakeProvider();
+    const uids: string[] = [];
+    const quota: TtsQuota = {
+      async reserve(uid) {
+        uids.push(uid);
+      },
+    };
+    await handle(
+      req(
+        { authorization: "Bearer valid" },
+        { task: "tts", payload: { text: "a".repeat(MAX_TTS_TEXT_CHARS + 1) } }
+      ),
+      res,
+      { provider, ttsQuota: quota }
+    );
+    expect(res.statusCode).toBe(400);
+    expect(res.jsonBody).toEqual({ code: ErrorCode.INVALID_PAYLOAD });
+    expect(uids).toHaveLength(0);
   });
 });
 
@@ -194,6 +260,15 @@ describe("tts payload parsing", () => {
     const p = parseTtsPayload({ text: "x", gender: "nonbinary" as never });
     expect(p.gender).toBeUndefined();
     expect(p.speechRate).toBe(1.0);
+  });
+
+  it("rejects text longer than MAX_TTS_TEXT_CHARS", () => {
+    expect(() => parseTtsPayload({ text: "a".repeat(MAX_TTS_TEXT_CHARS + 1) })).toThrow(
+      InvalidTtsPayloadError
+    );
+    expect(parseTtsPayload({ text: "a".repeat(MAX_TTS_TEXT_CHARS) }).text).toHaveLength(
+      MAX_TTS_TEXT_CHARS
+    );
   });
 });
 

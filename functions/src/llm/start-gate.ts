@@ -129,20 +129,21 @@ function readMillis(snap: DocSnapLike, field: string): number | undefined {
 }
 
 /**
- * Live limit provider reading `config/limits.dailyFreeSessions` with a constant fallback
- * (decision #22). Read OUTSIDE the start transaction: the limit is a slowly-tuned config value,
- * not part of the atomic dedup+usage+session invariant, so a slightly-stale read is acceptable
- * and it keeps config/limits out of every start's contention set.
+ * Live limit provider reading one `config/limits` field (default `dailyFreeSessions`; the tts quota
+ * reads `dailyTtsLines`) with a constant fallback (decision #22). Read OUTSIDE the transaction: the
+ * limit is a slowly-tuned config value, not part of the atomic invariant, so a slightly-stale read
+ * is acceptable and it keeps config/limits out of every request's contention set.
  */
 export function firestoreLimitProvider(
   db: DbLike = getFirestore() as unknown as DbLike,
-  fallback: number = DEFAULT_DAILY_FREE_SESSIONS
+  fallback: number = DEFAULT_DAILY_FREE_SESSIONS,
+  field = "dailyFreeSessions"
 ): LimitProvider {
   return async () => {
     try {
       const ref = db.collection("config").doc("limits") as DocRefLike;
       const snap = await ref.get();
-      const v = snap.exists ? snap.data()?.dailyFreeSessions : undefined;
+      const v = snap.exists ? snap.data()?.[field] : undefined;
       return typeof v === "number" && v > 0 ? v : fallback;
     } catch {
       return fallback;

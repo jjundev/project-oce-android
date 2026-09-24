@@ -22,6 +22,12 @@ export function resolveVoiceName(gender: string | undefined): string {
 export class InvalidTtsPayloadError extends Error {}
 
 /**
+ * Max opponent-line / review-card text per tts call. Real lines are one or two sentences; the cap
+ * bounds audio-output cost and the room for instructions smuggled into the synthesis prompt.
+ */
+export const MAX_TTS_TEXT_CHARS = 500;
+
+/**
  * Validate + narrow an untrusted payload into a `TtsRequestPayload`. `text` is required
  * and non-empty; `gender`/`speechRate` are optional and defaulted downstream.
  */
@@ -30,6 +36,9 @@ export function parseTtsPayload(payload: unknown): TtsRequestPayload {
   const text = typeof p.text === "string" ? p.text.trim() : "";
   if (!text) {
     throw new InvalidTtsPayloadError("tts payload requires non-empty text");
+  }
+  if (text.length > MAX_TTS_TEXT_CHARS) {
+    throw new InvalidTtsPayloadError(`tts text exceeds ${MAX_TTS_TEXT_CHARS} chars`);
   }
   const gender = p.gender === "male" || p.gender === "female" ? p.gender : undefined;
   const speechRate = typeof p.speechRate === "number" ? p.speechRate : 1.0;
