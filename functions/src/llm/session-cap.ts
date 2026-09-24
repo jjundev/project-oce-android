@@ -159,3 +159,65 @@ export function firestoreSessionGate(
     },
   };
 }
+
+/**
+ * Per-session summary call cap (2026-09-24). `task=summary` fans out to THREE Gemini calls per
+ * request and was previously ungated. It gets its own counter (`summaryCount`), separate from the
+ * shared feedback/speaking/deep `callCount`, so a session that spent its feedback budget can still
+ * produce a summary. 6 = the initial call + up to five per-section retries (summary.ts retries by
+ * resending only the failed sections).
+ */
+export const SUMMARY_CAP = 6;
+
+/** Pure summary-cap decision: returns the summaryCount to commit, or throws like evaluateSlot. */
+export function evaluateSummarySlot(
+  state: { uid: string; summaryCount: number } | undefined,
+  uid: string,
+  cap: number
+): number {
+  if (!state) {
+    throw new SessionInvalidError("no session record");
+  }
+  if (state.uid !== uid) {
+    throw new SessionInvalidError("session not owned by caller");
+  }
+  if (state.summaryCount >= cap) {
+    throw new CapExceededError(`summaryCount ${state.summaryCount} >= cap ${cap}`);
+  }
+  return state.summaryCount + 1;
+}
+
+/** Reserve a summary slot on the caller's session (throws on cap/invalid). No refund: partial
+ *  failures are normal and retried per section within the cap. */
+export interface SummaryGate {
+  reserve(uid: string, sessionId: string): Promise<void>;
+}
+
+/** Firestore-backed summary gate — same transaction shape as firestoreSessionGate.reserve. */
+export function firestoreSummaryGate(
+  cap: number = SUMMARY_CAP,
+  db: DbLike = getFirestore() as unknown as DbLike,
+  now: () => number = () => Date.now()
+): SummaryGate {
+  return {
+    async reserve(uid, sessionId) {
+      const ref = db.collection("sessions").doc(sessionId);
+      await db.runTransaction(async (txn) => {
+        const snap = await txn.get(ref);
+        const d = snap.exists ? snap.data() ?? {} : undefined;
+        const state =
+          d === undefined
+            ? undefined
+            : {
+                uid: typeof d.uid === "string" ? d.uid : "",
+                summaryCount: typeof d.summaryCount === "number" ? d.summaryCount : 0,
+              };
+        const next = evaluateSummarySlot(state, uid, cap);
+        txn.update(ref, {
+          summaryCount: next,
+          expiresAt: Timestamp.fromMillis(now() + SESSION_TTL_MS),
+        });
+      });
+    },
+  };
+}

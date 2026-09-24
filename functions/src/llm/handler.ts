@@ -6,7 +6,7 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { defineInt, defineSecret } from "firebase-functions/params";
 import { handle, HandlerRequest, HandlerResponse } from "./handle";
-import { firestoreSessionGate } from "./session-cap";
+import { firestoreSessionGate, firestoreSummaryGate } from "./session-cap";
 import { firestoreLimitProvider, firestoreStartGate } from "./start-gate";
 import { createGeminiProvider } from "../providers/gemini";
 import {
@@ -41,10 +41,12 @@ export const llm = onRequest(
     // Dialogue start gate (§7): single-txn dedup + daily limit + session create; limit from
     // config/limits with fallback. getFirestore() is lazy (initializeApp() ran in index.ts).
     const startGate = firestoreStartGate(firestoreLimitProvider());
+    // Per-session summary cap (summaryCount, separate from callCount) — 2026-09-24.
+    const summaryGate = firestoreSummaryGate();
     await handle(
       req as unknown as HandlerRequest,
       res as unknown as HandlerResponse,
-      { provider, sessionGate, startGate }
+      { provider, sessionGate, startGate, summaryGate }
     );
   }
 );

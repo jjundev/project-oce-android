@@ -6,6 +6,11 @@ import {
 } from "../src/providers/LlmProvider";
 import { parseSummaryPayload, resolveTotalScore } from "../src/llm/summary";
 import { ErrorCode } from "../src/types/protocol";
+import {
+  CapExceededError,
+  SessionInvalidError,
+  SummaryGate,
+} from "../src/llm/session-cap";
 
 // Offline, deterministic — mock auth like the other pipeline tests.
 jest.mock("../src/llm/auth", () => ({
@@ -123,14 +128,21 @@ const FULL_PAYLOAD = {
   totalScore: 90,
 };
 
+const SID = "00000000-0000-4000-8000-000000000001";
+const okSummaryGate: SummaryGate = {
+  async reserve() {
+    /* allow */
+  },
+};
+
 describe("summary orchestration (SSE)", () => {
   it("emits a card per section (kind-distinct) then done with all sections ok", async () => {
     const res = recorder();
     const { provider } = summaryProvider();
     await handle(
-      req({ authorization: "Bearer valid" }, { task: "summary", payload: FULL_PAYLOAD }),
+      req({ authorization: "Bearer valid" }, { task: "summary", sessionId: SID, payload: FULL_PAYLOAD }),
       res,
-      { provider }
+      { provider, summaryGate: okSummaryGate }
     );
 
     expect(res.headers["Content-Type"]).toBe("text/event-stream");
@@ -152,9 +164,9 @@ describe("summary orchestration (SSE)", () => {
     const res = recorder();
     const { provider } = summaryProvider({ fail: new Set(["summary.words"]) });
     await handle(
-      req({ authorization: "Bearer valid" }, { task: "summary", payload: FULL_PAYLOAD }),
+      req({ authorization: "Bearer valid" }, { task: "summary", sessionId: SID, payload: FULL_PAYLOAD }),
       res,
-      { provider }
+      { provider, summaryGate: okSummaryGate }
     );
 
     const events = parseEvents(res.writes);
@@ -177,9 +189,9 @@ describe("summary orchestration (SSE)", () => {
       results: { "summary.expressions": { items: [] } },
     });
     await handle(
-      req({ authorization: "Bearer valid" }, { task: "summary", payload: FULL_PAYLOAD }),
+      req({ authorization: "Bearer valid" }, { task: "summary", sessionId: SID, payload: FULL_PAYLOAD }),
       res,
-      { provider }
+      { provider, summaryGate: okSummaryGate }
     );
     const events = parseEvents(res.writes);
     const exprCard = events
@@ -197,10 +209,10 @@ describe("summary orchestration (SSE)", () => {
     await handle(
       req(
         { authorization: "Bearer valid" },
-        { task: "summary", payload: { ...FULL_PAYLOAD, sections: ["coaching"] } }
+        { task: "summary", sessionId: SID, payload: { ...FULL_PAYLOAD, sections: ["coaching"] } }
       ),
       res,
-      { provider }
+      { provider, summaryGate: okSummaryGate }
     );
     expect(calls.map((c) => c.task)).toEqual(["summary.coaching"]);
     const done = parseEvents(res.writes).find((e) => e.event === "done");
@@ -211,9 +223,9 @@ describe("summary orchestration (SSE)", () => {
     const res = recorder();
     const { provider, calls } = summaryProvider();
     await handle(
-      req({ authorization: "Bearer valid" }, { task: "summary", payload: FULL_PAYLOAD }),
+      req({ authorization: "Bearer valid" }, { task: "summary", sessionId: SID, payload: FULL_PAYLOAD }),
       res,
-      { provider }
+      { provider, summaryGate: okSummaryGate }
     );
     const byTask = Object.fromEntries(calls.map((c) => [c.task, c.payload as Record<string, unknown>]));
     expect(byTask["summary.expressions"].totalScore).toBe(90);
@@ -225,9 +237,9 @@ describe("summary orchestration (SSE)", () => {
     const res = recorder();
     const { provider, calls } = summaryProvider();
     await handle(
-      req({ authorization: "Bearer valid" }, { task: "summary", payload: FULL_PAYLOAD }),
+      req({ authorization: "Bearer valid" }, { task: "summary", sessionId: SID, payload: FULL_PAYLOAD }),
       res,
-      { provider }
+      { provider, summaryGate: okSummaryGate }
     );
     // every sub-call carries a defined, identical model id (never undefined)
     const models = new Set(calls.map((c) => c.modelId));
@@ -241,10 +253,10 @@ describe("summary orchestration (SSE)", () => {
     await handle(
       req(
         { authorization: "Bearer valid" },
-        { task: "summary", payload: { ...FULL_PAYLOAD, sections: [] } }
+        { task: "summary", sessionId: SID, payload: { ...FULL_PAYLOAD, sections: [] } }
       ),
       res,
-      { provider }
+      { provider, summaryGate: okSummaryGate }
     );
     expect(res.statusCode).toBe(400);
     expect(res.jsonBody).toEqual({ code: ErrorCode.INVALID_PAYLOAD });
@@ -257,10 +269,10 @@ describe("summary orchestration (SSE)", () => {
     await handle(
       req(
         { authorization: "Bearer valid" },
-        { task: "summary", payload: { ...FULL_PAYLOAD, sections: ["bogus"] } }
+        { task: "summary", sessionId: SID, payload: { ...FULL_PAYLOAD, sections: ["bogus"] } }
       ),
       res,
-      { provider }
+      { provider, summaryGate: okSummaryGate }
     );
     expect(res.statusCode).toBe(400);
     expect(res.jsonBody).toEqual({ code: ErrorCode.INVALID_PAYLOAD });
@@ -269,7 +281,7 @@ describe("summary orchestration (SSE)", () => {
   it("falls back to the SSE stub when no provider is injected", async () => {
     const res = recorder();
     await handle(
-      req({ authorization: "Bearer valid" }, { task: "summary", payload: FULL_PAYLOAD }),
+      req({ authorization: "Bearer valid" }, { task: "summary", sessionId: SID, payload: FULL_PAYLOAD }),
       res
     );
     const events = parseEvents(res.writes);
@@ -313,5 +325,76 @@ describe("summary payload parsing + helpers", () => {
         totalScore: 55,
       })
     ).toBe(55);
+  });
+});
+
+describe("summary session gate", () => {
+  function spyGate(err?: Error): { gate: SummaryGate; calls: Array<[string, string]> } {
+    const calls: Array<[string, string]> = [];
+    const gate: SummaryGate = {
+      async reserve(uid, sessionId) {
+        calls.push([uid, sessionId]);
+        if (err) {
+          throw err;
+        }
+      },
+    };
+    return { gate, calls };
+  }
+
+  it("400 INVALID_PAYLOAD when sessionId is missing (gate untouched, no stream)", async () => {
+    const res = recorder();
+    const { provider } = summaryProvider();
+    const { gate, calls } = spyGate();
+    await handle(
+      req({ authorization: "Bearer valid" }, { task: "summary", payload: FULL_PAYLOAD }),
+      res,
+      { provider, summaryGate: gate }
+    );
+    expect(res.statusCode).toBe(400);
+    expect(res.jsonBody).toEqual({ code: ErrorCode.INVALID_PAYLOAD });
+    expect(calls).toHaveLength(0);
+    expect(res.writes).toHaveLength(0);
+  });
+
+  it("reserves a slot for the caller's session before streaming", async () => {
+    const res = recorder();
+    const { provider } = summaryProvider();
+    const { gate, calls } = spyGate();
+    await handle(
+      req({ authorization: "Bearer valid" }, { task: "summary", sessionId: SID, payload: FULL_PAYLOAD }),
+      res,
+      { provider, summaryGate: gate }
+    );
+    expect(calls).toEqual([["u1", SID]]);
+    expect(res.writes.length).toBeGreaterThan(0);
+  });
+
+  it("429 CAP_EXCEEDED pre-stream when the summary cap is reached (no Gemini call)", async () => {
+    const res = recorder();
+    const { provider, calls: geminiCalls } = summaryProvider();
+    const { gate } = spyGate(new CapExceededError("summary cap"));
+    await handle(
+      req({ authorization: "Bearer valid" }, { task: "summary", sessionId: SID, payload: FULL_PAYLOAD }),
+      res,
+      { provider, summaryGate: gate }
+    );
+    expect(res.statusCode).toBe(429);
+    expect(res.jsonBody).toEqual({ code: ErrorCode.CAP_EXCEEDED });
+    expect(geminiCalls).toHaveLength(0);
+    expect(res.writes).toHaveLength(0);
+  });
+
+  it("403 SESSION_INVALID for a foreign or missing session", async () => {
+    const res = recorder();
+    const { provider } = summaryProvider();
+    const { gate } = spyGate(new SessionInvalidError("foreign"));
+    await handle(
+      req({ authorization: "Bearer valid" }, { task: "summary", sessionId: SID, payload: FULL_PAYLOAD }),
+      res,
+      { provider, summaryGate: gate }
+    );
+    expect(res.statusCode).toBe(403);
+    expect(res.jsonBody).toEqual({ code: ErrorCode.SESSION_INVALID });
   });
 });

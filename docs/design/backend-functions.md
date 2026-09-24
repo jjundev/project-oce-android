@@ -94,8 +94,9 @@ interface LlmProvider {
 
 ## 8. Ephemeral 세션 레코드 + per-session 캡
 - **저장:** **Firestore `sessions/{sessionId}`**(서버 전용; in-memory 금지 — Cloud Run 인스턴스 휘발·min=1이 클라 고정 안 함). 시작 트랜잭션(§7)에서 생성.
-- **필드:** `{uid, createdAt, expiresAt, turnCount, callCount}`. `expiresAt` 은 **접근 기한이 아니라 정리 기한**이다 — 생성 시 +30일, **reserve 마다 now+30일로 연장**(sliding). 홈 이어하기 스냅샷이 시간 만료 없음(04-screen-02-home H5)이므로 게이트는 시간을 판정하지 않는다(2026-09-23, 2h 만료가 이어하기를 403 으로 깨던 버그 수정). TTL 정책은 현재 미활성.
-- **검증(feedback/speaking/summary 매 호출):** 트랜잭션 `{존재·소유(uid) 확인 → callCount < cap(=turnCount × factor)이면 +1(+expiresAt 연장), 아니면 거부}`. → 무계량 비싼 오디오 경로 차단(FR-27/NFR-2). 비용 상한은 세션 단위·누적 — 각 세션은 일일 캡이 걸린 시작 1회로 발급되고 turnCount × factor 호출을 넘지 못한다. 단 하루 단위 상한은 아니다(이전 날 시작한 세션이 남은 예산을 이후 날짜에 소비 가능).
+- **필드:** `{uid, createdAt, expiresAt, turnCount, callCount, summaryCount}`. `expiresAt` 은 **접근 기한이 아니라 정리 기한**이다 — 생성 시 +30일, **reserve 마다 now+30일로 연장**(sliding). 홈 이어하기 스냅샷이 시간 만료 없음(04-screen-02-home H5)이므로 게이트는 시간을 판정하지 않는다(2026-09-23, 2h 만료가 이어하기를 403 으로 깨던 버그 수정). TTL 정책은 현재 미활성.
+- **검증(feedback/feedbackDeep/speaking 매 호출):** 트랜잭션 `{존재·소유(uid) 확인 → callCount < cap(=turnCount × factor)이면 +1(+expiresAt 연장), 아니면 거부}`. → 무계량 비싼 오디오 경로 차단(FR-27/NFR-2). 비용 상한은 세션 단위·누적 — 각 세션은 일일 캡이 걸린 시작 1회로 발급되고 turnCount × factor 호출을 넘지 못한다. 단 하루 단위 상한은 아니다(이전 날 시작한 세션이 남은 예산을 이후 날짜에 소비 가능).
+- **요약 캡(2026-09-24):** `summary` 는 공유 `callCount` 가 아니라 별도 `summaryCount < SUMMARY_CAP(=6)` 로 센다(첫 요청 + 섹션 재시도). 피드백 예산을 다 쓴 세션도 요약은 받을 수 있다. 존재·소유 검사는 동일(403), 캡 도달은 스트림 전 429 `CAP_EXCEEDED`(클라 중립 QuotaExceeded). 부분 실패는 환불하지 않는다.
 - **캡 카운트 정책(A1):** **성공(비-서버에러) 호출만** 캡에 카운트 → 네트워크/LLM 실패 재시도가 정상 학습자를 중도 차단하지 않음. 캡 도달 시 비난 없는 문구.
 - **완주와 독립:** 완주(`point_ledger` create)는 클라→Firestore 직접(프록시 비경유, 규칙은 만료 미검사) — 세션 만료와 무관하게 XP 적립 가능(의도된 분리, schema §4.2/§5).
 

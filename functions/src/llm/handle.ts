@@ -30,6 +30,7 @@ import {
   CapExceededError,
   SessionGate,
   SessionInvalidError,
+  SummaryGate,
 } from "./session-cap";
 import {
   InvalidDialoguePayloadError,
@@ -70,6 +71,9 @@ export interface HandlerDeps {
   /** dialogue start gate (dedup + daily limit + session create, backend-functions.md §7). When
    *  absent (or provider absent), dialogue falls back to the NOT_IMPLEMENTED SSE stub. */
   startGate?: StartGate;
+  /** per-session summary cap (`sessions/{id}.summaryCount`). When absent, summary falls back to
+   *  the NOT_IMPLEMENTED stub — same pattern as the other gates. */
+  summaryGate?: SummaryGate;
 }
 
 export interface HandlerResponse {
@@ -120,9 +124,9 @@ export async function handle(
   // 3. dispatch to a stub by response mode
   try {
     if (responseModeFor(task) === "sse") {
-      if (task === "summary" && deps.provider) {
-        // task=summary, implemented — 3-call orchestration over a single SSE (M2-01).
-        await handleSummary(body.payload, deps.provider, res);
+      if (task === "summary" && deps.provider && deps.summaryGate) {
+        // task=summary — per-session summary cap, then 3-call orchestration over one SSE (M2-01).
+        await handleSummary(body, uid, deps.provider, deps.summaryGate, res);
       } else if (task === "dialogue" && deps.startGate && deps.provider) {
         // task=dialogue, implemented — start gate + streaming script parser (M1-02).
         await handleDialogue(body, uid, deps.startGate, deps.provider, res);
@@ -358,20 +362,27 @@ async function handleFeedbackDeep(
 }
 
 /**
- * Handle `task=summary` (SSE). Validates the payload BEFORE opening the stream so a
- * malformed body → 400 INVALID_PAYLOAD with headers unsent (mirrors the tts precedent,
- * but on the SSE path). Once validated, opens the stream and hands off to the 3-call
- * orchestrator, which owns all card/done emission and closes the stream. Any non-typed
- * throw propagates to the outer catch (→ 500 only if nothing was committed yet).
+ * Handle `task=summary` (SSE). Validates sessionId + payload and reserves a per-session summary
+ * slot BEFORE opening the stream, so a malformed body → 400, a foreign/missing session → 403 and a
+ * cap rejection → 429 all land with headers unsent (the client maps the pre-stream 429 to its
+ * neutral QuotaExceeded state — SummarySseStream.kt). Once reserved, opens the stream and hands off
+ * to the 3-call orchestrator, which owns all card/done emission and closes the stream.
  */
 async function handleSummary(
-  payload: unknown,
+  body: Partial<RequestBody>,
+  uid: string,
   provider: LlmProvider,
+  gate: SummaryGate,
   res: HandlerResponse
 ): Promise<void> {
+  const sessionId =
+    typeof body.sessionId === "string" ? body.sessionId.trim() : "";
   let parsed;
   try {
-    parsed = parseSummaryPayload(payload);
+    if (!isUuid(sessionId)) {
+      throw new InvalidSummaryPayloadError("missing or malformed sessionId");
+    }
+    parsed = parseSummaryPayload(body.payload);
   } catch (e) {
     if (e instanceof InvalidSummaryPayloadError) {
       res.status(400).json({ code: ErrorCode.INVALID_PAYLOAD });
@@ -379,6 +390,21 @@ async function handleSummary(
     }
     throw e;
   }
+
+  try {
+    await gate.reserve(uid, sessionId);
+  } catch (e) {
+    if (e instanceof CapExceededError) {
+      res.status(429).json({ code: ErrorCode.CAP_EXCEEDED });
+      return;
+    }
+    if (e instanceof SessionInvalidError) {
+      res.status(403).json({ code: ErrorCode.SESSION_INVALID });
+      return;
+    }
+    throw e; // → outer catch 500 (headers still unsent)
+  }
+
   openSse(res);
   await orchestrateSummary(parsed, provider, res);
 }
