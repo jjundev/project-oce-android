@@ -11,6 +11,7 @@ import { firestoreLimitProvider, firestoreStartGate } from "./start-gate";
 import { DEFAULT_DAILY_TTS_LINES, firestoreTtsQuota } from "./tts-quota";
 import { createGeminiProvider } from "../providers/gemini";
 import {
+  LLM_MAX_INSTANCES,
   LLM_MIN_INSTANCES_DEFAULT,
   LLM_MIN_INSTANCES_PARAM,
   LLM_REGION,
@@ -32,6 +33,7 @@ export const llm = onRequest(
     region: LLM_REGION,
     secrets: [GEMINI_API_KEY],
     minInstances: LLM_MIN_INSTANCES,
+    maxInstances: LLM_MAX_INSTANCES,
   },
   async (req, res) => {
     // Construct the provider here — the Gemini Secret is only resolvable in the
