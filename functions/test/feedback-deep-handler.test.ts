@@ -158,7 +158,7 @@ describe("handle task=feedbackDeep", () => {
     const res = recorder();
     const { gate } = fakeGate();
     await handle(
-      req({ task: "feedbackDeep", sessionId: "s1", payload: { koreanPrompt: "안녕" } }),
+      req({ task: "feedbackDeep", sessionId: "00000000-0000-4000-8000-000000000001", payload: { koreanPrompt: "안녕" } }),
       res,
       { provider: streamProvider([]), sessionGate: gate }
     );
@@ -171,7 +171,7 @@ describe("handle task=feedbackDeep", () => {
     const res = recorder();
     const { gate } = fakeGate({ throwCap: true });
     await handle(
-      req({ task: "feedbackDeep", sessionId: "s1", payload: validPayload }),
+      req({ task: "feedbackDeep", sessionId: "00000000-0000-4000-8000-000000000001", payload: validPayload }),
       res,
       { provider: streamProvider([FULL_JSON]), sessionGate: gate }
     );
@@ -184,7 +184,7 @@ describe("handle task=feedbackDeep", () => {
     const res = recorder();
     const { gate } = fakeGate({ throwInvalid: true });
     await handle(
-      req({ task: "feedbackDeep", sessionId: "s1", payload: validPayload }),
+      req({ task: "feedbackDeep", sessionId: "00000000-0000-4000-8000-000000000001", payload: validPayload }),
       res,
       { provider: streamProvider([FULL_JSON]), sessionGate: gate }
     );
@@ -197,7 +197,7 @@ describe("handle task=feedbackDeep", () => {
     const res = recorder();
     const { gate } = fakeGate();
     await handle(
-      req({ task: "feedbackDeep", sessionId: "s1", payload: validPayload }),
+      req({ task: "feedbackDeep", sessionId: "00000000-0000-4000-8000-000000000001", payload: validPayload }),
       res,
       { provider: streamProvider([FULL_JSON]), sessionGate: gate }
     );
@@ -239,7 +239,7 @@ describe("handle task=feedbackDeep", () => {
       '"rightCircle":{"word":"order","items":["주문하다"]},"intersection":{"items":["받다"]}}},' +
       '"toneStyle":{"defaultLevel":2,"levels":[';
     await handle(
-      req({ task: "feedbackDeep", sessionId: "s1", payload: validPayload }),
+      req({ task: "feedbackDeep", sessionId: "00000000-0000-4000-8000-000000000001", payload: validPayload }),
       res,
       { provider: streamProvider([partial]), sessionGate: gate }
     );
@@ -257,7 +257,7 @@ describe("handle task=feedbackDeep", () => {
     const res = recorder();
     const { gate, refunds } = fakeGate();
     await handle(
-      req({ task: "feedbackDeep", sessionId: "s1", payload: validPayload }),
+      req({ task: "feedbackDeep", sessionId: "00000000-0000-4000-8000-000000000001", payload: validPayload }),
       res,
       { provider: streamProvider([], true), sessionGate: gate }
     );
@@ -265,13 +265,13 @@ describe("handle task=feedbackDeep", () => {
     expect(events).toContainEqual({ event: "error", data: { code: ErrorCode.INTERNAL } });
     expect(events[events.length - 1]).toEqual({ event: "done", data: { status: "error" } });
     expect(res.ended).toBe(true);
-    expect(refunds).toEqual(["s1"]);
+    expect(refunds).toEqual(["00000000-0000-4000-8000-000000000001"]);
   });
 
   it("falls back to the NOT_IMPLEMENTED stub when the sessionGate is absent", async () => {
     const res = recorder();
     await handle(
-      req({ task: "feedbackDeep", sessionId: "s1", payload: validPayload }),
+      req({ task: "feedbackDeep", sessionId: "00000000-0000-4000-8000-000000000001", payload: validPayload }),
       res,
       { provider: streamProvider([]) }
     );

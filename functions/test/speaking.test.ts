@@ -117,7 +117,7 @@ function fakeGate(reserveError?: Error): {
 
 const okBody = {
   task: "speaking",
-  sessionId: "s1",
+  sessionId: "00000000-0000-4000-8000-000000000001",
   payload: { audioBase64: "QUJD" },
 };
 
@@ -135,7 +135,7 @@ describe("speaking handler pipeline", () => {
       transcript: "hello there",
       feedbackMessage: "자연스럽게 말했어요",
     });
-    expect(reserved).toEqual(["s1"]); // slot reserved
+    expect(reserved).toEqual(["00000000-0000-4000-8000-000000000001"]); // slot reserved
     expect(refunded).toEqual([]); // success → not refunded
   });
 
@@ -152,7 +152,7 @@ describe("speaking handler pipeline", () => {
     });
     expect(res.statusCode).toBe(200);
     expect((res.jsonBody as { transcript: string }).transcript).toBe("");
-    expect(reserved).toEqual(["s1"]);
+    expect(reserved).toEqual(["00000000-0000-4000-8000-000000000001"]);
     expect(refunded).toEqual([]); // an empty transcript is a success, still counts
   });
 
@@ -181,7 +181,7 @@ describe("speaking handler pipeline", () => {
     await handle(
       req(
         { authorization: "Bearer valid" },
-        { task: "speaking", sessionId: "s1", payload: {} }
+        { task: "speaking", sessionId: "00000000-0000-4000-8000-000000000001", payload: {} }
       ),
       res,
       { provider, sessionGate: gate }
@@ -229,8 +229,8 @@ describe("speaking handler pipeline", () => {
     });
     expect(res.statusCode).toBe(502);
     expect(res.jsonBody).toEqual({ code: ErrorCode.SPEAKING_ANALYZE_FAILED });
-    expect(reserved).toEqual(["s1"]);
-    expect(refunded).toEqual(["s1"]); // terminal failure → slot refunded (A1)
+    expect(reserved).toEqual(["00000000-0000-4000-8000-000000000001"]);
+    expect(refunded).toEqual(["00000000-0000-4000-8000-000000000001"]); // terminal failure → slot refunded (A1)
   });
 
   it("falls back to the 501 stub when no sessionGate is injected", async () => {

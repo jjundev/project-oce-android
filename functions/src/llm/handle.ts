@@ -45,6 +45,7 @@ import {
   orchestrateFeedbackDeep,
   parseFeedbackDeepPayload,
 } from "./feedbackDeep";
+import { isUuid, payloadWithinLimit } from "./request-guards";
 import { DailyLimitError, StartGate, StartResult } from "./start-gate";
 import { SpeakingAnalyzeError, TtsSynthError } from "../providers/gemini";
 import { LlmProvider } from "../providers/LlmProvider";
@@ -109,6 +110,12 @@ export async function handle(
     return;
   }
   const task = body.task;
+
+  // 2b. size guard — before any Firestore transaction or Gemini call (cost defense).
+  if (!payloadWithinLimit(task, body.payload)) {
+    res.status(400).json({ code: ErrorCode.INVALID_PAYLOAD });
+    return;
+  }
 
   // 3. dispatch to a stub by response mode
   try {
@@ -178,8 +185,8 @@ async function handleDialogue(
     typeof body.idempotencyKey === "string" ? body.idempotencyKey.trim() : "";
   let payload: DialoguePayload;
   try {
-    if (!idempotencyKey) {
-      throw new InvalidDialoguePayloadError("missing idempotencyKey");
+    if (!isUuid(idempotencyKey)) {
+      throw new InvalidDialoguePayloadError("missing or malformed idempotencyKey");
     }
     payload = parseDialoguePayload(body.payload);
   } catch (e) {
@@ -246,7 +253,7 @@ async function handleFeedback(
     typeof body.sessionId === "string" ? body.sessionId.trim() : "";
   let payload;
   try {
-    if (!sessionId) {
+    if (!isUuid(sessionId)) {
       throw new InvalidFeedbackPayloadError("missing sessionId");
     }
     payload = parseFeedbackPayload(body.payload);
@@ -309,7 +316,7 @@ async function handleFeedbackDeep(
     typeof body.sessionId === "string" ? body.sessionId.trim() : "";
   let payload;
   try {
-    if (!sessionId) {
+    if (!isUuid(sessionId)) {
       throw new InvalidFeedbackPayloadError("missing sessionId");
     }
     payload = parseFeedbackDeepPayload(body.payload);
@@ -432,7 +439,7 @@ async function handleSpeaking(
     typeof body.sessionId === "string" ? body.sessionId.trim() : "";
   let request;
   try {
-    if (!sessionId) {
+    if (!isUuid(sessionId)) {
       throw new InvalidSpeakingPayloadError("missing sessionId");
     }
     request = parseSpeakingPayload(body.payload);

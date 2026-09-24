@@ -143,11 +143,25 @@ describe("handle task=feedback", () => {
     expect(res.writes).toHaveLength(0);
   });
 
+  it("400 INVALID_PAYLOAD when sessionId is not a UUID (never reaches the cap gate)", async () => {
+    const res = recorder();
+    const { gate } = fakeGate();
+    const reserve = jest.spyOn(gate, "reserve");
+    await handle(
+      req({ task: "feedback", sessionId: "../x", payload: validPayload }),
+      res,
+      { provider: streamProvider([]), sessionGate: gate }
+    );
+    expect(res.statusCode).toBe(400);
+    expect(res.jsonBody).toEqual({ code: ErrorCode.INVALID_PAYLOAD });
+    expect(reserve).not.toHaveBeenCalled();
+  });
+
   it("400 INVALID_PAYLOAD when the payload is malformed", async () => {
     const res = recorder();
     const { gate } = fakeGate();
     await handle(
-      req({ task: "feedback", sessionId: "s1", payload: { koreanPrompt: "안녕" } }),
+      req({ task: "feedback", sessionId: "00000000-0000-4000-8000-000000000001", payload: { koreanPrompt: "안녕" } }),
       res,
       { provider: streamProvider([]), sessionGate: gate }
     );
@@ -160,7 +174,7 @@ describe("handle task=feedback", () => {
     const res = recorder();
     const { gate } = fakeGate({ throwCap: true });
     await handle(
-      req({ task: "feedback", sessionId: "s1", payload: validPayload }),
+      req({ task: "feedback", sessionId: "00000000-0000-4000-8000-000000000001", payload: validPayload }),
       res,
       { provider: streamProvider([FULL_JSON]), sessionGate: gate }
     );
@@ -173,7 +187,7 @@ describe("handle task=feedback", () => {
     const res = recorder();
     const { gate } = fakeGate({ throwInvalid: true });
     await handle(
-      req({ task: "feedback", sessionId: "s1", payload: validPayload }),
+      req({ task: "feedback", sessionId: "00000000-0000-4000-8000-000000000001", payload: validPayload }),
       res,
       { provider: streamProvider([FULL_JSON]), sessionGate: gate }
     );
@@ -186,7 +200,7 @@ describe("handle task=feedback", () => {
     const res = recorder();
     const { gate } = fakeGate();
     await handle(
-      req({ task: "feedback", sessionId: "s1", payload: validPayload }),
+      req({ task: "feedback", sessionId: "00000000-0000-4000-8000-000000000001", payload: validPayload }),
       res,
       { provider: streamProvider([FULL_JSON]), sessionGate: gate }
     );
@@ -214,7 +228,7 @@ describe("handle task=feedback", () => {
     const res = recorder();
     const { gate, refunds } = fakeGate();
     await handle(
-      req({ task: "feedback", sessionId: "s1", payload: validPayload }),
+      req({ task: "feedback", sessionId: "00000000-0000-4000-8000-000000000001", payload: validPayload }),
       res,
       { provider: streamProvider([], true), sessionGate: gate }
     );
@@ -222,13 +236,13 @@ describe("handle task=feedback", () => {
     expect(events).toContainEqual({ event: "error", data: { code: ErrorCode.INTERNAL } });
     expect(events[events.length - 1]).toEqual({ event: "done", data: { status: "error" } });
     expect(res.ended).toBe(true);
-    expect(refunds).toEqual(["s1"]); // slot refunded so a failed call doesn't count
+    expect(refunds).toEqual(["00000000-0000-4000-8000-000000000001"]); // slot refunded so a failed call doesn't count
   });
 
   it("falls back to the NOT_IMPLEMENTED stub when the sessionGate is absent", async () => {
     const res = recorder();
     await handle(
-      req({ task: "feedback", sessionId: "s1", payload: validPayload }),
+      req({ task: "feedback", sessionId: "00000000-0000-4000-8000-000000000001", payload: validPayload }),
       res,
       { provider: streamProvider([]) }
     );
