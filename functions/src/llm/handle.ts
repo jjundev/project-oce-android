@@ -170,8 +170,8 @@ export async function handle(
  *
  * Failure tail (decision #19): a post-openSse generation failure emits `error`+`done`, closes the
  * stream, THEN best-effort refunds — the client isn't blocked on the second transaction. Only a
- * FRESH (non-deduped) start refunds: a replayed key's slot belongs to the original attempt, and
- * deleting its idempotency doc would corrupt that attempt's dedup.
+ * CHARGED start refunds (fresh, or a replay past FREE_REPLAYS); a free replay's slot belongs to the
+ * original attempt. The gate decides whether the idempotency doc is deleted.
  */
 async function handleDialogue(
   body: Partial<RequestBody>,
@@ -222,8 +222,8 @@ async function handleDialogue(
     writeEvent(res, { event: "error", data: { code: ErrorCode.INTERNAL } });
     writeEvent(res, { event: "done", data: { status: "error" } });
     res.end();
-    if (!start.deduped) {
-      await gate.refund(idempotencyKey, start.usageKey);
+    if (start.charged) {
+      await gate.refund(uid, idempotencyKey, start);
     }
   }
 }

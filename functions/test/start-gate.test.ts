@@ -2,6 +2,7 @@ import {
   DailyLimitError,
   DbLike,
   DocSnapLike,
+  FREE_REPLAYS,
   StartGate,
   TxnLike,
   evaluateStart,
@@ -12,41 +13,45 @@ import { kstDateKey } from "../src/config/kst";
 
 const NOW = 1_700_000_000_000; // fixed instant
 const USAGE_KEY = kstDateKey(NOW);
+const KEY = "00000000-0000-4000-8000-0000000000a1";
+const usagePath = (uid: string) => `users/${uid}/usage/${USAGE_KEY}`;
+const idemPath = (uid: string, key = KEY) => `idempotency/${uid}_${key}`;
 
 /**
- * In-memory Firestore double spanning multiple collections. `collection(name).doc(id)` returns a
- * ref whose `path` keys the store; the transaction reads/writes that map synchronously (Firestore
- * would retry on contention, but the logic under test doesn't depend on that).
+ * In-memory Firestore double. Refs carry their full slash path so tests assert the EXACT document
+ * each write lands on — the old global `usage/{day}` bug passed a fake that never checked paths.
+ * `set(..., {merge:true})` merges like Firestore so the shared usage doc keeps other counters.
  */
 function makeDb(seed: Record<string, Record<string, unknown>> = {}): {
   db: DbLike;
   store: Map<string, Record<string, unknown>>;
 } {
   const store = new Map<string, Record<string, unknown>>(Object.entries(seed));
+  const pathOf = (ref: unknown) => (ref as { path: string }).path;
   const txn: TxnLike = {
     async get(ref) {
-      const path = (ref as { path: string }).path;
-      const value = store.get(path);
-      const snap: DocSnapLike = {
-        exists: value !== undefined,
-        data: () => value,
-      };
+      const value = store.get(pathOf(ref));
+      const snap: DocSnapLike = { exists: value !== undefined, data: () => value };
       return snap;
     },
-    set(ref, data) {
-      store.set((ref as { path: string }).path, { ...data });
+    set(ref, data, options) {
+      const path = pathOf(ref);
+      store.set(path, options?.merge ? { ...(store.get(path) ?? {}), ...data } : { ...data });
     },
     update(ref, data) {
-      const path = (ref as { path: string }).path;
+      const path = pathOf(ref);
       store.set(path, { ...(store.get(path) ?? {}), ...data });
     },
     delete(ref) {
-      store.delete((ref as { path: string }).path);
+      store.delete(pathOf(ref));
     },
   };
   const db: DbLike = {
     collection(name) {
       return { doc: (id: string) => ({ path: `${name}/${id}` }) };
+    },
+    doc(path) {
+      return { path };
     },
     async runTransaction(fn) {
       return fn(txn);
@@ -78,21 +83,23 @@ describe("evaluateStart (pure daily-limit decision)", () => {
 });
 
 describe("firestoreStartGate.reserve — fresh start", () => {
-  it("increments usage, mints a session, writes idempotency + session records", async () => {
+  it("counts on the caller's own usage doc and writes uid-namespaced idempotency + session", async () => {
     const { db, store } = makeDb();
-    const result = await gateWith(db, () => "sess-uuid").reserve("u1", "key-1", 10);
+    const result = await gateWith(db, () => "sess-uuid").reserve("u1", KEY, 10);
 
     expect(result).toEqual({
       sessionId: "sess-uuid",
       remaining: 2,
       deduped: false,
+      charged: true,
       usageKey: USAGE_KEY,
     });
-    // usage +1 for the KST day
-    expect(store.get(`usage/${USAGE_KEY}`)?.sessionCount).toBe(1);
-    // idempotency maps key → sessionId
-    expect(store.get("idempotency/key-1")?.sessionId).toBe("sess-uuid");
-    // ephemeral session record with the exact fields session-cap.ts reads
+    expect(store.get(usagePath("u1"))?.sessionCount).toBe(1);
+    expect(store.has(`usage/${USAGE_KEY}`)).toBe(false); // old global doc is never written
+    const idem = store.get(idemPath("u1"));
+    expect(idem?.uid).toBe("u1");
+    expect(idem?.sessionId).toBe("sess-uuid");
+    expect(idem?.replayCount).toBe(0);
     const session = store.get("sessions/sess-uuid");
     expect(session?.uid).toBe("u1");
     expect(session?.turnCount).toBe(10);
@@ -100,81 +107,121 @@ describe("firestoreStartGate.reserve — fresh start", () => {
     expect((session?.expiresAt as { toMillis(): number }).toMillis()).toBe(NOW + SESSION_TTL_MS);
   });
 
-  it("counts against an existing same-day usage doc", async () => {
-    const { db, store } = makeDb({ [`usage/${USAGE_KEY}`]: { sessionCount: 1 } });
-    const result = await gateWith(db).reserve("u1", "key-2", 5);
-    expect(result.remaining).toBe(1); // limit 3, now 2 used → 1 left
-    expect(store.get(`usage/${USAGE_KEY}`)?.sessionCount).toBe(2);
+  it("keeps other counters (ttsCount) on the shared usage doc", async () => {
+    const { db, store } = makeDb({ [usagePath("u1")]: { sessionCount: 1, ttsCount: 7 } });
+    await gateWith(db).reserve("u1", KEY, 6);
+    expect(store.get(usagePath("u1"))).toMatchObject({ sessionCount: 2, ttsCount: 7 });
+  });
+
+  it("one user at the limit does not block another user", async () => {
+    const { db } = makeDb({ [usagePath("u1")]: { sessionCount: 3 } });
+    await expect(gateWith(db).reserve("u1", KEY, 6)).rejects.toBeInstanceOf(DailyLimitError);
+    const other = await gateWith(db).reserve("u2", KEY, 6);
+    expect(other.deduped).toBe(false);
+    expect(other.remaining).toBe(2);
+  });
+
+  it("the same key from two users never collides", async () => {
+    const { db, store } = makeDb();
+    let n = 0;
+    const gate = gateWith(db, () => `sess-${++n}`);
+    const a = await gate.reserve("u1", KEY, 6);
+    const b = await gate.reserve("u2", KEY, 6);
+    expect(a.sessionId).toBe("sess-1");
+    expect(b.sessionId).toBe("sess-2");
+    expect(b.deduped).toBe(false);
+    expect(store.get(idemPath("u2"))?.sessionId).toBe("sess-2");
   });
 });
 
-describe("firestoreStartGate.reserve — idempotent replay", () => {
-  it("returns the stored sessionId without incrementing usage", async () => {
-    const { db, store } = makeDb({
-      "idempotency/key-1": { sessionId: "orig-session" },
-      [`usage/${USAGE_KEY}`]: { sessionCount: 2 },
-    });
-    const result = await gateWith(db, () => "should-not-be-used").reserve(
-      "u1",
-      "key-1",
-      10
-    );
-
-    expect(result.sessionId).toBe("orig-session");
-    expect(result.deduped).toBe(true);
-    expect(result.remaining).toBe(1); // limit 3 − current 2 (unchanged)
-    // usage NOT incremented, no new session record
-    expect(store.get(`usage/${USAGE_KEY}`)?.sessionCount).toBe(2);
-    expect(store.has("sessions/should-not-be-used")).toBe(false);
-  });
-
-  it("serializes a same-key retry: second call dedups, usage counted once", async () => {
+describe("firestoreStartGate.reserve — replay of the same key", () => {
+  it(`is free for ${FREE_REPLAYS} replays, then charges a daily slot per replay`, async () => {
     const { db, store } = makeDb();
     const gate = gateWith(db, () => "sess-A");
-    const first = await gate.reserve("u1", "key-dup", 10);
-    const second = await gate.reserve("u1", "key-dup", 10);
+    const first = await gate.reserve("u1", KEY, 6);
+    expect(first.charged).toBe(true);
 
-    expect(first.deduped).toBe(false);
-    expect(second.deduped).toBe(true);
-    expect(second.sessionId).toBe("sess-A");
-    expect(store.get(`usage/${USAGE_KEY}`)?.sessionCount).toBe(1); // counted once
+    for (let i = 0; i < FREE_REPLAYS; i++) {
+      const replay = await gate.reserve("u1", KEY, 6);
+      expect(replay).toMatchObject({ sessionId: "sess-A", deduped: true, charged: false });
+    }
+    expect(store.get(usagePath("u1"))?.sessionCount).toBe(1);
+
+    const paid = await gate.reserve("u1", KEY, 6);
+    expect(paid).toMatchObject({ sessionId: "sess-A", deduped: true, charged: true, remaining: 1 });
+    expect(store.get(usagePath("u1"))?.sessionCount).toBe(2);
+    expect(store.get(idemPath("u1"))?.replayCount).toBe(FREE_REPLAYS + 1);
   });
-});
 
-describe("firestoreStartGate.reserve — daily limit", () => {
-  it("throws DailyLimitError and commits nothing when at the limit", async () => {
-    const { db, store } = makeDb({ [`usage/${USAGE_KEY}`]: { sessionCount: 3 } });
-    await expect(gateWith(db).reserve("u1", "key-x", 10)).rejects.toBeInstanceOf(
-      DailyLimitError
-    );
-    // unchanged, no idempotency/session written
-    expect(store.get(`usage/${USAGE_KEY}`)?.sessionCount).toBe(3);
-    expect(store.has("idempotency/key-x")).toBe(false);
+  it("a replay past the allowance is rejected at the daily limit", async () => {
+    const { db, store } = makeDb({
+      [usagePath("u1")]: { sessionCount: 3 },
+      [idemPath("u1")]: { uid: "u1", sessionId: "s", replayCount: FREE_REPLAYS },
+    });
+    await expect(gateWith(db).reserve("u1", KEY, 6)).rejects.toBeInstanceOf(DailyLimitError);
+    expect(store.get(idemPath("u1"))?.replayCount).toBe(FREE_REPLAYS); // nothing committed
+  });
+
+  it("an expired key is treated as a fresh start", async () => {
+    const { db, store } = makeDb({
+      [idemPath("u1")]: {
+        uid: "u1",
+        sessionId: "old",
+        replayCount: 0,
+        expiresAt: { toMillis: () => NOW - 1 },
+      },
+    });
+    const result = await gateWith(db, () => "new").reserve("u1", KEY, 6);
+    expect(result).toMatchObject({ sessionId: "new", deduped: false, charged: true });
+    expect(store.get(usagePath("u1"))?.sessionCount).toBe(1);
   });
 });
 
 describe("firestoreStartGate.refund", () => {
-  it("decrements usage AND deletes the idempotency key atomically", async () => {
-    const { db, store } = makeDb({
-      [`usage/${USAGE_KEY}`]: { sessionCount: 2 },
-      "idempotency/key-1": { sessionId: "s" },
-    });
-    await gateWith(db).refund("key-1", USAGE_KEY);
-    expect(store.get(`usage/${USAGE_KEY}`)?.sessionCount).toBe(1);
-    expect(store.has("idempotency/key-1")).toBe(false);
-  });
-
-  it("reserve then refund nets zero usage (success-only counting on terminal failure)", async () => {
+  it("fresh start: decrements usage AND deletes the idempotency key", async () => {
     const { db, store } = makeDb();
     const gate = gateWith(db);
-    const start = await gate.reserve("u1", "key-1", 10);
-    await gate.refund("key-1", start.usageKey);
-    expect(store.get(`usage/${USAGE_KEY}`)?.sessionCount).toBe(0);
-    expect(store.has("idempotency/key-1")).toBe(false);
+    const start = await gate.reserve("u1", KEY, 6);
+    await gate.refund("u1", KEY, start);
+    expect(store.get(usagePath("u1"))?.sessionCount).toBe(0);
+    expect(store.has(idemPath("u1"))).toBe(false);
   });
 
-  it("is a no-op (does not throw) when usage doc is missing", async () => {
-    const { db } = makeDb({ "idempotency/key-1": { sessionId: "s" } });
-    await expect(gateWith(db).refund("key-1", USAGE_KEY)).resolves.toBeUndefined();
+  it("paid replay: decrements usage but keeps the original key", async () => {
+    const { db, store } = makeDb({
+      [usagePath("u1")]: { sessionCount: 1 },
+      [idemPath("u1")]: { uid: "u1", sessionId: "s", replayCount: FREE_REPLAYS },
+    });
+    const gate = gateWith(db);
+    const start = await gate.reserve("u1", KEY, 6);
+    expect(start.charged).toBe(true);
+    await gate.refund("u1", KEY, start);
+    expect(store.get(usagePath("u1"))?.sessionCount).toBe(1);
+    expect(store.has(idemPath("u1"))).toBe(true);
+  });
+
+  it("free replay: is a no-op", async () => {
+    const { db, store } = makeDb({
+      [usagePath("u1")]: { sessionCount: 1 },
+      [idemPath("u1")]: { uid: "u1", sessionId: "s", replayCount: 0 },
+    });
+    const gate = gateWith(db);
+    const start = await gate.reserve("u1", KEY, 6);
+    await gate.refund("u1", KEY, start);
+    expect(store.get(usagePath("u1"))?.sessionCount).toBe(1);
+    expect(store.has(idemPath("u1"))).toBe(true);
+  });
+
+  it("does not throw when the usage doc is missing", async () => {
+    const { db } = makeDb();
+    await expect(
+      gateWith(db).refund("u1", KEY, {
+        sessionId: "s",
+        remaining: 0,
+        deduped: false,
+        charged: true,
+        usageKey: USAGE_KEY,
+      })
+    ).resolves.toBeUndefined();
   });
 });

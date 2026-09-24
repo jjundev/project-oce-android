@@ -82,13 +82,13 @@ interface LlmProvider {
 
 ## 7. 시작 게이트 + 멱등 + 환불 (task=dialogue)
 **단일 Firestore 트랜잭션**(직렬화)으로 한 커밋에:
-1. `idempotency/{idempotencyKey}` 읽기 → **있으면** 그 `sessionId` 반환·**usage 미증가**(전송 재시도 멱등, 동시 재시도도 직렬화로 2번째가 키를 봄).
-2. **없으면**: `usage/{kstDate}.sessionCount < config.limits.dailyFreeSessions` 확인 → +1, **서버 UUID `sessionId`** 발급, `idempotency/{key}→sessionId` 기록, **ephemeral 세션 레코드 생성**(§8) — 모두 같은 커밋. 한도 초과면 거부(`{remaining:0}`).
+1. `idempotency/{uid}_{idempotencyKey}` 읽기(uid 네임스페이스 — 사용자 간 키 충돌·sessionId 누출 없음). **있고 `expiresAt` 이 지나지 않았으면** 그 `sessionId` 로 재생성한다. 처음 `FREE_REPLAYS`(=2)회 재요청은 **usage 미증가**(전송 재시도 멱등), 그 이후 재요청은 대본을 매번 새로 생성하므로 **새 시작처럼 usage +1**(한도면 거부) — 한 키 재전송으로 무한 무료 생성 차단(2026-09-24).
+2. **없거나 만료됐으면**: `users/{uid}/usage/{kstDate}.sessionCount < config.limits.dailyFreeSessions` 확인 → +1(merge — 같은 문서의 `ttsCount` 보존), **서버 UUID `sessionId`** 발급, `idempotency/{uid}_{key}` 에 `{uid, sessionId, createdAt, expiresAt, replayCount:0}` 기록, **ephemeral 세션 레코드 생성**(§8) — 모두 같은 커밋. 한도 초과면 거부(`{remaining:0}`). 한도는 **사용자별**이다(2026-09-24 이전 구현은 전역 `usage/{date}` 한 문서를 공유하던 버그).
 3. 통과 시 대본 생성 시작, `event:meta {sessionId, remaining}` emit.
 
-**환불(best-effort, terminal 실패만):** 백오프 재시도(§12) **소진 후** gen이 최종 실패하면 → **환불 트랜잭션이 `usage` decrement + `idempotency/{key}` 삭제를 원자적으로**(재시도=fresh start, 슬롯 누수/이중과금 모두 차단). 환불 write 자체가 실패하면 슬롯 소실 수용(schema §9 기존 tolerance).
+**환불(best-effort, terminal 실패만):** 백오프 재시도(§12) **소진 후** gen이 최종 실패하면 → **환불 트랜잭션이 `usage` decrement + `idempotency/{key}` 삭제를 원자적으로**(재시도=fresh start, 슬롯 누수/이중과금 모두 차단). 환불은 이번 호출이 usage 를 올린 경우(새 시작 또는 유료 재요청)에만 하며, 키 삭제는 새 시작일 때만 한다. 환불 write 자체가 실패하면 슬롯 소실 수용(schema §9 기존 tolerance).
 
-> KST 일경계로 `usage/{yyyymmdd}` 산출(streak와 일관). 일일 캡은 **dialogue 시작만** 카운트.
+> KST 일경계로 `users/{uid}/usage/{yyyymmdd}` 산출(streak와 일관). 일일 캡은 **dialogue 시작만** 카운트(tts 는 같은 문서의 `ttsCount`, §12).
 
 ---
 

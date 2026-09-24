@@ -104,8 +104,8 @@ function streamProvider(chunks: string[], failAtEnd = false): LlmProvider {
 function fakeGate(opts: {
   reserve?: Partial<StartResult>;
   throwLimit?: boolean;
-}): { gate: StartGate; refunds: Array<[string, string]> } {
-  const refunds: Array<[string, string]> = [];
+}): { gate: StartGate; refunds: Array<[string, string, string]> } {
+  const refunds: Array<[string, string, string]> = [];
   const gate: StartGate = {
     async reserve() {
       if (opts.throwLimit) {
@@ -115,12 +115,13 @@ function fakeGate(opts: {
         sessionId: "sess-1",
         remaining: 2,
         deduped: false,
+        charged: true,
         usageKey: "20231114",
         ...opts.reserve,
       };
     },
-    async refund(idempotencyKey, usageKey) {
-      refunds.push([idempotencyKey, usageKey]);
+    async refund(uid, idempotencyKey, start) {
+      refunds.push([uid, idempotencyKey, start.usageKey]);
     },
   };
   return { gate, refunds };
@@ -240,12 +241,12 @@ describe("handle task=dialogue", () => {
     expect(events).toContainEqual({ event: "error", data: { code: ErrorCode.INTERNAL } });
     expect(events[events.length - 1]).toEqual({ event: "done", data: { status: "error" } });
     expect(res.ended).toBe(true);
-    expect(refunds).toEqual([["00000000-0000-4000-8000-0000000000a1", "20231114"]]); // fresh start → refunded
+    expect(refunds).toEqual([["u1", "00000000-0000-4000-8000-0000000000a1", "20231114"]]); // fresh start → refunded
   });
 
-  it("does NOT refund a deduped replay whose generation fails", async () => {
+  it("does NOT refund a free (uncharged) replay whose generation fails", async () => {
     const res = recorder();
-    const { gate, refunds } = fakeGate({ reserve: { deduped: true } });
+    const { gate, refunds } = fakeGate({ reserve: { deduped: true, charged: false } });
     await handle(
       req({
         task: "dialogue",
@@ -256,6 +257,21 @@ describe("handle task=dialogue", () => {
       { startGate: gate, provider: streamProvider([], true) }
     );
     expect(refunds).toHaveLength(0); // replay slot belongs to the original attempt
+  });
+
+  it("refunds a paid (charged) replay whose generation fails", async () => {
+    const res = recorder();
+    const { gate, refunds } = fakeGate({ reserve: { deduped: true, charged: true } });
+    await handle(
+      req({
+        task: "dialogue",
+        idempotencyKey: "00000000-0000-4000-8000-0000000000a1",
+        payload: { level: "easy", topic: "t", length: 10, firstSession: false },
+      }),
+      res,
+      { startGate: gate, provider: streamProvider([], true) }
+    );
+    expect(refunds).toEqual([["u1", "00000000-0000-4000-8000-0000000000a1", "20231114"]]);
   });
 
   it("falls back to the NOT_IMPLEMENTED stub when startGate is absent", async () => {
